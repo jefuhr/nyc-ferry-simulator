@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- JSON loading for vessel parameters, kept out of the physics assembly. Newtonsoft.Json is
+	     pinned to the version Unity's com.unity.nuget.newtonsoft-json 3.2.2 ships (13.0.2). -->
+	<PropertyGroup>
+		<TargetFramework>netstandard2.1</TargetFramework>
+		<LangVersion>9.0</LangVersion>
+		<RootNamespace>FerrySim.Core.Serialization</RootNamespace>
+		<AssemblyName>FerrySim.Core.Serialization</AssemblyName>
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Include="$(FerrySimCoreSource)Serialization/**/*.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="../FerrySim.Core/FerrySim.Core.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+	</ItemGroup>
+
+</Project>

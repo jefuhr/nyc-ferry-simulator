@@ -1,0 +1,50 @@
+# OS and editor noise
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Verification artifacts (test results, maneuver CSVs, screenshots, replays)
+/artifacts/
+
+# .NET build output
+bin/
+obj/
+*.user
+TestResults/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Data: raw downloads and processed outputs stay out of git; manifests are committed
+/data/raw/
+/data/processed/
+/data/cache/
+
+# Unity generated folders (project lives in /unity)
+/unity/[Ll]ibrary/
+/unity/[Tt]emp/
+/unity/[Oo]bj/
+/unity/[Bb]uild/
+/unity/[Bb]uilds/
+/unity/[Ll]ogs/
+/unity/[Uu]ser[Ss]ettings/
+/unity/[Mm]emoryCaptures/
+/unity/[Rr]ecordings/
+/unity/*.csproj
+/unity/*.sln
+/unity/*.slnx
+/unity/*.pidb
+/unity/*.booproj
+/unity/*.unityproj
+/unity/.vsconfig
+/unity/sysinfo.txt
+/unity/crashlytics-buildid.txt
+/unity/Assets/StreamingAssets/aa.meta
+/unity/Assets/StreamingAssets/aa/*
+
+# Crew reference material never goes in the repo (see docs/reference-capture-kit.md)
+/reference/

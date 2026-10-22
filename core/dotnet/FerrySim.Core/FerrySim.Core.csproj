@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- Compiles the Unity package source so the core can be tested without the editor.
+	     LangVersion and target framework match what Unity 6 accepts. -->
+	<PropertyGroup>
+		<TargetFramework>netstandard2.1</TargetFramework>
+		<LangVersion>9.0</LangVersion>
+		<RootNamespace>FerrySim.Core</RootNamespace>
+		<AssemblyName>FerrySim.Core</AssemblyName>
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Include="$(FerrySimCoreSource)**/*.cs" Exclude="$(FerrySimCoreSource)Serialization/**/*.cs" />
+	</ItemGroup>
+
+</Project>

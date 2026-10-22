@@ -1,0 +1,35 @@
+{
+	"schemaVersion": 1,
+	"id": "k-class",
+	"displayName": "K-class 97 ft 350-passenger catamaran",
+	"notes": "USCG Subchapter K, Incat Crowther design IC16112 built by Metal Shark (the first was Ocean Queen Rockstar). A repower to EPA Tier 4 Baudouin 12M26.3 engines with SCR has been reported; confirm which engine fit the modelled hull has. Model coefficients are added by the dynamics work.",
+	"sources": {
+		"incat-ic16112": "Incat Crowther, design IC16112, 29 m catamaran passenger ferry. https://www.incatcrowther.com/products/ic16112/",
+		"gcaptain-metal-shark-350": "\"Metal Shark Building Four 350-Passenger Vessels and an Additional 150-Passenger Vessel for NYC Ferry\", gCaptain. https://gcaptain.com/metal-shark-building-four-350-passenger-vessels-additional-150-passenger-vessel-nyc-ferry/",
+		"marinelog-k-class-repower": "\"Hornblower seeks shipyard for NYC Ferry K-Class repowerings\", Marine Log. https://www.marinelog.com/news/hornblower-seeks-shipyard-for-nyc-ferry-k-class-repowerings/"
+	},
+	"particulars": {
+		"lengthOverall": { "value": 29.6, "unit": "m", "asPublished": "29.6 m", "source": "incat-ic16112", "confidence": "published", "note": "gCaptain gives 97' x 28'." },
+		"lengthWaterline": { "value": 28.1, "unit": "m", "asPublished": "28.1 m", "source": "incat-ic16112", "confidence": "published" },
+		"beam": { "value": 8.5, "unit": "m", "asPublished": "8.5 m", "source": "incat-ic16112", "confidence": "published" },
+		"depth": { "value": 3.5, "unit": "m", "asPublished": "3.5 m", "source": "incat-ic16112", "confidence": "published" },
+		"draft": { "value": 1.0, "unit": "m", "asPublished": "Draft (hull) 1.0 m", "source": "incat-ic16112", "confidence": "published" },
+		"maxDraft": { "value": 1.6, "unit": "m", "asPublished": "Draft (max) 1.6 m", "source": "incat-ic16112", "confidence": "published" },
+		"passengers": { "value": 354, "unit": "count", "asPublished": "354", "source": "incat-ic16112", "confidence": "published", "note": "Ordered as a 350-passenger class (gCaptain)." },
+		"crew": { "value": 8, "unit": "count", "asPublished": "8", "source": "incat-ic16112", "confidence": "published" }
+	},
+	"machinery": {
+		"engineCount": { "value": 2, "unit": "count", "asPublished": "2 x Baudouin 12M26.3 P2", "source": "incat-ic16112", "confidence": "published" },
+		"engineModel": { "value": "Baudouin 12M26.3 P2", "source": "incat-ic16112", "confidence": "published", "note": "Delivered as EPA Tier 3; Tier 4 repower with SCR reported (marinelog-k-class-repower)." },
+		"ratedPowerPerEngine": { "value": 999000, "unit": "W", "asPublished": "2 x 999 kW @ 2100 rpm", "source": "incat-ic16112", "confidence": "published" },
+		"ratedEngineSpeed": { "value": 219.9115, "unit": "rad/s", "asPublished": "2100 rpm", "source": "incat-ic16112", "confidence": "published" },
+		"gearboxModel": { "value": "ZF 3050", "source": "gcaptain-metal-shark-350", "confidence": "published" },
+		"propellerCount": { "value": 2, "unit": "count", "asPublished": "2 x propellers", "source": "incat-ic16112", "confidence": "published" },
+		"propellerBlades": { "value": 5, "unit": "count", "asPublished": "custom five-blade", "source": "gcaptain-metal-shark-350", "confidence": "published" },
+		"propellerMaker": { "value": "Michigan Wheel", "source": "gcaptain-metal-shark-350", "confidence": "published" }
+	},
+	"performance": {
+		"serviceSpeed": { "value": 12.3467, "unit": "m/s", "asPublished": "24.0 knots", "source": "incat-ic16112", "confidence": "published" },
+		"maxSpeed": { "value": 15.4333, "unit": "m/s", "asPublished": "30.0 knots", "source": "incat-ic16112", "confidence": "published" }
+	}
+}

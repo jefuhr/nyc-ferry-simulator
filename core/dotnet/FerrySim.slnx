@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="FerrySim.Cli/FerrySim.Cli.csproj" />
+  <Project Path="FerrySim.Core.Serialization/FerrySim.Core.Serialization.csproj" />
+  <Project Path="FerrySim.Core.Tests/FerrySim.Core.Tests.csproj" />
+  <Project Path="FerrySim.Core/FerrySim.Core.csproj" />
+</Solution>

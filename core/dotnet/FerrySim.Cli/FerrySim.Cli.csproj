@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>FerrySim.Cli</RootNamespace>
+		<AssemblyName>ferrysim</AssemblyName>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="../FerrySim.Core/FerrySim.Core.csproj" />
+		<ProjectReference Include="../FerrySim.Core.Serialization/FerrySim.Core.Serialization.csproj" />
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,10 @@
+{
+	"name": "com.nycferrysim.core",
+	"version": "0.1.0",
+	"displayName": "FerrySim Core",
+	"description": "Engine-agnostic vessel simulation core for the NYC Ferry Simulator. Compiled by Unity as a local package and by the .NET SDK for headless tests.",
+	"unity": "6000.3",
+	"dependencies": {
+		"com.unity.nuget.newtonsoft-json": "3.2.2"
+	}
+}

@@ -1,0 +1,35 @@
+{
+	"schemaVersion": 1,
+	"id": "t-class",
+	"displayName": "T-class (River) 85 ft catamaran",
+	"notes": "USCG Subchapter T, 149-passenger River-class aluminum catamaran designed by Incat Crowther, built by Horizon Shipbuilding and Metal Shark. Published figures come from a pre-construction trade article (2016); confirm as-built values with crew. The 85 ft deep-draft Rockaway variant (Baudouin 12M26.3 at 1,380 hp, 42 in props, 4'2\" draft, 27 kn) would be a separate parameter set. Model coefficients are added by the dynamics work.",
+	"sources": {
+		"workboat-2016-11-17": "Ken Hocke, \"New York ferries taking shape down south\", WorkBoat, 2016-11-17. https://www.workboat.com/shipbuilding/new-york-ferries-taking-shape",
+		"profmariner-2017-04-13": "\"Horizon delivers second NYC fast ferry\", Professional Mariner, 2017-04-13. https://professionalmariner.com/shipbuilding-news-april-2017/"
+	},
+	"particulars": {
+		"lengthOverall": { "value": 26.0096, "unit": "m", "asPublished": "85'4\"", "source": "workboat-2016-11-17", "confidence": "published" },
+		"beam": { "value": 8.0010, "unit": "m", "asPublished": "26'3\"", "source": "workboat-2016-11-17", "confidence": "published" },
+		"depth": { "value": 2.5908, "unit": "m", "asPublished": "8'6\"", "source": "workboat-2016-11-17", "confidence": "published" },
+		"draft": { "value": 0.9906, "unit": "m", "asPublished": "3'3\"", "source": "workboat-2016-11-17", "confidence": "published", "note": "Not stated whether this is hull draft or maximum draft including propellers." },
+		"freeboard": { "value": 1.7780, "unit": "m", "asPublished": "5'10\"", "source": "workboat-2016-11-17", "confidence": "published" },
+		"passengers": { "value": 149, "unit": "count", "asPublished": "149 passengers", "source": "workboat-2016-11-17", "confidence": "published", "note": "Professional Mariner (2017-04-13) describes the Horizon boats as 150-passenger." },
+		"crew": { "value": 3, "unit": "count", "asPublished": "three crew", "source": "workboat-2016-11-17", "confidence": "published" }
+	},
+	"machinery": {
+		"engineCount": { "value": 2, "unit": "count", "asPublished": "twin Baudouin 6M26.3", "source": "workboat-2016-11-17", "confidence": "published" },
+		"engineModel": { "value": "Baudouin 6M26.3 (EPA Tier 3)", "source": "workboat-2016-11-17", "confidence": "published" },
+		"ratedPowerPerEngine": { "value": 607745.4, "unit": "W", "asPublished": "815 hp at 2,100 rpm each", "source": "workboat-2016-11-17", "confidence": "published" },
+		"ratedEngineSpeed": { "value": 219.9115, "unit": "rad/s", "asPublished": "2,100 rpm", "source": "workboat-2016-11-17", "confidence": "published" },
+		"gearboxModel": { "value": "ZF 2050", "source": "workboat-2016-11-17", "confidence": "published" },
+		"gearRatio": { "value": 2.519, "unit": "1", "asPublished": "2.519:1 reduction", "source": "workboat-2016-11-17", "confidence": "published" },
+		"propellerCount": { "value": 2, "unit": "count", "asPublished": "twin engines through ZF gears to Michigan Wheel propellers", "source": "workboat-2016-11-17", "confidence": "published", "note": "Implied by the twin-engine, twin-gear arrangement." },
+		"propellerBlades": { "value": 5, "unit": "count", "asPublished": "5-bladed", "source": "workboat-2016-11-17", "confidence": "published" },
+		"propellerDiameter": { "value": 0.9652, "unit": "m", "asPublished": "38\"", "source": "workboat-2016-11-17", "confidence": "published" },
+		"propellerMaker": { "value": "Michigan Wheel", "source": "workboat-2016-11-17", "confidence": "published" },
+		"propellerMaterial": { "value": "NiBrAl (nickel-aluminum bronze)", "source": "workboat-2016-11-17", "confidence": "published" }
+	},
+	"performance": {
+		"serviceSpeed": { "value": 12.8611, "unit": "m/s", "asPublished": "running speed of 25 knots", "source": "workboat-2016-11-17", "confidence": "published" }
+	}
+}
