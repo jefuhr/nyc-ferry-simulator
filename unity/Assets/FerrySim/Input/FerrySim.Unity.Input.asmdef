@@ -1,7 +1,7 @@
 {
 	"name": "FerrySim.Unity.Input",
 	"rootNamespace": "FerrySim.Controls",
-	"references": ["Unity.InputSystem", "FerrySim.Unity.Sim"],
+	"references": ["FerrySim.Core", "Unity.InputSystem", "FerrySim.Unity.Sim"],
 	"includePlatforms": [],
 	"excludePlatforms": [],
 	"allowUnsafeCode": false,
