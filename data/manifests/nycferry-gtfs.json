@@ -1,0 +1,21 @@
+{
+	"source": "nycferry-gtfs",
+	"description": "NYC Ferry static GTFS feed (routes, trips, stops, stop_times, shapes)",
+	"homepage": "https://www.ferry.nyc/developer-tools/",
+	"license": "NYC Ferry Developer Terms: revocable, non-exclusive, non-transferable licence to use the feed to test, design and support products and services; NYC Ferry retains all rights, interest and title. Not an open licence: check with NYC Ferry before any public release.",
+	"terms_url": "https://www.ferry.nyc/developer-tools/",
+	"terms_text": "NYC Ferry Developer Terms (quoted from https://www.ferry.nyc/developer-tools/, retrieved with the feed): NYC Ferry offers static GTFS and various tools ('Developer Tools') for site developers, application API partners and others who may be interested in integrating NYC Ferry data or features into their sites, applications, products or services. Subject to the Terms and Conditions of the website (https://www.ferry.nyc/legal/), NYC Ferry grants non-exclusive, non-transferable, non-assignable, revocable rights to use the provided Developer Tools to test, design, and support your products and services. By downloading the Developer Tools, you acknowledge that NYC Ferry, without limitation, retains all rights, interest and title in the Developer Tools.",
+	"notes": [
+		"The feed URL is the one listed on https://www.ferry.nyc/developer-tools/ (Routes, Trips & Stops).",
+		"The feed is republished by NYC Ferry roughly weekly; the sha256 pins the version this slice was built from. Use fetch --force to refresh."
+	],
+	"files": [
+		{
+			"name": "gtfs.zip",
+			"url": "http://nycferry.connexionz.net/rtt/public/resource/gtfs.zip",
+			"retrieved_utc": "2026-10-22T23:49:13Z",
+			"sha256": "f899fc9f6c17349cd802436228849e81b15d64f295442f49c0352f90d8eeaa9a",
+			"size_bytes": 35889
+		}
+	]
+}

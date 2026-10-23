@@ -1,0 +1,210 @@
+{
+	"source": "marinecadastre-ais",
+	"description": "NOAA / USCG Nationwide AIS, MarineCadastre 'csv2' daily files (reports filtered to one per minute), four weeks across 2024-2025",
+	"homepage": "https://hub.marinecadastre.gov/pages/vesseltraffic",
+	"license": "CC0 1.0 Universal public domain dedication (NOAA Office for Coastal Management, MarineCadastre AIS). Acknowledgement: U.S. Coast Guard Navigation Center.",
+	"terms_url": "https://github.com/ocm-marinecadastre/ais-vessel-traffic",
+	"notes": [
+		"Daily zstd-compressed CSV from the NOAA OCM open-data container; the GeoParquet product only covers 2024, so csv2 is used for both years.",
+		"Weeks (Monday to Sunday, UTC): 2024-10-07, 2025-01-13, 2025-04-14, 2025-07-14.",
+		"Citation: Martin, D. R., J. Brass, M. Dornback, and J. Fontenault. Nationwide Automatic Identification System. NOAA Office for Coastal Management."
+	],
+	"files": [
+		{
+			"name": "ais-2024-10-07.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2024/ais-2024-10-07.csv.zst",
+			"retrieved_utc": "2026-10-22T23:51:14Z",
+			"sha256": "410db68866024da32e6c530830959d40c25800e6db870f6e8d78e38e53ae5a1c",
+			"size_bytes": 239881537
+		},
+		{
+			"name": "ais-2024-10-08.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2024/ais-2024-10-08.csv.zst",
+			"retrieved_utc": "2026-10-22T23:51:42Z",
+			"sha256": "dd5847915b30f2302b5f55e8e14b6fd0e2e21785e3cc2f6b08cc836704b0966f",
+			"size_bytes": 265808544
+		},
+		{
+			"name": "ais-2024-10-09.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2024/ais-2024-10-09.csv.zst",
+			"retrieved_utc": "2026-10-22T23:52:05Z",
+			"sha256": "a509912289bfc6f1c7dd4a68f9811cab1d30104e43c0cd1bbbf4862de3cbefc8",
+			"size_bytes": 247853759
+		},
+		{
+			"name": "ais-2024-10-10.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2024/ais-2024-10-10.csv.zst",
+			"retrieved_utc": "2026-10-22T23:52:32Z",
+			"sha256": "d55ace82fe703d061a6949cb5de4fe411988038a78168c6f3a2a164411ed0356",
+			"size_bytes": 255196072
+		},
+		{
+			"name": "ais-2024-10-11.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2024/ais-2024-10-11.csv.zst",
+			"retrieved_utc": "2026-10-22T23:53:00Z",
+			"sha256": "4c38eceb30e4f075e6904817685e06ba751fd603032df01edaa5eaf704416781",
+			"size_bytes": 254932060
+		},
+		{
+			"name": "ais-2024-10-12.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2024/ais-2024-10-12.csv.zst",
+			"retrieved_utc": "2026-10-22T23:53:27Z",
+			"sha256": "7e1233498abf6b699089160b95659d48ab375ffc9eae895eae92119ea58470e8",
+			"size_bytes": 255734575
+		},
+		{
+			"name": "ais-2024-10-13.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2024/ais-2024-10-13.csv.zst",
+			"retrieved_utc": "2026-10-22T23:53:54Z",
+			"sha256": "454d5d501b342886a04903f96afc95ede99383af9dc086b6ca05091cc78b3354",
+			"size_bytes": 267910235
+		},
+		{
+			"name": "ais-2025-01-13.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-01-13.csv.zst",
+			"retrieved_utc": "2026-10-22T23:54:16Z",
+			"sha256": "922df2509020fcfdca5f37635cf06521348b4c460b38fc679fe194405061d605",
+			"size_bytes": 197631873
+		},
+		{
+			"name": "ais-2025-01-14.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-01-14.csv.zst",
+			"retrieved_utc": "2026-10-22T23:54:37Z",
+			"sha256": "973dda3660fe1386da6d4ecbafeaa1e1d4de3c31b3cff535c4d78ec4aa9679f3",
+			"size_bytes": 206100977
+		},
+		{
+			"name": "ais-2025-01-15.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-01-15.csv.zst",
+			"retrieved_utc": "2026-10-22T23:54:56Z",
+			"sha256": "38392dda737d77bff4d16cd5c238933fe43a960b5c1e573f981a3435b51b4bd1",
+			"size_bytes": 167062254
+		},
+		{
+			"name": "ais-2025-01-16.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-01-16.csv.zst",
+			"retrieved_utc": "2026-10-22T23:55:19Z",
+			"sha256": "36951c088ba05e1d6254cacd644e9c6c44fcbb5711ffc576daef0970911ecb34",
+			"size_bytes": 177014139
+		},
+		{
+			"name": "ais-2025-01-17.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-01-17.csv.zst",
+			"retrieved_utc": "2026-10-22T23:55:39Z",
+			"sha256": "75d6d19260341cdf68c12ad0bdd700b489351bb0ebbb234d32231a89ed3513a9",
+			"size_bytes": 166374350
+		},
+		{
+			"name": "ais-2025-01-18.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-01-18.csv.zst",
+			"retrieved_utc": "2026-10-22T23:56:05Z",
+			"sha256": "01c0776fbe330ed086474e49b8549f127a1a6532a2abb11630b3b1321755731a",
+			"size_bytes": 208576944
+		},
+		{
+			"name": "ais-2025-01-19.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-01-19.csv.zst",
+			"retrieved_utc": "2026-10-22T23:56:42Z",
+			"sha256": "fdb768a5b18dc1becc6e67dde85ced26f645c718f4efd7a79aa27dcccf84f57b",
+			"size_bytes": 203892603
+		},
+		{
+			"name": "ais-2025-04-14.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-04-14.csv.zst",
+			"retrieved_utc": "2026-10-22T23:57:07Z",
+			"sha256": "9141a63c748acd1a8dc2eb47d1cab22eb012e6c112aa6f1684bbbc0030060679",
+			"size_bytes": 227325303
+		},
+		{
+			"name": "ais-2025-04-15.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-04-15.csv.zst",
+			"retrieved_utc": "2026-10-22T23:57:33Z",
+			"sha256": "bed6f4aa95e628ba81b84777e46e326c2d9ae929b5e760bd74b88949816eb947",
+			"size_bytes": 220592047
+		},
+		{
+			"name": "ais-2025-04-16.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-04-16.csv.zst",
+			"retrieved_utc": "2026-10-22T23:58:22Z",
+			"sha256": "4575a1decc9c85c26284d740109adeecf93f733057f6487bdd0c62f8e229825f",
+			"size_bytes": 207559763
+		},
+		{
+			"name": "ais-2025-04-17.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-04-17.csv.zst",
+			"retrieved_utc": "2026-10-22T23:59:10Z",
+			"sha256": "b75fcd5a90faf04f72223fc17bcf25c171f23fc379a24894a5b6bf573eea91dc",
+			"size_bytes": 217305129
+		},
+		{
+			"name": "ais-2025-04-18.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-04-18.csv.zst",
+			"retrieved_utc": "2026-10-22T23:59:57Z",
+			"sha256": "b3e7486ff9e2047a8f3655eca751488053f916a46d0fd329f82b94623c463667",
+			"size_bytes": 237092283
+		},
+		{
+			"name": "ais-2025-04-19.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-04-19.csv.zst",
+			"retrieved_utc": "2026-10-23T00:00:24Z",
+			"sha256": "26d737b164d95036b70fadd9bb1b6ae1891a505bb157a77c243517090b18c999",
+			"size_bytes": 236572996
+		},
+		{
+			"name": "ais-2025-04-20.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-04-20.csv.zst",
+			"retrieved_utc": "2026-10-23T00:00:47Z",
+			"sha256": "65e2db58870aee593bd8550c145b788c89f81b0368b41b2faddd113c8ebeafed",
+			"size_bytes": 226133055
+		},
+		{
+			"name": "ais-2025-07-14.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-07-14.csv.zst",
+			"retrieved_utc": "2026-10-23T00:01:17Z",
+			"sha256": "37755ad4d48e2d182ac8fd025a60a797970e29a5662485850c1a3affe0d40eab",
+			"size_bytes": 271779723
+		},
+		{
+			"name": "ais-2025-07-15.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-07-15.csv.zst",
+			"retrieved_utc": "2026-10-23T00:01:46Z",
+			"sha256": "6a6aa10d7f9393d9eedf68260b4d87c6b868f0e804384609c8cb33bc6b9d4474",
+			"size_bytes": 274575614
+		},
+		{
+			"name": "ais-2025-07-16.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-07-16.csv.zst",
+			"retrieved_utc": "2026-10-23T00:02:12Z",
+			"sha256": "3877c5576a4fd485fd02132e5bda54f6e8db1bc02c0ee0c2aeffde068303902e",
+			"size_bytes": 280100528
+		},
+		{
+			"name": "ais-2025-07-17.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-07-17.csv.zst",
+			"retrieved_utc": "2026-10-23T00:02:43Z",
+			"sha256": "8e4d6a55ef542aba67090c6cda39daf2477eb0b7e0cb715d15dbf2e0194d3ab0",
+			"size_bytes": 291014573
+		},
+		{
+			"name": "ais-2025-07-18.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-07-18.csv.zst",
+			"retrieved_utc": "2026-10-23T00:03:14Z",
+			"sha256": "74030dd123bfd728f956fe9ccb51d7a44a55da04649ec130fb6cb4adef9f4d8f",
+			"size_bytes": 285229752
+		},
+		{
+			"name": "ais-2025-07-19.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-07-19.csv.zst",
+			"retrieved_utc": "2026-10-23T00:03:44Z",
+			"sha256": "2be16d86665d231c1ecd8385baf9f65d9d963fbab168a8a46cc17b841358f096",
+			"size_bytes": 292170036
+		},
+		{
+			"name": "ais-2025-07-20.csv.zst",
+			"url": "https://noaaocm.blob.core.windows.net/ais/csv2/csv2025/ais-2025-07-20.csv.zst",
+			"retrieved_utc": "2026-10-23T00:04:16Z",
+			"sha256": "0e1a4251cfff93fabca849250c6bf12d730c0a6db89f94defe2b4bd707b30e5d",
+			"size_bytes": 292606112
+		}
+	]
+}

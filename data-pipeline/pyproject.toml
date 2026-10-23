@@ -1,0 +1,27 @@
+[project]
+name = "ferrydata"
+version = "0.1.0"
+description = "Turns free public data into validated, simulator-ready outputs for the NYC Ferry Simulator."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+	"pandas",
+	"pyarrow",
+	"geopandas",
+	"shapely",
+	"pyproj",
+	"rasterio",
+	"xarray",
+	"netCDF4",
+	"matplotlib",
+]
+
+[dependency-groups]
+dev = ["pytest"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

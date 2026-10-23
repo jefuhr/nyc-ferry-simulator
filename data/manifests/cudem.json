@@ -1,0 +1,27 @@
+{
+	"source": "cudem",
+	"description": "NOAA NCEI Continuously Updated Digital Elevation Model (CUDEM) 1/9 arc-second topobathy tiles, NAVD88 metres",
+	"homepage": "https://doi.org/10.25921/ds9v-ky35",
+	"license": "Public domain: NOAA NCEI data carry no use constraints (US Government work). Cite: NOAA NCEI, Continuously Updated Digital Elevation Model (CUDEM) - 1/9 Arc-Second Resolution Bathymetric-Topographic Tiles, DOI 10.25921/ds9v-ky35.",
+	"terms_url": "https://www.ncei.noaa.gov/access/metadata/landing-page/bin/iso?id=gov.noaa.ngdc.mgg.dem:999919",
+	"notes": [
+		"Tiles are read from the NOAA open-data bucket noaa-nos-coastal-lidar-pds (same product as the NCEI THREDDS server).",
+		"Elevations are metres relative to NAVD88, positive up: the seabed is negative. Horizontal datum NAD83, treated as WGS84."
+	],
+	"files": [
+		{
+			"name": "ncei19_n40x75_w074x00_2015v1.tif",
+			"url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/dem/NCEI_ninth_Topobathy_2014_8483/northeast_sandy/ncei19_n40x75_w074x00_2015v1.tif",
+			"retrieved_utc": "2026-10-22T23:49:36Z",
+			"sha256": "39246dcdd4bff1f9bfbdc8a341a0cf2f9fff5b5a5651f929d643a11d2e457e24",
+			"size_bytes": 224393126
+		},
+		{
+			"name": "ncei19_n40x75_w074x25_2015v1.tif",
+			"url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/dem/NCEI_ninth_Topobathy_2014_8483/northeast_sandy/ncei19_n40x75_w074x25_2015v1.tif",
+			"retrieved_utc": "2026-10-22T23:49:58Z",
+			"sha256": "2d243515f58c52419672053e6468a1d46f026b2b2d92132a6be45a22f6c0e32b",
+			"size_bytes": 227945485
+		}
+	]
+}

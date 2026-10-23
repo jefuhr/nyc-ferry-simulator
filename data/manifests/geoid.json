@@ -1,0 +1,20 @@
+{
+	"source": "geoid",
+	"description": "GEOID18 CONUS geoid undulation grid (NAD83(2011) ellipsoid to NAVD88), PROJ-network GeoTIFF distribution",
+	"homepage": "https://www.ngs.noaa.gov/GEOID/GEOID18/",
+	"license": "Public domain: NOAA National Geodetic Survey product (US Government work). Grid converted to GeoTIFF and hosted by the PROJ CDN (https://cdn.proj.org/, grid license in the PROJ-data repository: https://github.com/OSGeo/PROJ-data/tree/master/us_noaa).",
+	"terms_url": "https://github.com/OSGeo/PROJ-data/tree/master/us_noaa",
+	"notes": [
+		"Downloaded explicitly (PROJ network access stays off); build points pyproj at this directory in-process.",
+		"Approved by the coordinator for download into the raw cache before use."
+	],
+	"files": [
+		{
+			"name": "us_noaa_g2018u0.tif",
+			"url": "https://cdn.proj.org/us_noaa_g2018u0.tif",
+			"retrieved_utc": "2026-10-22T23:50:43Z",
+			"sha256": "fa9a407ac7ee3f5a3694008e4bcd09ce9cc250452f0c3b11700a4960340abce2",
+			"size_bytes": 16742155
+		}
+	]
+}

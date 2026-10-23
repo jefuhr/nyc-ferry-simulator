@@ -1,0 +1,29 @@
+{
+	"source": "noaa-enc",
+	"description": "NOAA Office of Coast Survey Electronic Navigational Charts (S-57) for the cells covering the slice",
+	"homepage": "https://nauticalcharts.noaa.gov/enconline/enconline.html",
+	"license": "NOAA ENCs may be downloaded, used and redistributed without restriction or payment (NOAA ENC User Agreement). Not for navigation.",
+	"terms_url": "https://www.charts.noaa.gov/ENCs/ENCs.shtml",
+	"terms_text": "NOAA ENC User Agreement (USERAGREEMENT.TXT in every cell download): NOAA ENCs are an official product of NOAA. 'You may download, use, and redistribute them without restriction, and without payment to NOAA, except as noted herein.' Redistributed NOAA ENCs are not official NOAA ENCs and do not meet chart carriage regulations unless redistributed by a certified distributor. Not for navigation.",
+	"notes": [
+		"Cells were chosen from NOAA's ENC product catalogue (https://www.charts.noaa.gov/ENCs/ENCProdCat_19115.xml) as the largest-scale cells (usage band 5, 1:12000) intersecting the slice bounding box.",
+		"Each zip holds a base cell (.000) and its update files (.001...), which GDAL's S-57 driver applies on read. The sha256 pins the weekly edition used.",
+		"Soundings are in the cell's sounding datum (MLLW); heights and bridge clearances are above MHW (DSPM_VDAT 16)."
+	],
+	"files": [
+		{
+			"name": "US5NYCDG.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NYCDG.zip",
+			"retrieved_utc": "2026-10-22T23:49:14Z",
+			"sha256": "beabe03e1f06adf5e36184695fa30f999d1ee93b556a4a4ad8a259f416b4f74d",
+			"size_bytes": 307220
+		},
+		{
+			"name": "US5NYCEG.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NYCEG.zip",
+			"retrieved_utc": "2026-10-22T23:49:14Z",
+			"sha256": "d4a087e912d2102108cafaf2ff59b96eb8b624bf8727e1eb2f3c6e5d53ee0531",
+			"size_bytes": 230412
+		}
+	]
+}
