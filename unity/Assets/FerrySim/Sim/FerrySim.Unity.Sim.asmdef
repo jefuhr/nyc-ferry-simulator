@@ -1,0 +1,14 @@
+{
+	"name": "FerrySim.Unity.Sim",
+	"rootNamespace": "FerrySim.Sim",
+	"references": ["FerrySim.Core", "FerrySim.Core.Serialization"],
+	"includePlatforms": [],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": false,
+	"precompiledReferences": [],
+	"autoReferenced": true,
+	"defineConstraints": [],
+	"versionDefines": [],
+	"noEngineReferences": false
+}

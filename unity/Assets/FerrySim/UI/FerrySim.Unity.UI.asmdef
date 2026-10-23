@@ -1,0 +1,14 @@
+{
+	"name": "FerrySim.Unity.UI",
+	"rootNamespace": "FerrySim.UI",
+	"references": ["FerrySim.Unity.Sim", "FerrySim.Unity.Input"],
+	"includePlatforms": [],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": false,
+	"precompiledReferences": [],
+	"autoReferenced": true,
+	"defineConstraints": [],
+	"versionDefines": [],
+	"noEngineReferences": false
+}
