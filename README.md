@@ -27,7 +27,7 @@ Start with [docs/conventions.md](docs/conventions.md). It defines the units, fra
 ## Checks
 
 ```
-dotnet test core/dotnet --logger "trx;LogFileName=core.trx" --results-directory artifacts/core
+dotnet test core/dotnet --logger "trx;LogFilePrefix=core" --results-directory artifacts/core
 ```
 
 ## Status

@@ -133,5 +133,5 @@ Floating-point results can differ slightly between runtimes (CoreCLR in tests, M
 
 | What | Command |
 |---|---|
-| Core tests | `dotnet test core/dotnet --logger "trx;LogFileName=core.trx" --results-directory artifacts/core` |
+| Core tests | `dotnet test core/dotnet --logger "trx;LogFilePrefix=core" --results-directory artifacts/core` |
 | Every check at once | `scripts/check.sh` (once it exists); writes results under `artifacts/` |

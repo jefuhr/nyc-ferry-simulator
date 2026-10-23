@@ -44,3 +44,8 @@
 *.bytes filter=lfs diff=lfs merge=lfs -text
 *.parquet filter=lfs diff=lfs merge=lfs -text
 *.nc    filter=lfs diff=lfs merge=lfs -text
+
+# Unity writes some assets as binary even with Force Text (terrain data, baked lighting).
+# Keep those, and anything the world importer generates, out of plain git history.
+unity/Assets/FerrySim/World/Generated/**/*.asset filter=lfs diff=lfs merge=lfs -text
+**/LightingData.asset                             filter=lfs diff=lfs merge=lfs -text
