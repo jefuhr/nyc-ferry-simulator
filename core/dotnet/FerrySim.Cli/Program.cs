@@ -2,13 +2,9 @@ using System;
 
 namespace FerrySim.Cli
 {
-	/// <summary>Headless runner for maneuvers and scenario replays. Implemented by the core-cli-harness task.</summary>
+	/// <summary>Headless runner for maneuvers and control-trace replays against the sim core.</summary>
 	public static class Program
 	{
-		public static int Main(string[] args)
-		{
-			Console.Error.WriteLine("ferrysim: no commands implemented yet (see the core-cli-harness task).");
-			return 2;
-		}
+		public static int Main(string[] args) => new CliApp(new FerrySim.Core.Dynamics.VesselDynamicsFactory()).Run(args, Console.Out, Console.Error);
 	}
 }
