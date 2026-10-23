@@ -75,6 +75,16 @@ In physics code, never use:
 
 Floating-point results can differ slightly between runtimes (CoreCLR in tests, Mono or IL2CPP in Unity). Cross-runtime comparisons use a tolerance (1e-9 relative), not bit equality.
 
+## Contact geometry
+
+Fixed structures the hull can touch (landing faces, piers, bulkheads) reach the core through `IWorldGeometry` (`Contracts/WorldGeometry.cs`). Pass it with the four-argument `ISimulationFactory.Create`; the three-argument form means open water.
+
+- A `ContactSegment` is a straight piece of structure in world (north, east) metres. The structure is solid on the right-hand side walking from `Start` to `End` seen from above; the water is on the left. `WaterNormal` points into the water.
+- `ContactSurface` values are per metre of contact length: stiffness (N/m per m), damping (N·s/m per m), Coulomb friction, and the compression at which a fender bottoms out (m).
+- Segment `Id`s are stable, so telemetry and debriefs can name what was hit.
+- Queries must be deterministic (same segments in the same order) and allocation-free. `SegmentListGeometry` is the simple reference implementation.
+- Landing faces come from the data pipeline's `landing_faces.geojson`. The Unity world and the CLI build segments from it, and never hand-place them inside the core.
+
 ## Operator inputs
 
 `ControlInputs` is device-independent and normalized:

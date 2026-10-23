@@ -41,6 +41,10 @@ namespace FerrySim.Core.Contracts
 	/// <summary>Builds simulations. Callers (CLI, Unity) depend on this, never on a concrete model.</summary>
 	public interface ISimulationFactory
 	{
+		/// <summary>A simulation in open water, with no fixed structures to touch.</summary>
 		ISimulation Create(VesselParameters parameters, IEnvironment environment, in VesselState initialState);
+
+		/// <summary>A simulation whose hull can touch the structures in <paramref name="geometry"/>.</summary>
+		ISimulation Create(VesselParameters parameters, IEnvironment environment, IWorldGeometry geometry, in VesselState initialState);
 	}
 }

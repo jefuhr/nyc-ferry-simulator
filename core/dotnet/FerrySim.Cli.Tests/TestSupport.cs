@@ -149,6 +149,9 @@ namespace FerrySim.Cli.Tests
 			Initials.Add(initialState);
 			return sim;
 		}
+
+		public ISimulation Create(VesselParameters parameters, IEnvironment environment, IWorldGeometry geometry, in VesselState initialState) =>
+			Create(parameters, environment, initialState);
 	}
 
 	/// <summary>Builds telemetry CSVs from known tracks, so metrics can be checked against closed-form answers.</summary>
