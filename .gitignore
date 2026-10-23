@@ -4,8 +4,8 @@
 .vscode/
 *.swp
 
-# Verification artifacts (test results, maneuver CSVs, screenshots, replays)
-/artifacts/
+# Verification artifacts at any depth (test results, maneuver CSVs, screenshots, replays, build logs)
+artifacts/
 
 # .NET build output
 bin/
