@@ -5,21 +5,25 @@
 	"notes": "USCG Subchapter T, 149-passenger River-class aluminum catamaran designed by Incat Crowther, built by Horizon Shipbuilding and Metal Shark. Published figures come from a pre-construction trade article (2016); confirm as-built values with crew. The 85 ft deep-draft Rockaway variant (Baudouin 12M26.3 at 1,380 hp, 42 in props, 4'2\" draft, 27 kn) would be a separate parameter set. Model coefficients are added by the dynamics work.",
 	"sources": {
 		"workboat-2016-11-17": "Ken Hocke, \"New York ferries taking shape down south\", WorkBoat, 2016-11-17. https://www.workboat.com/shipbuilding/new-york-ferries-taking-shape",
-		"profmariner-2017-04-13": "\"Horizon delivers second NYC fast ferry\", Professional Mariner, 2017-04-13. https://professionalmariner.com/shipbuilding-news-april-2017/"
+		"profmariner-2017-04-13": "\"Horizon delivers second NYC fast ferry\", Professional Mariner, 2017-04-13. https://professionalmariner.com/shipbuilding-news-april-2017/",
+		"incat-ic16019": "Incat Crowther, design IC16019, 26 m catamaran passenger ferry. https://www.incatcrowther.com/products/ic16019/"
 	},
 	"particulars": {
 		"lengthOverall": { "value": 26.0096, "unit": "m", "asPublished": "85'4\"", "source": "workboat-2016-11-17", "confidence": "published" },
+		"lengthWaterline": { "value": 23.9, "unit": "m", "asPublished": "23.9m", "source": "incat-ic16019", "confidence": "published" },
 		"beam": { "value": 8.0010, "unit": "m", "asPublished": "26'3\"", "source": "workboat-2016-11-17", "confidence": "published" },
-		"depth": { "value": 2.5908, "unit": "m", "asPublished": "8'6\"", "source": "workboat-2016-11-17", "confidence": "published" },
+		"depth": { "value": 2.8, "unit": "m", "asPublished": "2.8m", "source": "incat-ic16019", "confidence": "published", "note": "WorkBoat (2016-11-17), before construction, gave 8'6\" (2.5908 m)." },
 		"draft": { "value": 0.9906, "unit": "m", "asPublished": "3'3\"", "source": "workboat-2016-11-17", "confidence": "published", "note": "Not stated whether this is hull draft or maximum draft including propellers." },
+		"maxDraft": { "value": 1.9, "unit": "m", "asPublished": "Draft Max 1.9m", "source": "incat-ic16019", "confidence": "published", "note": "Deepest point including propellers; used for depth under keel and grounding." },
 		"freeboard": { "value": 1.7780, "unit": "m", "asPublished": "5'10\"", "source": "workboat-2016-11-17", "confidence": "published" },
-		"passengers": { "value": 149, "unit": "count", "asPublished": "149 passengers", "source": "workboat-2016-11-17", "confidence": "published", "note": "Professional Mariner (2017-04-13) describes the Horizon boats as 150-passenger." },
-		"crew": { "value": 3, "unit": "count", "asPublished": "three crew", "source": "workboat-2016-11-17", "confidence": "published" }
+		"displacement": { "value": 55000.0, "unit": "kg", "source": "Operating condition (about half deadweight): 2 demihulls x 23.9 m LWL x 2.4 m waterline beam x 0.99 m hull draft x block coefficient 0.47 at 1020 kg/m3", "confidence": "estimated", "note": "Ask crew or the operator for the lightship and loaded displacement." },
+		"passengers": { "value": 149, "unit": "count", "asPublished": "149 passengers", "source": "workboat-2016-11-17", "confidence": "published", "note": "Professional Mariner (2017-04-13) describes the Horizon boats as 150-passenger. Incat Crowther (IC16019) lists 150 passengers." },
+		"crew": { "value": 3, "unit": "count", "asPublished": "three crew", "source": "workboat-2016-11-17", "confidence": "published", "note": "Incat Crowther (IC16019) lists 8 crew." }
 	},
 	"machinery": {
 		"engineCount": { "value": 2, "unit": "count", "asPublished": "twin Baudouin 6M26.3", "source": "workboat-2016-11-17", "confidence": "published" },
-		"engineModel": { "value": "Baudouin 6M26.3 (EPA Tier 3)", "source": "workboat-2016-11-17", "confidence": "published" },
-		"ratedPowerPerEngine": { "value": 607745.4, "unit": "W", "asPublished": "815 hp at 2,100 rpm each", "source": "workboat-2016-11-17", "confidence": "published" },
+		"engineModel": { "value": "Baudouin 6M26.3 (EPA Tier 3)", "source": "workboat-2016-11-17", "confidence": "published", "note": "Incat Crowther lists 'P3 rated'." },
+		"ratedPowerPerEngine": { "value": 598797.0, "unit": "W", "asPublished": "2 x 803 bhp @ 2100rpm", "source": "incat-ic16019", "confidence": "published", "note": "WorkBoat (2016-11-17) gave 815 hp at 2,100 rpm each (607745.4 W)." },
 		"ratedEngineSpeed": { "value": 219.9115, "unit": "rad/s", "asPublished": "2,100 rpm", "source": "workboat-2016-11-17", "confidence": "published" },
 		"gearboxModel": { "value": "ZF 2050", "source": "workboat-2016-11-17", "confidence": "published" },
 		"gearRatio": { "value": 2.519, "unit": "1", "asPublished": "2.519:1 reduction", "source": "workboat-2016-11-17", "confidence": "published" },
@@ -30,6 +34,257 @@
 		"propellerMaterial": { "value": "NiBrAl (nickel-aluminum bronze)", "source": "workboat-2016-11-17", "confidence": "published" }
 	},
 	"performance": {
-		"serviceSpeed": { "value": 12.8611, "unit": "m/s", "asPublished": "running speed of 25 knots", "source": "workboat-2016-11-17", "confidence": "published" }
+		"serviceSpeed": { "value": 12.8611, "unit": "m/s", "asPublished": "running speed of 25 knots", "source": "workboat-2016-11-17", "confidence": "published" },
+		"maxSpeed": { "value": 13.3756, "unit": "m/s", "asPublished": "26.0 knots (assumed)", "source": "Assumed full-power speed in calm deep water: the published 25 kn running speed taken at about 90% of rated power, with power rising as speed to the 2.7 power above the hump", "confidence": "estimated", "note": "Not published. The model's resistance scale is set to reach this at full power." }
+	},
+	"massProperties": {
+		"yawRadiusOfGyration": { "value": 6.7, "unit": "m", "source": "About 0.26 x LOA: 0.25 L for the hull mass along its length plus the demihulls' lateral offset (catamaran mass sits outboard)", "confidence": "estimated" },
+		"longitudinalCentreOfGravity": { "value": -1.2, "unit": "m", "source": "LCG about 45% of the waterline length from its aft end, typical of fast ferries with engines aft", "confidence": "estimated" },
+		"centreOfGravityHeight": { "value": 2.0, "unit": "m", "source": "KG about 3.0 m for a one-deck cabin with open upper deck aluminium ferry, less the hull draft", "confidence": "estimated" }
+	},
+	"hull": {
+		"demihullSeparation": { "value": 5.6, "unit": "m", "source": "Overall beam less one demihull beam (8.0 - 2.4 m), centreline to centreline", "confidence": "estimated" },
+		"demihullBeam": { "value": 2.4, "unit": "m", "source": "Waterline beam that, with a demihull block coefficient of 0.47, floats the estimated displacement at the published hull draft", "confidence": "estimated" },
+		"midshipSectionArea": { "value": 3.42, "unit": "m2", "source": "2 x demihull beam x hull draft x midship coefficient 0.72 (round bilge)", "confidence": "estimated" },
+		"wettedSurface": { "value": 140.0, "unit": "m2", "source": "2 x 2.7 x sqrt(demihull volume x LWL), the usual coefficient for slender round-bilge demihulls", "confidence": "estimated" },
+		"formFactor": { "value": 1.35, "unit": "1", "source": "(1 + beta k) of round-bilge catamarans at s/L about 0.2 to 0.25 including viscous interference, typical of the Insel and Molland (1992) tests", "confidence": "estimated" },
+		"correlationAllowance": { "value": 0.0003, "unit": "1", "source": "Typical roughness and correlation allowance for a painted aluminium hull in service", "confidence": "estimated" },
+		"residuaryResistance": [
+			{
+				"froudeNumber": { "value": 0.0, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" },
+				"coefficient": { "value": 0.0, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.1, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" },
+				"coefficient": { "value": 0.0002, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.2, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" },
+				"coefficient": { "value": 0.0009, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.3, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" },
+				"coefficient": { "value": 0.0024, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.35, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" },
+				"coefficient": { "value": 0.0034, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.4, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" },
+				"coefficient": { "value": 0.0046, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.45, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" },
+				"coefficient": { "value": 0.0054, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.5, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" },
+				"coefficient": { "value": 0.0053, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.55, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" },
+				"coefficient": { "value": 0.0048, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.6, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" },
+				"coefficient": { "value": 0.0042, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.7, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" },
+				"coefficient": { "value": 0.0033, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.8, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" },
+				"coefficient": { "value": 0.0027, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.9, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" },
+				"coefficient": { "value": 0.0023, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 1.0, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" },
+				"coefficient": { "value": 0.002, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 1.2, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" },
+				"coefficient": { "value": 0.0016, "unit": "1", "source": "Hump shape typical of round-bilge semi-displacement catamarans (see Dynamics/README.md, hull resistance); level set by residuaryResistanceScale", "confidence": "estimated" }
+			}
+		],
+		"residuaryResistanceScale": { "value": 0.7, "unit": "1", "source": "Set so that full power (2 x 803 bhp at 2100 rpm) gives 26.0 kn in calm deep water, the assumed maximum above the published 25 kn running speed", "confidence": "estimated", "note": "Calibration parameter: refit from AIS speed-power data and crew rpm-speed figures." },
+		"asternResistanceFactor": { "value": 2.5, "unit": "1", "source": "Transom-first running of a fast catamaran: immersed transom leading and the fine bow trailing, roughly 2 to 3 times ahead resistance", "confidence": "estimated", "note": "Ask crew: boat speed going astern at a given rpm." },
+		"surgeAddedMass": { "value": 2750.0, "unit": "kg", "source": "About 5% of displacement for slender hulls (Motora charts give 2% to 6%)", "confidence": "estimated" },
+		"swayAddedMass": { "value": 77000.0, "unit": "kg", "source": "Strip theory: double-body sway added mass of a rectangular section (DNV-RP-C205 coefficient about 1.2 with rounded bilges) x 0.85 effective length, both demihulls", "confidence": "estimated" },
+		"yawAddedInertia": { "value": 2900000.0, "unit": "kg*m2", "source": "Strip theory: each demihull's sway added mass distributed over its length (L^2/12 x 0.8 for tapered ends), both demihulls", "confidence": "estimated" },
+		"derivativeYv": { "value": -0.456, "unit": "1", "source": "Clarke, Gedling and Hine (1983) linear-derivative regressions for one demihull (T/L 0.041, B/T 2.4, CB 0.47) on the MMG basis, x 2 demihulls x 1.2 catamaran interaction (Duman and Bal 2022 CFD for the Delft 372 catamaran gives Y'v -0.39 to -0.58)", "confidence": "estimated" },
+		"derivativeYr": { "value": 0.148, "unit": "1", "source": "Clarke, Gedling and Hine (1983) linear-derivative regressions for one demihull (T/L 0.041, B/T 2.4, CB 0.47) on the MMG basis, x 2 demihulls x 1.2 catamaran interaction (Duman and Bal 2022 CFD for the Delft 372 catamaran gives Y'v -0.39 to -0.58)", "confidence": "estimated" },
+		"derivativeNv": { "value": -0.187, "unit": "1", "source": "Clarke, Gedling and Hine (1983) linear-derivative regressions for one demihull (T/L 0.041, B/T 2.4, CB 0.47) on the MMG basis, x 2 demihulls x 1.2 catamaran interaction (Duman and Bal 2022 CFD for the Delft 372 catamaran gives Y'v -0.39 to -0.58)", "confidence": "estimated" },
+		"derivativeNr": { "value": -0.09, "unit": "1", "source": "Clarke, Gedling and Hine (1983) linear-derivative regressions for one demihull (T/L 0.041, B/T 2.4, CB 0.47) on the MMG basis, x 2 demihulls x 1.2 catamaran interaction (Duman and Bal 2022 CFD for the Delft 372 catamaran gives Y'v -0.39 to -0.58)", "confidence": "estimated" },
+		"derivativeXvv": { "value": -0.06, "unit": "1", "source": "Induced drag in drift: KVLCC2 MMG value -0.040 (Yasukawa and Yoshimura 2015), Delft 372 catamaran CFD -0.18 (Duman and Bal 2022)", "confidence": "estimated" },
+		"derivativeXvr": { "value": 0.0, "unit": "1", "source": "Hydrodynamic part taken as zero; the added-mass term (m + m_y) v r is in the equations of motion", "confidence": "estimated" },
+		"derivativeXrr": { "value": 0.0, "unit": "1", "source": "Taken as zero, small for slender demihulls", "confidence": "estimated" },
+		"crossFlowDragCoefficient": { "value": 0.6, "unit": "1", "source": "Sectional cross-flow drag of round-bilge sections of order 0.6 to 1.0 (Hoerner 1965), reduced for the downstream demihull sitting in the upstream one's wake", "confidence": "estimated" },
+		"lateralForceDepth": { "value": 0.5, "unit": "m", "source": "Centre of lateral pressure taken at half the hull draft", "confidence": "estimated" }
+	},
+	"propellers": {
+		"pitchRatio": { "value": 1.243, "unit": "1", "source": "B-series P/D at which the propeller absorbs rated power at rated rpm at the 26.0 kn assumed maximum (J 0.957); fast-ferry propellers are usually P/D 1.1 to 1.4", "confidence": "estimated", "note": "Calibration parameter: confirm from the propeller maker's drawing or the boat's rpm-speed curve." },
+		"expandedAreaRatio": { "value": 0.8, "unit": "1", "source": "Five-blade NiBrAl propellers for 25 to 30 kn ferries typically have AE/A0 0.75 to 0.9 for cavitation margin", "confidence": "estimated" },
+		"longitudinalPosition": { "value": -10.7, "unit": "m", "source": "About 1.3 m forward of the aft end of the waterline", "confidence": "estimated" },
+		"shaftDepth": { "value": 1.42, "unit": "m", "source": "Maximum draft less half the propeller diameter", "confidence": "estimated" },
+		"wakeFraction": { "value": 0.04, "unit": "1", "source": "Fast catamarans with propellers under the demihulls have small effective wake, about 0.0 to 0.06", "confidence": "estimated" },
+		"thrustDeduction": { "value": 0.06, "unit": "1", "source": "Typical for twin-screw fast craft, 0.04 to 0.1", "confidence": "estimated" },
+		"asternThrustDeduction": { "value": 0.1, "unit": "1", "source": "Astern jet runs forward along the demihull; larger deduction than ahead", "confidence": "estimated" },
+		"reversedFlowLiftFactor": { "value": 0.55, "unit": "1", "source": "Chosen so astern bollard thrust is about 0.7 of ahead (fixed-pitch propellers typically give 0.6 to 0.75)", "confidence": "estimated" },
+		"bladeNormalDragCoefficient": { "value": 1.1, "unit": "1", "source": "Flat-plate normal-force coefficient of low-aspect-ratio blades; Hausler et al. (2013) fit 1.04 for a Ka 4-70 propeller", "confidence": "estimated" },
+		"rotation": { "value": "outward-turning", "source": "Usual arrangement on twin-screw ferries; ask crew (reference kit: prop walk)", "confidence": "estimated" },
+		"propWalkAhead": { "value": 0.02, "unit": "1", "source": "Small paddle-wheel side force under a slender demihull, 1% to 3% of thrust", "confidence": "estimated" },
+		"propWalkAstern": { "value": 0.06, "unit": "1", "source": "Astern walk is several times stronger than ahead walk on shaft-driven boats, 4% to 8% of thrust", "confidence": "estimated" },
+		"shaftInertia": { "value": 10.0, "unit": "kg*m2", "source": "Propeller (0.05 m D^2 for a 130 kg NiBrAl wheel) plus 25% entrained water plus shaft and gear output", "confidence": "estimated" },
+		"shaftFrictionTorque": { "value": 60.0, "unit": "N*m", "source": "Shaft bearings, stern seal and gearbox output drag, about 1% of full-power shaft torque", "confidence": "estimated" },
+		"slipstreamFactor": { "value": 0.55, "unit": "1", "source": "MMG kappa, 0.5 to 0.6 for a rudder about one diameter behind the propeller (Yasukawa and Yoshimura 2015 use 0.50)", "confidence": "estimated" },
+		"upstreamInflowFactor": { "value": 0.1, "unit": "1", "source": "Actuator-disc induction one diameter upstream of the disc is about a tenth of the far-wake speed-up", "confidence": "estimated" }
+	},
+	"engines": {
+		"idleSpeed": { "value": 68.06784, "unit": "rad/s", "asPublished": "650 rpm", "source": "Baudouin 6M26.3 datasheet idle speed; vessel setting unconfirmed", "confidence": "estimated", "note": "Ask crew: engine rpm at idle in gear." },
+		"torqueCurve": [
+			{
+				"speed": { "value": 62.83185, "unit": "rad/s", "asPublished": "600 rpm", "source": "Typical turbocharged marine diesel full-load curve scaled to the published rated point; digitise the Baudouin 6M26.3 P3 datasheet curve", "confidence": "estimated" },
+				"torque": { "value": 1633.74, "unit": "N*m", "source": "Typical turbocharged marine diesel full-load curve scaled to the published rated point; digitise the Baudouin 6M26.3 P3 datasheet curve", "confidence": "estimated", "note": "0.60 x rated torque" }
+			},
+			{
+				"speed": { "value": 94.24778, "unit": "rad/s", "asPublished": "900 rpm", "source": "Typical turbocharged marine diesel full-load curve scaled to the published rated point; digitise the Baudouin 6M26.3 P3 datasheet curve", "confidence": "estimated" },
+				"torque": { "value": 2505.07, "unit": "N*m", "source": "Typical turbocharged marine diesel full-load curve scaled to the published rated point; digitise the Baudouin 6M26.3 P3 datasheet curve", "confidence": "estimated", "note": "0.92 x rated torque" }
+			},
+			{
+				"speed": { "value": 125.6637, "unit": "rad/s", "asPublished": "1200 rpm", "source": "Typical turbocharged marine diesel full-load curve scaled to the published rated point; digitise the Baudouin 6M26.3 P3 datasheet curve", "confidence": "estimated" },
+				"torque": { "value": 2995.19, "unit": "N*m", "source": "Typical turbocharged marine diesel full-load curve scaled to the published rated point; digitise the Baudouin 6M26.3 P3 datasheet curve", "confidence": "estimated", "note": "1.10 x rated torque" }
+			},
+			{
+				"speed": { "value": 157.0796, "unit": "rad/s", "asPublished": "1500 rpm", "source": "Typical turbocharged marine diesel full-load curve scaled to the published rated point; digitise the Baudouin 6M26.3 P3 datasheet curve", "confidence": "estimated" },
+				"torque": { "value": 3131.33, "unit": "N*m", "source": "Typical turbocharged marine diesel full-load curve scaled to the published rated point; digitise the Baudouin 6M26.3 P3 datasheet curve", "confidence": "estimated", "note": "1.15 x rated torque" }
+			},
+			{
+				"speed": { "value": 188.4956, "unit": "rad/s", "asPublished": "1800 rpm", "source": "Typical turbocharged marine diesel full-load curve scaled to the published rated point; digitise the Baudouin 6M26.3 P3 datasheet curve", "confidence": "estimated" },
+				"torque": { "value": 3049.65, "unit": "N*m", "source": "Typical turbocharged marine diesel full-load curve scaled to the published rated point; digitise the Baudouin 6M26.3 P3 datasheet curve", "confidence": "estimated", "note": "1.12 x rated torque" }
+			},
+			{
+				"speed": { "value": 209.4395, "unit": "rad/s", "asPublished": "2000 rpm", "source": "Typical turbocharged marine diesel full-load curve scaled to the published rated point; digitise the Baudouin 6M26.3 P3 datasheet curve", "confidence": "estimated" },
+				"torque": { "value": 2831.82, "unit": "N*m", "source": "Typical turbocharged marine diesel full-load curve scaled to the published rated point; digitise the Baudouin 6M26.3 P3 datasheet curve", "confidence": "estimated", "note": "1.04 x rated torque" }
+			},
+			{
+				"speed": { "value": 219.9115, "unit": "rad/s", "asPublished": "2100 rpm", "source": "Typical turbocharged marine diesel full-load curve scaled to the published rated point; digitise the Baudouin 6M26.3 P3 datasheet curve", "confidence": "estimated" },
+				"torque": { "value": 2722.9, "unit": "N*m", "source": "Typical turbocharged marine diesel full-load curve scaled to the published rated point; digitise the Baudouin 6M26.3 P3 datasheet curve", "confidence": "estimated", "note": "1.00 x rated torque" }
+			}
+		],
+		"inertia": { "value": 3.0, "unit": "kg*m2", "source": "Crankshaft, flywheel, damper and gearbox input of a 6-cylinder 600 kW high-speed diesel", "confidence": "estimated" },
+		"frictionTorqueAtIdle": { "value": 120.0, "unit": "N*m", "source": "About 4% of rated torque at idle", "confidence": "estimated" },
+		"frictionTorqueAtRatedSpeed": { "value": 270.0, "unit": "N*m", "source": "About 10% of rated torque (mechanical efficiency about 0.9 at rated speed)", "confidence": "estimated" },
+		"governorTimeConstant": { "value": 0.05, "unit": "s", "source": "Stiff electronic speed governor: full fuel for a few percent speed error, so rpm response is set by torque, boost and inertia", "confidence": "estimated" },
+		"governorIntegralTime": { "value": 0.5, "unit": "s", "source": "Integral time of the PI speed governor, removing droop within about a second", "confidence": "estimated" },
+		"unboostedTorqueFraction": { "value": 0.55, "unit": "1", "source": "Torque available before the turbocharger spools up, about half of full load", "confidence": "estimated" },
+		"turbochargerTimeConstant": { "value": 1.2, "unit": "s", "source": "Turbocharger spool-up lag of high-speed marine diesels, about 1 to 2 s", "confidence": "estimated", "note": "Ask crew: seconds from idle to full rpm in gear." }
+	},
+	"transmission": {
+		"gearEfficiency": { "value": 0.97, "unit": "1", "source": "Marine reverse-reduction gears transmit 96% to 98% of input power", "confidence": "estimated" },
+		"clutchTorqueCapacity": { "value": 15776, "unit": "N*m", "source": "Twice the engine's peak torque at the output shaft (gear ratio 2.519), the usual service-factor margin of a ZF 2050", "confidence": "estimated" },
+		"clutchFillTime": { "value": 0.4, "unit": "s", "source": "Solenoid and clutch fill delay of ZF hydraulic gears, a few tenths of a second", "confidence": "estimated", "note": "Ask crew: time from lever into gear to the clutch biting." },
+		"clutchEngagementTime": { "value": 0.6, "unit": "s", "source": "Clutch pressure ramp from first contact to full pressure on ZF hydraulic gears", "confidence": "estimated" },
+		"clutchReleaseTime": { "value": 0.2, "unit": "s", "source": "Hydraulic clutch release, quicker than the fill (oil dumps to drain)", "confidence": "estimated" }
+	},
+	"controls": {
+		"clutchInLever": { "value": 0.12, "unit": "1", "source": "Idle detent at about 12% of lever travel on single-lever control heads", "confidence": "estimated", "note": "Ask crew: where the ahead and astern idle detents are." },
+		"throttleStartLever": { "value": 0.2, "unit": "1", "source": "Throttle begins to open just past the detent", "confidence": "estimated" },
+		"detentHysteresis": { "value": 0.02, "unit": "1", "source": "Keeps a noisy input device from chattering at the detent", "confidence": "estimated" },
+		"neutralDwell": { "value": 2.0, "unit": "s", "source": "Electronic controls hold neutral for a programmable delay when reversing, typically a few seconds; 2 s assumed", "confidence": "estimated", "note": "Ask crew: time from ahead idle to astern engaged." },
+		"throttlePause": { "value": 0.5, "unit": "s", "source": "Throttle held at idle briefly after the clutch engages; installers can set this pause on electronic controls", "confidence": "estimated" },
+		"shiftInterlockSpeed": { "value": 94.24778, "unit": "rad/s", "asPublished": "900 rpm", "source": "Clutch engagement inhibited until the engine is near idle", "confidence": "estimated" },
+		"steeringMode": { "value": "follow-up", "source": "Wheel position orders rudder angle; ask crew whether the helm is follow-up or a non-follow-up jog lever", "confidence": "estimated" },
+		"hardOverAngle": { "value": 0.6108652, "unit": "rad", "asPublished": "35 deg", "source": "Usual 35 degree hard-over stops", "confidence": "estimated", "note": "Ask crew: rudder angle at hard over." },
+		"steeringRate": { "value": 0.122173, "unit": "rad/s", "asPublished": "7 deg/s", "source": "Hard over to hard over in about 10 s, typical of electro-hydraulic steering on 25 to 30 m fast craft (SOLAS II-1/29 minimum for ships is 35 to 30 deg in 28 s)", "confidence": "estimated", "note": "Ask crew: seconds from hard over to hard over." }
+	},
+	"rudders": {
+		"area": { "value": 0.4, "unit": "m2", "source": "About 1.7% of one demihull's L x T, above the DNV minimum (T L / 100)(1 + 25 (B/L)^2) for each hull", "confidence": "estimated" },
+		"aspectRatio": { "value": 1.4, "unit": "1", "source": "Spade rudder sized to the space under the transom", "confidence": "estimated" },
+		"longitudinalPosition": { "value": -11.3, "unit": "m", "source": "About 0.6 m aft of the propellers", "confidence": "estimated" },
+		"stallAngle": { "value": 0.6108652, "unit": "rad", "asPublished": "35 deg", "source": "Stall of a low-aspect-ratio rudder in propeller wash, 30 to 40 deg", "confidence": "estimated" },
+		"reversedFlowLiftFactor": { "value": 0.5, "unit": "1", "source": "Trailing-edge-first lift slope of NACA-type sections is about half of normal flow", "confidence": "estimated" },
+		"flowStraightening": { "value": 0.5, "unit": "1", "source": "MMG gamma_R, 0.4 to 0.65 (Yasukawa and Yoshimura 2015 KVLCC2: 0.395 and 0.640)", "confidence": "estimated" },
+		"effectiveLeverFactor": { "value": -0.9, "unit": "1", "source": "MMG l'_R, -0.7 to -1.0 (Yasukawa and Yoshimura 2015 KVLCC2: -0.710)", "confidence": "estimated" },
+		"slipstreamSpanFraction": { "value": 0.9, "unit": "1", "source": "Propeller diameter larger than the rudder span, rudder partly above the inclined jet", "confidence": "estimated" },
+		"wakeRatio": { "value": 0.95, "unit": "1", "source": "MMG epsilon close to 1 for small wake fractions", "confidence": "estimated" },
+		"hullLateralInteraction": { "value": 0.15, "unit": "1", "source": "MMG a_H; small for a slender demihull (0.2 to 0.4 for full monohulls)", "confidence": "estimated" },
+		"hullInteractionPosition": { "value": -0.45, "unit": "1", "source": "MMG x'_H, about -0.45 (Yasukawa and Yoshimura 2015 KVLCC2: -0.464)", "confidence": "estimated" },
+		"dragDeduction": { "value": 0.25, "unit": "1", "source": "MMG t_R, 0.2 to 0.4 (Yasukawa and Yoshimura 2015 KVLCC2: 0.387)", "confidence": "estimated" },
+		"forceDepth": { "value": 1.2, "unit": "m", "source": "Centre of the rudder span below the waterline", "confidence": "estimated" }
+	},
+	"windage": {
+		"frontalArea": { "value": 42.0, "unit": "m2", "source": "Beam x freeboard plus main cabin and wheelhouse from published photographs; confirm from the general arrangement", "confidence": "estimated" },
+		"lateralArea": { "value": 115.0, "unit": "m2", "source": "Length x freeboard plus superstructure profile from published photographs; confirm from the general arrangement", "confidence": "estimated" },
+		"longitudinalCoefficient": { "value": 0.65, "unit": "1", "source": "Fossen (2011) c_x range 0.50 to 0.90 for ships with superstructure", "confidence": "estimated" },
+		"lateralCoefficient": { "value": 0.85, "unit": "1", "source": "Fossen (2011) c_y range 0.70 to 0.95 for ships with superstructure", "confidence": "estimated" },
+		"yawCoefficient": { "value": 0.08, "unit": "1", "source": "Fossen (2011) c_n range 0.05 to 0.20 for ships with superstructure", "confidence": "estimated" },
+		"lateralAreaCentre": { "value": 0.5, "unit": "m", "source": "Wheelhouse and upper deck slightly forward of midships", "confidence": "estimated" },
+		"lateralAreaHeight": { "value": 2.6, "unit": "m", "source": "Centroid of the profile above the waterline", "confidence": "estimated" }
+	},
+	"shallowWater": {
+		"blockageCoefficient": { "value": 0.1242, "unit": "1", "source": "Lackenby (1963) shallow-water speed-loss formula, potential-flow term 0.1242 (A_X/h^2 - 0.05)", "confidence": "estimated" },
+		"criticalSpeedAmplitude": { "value": 0.5, "unit": "1", "source": "Residuary resistance peaks near depth Froude number 1 in shallow water (Millward 1983); amplitude for these hulls uncertain", "confidence": "estimated", "note": "Calibration parameter: fit from AIS speed against charted depth." },
+		"criticalSpeedWidth": { "value": 0.2, "unit": "1", "source": "Width of the depth-critical peak in depth Froude number", "confidence": "estimated" },
+		"linearDerivativeFactor": { "value": 0.4, "unit": "1", "source": "Gives about 1.5 x at h/T 1.5 and 2.6 x at h/T 1.2, of the order of the Kijima et al. (1990) shallow-water corrections", "confidence": "estimated" },
+		"crossFlowFactor": { "value": 0.5, "unit": "1", "source": "Gives about 3 x at h/T 1.2, as for ship sections approaching the bottom", "confidence": "estimated" },
+		"addedMassFactor": { "value": 0.3, "unit": "1", "source": "Sway added mass about 2 x deep water at h/T 1.2", "confidence": "estimated" },
+		"minimumDepthRatio": { "value": 1.05, "unit": "1", "source": "Keeps the corrections finite as depth approaches the draft; grounding is reported, not modelled", "confidence": "estimated" }
+	},
+	"motionResponse": {
+		"transverseMetacentricHeight": { "value": 10.5, "unit": "m", "source": "KB + BM_T - KG with demihull waterplanes at +/- half the separation", "confidence": "estimated" },
+		"longitudinalMetacentricHeight": { "value": 64.0, "unit": "m", "source": "BM_L of two demihull waterplanes", "confidence": "estimated" },
+		"rollPeriod": { "value": 2.2, "unit": "s", "source": "2 pi k_xx / sqrt(g GM_T) with k_xx about 0.4 B plus added inertia", "confidence": "estimated" },
+		"pitchPeriod": { "value": 2.0, "unit": "s", "source": "2 pi k_yy / sqrt(g GM_L) with k_yy about 0.25 L plus added inertia", "confidence": "estimated" },
+		"heavePeriod": { "value": 2.2, "unit": "s", "source": "2 pi sqrt((m + a_33) / (rho g A_wp)) with a_33 about m", "confidence": "estimated" },
+		"rollDampingRatio": { "value": 0.15, "unit": "1", "source": "Catamaran roll is damped by the demihulls heaving in opposition", "confidence": "estimated" },
+		"pitchDampingRatio": { "value": 0.3, "unit": "1", "source": "Pitch of slender high-speed hulls is heavily damped", "confidence": "estimated" },
+		"heaveDampingRatio": { "value": 0.3, "unit": "1", "source": "Heave of slender high-speed hulls is heavily damped", "confidence": "estimated" },
+		"runningAttitude": [
+			{
+				"froudeNumber": { "value": 0.0, "unit": "1", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" },
+				"trim": { "value": 0.0, "unit": "rad", "asPublished": "0.0 deg", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" },
+				"sinkage": { "value": 0.0, "unit": "m", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.2, "unit": "1", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" },
+				"trim": { "value": 0.00349066, "unit": "rad", "asPublished": "0.2 deg", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" },
+				"sinkage": { "value": 0.02, "unit": "m", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.35, "unit": "1", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" },
+				"trim": { "value": 0.015708, "unit": "rad", "asPublished": "0.9 deg", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" },
+				"sinkage": { "value": 0.08, "unit": "m", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.45, "unit": "1", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" },
+				"trim": { "value": 0.0279253, "unit": "rad", "asPublished": "1.6 deg", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" },
+				"sinkage": { "value": 0.14, "unit": "m", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.55, "unit": "1", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" },
+				"trim": { "value": 0.0261799, "unit": "rad", "asPublished": "1.5 deg", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" },
+				"sinkage": { "value": 0.12, "unit": "m", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.7, "unit": "1", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" },
+				"trim": { "value": 0.0174533, "unit": "rad", "asPublished": "1.0 deg", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" },
+				"sinkage": { "value": 0.04, "unit": "m", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 0.9, "unit": "1", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" },
+				"trim": { "value": 0.010472, "unit": "rad", "asPublished": "0.6 deg", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" },
+				"sinkage": { "value": -0.03, "unit": "m", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" }
+			},
+			{
+				"froudeNumber": { "value": 1.1, "unit": "1", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" },
+				"trim": { "value": 0.00698132, "unit": "rad", "asPublished": "0.4 deg", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" },
+				"sinkage": { "value": -0.06, "unit": "m", "source": "Typical semi-displacement catamaran running trim and sinkage, peaking near the hump (Fn about 0.45); visuals only", "confidence": "estimated" }
+			}
+		]
 	}
 }
