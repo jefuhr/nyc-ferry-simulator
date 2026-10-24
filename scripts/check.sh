@@ -4,7 +4,7 @@
 # Absent components are reported as SKIPPED with the reason, never silently omitted.
 # Exit status is non-zero if any step FAILED.
 #
-# Usage: scripts/check.sh [--only core|cli|data-pipeline|unity]
+# Usage: scripts/check.sh [--only core|cli|data-pipeline|crew-intake|unity]
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -21,11 +21,11 @@ case "${1:-}" in
 	--only)
 		ONLY="${2:-}"
 		case "$ONLY" in
-			core | cli | data-pipeline | unity) ;;
-			*) echo "usage: scripts/check.sh [--only core|cli|data-pipeline|unity]" >&2; exit 2 ;;
+			core | cli | data-pipeline | crew-intake | unity) ;;
+			*) echo "usage: scripts/check.sh [--only core|cli|data-pipeline|crew-intake|unity]" >&2; exit 2 ;;
 		esac
 		;;
-	*) echo "usage: scripts/check.sh [--only core|cli|data-pipeline|unity]" >&2; exit 2 ;;
+	*) echo "usage: scripts/check.sh [--only core|cli|data-pipeline|crew-intake|unity]" >&2; exit 2 ;;
 esac
 
 # want <step>: true when no --only filter is set or it names this step.
@@ -91,8 +91,14 @@ cli_smoke() {
 	done
 }
 
+# Each Python project gets an explicit path: run from the repo root without one, pytest would also collect
+# the other project's tests without that project's import path.
 data_pipeline_tests() {
-	uv run --project data-pipeline pytest || return 1
+	uv run --project data-pipeline pytest data-pipeline || return 1
+}
+
+crew_intake_tests() {
+	uv run --project tools/crew_intake pytest tools/crew_intake || return 1
 }
 
 # unity_result_ok <xml>: true only if the root <test-run> says result="Passed" and failed="0".
@@ -142,6 +148,14 @@ if want data-pipeline; then
 		run_step "data-pipeline tests (pytest)" data_pipeline_tests
 	else
 		skip_step "data-pipeline tests (pytest)" "data-pipeline/pyproject.toml not found"
+	fi
+fi
+
+if want crew-intake; then
+	if [[ -f tools/crew_intake/pyproject.toml ]]; then
+		run_step "crew intake tests (pytest)" crew_intake_tests
+	else
+		skip_step "crew intake tests (pytest)" "tools/crew_intake/pyproject.toml not found"
 	fi
 fi
 
