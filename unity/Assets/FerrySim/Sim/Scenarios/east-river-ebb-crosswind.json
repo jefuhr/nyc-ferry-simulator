@@ -1,0 +1,17 @@
+{
+	"name": "east-river-ebb-crosswind",
+	"vesselFile": "vessels/t-class.json",
+	"startLatitude": 40.7040,
+	"startLongitude": -74.0010,
+	"startHeadingDegrees": 35.0,
+	"startSpeedKnots": 0.0,
+	"scenarioStartUtc": "2026-06-01T13:00:00Z",
+	"environment": {
+		"calm": false,
+		"currentSpeedKnots": 2.0,
+		"currentTowardDegrees": 200.0,
+		"windSpeedKnots": 15.0,
+		"windFromDegrees": 300.0,
+		"depthMetres": 12.0
+	}
+}

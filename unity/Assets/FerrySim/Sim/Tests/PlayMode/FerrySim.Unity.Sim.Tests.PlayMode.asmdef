@@ -1,0 +1,30 @@
+{
+	"name": "FerrySim.Unity.Sim.Tests.PlayMode",
+	"rootNamespace": "FerrySim.Sim.PlayModeTests",
+	"references": [
+		"FerrySim.Core",
+		"FerrySim.Core.Serialization",
+		"FerrySim.Unity.Sim",
+		"FerrySim.Unity.Sim.Cesium",
+		"FerrySim.Unity.Input",
+		"CesiumForUnity",
+		"Unity.Mathematics",
+		"Unity.InputSystem",
+		"Unity.InputSystem.TestFramework",
+		"UnityEngine.TestRunner",
+		"UnityEditor.TestRunner"
+	],
+	"includePlatforms": [],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"nunit.framework.dll"
+	],
+	"autoReferenced": false,
+	"defineConstraints": [
+		"UNITY_INCLUDE_TESTS"
+	],
+	"versionDefines": [],
+	"noEngineReferences": false
+}

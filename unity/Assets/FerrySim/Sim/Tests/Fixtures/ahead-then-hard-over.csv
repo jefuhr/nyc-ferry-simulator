@@ -1,0 +1,6 @@
+# Trajectory-match trace for the Unity bridge: both levers full ahead from rest with the helm amidships,
+# then hard over to starboard at 60 s, ending at 120 s. Same format as `ferrysim run --inputs`.
+time_s,port_lever,starboard_lever,helm
+0,1,1,0
+60,1,1,1
+120,1,1,1

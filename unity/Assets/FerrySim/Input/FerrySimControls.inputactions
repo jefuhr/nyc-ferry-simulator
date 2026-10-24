@@ -1,0 +1,533 @@
+{
+	"version": 1,
+	"name": "FerrySimControls",
+	"maps": [
+		{
+			"name": "Helm",
+			"id": "4bed8318-e42e-5f9a-9a5d-699f0f9e6394",
+			"actions": [
+				{
+					"name": "PortLever",
+					"type": "Value",
+					"id": "6db606f4-7c98-59bb-9b61-72d777373fc7",
+					"expectedControlType": "Axis",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": true
+				},
+				{
+					"name": "StarboardLever",
+					"type": "Value",
+					"id": "73caa618-cbad-5a55-a29f-1b546acfc293",
+					"expectedControlType": "Axis",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": true
+				},
+				{
+					"name": "BothLevers",
+					"type": "Value",
+					"id": "2c534840-e58a-5bb6-bc31-80eca0301505",
+					"expectedControlType": "Axis",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": true
+				},
+				{
+					"name": "Helm",
+					"type": "Value",
+					"id": "240e20ee-dba9-5c73-b365-29f687e58b81",
+					"expectedControlType": "Axis",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": true
+				},
+				{
+					"name": "PortLeverStep",
+					"type": "Value",
+					"id": "da243d9a-830b-5a14-bcf4-612c7119d244",
+					"expectedControlType": "Axis",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": true
+				},
+				{
+					"name": "StarboardLeverStep",
+					"type": "Value",
+					"id": "521bc8d2-87a9-5920-9828-a21a35657eed",
+					"expectedControlType": "Axis",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": true
+				},
+				{
+					"name": "BothLeversStep",
+					"type": "Value",
+					"id": "cd60cb4a-0dc2-50f4-99f4-a141d38ea1bd",
+					"expectedControlType": "Axis",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": true
+				},
+				{
+					"name": "Horn",
+					"type": "Button",
+					"id": "32785dc9-7920-5d00-bf9f-90bddc9e75c6",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "Pause",
+					"type": "Button",
+					"id": "2b612db2-aee9-5203-906c-30415f1de733",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "Reset",
+					"type": "Button",
+					"id": "acbb3440-54e8-5e93-8e95-3d6a3596dfa8",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "CameraCycle",
+					"type": "Button",
+					"id": "5bc8fc59-3f51-509b-9fde-09462104a8f7",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				}
+			],
+			"bindings": [
+				{
+					"name": "",
+					"id": "aa1eaf6a-eef6-5326-b822-fffc99fe8371",
+					"path": "<Gamepad>/leftStick/y",
+					"interactions": "",
+					"processors": "",
+					"groups": "Gamepad",
+					"action": "PortLever",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "771aa0ba-ef30-5f47-b2c4-69f50ad41b0d",
+					"path": "<Gamepad>/rightStick/y",
+					"interactions": "",
+					"processors": "",
+					"groups": "Gamepad",
+					"action": "StarboardLever",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "Triggers",
+					"id": "bac0a75c-f3dc-5ad0-9ccd-8474952ac0b8",
+					"path": "1DAxis",
+					"interactions": "",
+					"processors": "",
+					"groups": "",
+					"action": "BothLevers",
+					"isComposite": true,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "negative",
+					"id": "fb011b44-10ee-50c2-a281-4b826ea7b091",
+					"path": "<Gamepad>/leftTrigger",
+					"interactions": "",
+					"processors": "ferryNeutralDeadzone(min=0.05)",
+					"groups": "Gamepad",
+					"action": "BothLevers",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "positive",
+					"id": "e4d01f90-b726-5215-8b19-96d28a32cce1",
+					"path": "<Gamepad>/rightTrigger",
+					"interactions": "",
+					"processors": "ferryNeutralDeadzone(min=0.05)",
+					"groups": "Gamepad",
+					"action": "BothLevers",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "",
+					"id": "d0de9414-e173-5486-abf3-59f1050d2527",
+					"path": "<Joystick>/stick/y",
+					"interactions": "",
+					"processors": "",
+					"groups": "Joystick",
+					"action": "BothLevers",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "Arrow keys",
+					"id": "d3042c99-e23d-5cd5-8a87-dcc114942506",
+					"path": "1DAxis",
+					"interactions": "",
+					"processors": "",
+					"groups": "",
+					"action": "Helm",
+					"isComposite": true,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "negative",
+					"id": "935153c0-f792-5dfa-8ac9-ab1c060e858a",
+					"path": "<Keyboard>/leftArrow",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Helm",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "positive",
+					"id": "a3543874-2a5a-596d-9c23-9656250d2e73",
+					"path": "<Keyboard>/rightArrow",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Helm",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "Shoulders",
+					"id": "d4b5ec77-a66b-56f4-b649-9bc212c90de0",
+					"path": "1DAxis",
+					"interactions": "",
+					"processors": "",
+					"groups": "",
+					"action": "Helm",
+					"isComposite": true,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "negative",
+					"id": "77c00ef0-ae88-592f-bf65-e3b2097632ea",
+					"path": "<Gamepad>/leftShoulder",
+					"interactions": "",
+					"processors": "",
+					"groups": "Gamepad",
+					"action": "Helm",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "positive",
+					"id": "afa652f2-5ff1-53b9-ae1e-5f0380680e10",
+					"path": "<Gamepad>/rightShoulder",
+					"interactions": "",
+					"processors": "",
+					"groups": "Gamepad",
+					"action": "Helm",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "",
+					"id": "20e4b3ad-2b3f-5975-8425-ae4b3d636539",
+					"path": "<Joystick>/stick/x",
+					"interactions": "",
+					"processors": "",
+					"groups": "Joystick",
+					"action": "Helm",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "af98bb1c-7547-5ca5-9893-0d143ce1f154",
+					"path": "<Joystick>/{Twist}",
+					"interactions": "",
+					"processors": "ferryNeutralDeadzone(min=0.05)",
+					"groups": "Joystick",
+					"action": "Helm",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "Q ahead, A astern",
+					"id": "b35084da-16ba-5cda-b591-6a1643fa43b3",
+					"path": "1DAxis",
+					"interactions": "",
+					"processors": "",
+					"groups": "",
+					"action": "PortLeverStep",
+					"isComposite": true,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "negative",
+					"id": "955940e5-72a1-5c94-8c89-83f78229719b",
+					"path": "<Keyboard>/a",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "PortLeverStep",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "positive",
+					"id": "f46194a9-c470-5d34-b9f2-9a2c3851de8b",
+					"path": "<Keyboard>/q",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "PortLeverStep",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "E ahead, D astern",
+					"id": "cc59938c-dfcd-5952-8a99-e767c9444152",
+					"path": "1DAxis",
+					"interactions": "",
+					"processors": "",
+					"groups": "",
+					"action": "StarboardLeverStep",
+					"isComposite": true,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "negative",
+					"id": "834eee3d-2f8f-51e3-a369-f606cd5c80da",
+					"path": "<Keyboard>/d",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "StarboardLeverStep",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "positive",
+					"id": "59e1dc1f-a521-5a44-9831-c3ce70916ddf",
+					"path": "<Keyboard>/e",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "StarboardLeverStep",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "W ahead, S astern",
+					"id": "a87d3c5b-72da-59fc-ba5c-2e264efba141",
+					"path": "1DAxis",
+					"interactions": "",
+					"processors": "",
+					"groups": "",
+					"action": "BothLeversStep",
+					"isComposite": true,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "negative",
+					"id": "58c22493-2cea-5e05-9cde-14c649612fcc",
+					"path": "<Keyboard>/s",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "BothLeversStep",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "positive",
+					"id": "dacab8ae-f918-54ad-aba4-3d7ec7182717",
+					"path": "<Keyboard>/w",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "BothLeversStep",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "D-pad",
+					"id": "8ac94b76-f275-5b5c-a06c-c347b6bfd5bc",
+					"path": "1DAxis",
+					"interactions": "",
+					"processors": "",
+					"groups": "",
+					"action": "BothLeversStep",
+					"isComposite": true,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "negative",
+					"id": "114f789c-ec7b-539c-a088-60a8b273a67e",
+					"path": "<Gamepad>/dpad/down",
+					"interactions": "",
+					"processors": "",
+					"groups": "Gamepad",
+					"action": "BothLeversStep",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "positive",
+					"id": "1e9b81f8-9e3b-50b1-b995-0b4725133738",
+					"path": "<Gamepad>/dpad/up",
+					"interactions": "",
+					"processors": "",
+					"groups": "Gamepad",
+					"action": "BothLeversStep",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "",
+					"id": "0cdbc820-7004-511f-8a3f-9eabdfb7bb73",
+					"path": "<Keyboard>/h",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Horn",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "2585ad97-0056-5fd8-a2ef-f395a078d95a",
+					"path": "<Gamepad>/buttonSouth",
+					"interactions": "",
+					"processors": "",
+					"groups": "Gamepad",
+					"action": "Horn",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "e41fc173-79e9-5522-af1e-b88d6ec4ba7d",
+					"path": "<Joystick>/trigger",
+					"interactions": "",
+					"processors": "",
+					"groups": "Joystick",
+					"action": "Horn",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "2f4b0573-d7df-54ee-96ce-20f0559790c8",
+					"path": "<Keyboard>/p",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Pause",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "ed4e6721-0d61-569a-9dec-f05c2f7f60cc",
+					"path": "<Gamepad>/start",
+					"interactions": "",
+					"processors": "",
+					"groups": "Gamepad",
+					"action": "Pause",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "f7109209-c8ed-51b3-8589-1d01a56f5369",
+					"path": "<Keyboard>/r",
+					"interactions": "hold(duration=1)",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Reset",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "6ec52111-2eee-5abc-b690-487b5631ce3d",
+					"path": "<Gamepad>/select",
+					"interactions": "hold(duration=1)",
+					"processors": "",
+					"groups": "Gamepad",
+					"action": "Reset",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "f5ac082c-ef97-563a-a333-9ede31ffbf0c",
+					"path": "<Keyboard>/c",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "CameraCycle",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "99f0e0a7-17be-5b31-a565-e7cdfba7e5f0",
+					"path": "<Gamepad>/buttonNorth",
+					"interactions": "",
+					"processors": "",
+					"groups": "Gamepad",
+					"action": "CameraCycle",
+					"isComposite": false,
+					"isPartOfComposite": false
+				}
+			]
+		}
+	],
+	"controlSchemes": [
+		{
+			"name": "Keyboard",
+			"bindingGroup": "Keyboard",
+			"devices": [
+				{
+					"devicePath": "<Keyboard>",
+					"isOptional": false,
+					"isOR": false
+				}
+			]
+		},
+		{
+			"name": "Gamepad",
+			"bindingGroup": "Gamepad",
+			"devices": [
+				{
+					"devicePath": "<Gamepad>",
+					"isOptional": false,
+					"isOR": false
+				}
+			]
+		},
+		{
+			"name": "Joystick",
+			"bindingGroup": "Joystick",
+			"devices": [
+				{
+					"devicePath": "<Joystick>",
+					"isOptional": false,
+					"isOR": false
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,14 @@
+{
+	"name": "FerrySim.Unity.Sim.Cesium",
+	"rootNamespace": "FerrySim.Sim",
+	"references": ["FerrySim.Core", "FerrySim.Unity.Sim", "CesiumForUnity", "Unity.Mathematics"],
+	"includePlatforms": ["Android", "Editor", "iOS", "LinuxStandalone64", "macOSStandalone", "WSA", "WindowsStandalone64", "WebGL"],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": false,
+	"precompiledReferences": [],
+	"autoReferenced": true,
+	"defineConstraints": [],
+	"versionDefines": [],
+	"noEngineReferences": false
+}
