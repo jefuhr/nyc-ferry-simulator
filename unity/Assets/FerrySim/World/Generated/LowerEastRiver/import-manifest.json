@@ -1,0 +1,53 @@
+{
+  "slice": "lower-east-river",
+  "raster_stride": 4,
+  "tile_cells": 64,
+  "terrain_tiles": 56,
+  "structure_features": 502,
+  "aid_count": 18,
+  "landing_count": 11,
+  "land_area_count": 20,
+  "depth_area_count": 143,
+  "navd88_zero_y_m": -31.8005,
+  "vertical_mapping": "Unity y = NAVD88 elevation + slice centre geoid offset; horizontal coordinates use core ellipsoid-surface geodesy",
+  "light_height_datum": {
+    "station_id": "8518750",
+    "station_name": "The Battery",
+    "epoch": "1983-2001",
+    "mhw_station_datum_m": 2.445,
+    "navd88_station_datum_m": 1.848,
+    "mhw_above_navd88_m": 0.59699999999999975,
+    "source": {
+      "name": "datums_8518750.json",
+      "url": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8518750/datums.json?units=metric",
+      "retrieved_utc": "2026-10-23T02:39:35Z",
+      "sha256": "e99b3f733f8efd1b9f1d6f56a5baabeaba0c86d1a511c7f1235ab23b2ed2504e",
+      "size_bytes": 2221
+    },
+    "mapping": "Published chart height above MHW + (MHW - NAVD88) at The Battery; one station relationship across the slice, not a surveyed local datum surface",
+    "missing_height_note": "Unpublished heights remain greybox estimates at NAVD88 +3 m"
+  },
+  "terrain_note": "Merged raster sampled every fourth cell (~12 m); last row/column retained; nodata triangles omitted; no fabricated land elevations",
+  "structure_note": "Chart geometry extruded as greybox collider strips from NAVD88 -60 m to +1 m; not surveyed structure heights; point-only objects omitted",
+  "contact_note": "Oriented geometry only; bridge must choose reviewed ContactSurface parameters; pipeline provenance retained per segment",
+  "source_sha256": {
+    "depth_merged_navd88.tif": "d72ffac8ab3e2415f9d832e77c20ed828678ee018f9f46db4f119e83af67e86d",
+    "depth_merged_navd88.json": "7907e6b66f94ed3e6af662c8754232b41212c68dc3a396ba3f46ffe2110c57a1",
+    "shoreline_constructions.geojson": "ab504c8448df677e1cea87ec65e715082c625f5193b8ad1f7926bb89ae558eff",
+    "land_areas.geojson": "73ae26ef40d850cf448daca55642569df09a50c963cbd44001ae044aacb2c897",
+    "depth_areas.geojson": "d63408e079de116bb0cb2bcf9a54924b69d66343277fc29aeb172d2519ee7e9a",
+    "aids.geojson": "6525a10abaf5d19ce756b036426c19171a2dce44f5a0b6f551f1b3262102f850",
+    "landing_faces.geojson": "88c4834f6f5ea0ea3051f472772f94df01fdee672ccca2acef24502b80904b99",
+    "landings.geojson": "fd0c780e38d17c2ecc8bb6d69e5e5d7c9375db583a0be7917234a47982d8b862",
+    "geoid_offset.json": "f2075fb1b4cc31f09356445e6b626fd82268b0c22267e71f4be34c77351cdd48",
+    "unity/depth.f32": "7ef8bf61152b3ec371a09fdeb8af9bac2de3a92d8e1615f37d27daabc992eec3",
+    "unity/depth.json": "e7fd42758fd5b75ef33d25457349a88b08e2cae2d46fe47aedc02aef3a03e96e"
+  },
+  "warnings": [
+    "59 point-only chart structures have no extent and are omitted from colliders.",
+    "02260220D42B0032: nominal pulse widths (no chart SIGSEQ): Fl W 2s",
+    "02260220D6B50032: no supported period/rhythm: Fl W",
+    "02260220EB920032: no supported period/rhythm: Fl W",
+    "02260220EB980032: no supported period/rhythm: Fl W"
+  ]
+}

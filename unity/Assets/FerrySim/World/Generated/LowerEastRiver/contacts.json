@@ -1,0 +1,338 @@
+[
+  {
+    "id": 1554019787,
+    "stop_id": "114",
+    "stop_name": "Stuyvesant Cove",
+    "start_ne_m": [
+      3565.19558997372,
+      3557.0108067955375
+    ],
+    "end_ne_m": [
+      3540.4006268840744,
+      3561.6350433948187
+    ],
+    "water_normal_ne": [
+      0.18333786563701535,
+      0.98304996161113989
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true
+  },
+  {
+    "id": 1713792972,
+    "stop_id": "115",
+    "stop_name": "Corlears Hook",
+    "start_ne_m": [
+      1123.9176683451751,
+      3035.7093830494255
+    ],
+    "end_ne_m": [
+      1121.3413362683536,
+      3008.3991482620122
+    ],
+    "water_normal_ne": [
+      -0.99557986119705133,
+      0.093918794598630242
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true
+  },
+  {
+    "id": 859274532,
+    "stop_id": "120",
+    "stop_name": "Brooklyn Navy Yard",
+    "start_ne_m": [
+      209.70997892649794,
+      3484.0365903461916
+    ],
+    "end_ne_m": [
+      216.78512690353972,
+      3510.5450133054578
+    ],
+    "water_normal_ne": [
+      0.9661783370598328,
+      -0.25787481652207983
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true
+  },
+  {
+    "id": 1631635859,
+    "stop_id": "136",
+    "stop_name": "Battery Park City/Vesey St.",
+    "start_ne_m": [
+      1656.0998940880438,
+      -241.66043725065958
+    ],
+    "end_ne_m": [
+      1683.2733150371187,
+      -237.86566649342768
+    ],
+    "water_normal_ne": [
+      0.13830795373177851,
+      -0.99038927192015158
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true
+  },
+  {
+    "id": 517732403,
+    "stop_id": "17",
+    "stop_name": "East 34th Street",
+    "start_ne_m": [
+      4859.6803104563805,
+      3736.9067116940246
+    ],
+    "end_ne_m": [
+      4841.1187032759772,
+      3726.3078415815744
+    ],
+    "water_normal_ne": [
+      -0.49586513993458703,
+      0.86839954110861473
+    ],
+    "source": "enc-feature",
+    "confidence": "low",
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true
+  },
+  {
+    "id": 500954784,
+    "stop_id": "17",
+    "stop_name": "East 34th Street",
+    "start_ne_m": [
+      4841.1187032759772,
+      3726.3078415815744
+    ],
+    "end_ne_m": [
+      4831.110323469843,
+      3720.5864492059027
+    ],
+    "water_normal_ne": [
+      -0.49629051990727224,
+      0.86815650654140075
+    ],
+    "source": "enc-feature",
+    "confidence": "low",
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true
+  },
+  {
+    "id": 649364822,
+    "stop_id": "18",
+    "stop_name": "Greenpoint",
+    "start_ne_m": [
+      3455.1971854687454,
+      4341.3826359050372
+    ],
+    "end_ne_m": [
+      3478.7424020492058,
+      4327.3120637386
+    ],
+    "water_normal_ne": [
+      -0.51297880486496916,
+      -0.85840127315801884
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true
+  },
+  {
+    "id": 759313469,
+    "stop_id": "19",
+    "stop_name": "North Williamsburg",
+    "start_ne_m": [
+      2311.3604001297758,
+      4221.2324592673967
+    ],
+    "end_ne_m": [
+      2315.8715068406341,
+      4225.6909203438727
+    ],
+    "water_normal_ne": [
+      0.70294440808063363,
+      -0.71124479551569841
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": false
+  },
+  {
+    "id": 742535850,
+    "stop_id": "19",
+    "stop_name": "North Williamsburg",
+    "start_ne_m": [
+      2315.8715068406341,
+      4225.6909203438727
+    ],
+    "end_ne_m": [
+      2325.2937246689635,
+      4234.9962475642678
+    ],
+    "water_normal_ne": [
+      0.70267958731106572,
+      -0.7115064283450645
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": false
+  },
+  {
+    "id": 725758231,
+    "stop_id": "19",
+    "stop_name": "North Williamsburg",
+    "start_ne_m": [
+      2325.2937246689635,
+      4234.9962475642678
+    ],
+    "end_ne_m": [
+      2328.5381729246865,
+      4238.2049782263721
+    ],
+    "water_normal_ne": [
+      0.70318225663017175,
+      -0.71100964406996559
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": false
+  },
+  {
+    "id": 1444272253,
+    "stop_id": "20",
+    "stop_name": "Dumbo/Fulton Ferry",
+    "start_ne_m": [
+      395.03136729958675,
+      1623.4396393185966
+    ],
+    "end_ne_m": [
+      420.47475958988525,
+      1633.7105801271898
+    ],
+    "water_normal_ne": [
+      0.37432907899607087,
+      -0.92729592936556837
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true
+  },
+  {
+    "id": 775887281,
+    "stop_id": "4",
+    "stop_name": "Hunters Point South",
+    "start_ne_m": [
+      4646.2972505283387,
+      4493.3093856175346
+    ],
+    "end_ne_m": [
+      4672.3545168789487,
+      4501.8749667968459
+    ],
+    "water_normal_ne": [
+      0.31228187847044697,
+      -0.94998948856235721
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true
+  },
+  {
+    "id": 1101942229,
+    "stop_id": "8",
+    "stop_name": "South Williamsburg",
+    "start_ne_m": [
+      963.02413689598632,
+      3771.9112337790434
+    ],
+    "end_ne_m": [
+      983.97532426617931,
+      3786.6043392838224
+    ],
+    "water_normal_ne": [
+      0.57417744614561,
+      -0.81873088395253857
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true
+  },
+  {
+    "id": 1417084842,
+    "stop_id": "87",
+    "stop_name": "Wall St/Pier 11",
+    "start_ne_m": [
+      405.596014372966,
+      741.97182265191907
+    ],
+    "end_ne_m": [
+      403.29745475542154,
+      743.34958030816347
+    ],
+    "water_normal_ne": [
+      0.51411757992238871,
+      0.8577197176320166
+    ],
+    "source": "enc-feature",
+    "confidence": "low",
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": false
+  },
+  {
+    "id": 1433862461,
+    "stop_id": "87",
+    "stop_name": "Wall St/Pier 11",
+    "start_ne_m": [
+      403.29745475542154,
+      743.34958030816347
+    ],
+    "end_ne_m": [
+      396.8459455469465,
+      747.23773180327862
+    ],
+    "water_normal_ne": [
+      0.51617823330994239,
+      0.85648119153722613
+    ],
+    "source": "enc-feature",
+    "confidence": "low",
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": false
+  },
+  {
+    "id": 1383529604,
+    "stop_id": "87",
+    "stop_name": "Wall St/Pier 11",
+    "start_ne_m": [
+      396.8459455469465,
+      747.23773180327862
+    ],
+    "end_ne_m": [
+      377.58026302220821,
+      758.8430598899638
+    ],
+    "water_normal_ne": [
+      0.5159961668533426,
+      0.85659089172875147
+    ],
+    "source": "enc-feature",
+    "confidence": "low",
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": false
+  }
+]
