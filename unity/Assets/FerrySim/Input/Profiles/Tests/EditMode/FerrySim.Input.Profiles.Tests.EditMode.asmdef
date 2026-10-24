@@ -1,0 +1,9 @@
+{
+	"name": "FerrySim.Input.Profiles.Tests.EditMode",
+	"references": ["FerrySim.Unity.Input", "Unity.InputSystem", "Unity.InputSystem.TestFramework"],
+	"includePlatforms": ["Editor"],
+	"overrideReferences": true,
+	"precompiledReferences": ["nunit.framework.dll"],
+	"autoReferenced": false,
+	"defineConstraints": ["UNITY_INCLUDE_TESTS"]
+}

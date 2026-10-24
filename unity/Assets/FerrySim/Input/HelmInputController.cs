@@ -1,5 +1,6 @@
 using System;
 using FerrySim.Core.Contracts;
+using FerrySim.Controls.Profiles;
 using FerrySim.Sim;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -41,6 +42,9 @@ namespace FerrySim.Controls
 		private InputActionAsset _instance;
 		private HelmInputMapper _mapper;
 		private ControlInputSmoother _smoother;
+		private DeviceProfileRouter _profileRouter;
+
+		public DeviceProfileStore Profiles { get; private set; }
 
 		/// <summary>The horn went on (true) or off (false).</summary>
 		public event Action<bool> HornChanged;
@@ -95,6 +99,15 @@ namespace FerrySim.Controls
 
 			_instance = Instantiate(actions);
 			_mapper = new HelmInputMapper(_instance, leverNotches);
+			// One store belongs to this component for its lifetime, including disable/enable cycles.
+			// An open calibration view keeps this same store and the new router subscribes to it.
+			if (Profiles == null)
+			{
+				Profiles = new DeviceProfileStore(DeviceProfileStore.DefaultPath);
+				Profiles.Load();
+			}
+			_profileRouter = new DeviceProfileRouter(_mapper, Profiles);
+			if (!string.IsNullOrEmpty(Profiles.LastError)) Debug.LogWarning("[FerrySim] " + Profiles.LastError, this);
 			_mapper.PauseRequested += OnPause;
 			_mapper.ResetRequested += OnReset;
 			_mapper.CameraCycleRequested += OnCameraCycle;
@@ -108,6 +121,8 @@ namespace FerrySim.Controls
 
 		private void OnDisable()
 		{
+			_profileRouter?.Dispose();
+			_profileRouter = null;
 			if (runner != null)
 			{
 				runner.RunStarted -= OnRunStarted;
