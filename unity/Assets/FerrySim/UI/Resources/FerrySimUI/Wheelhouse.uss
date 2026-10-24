@@ -1,0 +1,588 @@
+/*
+ * Wheelhouse UI layout and typography, designed at 1280x720 reference pixels (PanelSettings scale the
+ * whole UI with the screen). Colors are NOT set here: elements carry palette role classes (fs-c-*, fs-bg-*)
+ * and InstrumentPalette fills them in, so day and night contrast can be tested in C#.
+ */
+
+/* ---------- shared ---------- */
+
+.fs-view {
+	flex-grow: 1;
+}
+
+.fs-label {
+	margin: 0;
+	padding: 0;
+	-unity-text-align: middle-left;
+	white-space: nowrap;
+}
+
+.fs-strong {
+	-unity-font-style: bold;
+}
+
+.fs-caption {
+	font-size: 11px;
+	letter-spacing: 1px;
+	-unity-font-style: bold;
+}
+
+.fs-unit {
+	font-size: 13px;
+	margin-left: 3px;
+	padding-bottom: 4px;
+	-unity-text-align: lower-left;
+}
+
+.fs-unit--tight {
+	margin-left: 1px;
+}
+
+.fs-unit--spaced {
+	margin-left: 4px;
+}
+
+.fs-value-xl {
+	font-size: 40px;
+	-unity-font-style: bold;
+}
+
+.fs-value-l {
+	font-size: 30px;
+	-unity-font-style: bold;
+}
+
+.fs-value-m {
+	font-size: 22px;
+	-unity-font-style: bold;
+}
+
+.fs-value-s {
+	font-size: 16px;
+	-unity-font-style: bold;
+}
+
+.fs-value-xs {
+	font-size: 13px;
+	-unity-font-style: bold;
+}
+
+.fs-value-row {
+	flex-direction: row;
+	align-items: flex-end;
+}
+
+.fs-layer {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+}
+
+.fs-button,
+.fs-toolbar-button {
+	font-size: 11px;
+	margin: 0 2px;
+	padding: 2px 8px;
+	border-width: 1px;
+	border-radius: 4px;
+}
+
+/* ---------- instrument panel ---------- */
+
+.fs-panel {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 300px;
+	padding: 4px 8px 8px 8px;
+	border-top-width: 1px;
+	flex-direction: column;
+}
+
+.fs-statusbar {
+	flex-direction: row;
+	align-items: center;
+	height: 22px;
+	padding: 0 4px;
+}
+
+.fs-nodata {
+	margin-left: 16px;
+	padding: 1px 8px;
+	border-width: 1px;
+	border-radius: 3px;
+}
+
+.fs-spacer {
+	flex-grow: 1;
+}
+
+.fs-elapsed {
+	margin-left: 14px;
+}
+
+.fs-clock-note {
+	margin-right: 8px;
+}
+
+.fs-console {
+	flex-direction: row;
+	flex-grow: 1;
+	margin-top: 4px;
+}
+
+.fs-engine {
+	width: 288px;
+	flex-direction: column;
+	padding: 6px 8px;
+	border-width: 1px;
+	border-radius: 6px;
+}
+
+.fs-engine-header {
+	flex-direction: row;
+	align-items: center;
+	height: 16px;
+}
+
+.fs-accent {
+	width: 10px;
+	height: 10px;
+	border-radius: 2px;
+	margin-right: 6px;
+}
+
+.fs-engine-body {
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	flex-grow: 1;
+}
+
+.fs-engine--stbd .fs-engine-body {
+	flex-direction: row-reverse;
+}
+
+.fs-tach {
+	width: 168px;
+	height: 168px;
+}
+
+.fs-tach-numeral {
+	font-size: 13px;
+	-unity-font-style: bold;
+}
+
+.fs-tach-multiplier {
+	font-size: 9px;
+	letter-spacing: 1px;
+}
+
+.fs-tach-readout {
+	font-size: 26px;
+	-unity-font-style: bold;
+}
+
+.fs-lever-group {
+	width: 84px;
+	height: 172px;
+	flex-direction: column;
+	align-items: center;
+}
+
+.fs-lever {
+	width: 70px;
+	flex-grow: 1;
+}
+
+.fs-lever-mark {
+	font-size: 9px;
+	letter-spacing: 0.5px;
+}
+
+.fs-engine-footer {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	height: 34px;
+}
+
+.fs-gear {
+	width: 132px;
+	height: 30px;
+	border-width: 2px;
+	border-radius: 4px;
+	align-items: center;
+	justify-content: center;
+}
+
+.fs-gear-label {
+	font-size: 18px;
+	letter-spacing: 1px;
+	-unity-font-style: bold;
+	-unity-text-align: middle-center;
+}
+
+.fs-shaft {
+	flex-direction: row;
+	align-items: center;
+}
+
+.fs-shaft-arrow {
+	width: 14px;
+	height: 14px;
+	margin: 0 4px 0 6px;
+}
+
+.fs-shaft-value {
+	min-width: 38px;
+	-unity-text-align: middle-right;
+}
+
+.fs-centre {
+	flex-grow: 1;
+	margin: 0 8px;
+	padding: 6px 10px;
+	border-width: 1px;
+	border-radius: 6px;
+	flex-direction: column;
+}
+
+.fs-centre-top {
+	flex-direction: row;
+	flex-grow: 1;
+	align-items: flex-start;
+}
+
+.fs-compass {
+	width: 166px;
+	height: 166px;
+}
+
+.fs-compass-cardinal {
+	font-size: 15px;
+	-unity-font-style: bold;
+}
+
+.fs-compass-numeral {
+	font-size: 11px;
+}
+
+.fs-nav {
+	width: 186px;
+	margin-left: 14px;
+	flex-direction: column;
+}
+
+.fs-readout {
+	margin-bottom: 2px;
+}
+
+.fs-nav-pair {
+	flex-direction: row;
+	justify-content: space-between;
+}
+
+.fs-aux {
+	flex-grow: 1;
+	margin-left: 8px;
+	flex-direction: column;
+}
+
+.fs-alert {
+	border-width: 2px;
+	border-radius: 5px;
+	padding: 4px 8px;
+	margin-bottom: 6px;
+}
+
+.fs-depth {
+	height: 94px;
+	overflow: hidden;
+}
+
+.fs-alert-hint {
+	font-size: 10px;
+	margin-top: 2px;
+}
+
+.fs-contact {
+	height: 52px;
+}
+
+.fs-rudder {
+	flex-direction: row;
+	height: 74px;
+	margin-top: 4px;
+}
+
+.fs-rudder-names {
+	width: 92px;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.fs-rudder-row {
+	height: 20px;
+}
+
+.fs-rudder-scale {
+	flex-grow: 1;
+}
+
+.fs-rudder-numeral {
+	font-size: 11px;
+}
+
+.fs-rudder-values {
+	width: 72px;
+	flex-direction: column;
+	justify-content: space-between;
+	align-items: flex-end;
+}
+
+.fs-rudder-values .fs-rudder-row {
+	font-size: 17px;
+	-unity-text-align: middle-right;
+}
+
+/* ---------- HUD ---------- */
+
+.fs-hud {
+	position: absolute;
+	bottom: 24px;
+	left: 50%;
+	translate: -50% 0;
+	flex-direction: row;
+	align-items: flex-start;
+	padding: 8px 14px;
+	border-width: 1px;
+	border-radius: 8px;
+}
+
+.fs-hud--above-panel {
+	bottom: 312px;
+}
+
+.fs-hud-readout {
+	min-width: 100px;
+	margin-right: 16px;
+}
+
+.fs-hud-levers {
+	align-items: center;
+	margin-right: 16px;
+}
+
+.fs-hud-lever-pair {
+	flex-direction: row;
+}
+
+.fs-hud-lever {
+	align-items: center;
+	margin: 0 6px;
+}
+
+.fs-hud-lever-bar {
+	width: 22px;
+	height: 50px;
+}
+
+.fs-hud-gear {
+	font-size: 11px;
+	-unity-font-style: bold;
+}
+
+.fs-hud-rudder {
+	align-items: center;
+}
+
+.fs-hud-rudder-bar {
+	width: 150px;
+	height: 30px;
+}
+
+/* ---------- development toolbar ---------- */
+
+.fs-toolbar {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	max-width: 1264px;
+	flex-direction: column;
+	align-items: flex-end;
+	padding: 4px 6px;
+	border-width: 1px;
+	border-radius: 6px;
+}
+
+.fs-toolbar-buttons {
+	flex-direction: row;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+}
+
+.fs-toolbar-status {
+	margin: 2px 4px 0 4px;
+	white-space: normal;
+	-unity-text-align: middle-right;
+}
+
+/* ---------- debrief ---------- */
+
+.fs-debrief {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	flex-direction: column;
+	padding: 8px 10px;
+}
+
+.fs-debrief-header {
+	flex-direction: row;
+	align-items: center;
+	height: 30px;
+}
+
+.fs-debrief-subtitle {
+	margin-left: 12px;
+	flex-grow: 1;
+	flex-shrink: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.fs-path-field {
+	width: 300px;
+	height: 24px;
+	font-size: 12px;
+	margin: 0 4px;
+}
+
+.fs-path-field .unity-text-field__input {
+	padding: 2px 6px;
+}
+
+.fs-debrief-error {
+	margin: 2px 0;
+	white-space: normal;
+}
+
+.fs-debrief-body {
+	flex-direction: row;
+	flex-grow: 1;
+	margin-top: 4px;
+}
+
+.fs-debrief-left {
+	width: 40%;
+	flex-direction: column;
+	margin-right: 10px;
+}
+
+.fs-track {
+	flex-grow: 1;
+	flex-direction: column;
+}
+
+.fs-track-canvas {
+	flex-grow: 1;
+	margin-top: 2px;
+}
+
+.fs-debrief-readouts {
+	flex-direction: column;
+	margin: 6px 0;
+}
+
+.fs-debrief-readout-row {
+	flex-direction: row;
+	margin-bottom: 3px;
+}
+
+.fs-debrief-readout {
+	flex-grow: 1;
+	flex-basis: 0;
+	margin-right: 6px;
+}
+
+.fs-debrief-note {
+	margin: 1px 0 3px 0;
+	white-space: normal;
+}
+
+.fs-event-list {
+	height: 92px;
+}
+
+.fs-event-item {
+	font-size: 11px;
+	-unity-text-align: middle-left;
+	margin: 1px 0;
+	padding: 1px 6px;
+	border-width: 0 0 0 3px;
+	border-radius: 2px;
+}
+
+.fs-debrief-right {
+	flex-grow: 1;
+	flex-direction: column;
+}
+
+.fs-plot {
+	flex-grow: 1;
+	flex-direction: column;
+	margin-bottom: 4px;
+}
+
+.fs-plot-header {
+	flex-direction: row;
+	align-items: center;
+	height: 16px;
+}
+
+.fs-plot-legend {
+	flex-direction: row;
+	align-items: center;
+	margin-left: 12px;
+}
+
+.fs-legend-swatch {
+	width: 22px;
+	height: 10px;
+	margin: 0 4px 0 8px;
+}
+
+.fs-legend-label {
+	font-size: 10px;
+}
+
+.fs-plot-canvas {
+	flex-grow: 1;
+}
+
+.fs-axis-label {
+	font-size: 10px;
+}
+
+.fs-debrief-footer {
+	flex-direction: row;
+	align-items: center;
+	height: 40px;
+	margin-top: 4px;
+}
+
+.fs-timeline {
+	flex-grow: 1;
+	height: 36px;
+}
+
+.fs-debrief-time {
+	width: 200px;
+	margin-left: 8px;
+}
