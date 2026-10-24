@@ -4,6 +4,9 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/FerrySim/Slice/Scenes/LowerEastRiverSlice.unity
+    guid: 54080c55a2d5d4a1c81cd6472b5c48ff
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

@@ -90,7 +90,7 @@ A new file pair starts on every reset.
 | `<stamp>-<vessel>-runNN.csv` | Telemetry in the CLI's schema (`core/dotnet/FerrySim.Cli/TelemetryCsv.cs`): the same `# ferrysim-csv: 1` header, columns and number formats, at `telemetrySampleHz` (default 10). Each row is the state at `time_s` and the controls that start applying then; the last row is the end of the run. |
 | `<stamp>-<vessel>-runNN.inputs.csv` | Every control change, lossless, in the `ferrysim run --inputs` format, plus a closing row at the end time and trailing `#` lines: step count, `state_digest` (FNV-1a over every bit of every state) and the end state at full precision. |
 
-`maneuver` is `unity-run`. The header also carries what a replay needs, at full precision: `vessel_file`, `initial.*`, `env.*`, `scenario_start_utc` and `start_latitude_deg`/`start_longitude_deg`. The header holds no wall-clock times and no absolute paths.
+`maneuver` is `unity-run`. The header also carries what a replay needs, at full precision: `vessel_file`, `initial.*`, `env.*`, `scenario_start_utc`, `start_latitude_deg`/`start_longitude_deg` and `world_geometry_digest` (the `WorldGeometryDigest` of the fixed structures, `none` for open water; `ReplayPlayer.Verify` and `InitializeReplay` refuse a replay against other structures). The header holds no wall-clock times and no absolute paths.
 
 The CLI tools read Unity runs directly:
 

@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5bf0a800d4bd441f98dfe611102648f4, type: 3}
+  m_Name: LowerEastRiverSliceScenario
+  m_EditorClassIdentifier: FerrySim.Unity.Sim::FerrySim.Sim.ScenarioAsset
+  settings:
+    name: 'LowerEastRiverSlice: South Williamsburg approach'
+    vesselFile: vessels/t-class.json
+    startLatitude: 40.70903596776045
+    startLongitude: -73.9707980762413
+    startHeadingDegrees: 125.04204857689795
+    startSpeedKnots: 0
+    scenarioStartUtc: 2026-06-15T16:00:00Z
+    environment:
+      calm: 1
+      currentSpeedKnots: 0
+      currentTowardDegrees: 0
+      windSpeedKnots: 0
+      windFromDegrees: 0
+      depthMetres: 50

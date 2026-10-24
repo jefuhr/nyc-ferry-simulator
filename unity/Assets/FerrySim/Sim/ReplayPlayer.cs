@@ -262,11 +262,22 @@ namespace FerrySim.Sim
 		/// <summary>
 		/// Replays <paramref name="run"/> on a fresh simulation from <paramref name="factory"/> and compares every row.
 		/// Pass the <paramref name="geometry"/> the run was recorded with (its <c>world_geometry</c> header names the
-		/// type); open water when omitted.
+		/// type); open water when omitted. When the recording carries a <see cref="WorldGeometryDigest"/> and
+		/// <paramref name="geometry"/> has another, nothing is replayed and the result says so.
 		/// </summary>
 		public static ReplayResult Verify(RecordedRun run, VesselParameters parameters, ISimulationFactory factory, IStepObserver observer = null, IWorldGeometry geometry = null)
 		{
-			var simulation = factory.Create(parameters, run.Environment, geometry ?? EmptyWorldGeometry.Instance, run.InitialState);
+			geometry ??= EmptyWorldGeometry.Instance;
+			if (run.Header.TryGetValue(WorldGeometryDigest.HeaderKey, out var recordedGeometry))
+			{
+				var replayedGeometry = WorldGeometryDigest.Of(geometry) ?? "unknown (" + geometry.GetType().FullName + ")";
+				if (!string.Equals(recordedGeometry, replayedGeometry, StringComparison.Ordinal))
+				{
+					return new ReplayResult(0, run.Rows.Count, 0, "world geometry " + recordedGeometry, "world geometry " + replayedGeometry);
+				}
+			}
+
+			var simulation = factory.Create(parameters, run.Environment, geometry, run.InitialState);
 			var driver = new FixedStepDriver(simulation, run.Inputs);
 			var verifier = new ReplayVerifier(run);
 			driver.AddObserver(verifier);

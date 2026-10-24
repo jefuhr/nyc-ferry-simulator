@@ -156,7 +156,8 @@ namespace FerrySim.Sim
 
 		/// <summary>
 		/// Fixed structures the hull can touch (landing faces, piers), built by the world from the data pipeline.
-		/// Open water unless set; takes effect at the next run start. A replay of a run needs the same geometry.
+		/// Open water unless set; takes effect at the next run start. A replay of a run needs the same geometry:
+		/// recordings carry its <see cref="WorldGeometryDigest"/>, and <see cref="InitializeReplay"/> refuses another.
 		/// </summary>
 		public IWorldGeometry WorldGeometry
 		{
@@ -224,6 +225,14 @@ namespace FerrySim.Sim
 			if (run == null)
 			{
 				throw new ArgumentNullException(nameof(run));
+			}
+
+			if (run.Header.TryGetValue(WorldGeometryDigest.HeaderKey, out var recordedGeometry) &&
+				!string.Equals(recordedGeometry, WorldGeometryDigest.Of(_worldGeometry), StringComparison.Ordinal))
+			{
+				throw new InvalidOperationException(
+					$"{Path.GetFileName(run.TelemetryPath)} was recorded against world geometry {recordedGeometry}, but this runner has " +
+					$"{WorldGeometryDigest.Of(_worldGeometry) ?? _worldGeometry.GetType().FullName}; set the same WorldGeometry before replaying.");
 			}
 
 			EndRun();
@@ -459,6 +468,11 @@ namespace FerrySim.Sim
 				var header = RunRecorder.BuildHeader(Scenario, Parameters, simulation, Factory.GetType().FullName, _initialState, _environment, telemetrySampleHz);
 				header.Add(new System.Collections.Generic.KeyValuePair<string, string>(
 					"world_geometry", _worldGeometry is EmptyWorldGeometry ? "none" : _worldGeometry.GetType().FullName));
+				var geometryDigest = WorldGeometryDigest.Of(_worldGeometry);
+				if (geometryDigest != null)
+				{
+					header.Add(new System.Collections.Generic.KeyValuePair<string, string>(WorldGeometryDigest.HeaderKey, geometryDigest));
+				}
 				_recorder = RunRecorder.Create(RecordingDirectory, UniqueRunName(), telemetrySampleHz, header);
 				_driver.AddObserver(_recorder);
 			}

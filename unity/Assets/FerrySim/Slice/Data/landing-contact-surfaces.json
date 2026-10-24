@@ -1,0 +1,35 @@
+{
+	"schemaVersion": 1,
+	"description": "Fender material of every landing face in World/Generated/LowerEastRiver/contacts.json, as the core's ContactSurface: values per metre of contact length (docs/conventions.md, contact geometry). No landing has been surveyed, so every value is an estimate. A landing without its own entry under 'landings' (keyed by GTFS stop_id) uses 'default'.",
+	"sources": {},
+	"default": {
+		"stiffness": {
+			"value": 1000000.0,
+			"unit": "N/m2",
+			"source": "Estimated elastomeric barge fender, 1.0e6 N/m per metre of contact length: the landing face the core's contact report uses (core/FerrySim.Core/Dynamics/README.md, Contact; ContactReportTests). Not a landing survey.",
+			"confidence": "estimated",
+			"asPublished": "1.0e6 N/m per m"
+		},
+		"damping": {
+			"value": 50000.0,
+			"unit": "N*s/m2",
+			"source": "Estimated elastomeric barge fender, 5e4 N·s/m per metre of contact length, as in the core's contact report. Not a landing survey.",
+			"confidence": "estimated",
+			"asPublished": "5e4 N·s/m per m"
+		},
+		"friction": {
+			"value": 0.3,
+			"unit": "1",
+			"source": "Estimated Coulomb friction of hull fendering on a rubber barge fender, 0.3, as in the core's contact report. Not a landing survey.",
+			"confidence": "estimated"
+		},
+		"maxCompression": {
+			"value": 0.25,
+			"unit": "m",
+			"source": "Estimated travel of an elastomeric barge fender before it bottoms out, 0.25 m, as in the core's contact report. Not a landing survey.",
+			"confidence": "estimated"
+		},
+		"note": "One estimate for every landing until crew or a survey give fender type, size and condition per landing (docs/reference-capture-kit.md)."
+	},
+	"landings": {}
+}
