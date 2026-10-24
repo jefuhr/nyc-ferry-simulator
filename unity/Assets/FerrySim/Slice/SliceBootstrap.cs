@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
+using System.IO;
 using FerrySim.Controls;
 using FerrySim.Sim;
 using FerrySim.UI;
@@ -16,8 +19,11 @@ namespace FerrySim.Slice
 	/// (<see cref="LandingGeometry"/>) and hands it to the runner; it puts the imported terrain under the world frame on
 	/// the water's datum (<see cref="ImportedTerrain"/>), lights the world for each run's scenario start, checks every
 	/// run starts clear of the faces, switches the wheelhouse panel and the HUD with the camera view, and lets the helm's
-	/// camera button swap the wheelhouse and chase views. If the landing files are missing or malformed the runner is
-	/// stopped with an error naming the file and the reason: the vessel never runs through the landings by accident.
+	/// camera button swap the wheelhouse and chase views. It fails closed: if the landing files are missing or malformed
+	/// the runner is stopped with an error naming the file and the reason, and any run that starts anyway, or starts less
+	/// than <see cref="FaceClearance.MinimumMetres"/> from a face, is ended before its first physics step with the reason
+	/// kept in <see cref="StartRefusal"/>; the vessel never runs through the landings by accident. The slice runs in the
+	/// editor only for now: a player without the scenario's vessel file stops with an error saying so.
 	/// </summary>
 	[DefaultExecutionOrder(-500)]
 	[DisallowMultipleComponent]
@@ -53,6 +59,10 @@ namespace FerrySim.Slice
 		[Tooltip("Move the imported terrain onto the drawn water's NAVD88 frame (geoid grid and Earth curvature).")]
 		[SerializeField]
 		private bool matchTerrainToWater = true;
+
+		[Tooltip("The vessel file the runner's scenario loads. Players do not package it yet, so a player without it stops with an error (Slice/README.md).")]
+		[SerializeField]
+		private string vesselFile = string.Empty;
 
 		[SerializeField]
 		private WorldFrame worldFrame;
@@ -111,6 +121,15 @@ namespace FerrySim.Slice
 		/// <summary>Clearance of the current run's start from the faces, checked at every live run start.</summary>
 		public FaceClearanceResult StartClearance { get; private set; }
 
+		/// <summary>Why the current run was ended at its start, before its first physics step, or null.</summary>
+		public string StartRefusal { get; private set; }
+
+		/// <summary>The vessel file a player must have, the one the runner's scenario loads.</summary>
+		public string VesselFile => vesselFile;
+
+		/// <summary>Why this player cannot run the slice (its vessel file is not packaged), or null.</summary>
+		public string PlayerError { get; private set; }
+
 		public bool SwitchPanelWithCamera
 		{
 			get => switchPanelWithCamera;
@@ -141,6 +160,30 @@ namespace FerrySim.Slice
 
 			LoadLandings();
 			PlaceTerrain();
+			CheckPlayer();
+		}
+
+		/// <summary>
+		/// Why a player cannot run the slice, or null. The slice is supported in the editor only for now
+		/// (Slice/README.md): nothing packages the scenario's vessel file into a player, so the runner could not load it
+		/// unless it has been copied to StreamingAssets. The editor resolves it from the repository and reports a missing
+		/// file itself.
+		/// </summary>
+		public static string PlayerProblem(bool isEditor, string vesselFile)
+		{
+			if (isEditor)
+			{
+				return null;
+			}
+
+			var path = SimPaths.Resolve(vesselFile);
+			if (!string.IsNullOrEmpty(path) && File.Exists(path))
+			{
+				return null;
+			}
+
+			return $"The Lower East River slice runs in the editor only for now: this player has no vessel file '{vesselFile}' (looked at {path}). " +
+				"Nothing packages it into StreamingAssets yet; player packaging is a later task (Slice/README.md).";
 		}
 
 		private void OnEnable()
@@ -202,6 +245,7 @@ namespace FerrySim.Slice
 
 		private void LoadLandings()
 		{
+			var file = landingSurfacesPath;
 			try
 			{
 				if (landingContacts == null)
@@ -215,13 +259,20 @@ namespace FerrySim.Slice
 				}
 
 				var surfaces = LandingSurfaceTable.Parse(landingSurfaces.text, landingSurfacesPath);
+				file = landingContactsPath;
 				Landings = LandingGeometry.Parse(landingContacts.text, landingContactsPath, surfaces);
 			}
 			catch (LandingDataException exception)
 			{
-				LoadError = exception.Message;
-				Debug.LogError($"[FerrySim] The slice's landing faces did not load, so the vessel does not run (it would pass through every landing): {LoadError}", this);
-				runner.enabled = false;
+				FailLandings(exception.Message);
+				return;
+			}
+			catch (Exception exception)
+			{
+				// A failure the loaders do not name is a bug in them, not in the data: still fail closed, and keep the
+				// exception for whoever fixes it.
+				Debug.LogException(exception, this);
+				FailLandings($"{file}: could not be read ({exception.GetType().Name}: {exception.Message})");
 				return;
 			}
 
@@ -237,6 +288,14 @@ namespace FerrySim.Slice
 			}
 
 			Debug.Log($"[FerrySim] Landing contact: {Landings.Segments.Count} faces from {landingContactsPath} ({Landings.Excluded.Count} left out), fenders from {landingSurfacesPath}, geometry {Landings.Digest}.", this);
+		}
+
+		private void FailLandings(string error)
+		{
+			Landings = null;
+			LoadError = error;
+			Debug.LogError($"[FerrySim] The slice's landing faces did not load, so the vessel does not run (it would pass through every landing): {LoadError}", this);
+			runner.enabled = false;
 		}
 
 		private void PlaceTerrain()
@@ -266,14 +325,41 @@ namespace FerrySim.Slice
 			Debug.Log($"[FerrySim] Imported terrain: {TerrainCorrection} in {watch.Elapsed.TotalMilliseconds:F0} ms.", this);
 		}
 
+		private void CheckPlayer()
+		{
+			PlayerError = PlayerProblem(Application.isEditor, vesselFile);
+			if (PlayerError != null)
+			{
+				Debug.LogError($"[FerrySim] {PlayerError} The vessel does not run.", this);
+				runner.enabled = false;
+			}
+		}
+
 		private void OnRunStarted()
 		{
+			StartRefusal = null;
 			if (followScenarioTime && sun != null && runner.ScenarioStartUtc != default)
 			{
 				sun.SetUtc(runner.ScenarioStartUtc.UtcDateTime);
 			}
 
-			if (runner.IsReplaying || Landings == null || runner.Parameters?.Contact == null)
+			if (runner.IsReplaying)
+			{
+				return;
+			}
+
+			if (Landings == null)
+			{
+				// Fail closed: code that starts the runner after a failed load gets no run through the landings.
+				if (LoadError != null)
+				{
+					EndAtStart($"the slice's landing faces did not load ({LoadError})");
+				}
+
+				return;
+			}
+
+			if (runner.Parameters?.Contact == null)
 			{
 				return;
 			}
@@ -282,12 +368,24 @@ namespace FerrySim.Slice
 			StartClearance = FaceClearance.Check(runner.Parameters, start.North, start.East, start.Heading, Landings.Geometry.Segments);
 			if (!StartClearance.IsClear())
 			{
+				var invariant = CultureInfo.InvariantCulture;
 				var face = Landings.Find(StartClearance.NearestSegmentId);
-				Debug.LogError(
-					$"[FerrySim] Scenario '{runner.Scenario?.name}' starts {(StartClearance.Overlaps ? "overlapping" : $"{StartClearance.Distance:F2} m from")} landing face {StartClearance.NearestSegmentId} " +
-					$"(stop {face?.StopId} {face?.StopName}); it needs {FaceClearance.MinimumMetres:F1} m. The core only takes contact from a face the hull crosses from its water side, so that face would not push this hull.",
-					this);
+				var where = StartClearance.Overlaps ? "overlapping" : StartClearance.Distance.ToString("F2", invariant) + " m from";
+				EndAtStart(
+					$"scenario '{runner.Scenario?.name}' starts {where} landing face {StartClearance.NearestSegmentId} (stop {face?.StopId} {face?.StopName}); " +
+					$"it needs {FaceClearance.MinimumMetres.ToString("F1", invariant)} m. The core only takes contact from a face the hull crosses from its water side, so that face would not push this hull.");
 			}
+		}
+
+		/// <summary>
+		/// Ends the run that is starting, before its first physics step: called from <see cref="VesselSimulationRunner.RunStarted"/>,
+		/// which every live start raises (Initialize and ResetRun) before the runner's next frame can step.
+		/// </summary>
+		private void EndAtStart(string reason)
+		{
+			StartRefusal = reason;
+			Debug.LogError($"[FerrySim] Run {runner.RunId} stopped before its first step: {reason}", this);
+			runner.EndRun();
 		}
 
 		private void Subscribe(HelmInputMapper mapper)

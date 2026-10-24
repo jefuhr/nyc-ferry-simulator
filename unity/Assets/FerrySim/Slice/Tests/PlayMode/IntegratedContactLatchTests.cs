@@ -20,7 +20,7 @@ namespace FerrySim.Slice.PlayModeTests
 	/// a touch the core never had or losing one it had, and a touch against the wrong face.
 	/// <para>
 	/// A one-step touch needs the touching part of the hull to leave the face within a step: the hull drifts with a
-	/// uniform current along South Williamsburg's face toward its open end and onto it, so the aft end of the
+	/// uniform current along South Williamsburg's primary face toward its open end and onto it, so the aft end of the
 	/// starboard sheer clips the last millimetres of the face and slides off its end. The overlap is searched with
 	/// the core alone, from the same scenario settings the runner uses, so the runner must reproduce the same step.
 	/// </para>
@@ -77,7 +77,7 @@ namespace FerrySim.Slice.PlayModeTests
 
 				var latch = _scene.Runner.Contact;
 				Assert.That(log.ContactSteps, Is.EqualTo(new[] { graze.Step }), "the runner reproduces the core's one-step touch");
-				Assert.That(log.SegmentsTouched, Is.EquivalentTo(new[] { face.Id }), "against South Williamsburg's face only");
+				Assert.That(log.SegmentsTouched, Is.EquivalentTo(new[] { face.Id }), "against South Williamsburg's primary face only");
 				Assert.That(latch.StepsWithContact, Is.EqualTo(1));
 				Assert.That(latch.LastContactStep, Is.EqualTo(graze.Step));
 				Assert.That(latch.PeakContactForce, Is.EqualTo(graze.Force));

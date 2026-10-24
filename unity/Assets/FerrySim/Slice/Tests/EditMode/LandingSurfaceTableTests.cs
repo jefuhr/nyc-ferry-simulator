@@ -10,8 +10,9 @@ namespace FerrySim.Slice.Tests
 	/// The landing fender parameter file. Failure modes guarded: a surface taken from code instead of the file, a
 	/// value without provenance (unit, source or confidence missing or wrong), a typo that silently falls back to
 	/// the default (unknown properties), a per-landing entry leaking to other landings, values the core would
-	/// reject (non-positive stiffness or travel), and a missing or unreadable file failing quietly or without
-	/// naming the file.
+	/// reject (non-positive stiffness or travel), a number past Int64 or double range escaping as another exception
+	/// than <see cref="LandingDataException"/>, and a missing or unreadable file failing quietly or without naming
+	/// the file.
 	/// </summary>
 	public class LandingSurfaceTableTests
 	{
@@ -75,6 +76,9 @@ namespace FerrySim.Slice.Tests
 			yield return Case("top level is an array", _ => "[]", "a JSON object");
 			yield return Case("no schemaVersion", r => Remove(r, "schemaVersion"), "schemaVersion");
 			yield return Case("other schemaVersion", r => Set(r, "schemaVersion", 2), "schemaVersion");
+			// The same narrowing cast as Astra review finding 1: an integer past Int64 threw OverflowException.
+			yield return Case("schemaVersion past Int64", r => Set(r, "schemaVersion", JToken.Parse("9223372036854775808")), "schemaVersion must be 1");
+			yield return Case("value past double range", r => { r["default"]["damping"]["value"] = JToken.Parse(new string('9', 330)); return r.ToString(); }, "default.damping.value");
 			yield return Case("no default", r => Remove(r, "default"), "default");
 			yield return Case("unknown top-level property", r => Set(r, "defualt", new JObject()), "defualt");
 			yield return Case("unknown entry property", r => { r["default"]["stifness"] = 1; return r.ToString(); }, "default.stifness");

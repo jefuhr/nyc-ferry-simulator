@@ -22,7 +22,8 @@ namespace FerrySim.Slice.Authoring
 	/// (opened, never saved back) plus the bridge's runner with the T-class on the Cesium placement, the helm, the
 	/// wheelhouse UI bound to the runner and <see cref="SliceBootstrap"/>, which builds the landing contact geometry
 	/// from data and places the imported terrain at startup. The scenario starts at rest
-	/// <see cref="ApproachBowClearance"/> m off South Williamsburg's face, heading in. Object ids are made
+	/// <see cref="ApproachBowClearance"/> m off South Williamsburg's primary landing face, heading in
+	/// (<see cref="DefaultScenario"/>). Object ids are made
 	/// reproducible (<see cref="SceneFileIds"/>), so a rebuild from the same inputs gives the same bytes. Run it from
 	/// the menu or with
 	/// <code>-executeMethod FerrySim.Slice.Authoring.SliceSceneBuilder.BuildFromCommandLine</code>
@@ -40,7 +41,7 @@ namespace FerrySim.Slice.Authoring
 		public const string CabinMaterialPath = "Assets/FerrySim/Sim/Scenes/BridgeDevCabin.mat";
 		public const string VesselFile = "vessels/t-class.json";
 
-		/// <summary>South Williamsburg: an ENC barge outline with a pipeline-verified water side.</summary>
+		/// <summary>South Williamsburg: an ENC barge outline; crew report its primary face's water side.</summary>
 		public const string ApproachStopId = "8";
 
 		/// <summary>Bow to face at the start, m.</summary>
@@ -137,6 +138,7 @@ namespace FerrySim.Slice.Authoring
 			Set(bootstrap, "wheelhouseUI", ui);
 			Set(bootstrap, "sun", sun);
 			Set(bootstrap, "helm", helm);
+			Set(bootstrap, "vesselFile", settings.vesselFile);
 
 			// A greybox so the scene reads in edit mode; at runtime it is rebuilt from the loaded vessel file.
 			var dimensions = GreyboxDimensions.From(vessel);
@@ -190,11 +192,16 @@ namespace FerrySim.Slice.Authoring
 			}
 		}
 
-		/// <summary>The scene's scenario: the T-class at rest off South Williamsburg's face, heading in, calm water.</summary>
+		/// <summary>
+		/// The scene's scenario: the T-class at rest, bow <see cref="ApproachBowClearance"/> m off the middle of South
+		/// Williamsburg's primary landing face, heading straight in, calm water. The face is the one the pipeline
+		/// selected, every segment of the stop that contacts.json flags <c>primary_face</c>
+		/// (<see cref="LandingGeometry.PrimaryFace"/>); the stop's other usable segments, such as the barge's SW end, are
+		/// never chosen in its place, and a primary face left out of contact stops the build.
+		/// </summary>
 		public static ScenarioSettings DefaultScenario(LandingGeometry landings, VesselParameters vessel)
 		{
-			var face = landings.ForStop(ApproachStopId).FirstOrDefault() ??
-				throw new InvalidOperationException($"Landing {ApproachStopId} has no usable face, so the slice scenario has nothing to approach.\n{landings.Describe()}");
+			var face = landings.PrimaryFace(ApproachStopId);
 			return LandingApproach.BowOn(face, vessel, ApproachBowClearance, "LowerEastRiverSlice: " + face.StopName + " approach", VesselFile, ScenarioStartUtc);
 		}
 

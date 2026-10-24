@@ -9,6 +9,7 @@ using FerrySim.Core.Dynamics;
 using FerrySim.Sim;
 using FerrySim.UI;
 using FerrySim.World;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -24,7 +25,7 @@ namespace FerrySim.Slice.PlayModeTests
 	{
 		public const string ScenePath = "Assets/FerrySim/Slice/Scenes/LowerEastRiverSlice.unity";
 
-		/// <summary>The landing the contact tests use: South Williamsburg (stop 8), an ENC outline with a pipeline-verified water side.</summary>
+		/// <summary>The landing the contact tests use: South Williamsburg (stop 8), an ENC barge outline whose primary face's water side crew reported.</summary>
 		public const string ContactTestStopId = "8";
 
 		public const string BuildCommand = "-executeMethod FerrySim.Slice.Authoring.SliceSceneBuilder.BuildFromCommandLine";
@@ -145,15 +146,33 @@ namespace FerrySim.Slice.PlayModeTests
 			yield return SceneManager.UnloadSceneAsync(slice);
 		}
 
-		/// <summary>A bow-on approach to the contact test landing's first face, at rest, calm water.</summary>
+		/// <summary>A bow-on approach to the contact test landing's primary face, at rest, calm water: the scene's own rule.</summary>
 		public ScenarioSettings Approach(double bowClearance, string name = "slice approach") =>
-			LandingApproach.BowOn(ContactTestFace(), Vessel, bowClearance, name, Runner.Scenario?.vesselFile ?? "vessels/t-class.json", "2026-06-15T16:00:00Z");
+			LandingApproach.BowOn(Landings.PrimaryFace(ContactTestStopId), Vessel, bowClearance, name, Runner.Scenario?.vesselFile ?? "vessels/t-class.json", "2026-06-15T16:00:00Z");
 
+		/// <summary>The contact test landing's primary face, the one the pipeline selected; at South Williamsburg it is one segment.</summary>
 		public LandingSegment ContactTestFace()
 		{
-			var faces = Landings.ForStop(ContactTestStopId);
-			Assert.That(faces, Is.Not.Empty, $"stop {ContactTestStopId} has no usable face:\n{Landings.Describe()}");
-			return faces[0];
+			var face = Landings.PrimaryFace(ContactTestStopId);
+			Assert.That(face.Segments, Has.Count.EqualTo(1), $"the contact tests expect stop {ContactTestStopId}'s primary face in one segment:\n{Landings.Describe()}");
+			return face.Segments[0];
+		}
+
+		/// <summary>The ids contacts.json flags primary_face at a stop, read from the file itself rather than through the loader.</summary>
+		public static int[] PrimaryFaceIdsInTheFile(string stopId)
+		{
+			var path = Path.Combine(Path.GetDirectoryName(Application.dataPath) ?? ".", LandingGeometry.DefaultContactsAssetPath);
+			var ids = new List<int>();
+			foreach (var token in JArray.Parse(File.ReadAllText(path)))
+			{
+				var flag = token[LandingGeometry.PrimaryFaceField];
+				if ((string)token["stop_id"] == stopId && flag != null && flag.Type == JTokenType.Boolean && (bool)flag)
+				{
+					ids.Add((int)token["id"]);
+				}
+			}
+
+			return ids.ToArray();
 		}
 
 		public IEnumerator FramesUntil(Func<bool> done, int maxFrames, string what)

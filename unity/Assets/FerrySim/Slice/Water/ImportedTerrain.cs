@@ -14,7 +14,8 @@ namespace FerrySim.Slice
 	/// stands 1.2 m proud of the drawn water, so shoals show through it. Each vertex of a mesh drawn in frame
 	/// coordinates, and each object placed by position, is moved up or down by the difference between the two NAVD88
 	/// zeros at its position (<see cref="Correction"/>), so NAVD88 zero on the terrain is NAVD88 zero on the water.
-	/// Meshes are corrected on copies; the imported assets are untouched.
+	/// Meshes are corrected on copies; the imported assets are untouched. An instance is corrected once: the
+	/// <see cref="TerrainCorrection"/> stays on it, and a second <see cref="Apply"/> changes nothing.
 	/// </summary>
 	public static class ImportedTerrain
 	{
@@ -62,12 +63,29 @@ namespace FerrySim.Slice
 			WaterSurface.SurfaceUpAt(datum, north, east, 0.0) - flatNavd88ZeroHeight;
 
 		/// <summary>
-		/// Moves an instantiated import prefab (at identity under the world frame) onto the water's NAVD88 frame. The
-		/// mesh copies it makes are added to <paramref name="owned"/> for the caller to destroy.
+		/// Moves an instantiated import prefab (at identity under the world frame) onto the water's NAVD88 frame, once.
+		/// The returned <see cref="TerrainCorrection"/> is added to the instance: calling again with the same datum and
+		/// height changes nothing, copies nothing and returns it, while another datum or height throws, since the
+		/// instance is no longer as imported. The mesh copies it makes are added to <paramref name="owned"/> for the
+		/// caller to destroy.
 		/// </summary>
 		public static TerrainCorrection Apply(GameObject instance, SliceDatum datum, double flatNavd88ZeroHeight, List<Object> owned)
 		{
-			var result = new TerrainCorrection();
+			if (instance.TryGetComponent<TerrainCorrection>(out var applied))
+			{
+				// Already on the water's datum: correcting again would add the offset twice.
+				if (applied.Datum != datum || !applied.FlatNavd88ZeroHeight.Equals(flatNavd88ZeroHeight))
+				{
+					throw new InvalidOperationException(
+						$"{instance.name} is already on {(applied.Datum != null ? applied.Datum.name : "another datum")} from NAVD88 zero at y = {applied.FlatNavd88ZeroHeight} m; " +
+						"instantiate the import prefab again to correct it another way.");
+				}
+
+				return applied;
+			}
+
+			var result = instance.AddComponent<TerrainCorrection>();
+			result.Begin(datum, flatNavd88ZeroHeight);
 			Visit(instance.transform, datum, flatNavd88ZeroHeight, owned, result);
 			return result;
 		}
@@ -84,7 +102,7 @@ namespace FerrySim.Slice
 					var correction = Correction(datum, position.z, position.x, zero);
 					child.localPosition = new Vector3(position.x, (float)(position.y + correction), position.z);
 					result.Add(correction);
-					result.ObjectsMoved++;
+					result.AddObject();
 					continue;
 				}
 
@@ -110,32 +128,11 @@ namespace FerrySim.Slice
 						collider.sharedMesh = mesh;
 					}
 
-					result.MeshesCorrected++;
+					result.AddMesh();
 				}
 
 				Visit(child, datum, zero, owned, result);
 			}
 		}
-	}
-
-	/// <summary>What <see cref="ImportedTerrain.Apply"/> moved, and by how much.</summary>
-	public sealed class TerrainCorrection
-	{
-		public int MeshesCorrected { get; internal set; }
-
-		public int ObjectsMoved { get; internal set; }
-
-		public double Lowest { get; private set; } = double.PositiveInfinity;
-
-		public double Highest { get; private set; } = double.NegativeInfinity;
-
-		internal void Add(double correction)
-		{
-			Lowest = Math.Min(Lowest, correction);
-			Highest = Math.Max(Highest, correction);
-		}
-
-		public override string ToString() =>
-			$"{MeshesCorrected} meshes and {ObjectsMoved} placed objects moved by {Lowest:F3} to {Highest:F3} m onto the water's NAVD88 frame";
 	}
 }

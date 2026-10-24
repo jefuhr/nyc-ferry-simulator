@@ -104,7 +104,8 @@ namespace FerrySim.Slice
 			var root = Json.ParseRoot(json, file) as JObject ?? throw new LandingDataException(file, new[] { "expected a JSON object with schemaVersion, sources, default and landings" });
 			var problems = new List<string>();
 			Json.RejectUnknown(root, TopLevel, string.Empty, problems);
-			if (!(root["schemaVersion"] is JValue version) || version.Type != JTokenType.Integer || (long)version != SchemaVersion)
+			// Compare the value as read: an integer past Int64 arrives as a BigInteger, and casting it to long throws.
+			if (!(root["schemaVersion"] is JValue version) || !(version.Value is long schema) || schema != SchemaVersion)
 			{
 				problems.Add($"schemaVersion must be {SchemaVersion}");
 			}

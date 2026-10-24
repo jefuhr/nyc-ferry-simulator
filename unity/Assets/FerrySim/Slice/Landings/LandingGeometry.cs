@@ -13,7 +13,7 @@ namespace FerrySim.Slice
 	public sealed class LandingSegment
 	{
 		public LandingSegment(ContactSegment segment, int fileIndex, string stopId, string stopName, string source, string confidence, string verification,
-			bool waterSideVerifiedByPipeline, bool waterSideCrewReported, LandingSurface surface)
+			bool waterSideVerifiedByPipeline, bool waterSideCrewReported, bool isPrimary, LandingSurface surface)
 		{
 			Segment = segment;
 			FileIndex = fileIndex;
@@ -24,6 +24,7 @@ namespace FerrySim.Slice
 			Verification = verification;
 			WaterSideVerifiedByPipeline = waterSideVerifiedByPipeline;
 			WaterSideCrewReported = waterSideCrewReported;
+			IsPrimary = isPrimary;
 			Surface = surface;
 		}
 
@@ -57,6 +58,9 @@ namespace FerrySim.Slice
 		/// <summary>Who vouches for the water side: <c>pipeline</c>, <c>crew</c> or <c>pipeline+crew</c>.</summary>
 		public string WaterSideBasis => WaterSideVerifiedByPipeline ? (WaterSideCrewReported ? "pipeline+crew" : "pipeline") : "crew";
 
+		/// <summary>Part of the stop's primary landing face, the one the pipeline selected (<c>primary_face</c>).</summary>
+		public bool IsPrimary { get; }
+
 		/// <summary>The fender entry the segment's <see cref="ContactSurface"/> came from.</summary>
 		public LandingSurface Surface { get; }
 	}
@@ -64,12 +68,13 @@ namespace FerrySim.Slice
 	/// <summary>A segment of contacts.json left out of the contact geometry, and why.</summary>
 	public sealed class ExcludedLandingSegment
 	{
-		public ExcludedLandingSegment(int id, int fileIndex, string stopId, string stopName, string reason)
+		public ExcludedLandingSegment(int id, int fileIndex, string stopId, string stopName, bool isPrimary, string reason)
 		{
 			Id = id;
 			FileIndex = fileIndex;
 			StopId = stopId;
 			StopName = stopName;
+			IsPrimary = isPrimary;
 			Reason = reason;
 		}
 
@@ -81,19 +86,47 @@ namespace FerrySim.Slice
 
 		public string StopName { get; }
 
+		/// <summary>The pipeline flags it as part of its stop's primary landing face (<c>primary_face</c>).</summary>
+		public bool IsPrimary { get; }
+
 		public string Reason { get; }
 
-		public override string ToString() => $"segment {Id} (stop {StopId} {StopName}): {Reason}";
+		public override string ToString() => $"segment {Id} (stop {StopId} {StopName}{(IsPrimary ? ", primary face" : string.Empty)}): {Reason}";
+	}
+
+	/// <summary>
+	/// A stop's primary landing face, the one the pipeline selected (<c>primary_face</c>): its flagged segments in file
+	/// order. The pipeline may split one side of a structure into several subsegments; they join end to start.
+	/// </summary>
+	public sealed class LandingFace
+	{
+		internal LandingFace(IReadOnlyList<LandingSegment> segments)
+		{
+			Segments = segments;
+		}
+
+		/// <summary>The face's segments in file order, at least one.</summary>
+		public IReadOnlyList<LandingSegment> Segments { get; }
+
+		public string StopId => Segments[0].StopId;
+
+		public string StopName => Segments[0].StopName;
+
+		/// <summary>Where the face starts: its first segment's start.</summary>
+		public HorizontalVector Start => Segments[0].Segment.Start;
+
+		/// <summary>Where the face ends: its last segment's end.</summary>
+		public HorizontalVector End => Segments[Segments.Count - 1].Segment.End;
 	}
 
 	/// <summary>
 	/// The landing faces the hull can touch, built at run time from the world importer's <c>contacts.json</c>
 	/// (a list of segments: id, stop_id, stop_name, start_ne_m, end_ne_m, water_normal_ne, source, confidence,
-	/// verification, water_side_verified_by_pipeline and the optional water_side_crew_reported; other fields are
-	/// ignored). A segment is used when the pipeline verified its water side or crew reported it, and its normal
-	/// agrees with Start to End; every other segment is left out and listed in <see cref="Excluded"/>, and segments
-	/// kept on the crew's report alone are listed in <see cref="CrewReportedOnly"/>. Ids are kept as given. Fenders
-	/// come from a <see cref="LandingSurfaceTable"/>, never from constants. A missing or malformed file throws
+	/// verification, water_side_verified_by_pipeline and the optional water_side_crew_reported and primary_face; other
+	/// fields are ignored). A segment is used when the pipeline verified its water side or crew reported it, and its
+	/// normal agrees with Start to End; every other segment is left out and listed in <see cref="Excluded"/>, and
+	/// segments kept on the crew's report alone are listed in <see cref="CrewReportedOnly"/>. Ids are kept as given.
+	/// Fenders come from a <see cref="LandingSurfaceTable"/>, never from constants. A missing or malformed file throws
 	/// <see cref="LandingDataException"/> naming the file and the reason.
 	/// </summary>
 	public sealed class LandingGeometry
@@ -110,6 +143,9 @@ namespace FerrySim.Slice
 		/// <summary>Shortest segment accepted, m: the core joins segment ends within 1 mm.</summary>
 		public const double MinimumSegmentLength = 1e-3;
 
+		/// <summary>Largest gap between one segment's end and the next one's start in a face, m: the core joins segment ends within 1 mm.</summary>
+		public const double JointTolerance = 1e-3;
+
 		public static readonly string[] RequiredFields =
 		{
 			"id", "stop_id", "stop_name", "start_ne_m", "end_ne_m", "water_normal_ne", "source", "confidence", "verification",
@@ -119,6 +155,9 @@ namespace FerrySim.Slice
 		public const string PipelineWaterSideField = "water_side_verified_by_pipeline";
 
 		public const string CrewWaterSideField = "water_side_crew_reported";
+
+		/// <summary>Marks the subsegments of the stop's primary landing face; absent counts as false.</summary>
+		public const string PrimaryFaceField = "primary_face";
 
 		private readonly Dictionary<int, LandingSegment> _byId = new Dictionary<int, LandingSegment>();
 
@@ -169,6 +208,59 @@ namespace FerrySim.Slice
 			return found;
 		}
 
+		/// <summary>
+		/// The stop's primary landing face, the one the pipeline selected: every segment of the stop flagged
+		/// <c>primary_face</c>, in file order. They must all be kept and join end to start (within
+		/// <see cref="JointTolerance"/>); otherwise this throws <see cref="LandingDataException"/> naming the file. It
+		/// never falls back to another face of the stop: the stop's first usable segment may be another side of the
+		/// structure.
+		/// </summary>
+		public LandingFace PrimaryFace(string stopId)
+		{
+			var problems = new List<string>();
+			foreach (var excluded in Excluded)
+			{
+				if (excluded.StopId == stopId && excluded.IsPrimary)
+				{
+					problems.Add($"stop {stopId}: primary face segment {excluded.Id} is left out of contact ({excluded.Reason})");
+				}
+			}
+
+			var face = new List<LandingSegment>();
+			foreach (var segment in Segments)
+			{
+				if (segment.StopId != stopId || !segment.IsPrimary)
+				{
+					continue;
+				}
+
+				if (face.Count > 0)
+				{
+					var previous = face[face.Count - 1];
+					var gap = (segment.Segment.Start - previous.Segment.End).Magnitude;
+					if (!(gap <= JointTolerance))
+					{
+						problems.Add($"stop {stopId}: primary face segments {previous.Id} and {segment.Id} do not join end to start " +
+							$"({gap.ToString("G4", CultureInfo.InvariantCulture)} m apart), so they are not one face");
+					}
+				}
+
+				face.Add(segment);
+			}
+
+			if (face.Count == 0 && problems.Count == 0)
+			{
+				problems.Add($"stop {stopId}: no segment is flagged {PrimaryFaceField}, so its landing face is unknown");
+			}
+
+			if (problems.Count > 0)
+			{
+				throw new LandingDataException(ContactsFile, problems);
+			}
+
+			return new LandingFace(face);
+		}
+
 		/// <summary>What was read, kept and left out, one line per segment, for the log and the handoff.</summary>
 		public string Describe()
 		{
@@ -182,9 +274,9 @@ namespace FerrySim.Slice
 			foreach (var segment in Segments)
 			{
 				var surface = segment.Surface.Surface;
-				text.AppendFormat(invariant, "  {0} stop {1} {2}: {3:F1} m, {4}/{5}, {6}, water side: {7}; fender '{8}' ({9}) k {10:G4} N/m per m, c {11:G4} N*s/m per m, mu {12:G3}, travel {13:G3} m\n",
-					segment.Id, segment.StopId, segment.StopName, segment.Segment.Length, segment.Source, segment.Confidence, segment.Verification, segment.WaterSideBasis,
-					segment.Surface.Key, segment.Surface.Confidence, surface.Stiffness, surface.Damping, surface.Friction, surface.MaxCompression);
+				text.AppendFormat(invariant, "  {0} stop {1} {2}{3}: {4:F1} m, {5}/{6}, {7}, water side: {8}; fender '{9}' ({10}) k {11:G4} N/m per m, c {12:G4} N*s/m per m, mu {13:G3}, travel {14:G3} m\n",
+					segment.Id, segment.StopId, segment.StopName, segment.IsPrimary ? " (primary face)" : string.Empty, segment.Segment.Length, segment.Source, segment.Confidence,
+					segment.Verification, segment.WaterSideBasis, segment.Surface.Key, segment.Surface.Confidence, surface.Stiffness, surface.Damping, surface.Friction, surface.MaxCompression);
 			}
 
 			text.Append(CrewReportedOnly.Count == 0 ? "Kept on the crew's report only (pipeline chart check failed or missing): none\n" : "Kept on the crew's report only (pipeline chart check failed or missing):\n");
@@ -325,10 +417,21 @@ namespace FerrySim.Slice
 
 			var verified = Flag(segment, PipelineWaterSideField, where, problems);
 			var crew = Flag(segment, CrewWaterSideField, where, problems);
+			var primary = Flag(segment, PrimaryFaceField, where, problems);
 
-			if (hasStart && hasEnd && (end - start).Magnitude < MinimumSegmentLength)
+			if (hasStart && hasEnd)
 			{
-				problems.Add($"{where}: shorter than {MinimumSegmentLength.ToString(CultureInfo.InvariantCulture)} m; start_ne_m and end_ne_m must be distinct");
+				// Finite end points can still be too far apart for a finite difference or length; the core's segment
+				// would then refuse them with an exception that names no file.
+				var length = (end - start).Magnitude;
+				if (double.IsNaN(length) || double.IsInfinity(length))
+				{
+					problems.Add($"{where}: start_ne_m to end_ne_m is not a finite length; the points are too far apart for the world frame");
+				}
+				else if (length < MinimumSegmentLength)
+				{
+					problems.Add($"{where}: shorter than {MinimumSegmentLength.ToString(CultureInfo.InvariantCulture)} m; start_ne_m and end_ne_m must be distinct");
+				}
 			}
 
 			if (problems.Count > before)
@@ -338,24 +441,35 @@ namespace FerrySim.Slice
 
 			if (!verified && !crew)
 			{
-				excluded.Add(new ExcludedLandingSegment(id, index, stopId, stopName,
+				excluded.Add(new ExcludedLandingSegment(id, index, stopId, stopName, primary,
 					$"water side neither verified by the pipeline ({PipelineWaterSideField} {FlagText(segment[PipelineWaterSideField])}) nor reported by crew ({CrewWaterSideField} {FlagText(segment[CrewWaterSideField])})"));
 				return;
 			}
 
 			var surface = surfaces.For(stopId);
-			var contact = new ContactSegment(start, end, surface.Surface, id);
+			ContactSegment contact;
+			try
+			{
+				contact = new ContactSegment(start, end, surface.Surface, id);
+			}
+			catch (ArgumentException exception)
+			{
+				// The core's own contract check; the checks above should already have named the problem.
+				problems.Add($"{where}: {exception.Message}");
+				return;
+			}
+
 			var computed = contact.WaterNormal;
 			var cos = (computed.North * normal.North + computed.East * normal.East) / normal.Magnitude;
 			var angle = Math.Acos(Math.Max(-1.0, Math.Min(1.0, cos))) * 180.0 / Math.PI;
 			if (angle > NormalToleranceDegrees)
 			{
-				excluded.Add(new ExcludedLandingSegment(id, index, stopId, stopName,
+				excluded.Add(new ExcludedLandingSegment(id, index, stopId, stopName, primary,
 					$"water_normal_ne is {angle.ToString("0.#", CultureInfo.InvariantCulture)}° from the left-hand normal of start to end (tolerance {NormalToleranceDegrees.ToString(CultureInfo.InvariantCulture)}°), so its solid side is uncertain"));
 				return;
 			}
 
-			kept.Add(new LandingSegment(contact, index, stopId, stopName, source, confidence, verification, verified, crew, surface));
+			kept.Add(new LandingSegment(contact, index, stopId, stopName, source, confidence, verification, verified, crew, primary, surface));
 		}
 
 		/// <summary>An optional boolean: absent or null is false; anything but true or false is malformed.</summary>
@@ -381,19 +495,23 @@ namespace FerrySim.Slice
 		private static bool TryId(JToken token, out int id)
 		{
 			id = 0;
-			if (token == null || token.Type != JTokenType.Integer)
+			if (!(token is JValue value) || value.Type != JTokenType.Integer)
 			{
 				return false;
 			}
 
-			var value = (long)token;
-			if (value < 1 || value > int.MaxValue)
+			// Range-check the value as read: an integer past Int64 arrives as a BigInteger, and casting it to long throws.
+			switch (value.Value)
 			{
-				return false;
+				case long whole when whole >= 1 && whole <= int.MaxValue:
+					id = (int)whole;
+					return true;
+				case int whole when whole >= 1:
+					id = whole;
+					return true;
+				default:
+					return false;
 			}
-
-			id = (int)value;
-			return true;
 		}
 
 		private static bool TryPoint(JToken token, out HorizontalVector point)

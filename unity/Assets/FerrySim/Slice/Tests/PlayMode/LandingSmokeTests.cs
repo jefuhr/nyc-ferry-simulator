@@ -14,10 +14,12 @@ namespace FerrySim.Slice.PlayModeTests
 {
 	/// <summary>
 	/// (d) Landing smoke at South Williamsburg (stop 8): scripted controls bring the T-class bow-on into the real
-	/// face at about 1 kn, then hold it there ahead idle. Failure modes guarded: the hull passing through the
+	/// primary face at about 1 kn, then hold it there ahead idle. Failure modes guarded: the hull passing through the
 	/// landing (geometry not handed to the core, or a face pointing the wrong way), a fender that bottoms out at a
 	/// gentle landing (wrong parameters), the boat bouncing off or sliding away instead of coming to rest on the face,
-	/// and force from a face it never crossed. Writes artifacts/unity/slice/landing-smoke.md.
+	/// force from any face but the one it approached (another face of the same landing included), and a landing on a
+	/// face of the stop other than the one the pipeline selected (primary_face). Writes
+	/// artifacts/unity/slice/landing-smoke.md.
 	/// </summary>
 	public class LandingSmokeTests
 	{
@@ -42,7 +44,7 @@ namespace FerrySim.Slice.PlayModeTests
 		public IEnumerator ScriptedControls_LandOnSouthWilliamsburg_AtAboutOneKnot_AndHoldThere()
 		{
 			var face = _scene.ContactTestFace();
-			var landing = _scene.Landings.ForStop(SliceScene.ContactTestStopId).Select(s => s.Id).ToArray();
+			var primary = SliceScene.PrimaryFaceIdsInTheFile(SliceScene.ContactTestStopId);
 			var scenario = _scene.Approach(15.0, "landing smoke");
 			var fender = _scene.Landings.Surfaces.For(SliceScene.ContactTestStopId);
 			var controls = new LandingApproachControls(_scene.Runner, TargetKnots);
@@ -62,7 +64,7 @@ namespace FerrySim.Slice.PlayModeTests
 				var impactKnots = Units.MetresPerSecondToKnots(controls.SpeedAtContact);
 				var clearance = FaceClearance.Check(_scene.Vessel, state.North, state.East, state.Heading, new[] { face.Segment });
 				var others = FaceClearance.Check(_scene.Vessel, state.North, state.East, state.Heading,
-					_scene.Landings.Geometry.Segments.Where(s => !landing.Contains(s.Id)).ToArray());
+					_scene.Landings.Geometry.Segments.Where(s => s.Id != face.Id).ToArray());
 				var headingChange = Angles.ToDegrees(Math.Abs(Angles.WrapPi(state.Heading - Angles.ToRadians(scenario.startHeadingDegrees))));
 				var report = string.Format(CultureInfo.InvariantCulture,
 					"# Landing smoke: {0} (stop {1}, face {2})\n\n" +
@@ -85,12 +87,12 @@ namespace FerrySim.Slice.PlayModeTests
 				Assert.That(log.PeakForce, Is.GreaterThan(0.0), "the face pushed back");
 				Assert.That(log.DeepestCompression, Is.GreaterThan(0.0).And.LessThanOrEqualTo(fender.MaxCompression.Value), "within the landing fender's travel");
 				Assert.That(log.BottomedOut, Is.False, "no fender bottoms out at 1 kn");
-				Assert.That(log.SegmentsTouched, Is.SubsetOf(landing), "no force from a face it never crossed");
-				Assert.That(log.SegmentsTouched, Does.Contain(face.Id));
+				Assert.That(new[] { face.Id }, Is.EqualTo(primary), "the landing is on the face the pipeline selected (primary_face in contacts.json)");
+				Assert.That(log.SegmentsTouched, Is.EquivalentTo(new[] { face.Id }), "only the selected face is touched: no other face of the landing or elsewhere");
 				Assert.That(Units.MetresPerSecondToKnots(telemetry.SpeedOverGround), Is.LessThan(0.02), "stopped");
 				Assert.That(telemetry.ContactForce, Is.GreaterThan(0.0), "held on the face");
 				Assert.That(clearance.Overlaps, Is.True, "the bow is on the face it approached, its fender compressed");
-				Assert.That(others.IsClear(), Is.True, "nowhere near another landing");
+				Assert.That(others.IsClear(), Is.True, "nowhere near any other face");
 				Assert.That(headingChange, Is.LessThan(5.0), "still bow-on");
 			}
 			finally

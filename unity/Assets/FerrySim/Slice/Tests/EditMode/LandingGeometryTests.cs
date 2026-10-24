@@ -15,14 +15,17 @@ namespace FerrySim.Slice.Tests
 	/// pushing the hull the wrong way, a segment whose water side the pipeline did not verify used anyway or left
 	/// out without a word, ids renumbered (telemetry and debriefs name the wrong face), file order lost
 	/// (determinism), a fender taken from code rather than the parameter file, a dependence on the number of
-	/// segments (the data task regenerates the file), unknown fields breaking the load, and malformed or missing
-	/// input producing a partial geometry instead of failing with the file and the reason.
+	/// segments (the data task regenerates the file), unknown fields breaking the load, malformed or missing
+	/// input producing a partial geometry instead of failing with the file and the reason, malformed numbers (an
+	/// integer past Int64, end points whose difference or length overflows) escaping as another exception that the
+	/// bootstrap's fail-closed path does not catch, and a stop's landing face taken as its first usable segment
+	/// instead of the face the pipeline selected (primary_face).
 	/// </summary>
 	public class LandingGeometryTests
 	{
 		private const string Label = "test-contacts.json";
 
-		/// <summary>The landing the contact tests use: South Williamsburg, an ENC outline with a pipeline-verified water side.</summary>
+		/// <summary>The landing the contact tests use: South Williamsburg, an ENC barge outline whose primary face's water side crew reported.</summary>
 		public const string ContactTestStopId = "8";
 
 		private static LandingSurfaceTable Surfaces => LandingSurfaceTable.Parse(SliceTestData.SurfacesJson(), "surfaces");
@@ -228,6 +231,99 @@ namespace FerrySim.Slice.Tests
 			Assert.That(geometry.Describe(), Does.Contain(geometry.Digest));
 		}
 
+		/// <summary>
+		/// Astra review finding 2: the stop's landing face is the one the pipeline selected (primary_face), not the
+		/// stop's first usable segment. South Williamsburg as merged: the chart-verified SW end comes first in the
+		/// file, the crew-reported NW long side is the primary face.
+		/// </summary>
+		[Test]
+		public void ThePrimaryFace_IsTheSegmentFlaggedPrimaryFace_NotTheStopsFirstUsableSegment()
+		{
+			var json = SliceTestData.Json(SouthWilliamsburgEnd(), SouthWilliamsburgNorthWestSide());
+
+			var geometry = LandingGeometry.Parse(json, Label, Surfaces);
+			var face = geometry.PrimaryFace("8");
+
+			Assert.That(geometry.ForStop("8").Select(s => s.Id), Is.EqualTo(new[] { 216221522, 149111046 }), "both are usable, the SW end first");
+			Assert.That(face.Segments.Select(s => s.Id), Is.EqualTo(new[] { 149111046 }));
+			Assert.That(face.StopId, Is.EqualTo("8"));
+			Assert.That(face.Start, Is.EqualTo(geometry.Find(149111046).Segment.Start));
+			Assert.That(face.End, Is.EqualTo(geometry.Find(149111046).Segment.End));
+			Assert.That(geometry.Find(149111046).IsPrimary, Is.True);
+			Assert.That(geometry.Find(216221522).IsPrimary, Is.False);
+		}
+
+		[Test]
+		public void APrimaryFaceSplitIntoJoinedSubsegments_IsOneFace_InFileOrder()
+		{
+			var parts = new[]
+			{
+				Primary(SliceTestData.Segment(31, "19", 0.0, 0.0, 4.0, 3.0)),
+				Primary(SliceTestData.Segment(32, "19", 4.0, 3.0, 8.0, 6.0)),
+				Primary(SliceTestData.Segment(33, "19", 8.0, 6.0, 12.0, 9.0)),
+			};
+			var json = SliceTestData.Json(SliceTestData.Segment(30, "19", -3.0, 4.0, 0.0, 0.0), parts[0], parts[1], parts[2]);
+
+			var face = LandingGeometry.Parse(json, Label, Surfaces).PrimaryFace("19");
+
+			Assert.That(face.Segments.Select(s => s.Id), Is.EqualTo(new[] { 31, 32, 33 }));
+			Assert.That(face.Start, Is.EqualTo(new HorizontalVector(0.0, 0.0)));
+			Assert.That(face.End, Is.EqualTo(new HorizontalVector(12.0, 9.0)));
+		}
+
+		[Test]
+		public void APrimaryFaceLeftOutOfContact_Fails_InsteadOfFallingBackToAnotherFace()
+		{
+			var side = SouthWilliamsburgNorthWestSide();
+			side.Remove(LandingGeometry.CrewWaterSideField);
+			var geometry = LandingGeometry.Parse(SliceTestData.Json(SouthWilliamsburgEnd(), side), Label, Surfaces);
+
+			var error = Assert.Throws<LandingDataException>(() => geometry.PrimaryFace("8"));
+
+			Assert.That(geometry.ForStop("8").Select(s => s.Id), Is.EqualTo(new[] { 216221522 }), "the stop still has a usable face, but not its landing face");
+			Assert.That(error.File, Is.EqualTo(Label));
+			Assert.That(error.Message, Does.Contain("stop 8").And.Contain("149111046").And.Contain("left out"));
+		}
+
+		[Test]
+		public void AStopWithoutAPrimaryFace_Fails()
+		{
+			var geometry = LandingGeometry.Parse(SliceTestData.Json(SliceTestData.Segment(1, "8", 963.0, 3771.9, 984.0, 3786.6)), Label, Surfaces);
+
+			var error = Assert.Throws<LandingDataException>(() => geometry.PrimaryFace("8"));
+			Assert.That(error.Message, Does.StartWith(Label + ": ").And.Contain("stop 8").And.Contain(LandingGeometry.PrimaryFaceField));
+			Assert.That(Assert.Throws<LandingDataException>(() => geometry.PrimaryFace("99")).Message, Does.Contain("stop 99"));
+		}
+
+		[Test]
+		public void PrimarySegmentsThatDoNotJoin_AreNotOneFace()
+		{
+			var json = SliceTestData.Json(
+				Primary(SliceTestData.Segment(41, "4", 0.0, 0.0, 4.0, 3.0)),
+				Primary(SliceTestData.Segment(42, "4", 8.0, 6.0, 12.0, 9.0)));
+
+			var error = Assert.Throws<LandingDataException>(() => LandingGeometry.Parse(json, Label, Surfaces).PrimaryFace("4"));
+			Assert.That(error.Message, Does.Contain("41").And.Contain("42").And.Contain("join"));
+		}
+
+		private static JObject Primary(JObject segment)
+		{
+			segment[LandingGeometry.PrimaryFaceField] = true;
+			return segment;
+		}
+
+		/// <summary>South Williamsburg's SW end as merged (index 0): chart-verified water side, not the landing face.</summary>
+		private static JObject SouthWilliamsburgEnd() =>
+			SliceTestData.Segment(216221522, "8", 956.7100723449304, 3780.9226350035683, 963.0241368959863, 3771.9112337790434);
+
+		/// <summary>South Williamsburg's NW long side as merged (index 1): the primary face, its water side crew-reported only.</summary>
+		private static JObject SouthWilliamsburgNorthWestSide()
+		{
+			var side = Primary(SliceTestData.Segment(149111046, "8", 963.0241368959863, 3771.9112337790434, 983.9753242661793, 3786.6043392838224, waterSideVerified: false));
+			side[LandingGeometry.CrewWaterSideField] = true;
+			return side;
+		}
+
 		private static IEnumerable<TestCaseData> MalformedFiles()
 		{
 			yield return Case("not JSON", "[{\"id\": 1,", "not valid JSON");
@@ -244,9 +340,28 @@ namespace FerrySim.Slice.Tests
 			yield return Case("id zero", With(s => s["id"] = 0), "id");
 			yield return Case("id fractional", With(s => s["id"] = 1.5), "id");
 			yield return Case("id past int range", With(s => s["id"] = 2147483648L), "id");
+			// Astra review finding 1: integers past Int64 arrive as BigInteger, and a cast to long threw OverflowException.
+			yield return Case("the review's bare id 9223372036854775808", "[{\"id\":9223372036854775808}]", "segment 0 (id ?)", "stop_id missing");
+			yield return Case("the review's id 9223372036854775808 in a whole segment", With(s => s["id"] = JToken.Parse("9223372036854775808")), "segment 0 (id ?)", "id must be a whole number from 1 to 2147483647");
+			yield return Case("an id past every integer type", With(s => s["id"] = JToken.Parse("99999999999999999999999999999999999999")), "segment 0 (id ?)", "id must be a whole number");
+			yield return Case("an integer literal too long for the JSON reader", "[{\"id\": " + new string('9', 400) + "}]", "not valid JSON");
 			yield return Case("three coordinates", With(s => s["start_ne_m"] = new JArray(1.0, 2.0, 3.0)), "start_ne_m");
 			yield return Case("coordinate as text", With(s => s["end_ne_m"] = new JArray("984.0", 3786.6)), "end_ne_m");
+			yield return Case("coordinate past double range", With(s => s["end_ne_m"] = new JArray(JToken.Parse(new string('9', 330)), 3786.6)), "end_ne_m", "two finite numbers");
 			yield return Case("no length", With(s => s["end_ne_m"] = s["start_ne_m"].DeepClone()), "shorter than");
+			// Astra review finding 1: finite end points whose difference overflows reached the core's ContactSegment, which threw ArgumentException.
+			yield return Case("the review's end points +-1e308", With(s =>
+			{
+				s["start_ne_m"] = new JArray(1e308, 1e308);
+				s["end_ne_m"] = new JArray(-1e308, -1e308);
+			}), "segment 0 (id 1)", "not a finite length");
+			yield return Case("end points whose length overflows", With(s =>
+			{
+				s["start_ne_m"] = new JArray(0.0, 0.0);
+				s["end_ne_m"] = new JArray(1e200, 1e200);
+				s["water_normal_ne"] = new JArray(Math.Sqrt(0.5), -Math.Sqrt(0.5));
+			}), "segment 0 (id 1)", "not a finite length");
+			yield return Case("primary face flag as text", With(s => s["primary_face"] = "true"), "primary_face");
 			yield return Case("zero normal", With(s => s["water_normal_ne"] = new JArray(0.0, 0.0)), "water_normal_ne");
 			yield return Case("normal of length 2", With(s => s["water_normal_ne"] = new JArray(2.0 * (double)s["water_normal_ne"][0], 2.0 * (double)s["water_normal_ne"][1])), "unit");
 			yield return Case("water side as text", With(s => s["water_side_verified_by_pipeline"] = "true"), "water_side_verified_by_pipeline");
@@ -313,6 +428,13 @@ namespace FerrySim.Slice.Tests
 			}
 
 			Assert.That(geometry.ForStop(ContactTestStopId), Is.Not.Empty, "South Williamsburg needs a valid face for the contact tests");
+
+			// The contact tests' landing face is the pipeline's primary face, read here straight from the file.
+			var flagged = raw.Cast<JObject>()
+				.Where(s => (string)s["stop_id"] == ContactTestStopId && s[LandingGeometry.PrimaryFaceField]?.Type == JTokenType.Boolean && (bool)s[LandingGeometry.PrimaryFaceField])
+				.Select(s => (int)s["id"]).ToArray();
+			Assert.That(flagged, Is.Not.Empty, "the importer flags South Williamsburg's primary face");
+			Assert.That(geometry.PrimaryFace(ContactTestStopId).Segments.Select(s => s.Id), Is.EqualTo(flagged), "the primary face is every segment flagged primary_face, all kept");
 			var report = Path.Combine(SliceTestData.RepoRoot, "artifacts", "unity", "slice");
 			Directory.CreateDirectory(report);
 			File.WriteAllText(Path.Combine(report, "landing-geometry.txt"), geometry.Describe());

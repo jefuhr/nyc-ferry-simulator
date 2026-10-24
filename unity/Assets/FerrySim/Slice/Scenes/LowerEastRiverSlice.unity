@@ -37,7 +37,7 @@ RenderSettings:
   m_ReflectionBounces: 1
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
-  m_Sun: {fileID: 600136198}
+  m_Sun: {fileID: 408543966}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -119,69 +119,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1001 &234509191
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 1164949311}
-    m_Modifications:
-    - target: {fileID: 1219709520263747771, guid: 389b687b992a448bb861777296e05178, type: 3}
-      propertyPath: m_Name
-      value: LowerEastRiverGreybox
-      objectReference: {fileID: 0}
-    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 389b687b992a448bb861777296e05178, type: 3}
---- !u!4 &234509192 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
-  m_PrefabInstance: {fileID: 234509191}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &350361227
+--- !u!1 &244328174
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -189,46 +127,257 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 350361229}
-  - component: {fileID: 350361228}
+  - component: {fileID: 244328175}
+  - component: {fileID: 244328184}
+  - component: {fileID: 244328183}
+  - component: {fileID: 244328182}
+  - component: {fileID: 244328181}
+  - component: {fileID: 244328180}
+  - component: {fileID: 244328179}
+  - component: {fileID: 244328178}
+  - component: {fileID: 244328177}
+  - component: {fileID: 244328176}
   m_Layer: 0
-  m_Name: WheelhouseMount
-  m_TagString: Untagged
+  m_Name: Main Camera
+  m_TagString: MainCamera
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &350361228
+--- !u!4 &244328175
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244328174}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.014678081, y: 0.41117117, z: -0.0066217883, w: 0.91141593}
+  m_LocalPosition: {x: 635.94434, y: -26.925507, z: 211.48798}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 401674352}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &244328176
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 350361227}
+  m_GameObject: {fileID: 244328174}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bc01c83fd2c5947409a69edb4924b25b, type: 3}
+  m_Script: {fileID: 11500000, guid: bde02e8bd5c0a44c89bd047f5f4f8176, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: FerrySim.Unity.World::FerrySim.World.WheelhouseCameraMount
-  fieldOfView: 65
-  yawLimits: {x: -170, y: 170}
-  pitchLimits: {x: -60, y: 45}
---- !u!4 &350361229
-Transform:
+  m_EditorClassIdentifier: FerrySim.Unity.World::FerrySim.World.CameraRig
+  mode: 2
+  freeFly: {fileID: 244328179}
+  chase: {fileID: 244328178}
+  wheelhouse: {fileID: 244328177}
+  keyboardShortcuts: 1
+  defaultFieldOfView: 60
+--- !u!114 &244328177
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 350361227}
+  m_GameObject: {fileID: 244328174}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed582704f33be45b581060d820ef3289, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FerrySim.Unity.World::FerrySim.World.WheelhouseCameraController
+  mount: {fileID: 1211195594}
+  lookSensitivity: 0.15
+--- !u!114 &244328178
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244328174}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0db9fdaf16df648198f069a7e866f3c7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FerrySim.Unity.World::FerrySim.World.ChaseCameraController
+  target: {fileID: 3660893848497828157}
+  distance: 70
+  height: 20
+  lookHeight: 3
+  headingLag: 0.8
+  orbitSensitivity: 0.2
+--- !u!114 &244328179
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244328174}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc10a10aedd7649b79694858d22fdc51, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FerrySim.Unity.World::FerrySim.World.FreeFlyCameraController
+  speed: 25
+  fastMultiplier: 6
+  slowMultiplier: 0.2
+  lookSensitivity: 0.15
+--- !u!114 &244328180
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244328174}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3bef32f31a547984f88be1ab98b65f04, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CesiumForUnity::CesiumForUnity.CesiumOriginShift
+  _distance: 100
+--- !u!114 &244328181
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244328174}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74f14e1eb550b9a4fb6c0a2f0456845b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CesiumForUnity::CesiumForUnity.CesiumGlobeAnchor
+  _adjustOrientationForGlobeWhenMoving: 0
+  _detectTransformChanges: 1
+  _localToGlobeFixedMatrix:
+    c0:
+      x: 0.7708283118595647
+      y: -0.28772186637430175
+      z: -0.5683659570322159
+      w: 0
+    c1:
+      x: 0.22805158405984305
+      y: -0.7084350997298906
+      z: 0.6679163005264651
+      w: 0
+    c2:
+      x: 0.5948245181011719
+      y: 0.6444655509919707
+      z: 0.48046640479622404
+      w: 0
+    c3:
+      x: 1334090.427897822
+      y: -4654818.176917214
+      z: 4137365.495092671
+      w: 1
+  _localToGlobeFixedMatrixIsValid: 1
+--- !u!81 &244328182
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244328174}
+  m_Enabled: 1
+--- !u!114 &244328183
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244328174}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
+  m_RenderShadows: 1
+  m_RequiresDepthTextureOption: 1
+  m_RequiresOpaqueTextureOption: 2
+  m_CameraType: 0
+  m_Cameras: []
+  m_RendererIndex: -1
+  m_VolumeLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_VolumeTrigger: {fileID: 0}
+  m_VolumeFrameworkUpdateModeOption: 2
+  m_RenderPostProcessing: 0
+  m_Antialiasing: 0
+  m_AntialiasingQuality: 2
+  m_StopNaN: 0
+  m_Dithering: 0
+  m_ClearDepth: 1
+  m_AllowXRRendering: 1
+  m_AllowHDROutput: 1
+  m_UseScreenCoordOverride: 0
+  m_ScreenSizeOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
+  m_RequiresDepthTexture: 0
+  m_RequiresColorTexture: 0
+  m_TaaSettings:
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0
+  m_Version: 2
+--- !u!20 &244328184
+Camera:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244328174}
+  m_Enabled: 1
   serializedVersion: 2
-  m_LocalRotation: {x: 0.06975647, y: 0, z: 0, w: 0.9975641}
-  m_LocalPosition: {x: 0, y: 6.9493437, z: 7.874904}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 3660893848497828157}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &464246810
+  m_ClearFlags: 1
+  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_projectionMatrixMode: 1
+  m_GateFitMode: 2
+  m_FOVAxisMode: 0
+  m_Iso: 200
+  m_ShutterSpeed: 0.005
+  m_Aperture: 16
+  m_FocusDistance: 10
+  m_FocalLength: 50
+  m_BladeCount: 5
+  m_Curvature: {x: 2, y: 11}
+  m_BarrelClipping: 0.25
+  m_Anamorphism: 0
+  m_SensorSize: {x: 36, y: 24}
+  m_LensShift: {x: 0, y: 0}
+  m_NormalizedViewPortRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
+  near clip plane: 0.3
+  far clip plane: 40000
+  field of view: 60
+  orthographic: 0
+  orthographic size: 5
+  m_Depth: 0
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RenderingPath: -1
+  m_TargetTexture: {fileID: 0}
+  m_TargetDisplay: 0
+  m_TargetEye: 3
+  m_HDR: 1
+  m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
+  m_ForceIntoRT: 0
+  m_OcclusionCulling: 1
+  m_StereoConvergence: 10
+  m_StereoSeparation: 0.022
+--- !u!1 &401674351
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -236,108 +385,56 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 464246811}
-  - component: {fileID: 464246814}
-  - component: {fileID: 464246813}
-  - component: {fileID: 464246812}
-  m_Layer: 4
-  m_Name: Water
+  - component: {fileID: 401674352}
+  - component: {fileID: 401674353}
+  m_Layer: 0
+  m_Name: CesiumGeoreference
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &464246811
+--- !u!4 &401674352
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 464246810}
+  m_GameObject: {fileID: 401674351}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1164949311}
+  m_Children:
+  - {fileID: 1925740713}
+  - {fileID: 244328175}
+  - {fileID: 3660893848497828157}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &464246812
+--- !u!114 &401674353
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 464246810}
+  m_GameObject: {fileID: 401674351}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 19be07b59741049ada4f617c036ecc15, type: 3}
+  m_Script: {fileID: 11500000, guid: d1305e05d46db92498ce698a4c366a5a, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: FerrySim.Unity.World::FerrySim.World.WaterSurface
-  datum: {fileID: 11400000, guid: 4b3a4842b759f4c41b7a64a2c347c12a, type: 2}
-  waterLevelNavd88: 0
-  spacing: 100
-  margin: 1000
-  reach: 20000
-  outerGrowth: 1.4
---- !u!23 &464246813
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 464246810}
-  m_Enabled: 1
-  m_CastShadows: 0
-  m_ReceiveShadows: 0
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 0
-  m_ReflectionProbeUsage: 0
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: 4a00a37b76cb14281bd0795f087cce6d, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &464246814
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 464246810}
-  m_Mesh: {fileID: 0}
---- !u!1 &600136196
+  m_EditorClassIdentifier: CesiumForUnity::CesiumForUnity.CesiumGeoreference
+  _ellipsoidOverride: {fileID: 0}
+  _originPlacement: 1
+  _originAuthority: 0
+  _latitude: 40.7
+  _longitude: -74.015
+  _height: 0
+  _ecefX: 1333522.6732946257
+  _ecefY: -4655145.509220519
+  _ecefZ: 4137222.716876187
+  _scale: 1
+--- !u!1 &408543964
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -345,9 +442,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 600136199}
-  - component: {fileID: 600136198}
-  - component: {fileID: 600136197}
+  - component: {fileID: 408543967}
+  - component: {fileID: 408543966}
+  - component: {fileID: 408543965}
   m_Layer: 0
   m_Name: Sun
   m_TagString: Untagged
@@ -355,20 +452,20 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &600136197
+--- !u!114 &408543965
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 600136196}
+  m_GameObject: {fileID: 408543964}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f87b22f97c6a34cb19ba848cd9147e41, type: 3}
   m_Name: 
   m_EditorClassIdentifier: FerrySim.Unity.World::FerrySim.World.SunController
-  sun: {fileID: 600136198}
-  worldFrame: {fileID: 1164949309}
+  sun: {fileID: 408543966}
+  worldFrame: {fileID: 1925740711}
   year: 2026
   month: 6
   day: 15
@@ -379,13 +476,13 @@ MonoBehaviour:
   ambientIntensity: 1
   driveFog: 1
   fogDensity: 0.00007
---- !u!108 &600136198
+--- !u!108 &408543966
 Light:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 600136196}
+  m_GameObject: {fileID: 408543964}
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 1
@@ -444,13 +541,13 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
---- !u!4 &600136199
+--- !u!4 &408543967
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 600136196}
+  m_GameObject: {fileID: 408543964}
   serializedVersion: 2
   m_LocalRotation: {x: 0.53410995, y: -0.27305746, z: 0.187501, w: 0.7778236}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -459,7 +556,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &807233410
+--- !u!1 &694526494
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -467,56 +564,108 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 807233411}
-  - component: {fileID: 807233412}
-  m_Layer: 0
-  m_Name: CesiumGeoreference
+  - component: {fileID: 694526495}
+  - component: {fileID: 694526498}
+  - component: {fileID: 694526497}
+  - component: {fileID: 694526496}
+  m_Layer: 4
+  m_Name: Water
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &807233411
+--- !u!4 &694526495
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 807233410}
+  m_GameObject: {fileID: 694526494}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1164949311}
-  - {fileID: 1272644125}
-  - {fileID: 3660893848497828157}
-  m_Father: {fileID: 0}
+  m_Children: []
+  m_Father: {fileID: 1925740713}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &807233412
+--- !u!114 &694526496
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 807233410}
+  m_GameObject: {fileID: 694526494}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d1305e05d46db92498ce698a4c366a5a, type: 3}
+  m_Script: {fileID: 11500000, guid: 19be07b59741049ada4f617c036ecc15, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: CesiumForUnity::CesiumForUnity.CesiumGeoreference
-  _ellipsoidOverride: {fileID: 0}
-  _originPlacement: 1
-  _originAuthority: 0
-  _latitude: 40.7
-  _longitude: -74.015
-  _height: 0
-  _ecefX: 1333522.6732946257
-  _ecefY: -4655145.509220519
-  _ecefZ: 4137222.716876187
-  _scale: 1
---- !u!1 &987144727
+  m_EditorClassIdentifier: FerrySim.Unity.World::FerrySim.World.WaterSurface
+  datum: {fileID: 11400000, guid: 4b3a4842b759f4c41b7a64a2c347c12a, type: 2}
+  waterLevelNavd88: 0
+  spacing: 100
+  margin: 1000
+  reach: 20000
+  outerGrowth: 1.4
+--- !u!23 &694526497
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 694526494}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 0
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 0
+  m_ReflectionProbeUsage: 0
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 4a00a37b76cb14281bd0795f087cce6d, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &694526498
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 694526494}
+  m_Mesh: {fileID: 0}
+--- !u!1 &1211195593
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -524,8 +673,55 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 987144729}
-  - component: {fileID: 987144728}
+  - component: {fileID: 1211195595}
+  - component: {fileID: 1211195594}
+  m_Layer: 0
+  m_Name: WheelhouseMount
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1211195594
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1211195593}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc01c83fd2c5947409a69edb4924b25b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FerrySim.Unity.World::FerrySim.World.WheelhouseCameraMount
+  fieldOfView: 65
+  yawLimits: {x: -170, y: 170}
+  pitchLimits: {x: -60, y: 45}
+--- !u!4 &1211195595
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1211195593}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.06975647, y: 0, z: 0, w: 0.9975641}
+  m_LocalPosition: {x: 0, y: 6.9493437, z: 7.874904}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3660893848497828157}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1694537407
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1694537409}
+  - component: {fileID: 1694537408}
   m_Layer: 0
   m_Name: GeoreferenceCheck
   m_TagString: Untagged
@@ -533,32 +729,32 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &987144728
+--- !u!114 &1694537408
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 987144727}
+  m_GameObject: {fileID: 1694537407}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b0726cc34c05f4a6ca9e1d61647a9e7e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: FerrySim.Unity.World::FerrySim.World.GeoreferenceCheck
-  georeference: {fileID: 807233412}
-  worldFrame: {fileID: 1164949309}
+  georeference: {fileID: 401674353}
+  worldFrame: {fileID: 1925740711}
   referenceName: Wall St/Pier 11
   referenceLatitude: 40.703161
   referenceLongitude: -74.006144
   referenceEllipsoidalHeight: 0
   referenceSource: NYC Ferry GTFS stop 87 via data/processed/lower-east-river/landings.geojson
---- !u!4 &987144729
+--- !u!4 &1694537409
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 987144727}
+  m_GameObject: {fileID: 1694537407}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -567,7 +763,69 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1164949308
+--- !u!1001 &1780848709
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1925740713}
+    m_Modifications:
+    - target: {fileID: 1219709520263747771, guid: 389b687b992a448bb861777296e05178, type: 3}
+      propertyPath: m_Name
+      value: LowerEastRiverGreybox
+      objectReference: {fileID: 0}
+    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 389b687b992a448bb861777296e05178, type: 3}
+--- !u!4 &1780848710 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7756830999256770898, guid: 389b687b992a448bb861777296e05178, type: 3}
+  m_PrefabInstance: {fileID: 1780848709}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1925740710
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -575,9 +833,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1164949311}
-  - component: {fileID: 1164949310}
-  - component: {fileID: 1164949309}
+  - component: {fileID: 1925740713}
+  - component: {fileID: 1925740712}
+  - component: {fileID: 1925740711}
   m_Layer: 0
   m_Name: World
   m_TagString: Untagged
@@ -585,25 +843,25 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1164949309
+--- !u!114 &1925740711
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1164949308}
+  m_GameObject: {fileID: 1925740710}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a4ee731cf3d9c498fa4b28cc53cfcf2c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: FerrySim.Unity.World::FerrySim.World.WorldFrame
---- !u!114 &1164949310
+--- !u!114 &1925740712
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1164949308}
+  m_GameObject: {fileID: 1925740710}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 74f14e1eb550b9a4fb6c0a2f0456845b, type: 3}
@@ -633,281 +891,23 @@ MonoBehaviour:
       z: 4137222.716876187
       w: 1
   _localToGlobeFixedMatrixIsValid: 1
---- !u!4 &1164949311
+--- !u!4 &1925740713
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1164949308}
+  m_GameObject: {fileID: 1925740710}
   serializedVersion: 2
   m_LocalRotation: {x: 2.7755576e-17, y: 3.5928602e-18, z: 1.675583e-17, w: 1}
   m_LocalPosition: {x: -2.3283064e-10, y: 0, z: -4.656613e-10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 464246811}
-  - {fileID: 234509192}
-  m_Father: {fileID: 807233411}
+  - {fileID: 694526495}
+  - {fileID: 1780848710}
+  m_Father: {fileID: 401674352}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1272644124
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1272644125}
-  - component: {fileID: 1272644134}
-  - component: {fileID: 1272644133}
-  - component: {fileID: 1272644132}
-  - component: {fileID: 1272644131}
-  - component: {fileID: 1272644130}
-  - component: {fileID: 1272644129}
-  - component: {fileID: 1272644128}
-  - component: {fileID: 1272644127}
-  - component: {fileID: 1272644126}
-  m_Layer: 0
-  m_Name: Main Camera
-  m_TagString: MainCamera
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1272644125
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1272644124}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0.007908279, y: 0.87058353, z: -0.0140004195, w: -0.49175784}
-  m_LocalPosition: {x: 878.90625, y: -26.929228, z: 468.97076}
-  m_LocalScale: {x: 1.0000001, y: 1, z: 1.0000001}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 807233411}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1272644126
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1272644124}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bde02e8bd5c0a44c89bd047f5f4f8176, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: FerrySim.Unity.World::FerrySim.World.CameraRig
-  mode: 2
-  freeFly: {fileID: 1272644129}
-  chase: {fileID: 1272644128}
-  wheelhouse: {fileID: 1272644127}
-  keyboardShortcuts: 1
-  defaultFieldOfView: 60
---- !u!114 &1272644127
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1272644124}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ed582704f33be45b581060d820ef3289, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: FerrySim.Unity.World::FerrySim.World.WheelhouseCameraController
-  mount: {fileID: 350361228}
-  lookSensitivity: 0.15
---- !u!114 &1272644128
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1272644124}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0db9fdaf16df648198f069a7e866f3c7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: FerrySim.Unity.World::FerrySim.World.ChaseCameraController
-  target: {fileID: 3660893848497828157}
-  distance: 70
-  height: 20
-  lookHeight: 3
-  headingLag: 0.8
-  orbitSensitivity: 0.2
---- !u!114 &1272644129
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1272644124}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bc10a10aedd7649b79694858d22fdc51, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: FerrySim.Unity.World::FerrySim.World.FreeFlyCameraController
-  speed: 25
-  fastMultiplier: 6
-  slowMultiplier: 0.2
-  lookSensitivity: 0.15
---- !u!114 &1272644130
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1272644124}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3bef32f31a547984f88be1ab98b65f04, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: CesiumForUnity::CesiumForUnity.CesiumOriginShift
-  _distance: 100
---- !u!114 &1272644131
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1272644124}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 74f14e1eb550b9a4fb6c0a2f0456845b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: CesiumForUnity::CesiumForUnity.CesiumGlobeAnchor
-  _adjustOrientationForGlobeWhenMoving: 0
-  _detectTransformChanges: 1
-  _localToGlobeFixedMatrix:
-    c0:
-      x: -0.6500638791441528
-      y: 0.3947370342530654
-      z: 0.6493072564389935
-      w: 0
-    c1:
-      x: 0.18517780839418413
-      y: -0.7464329719648192
-      z: 0.6391768125162807
-      w: 0
-    c2:
-      x: -0.7369711043213963
-      y: -0.53574305349759
-      z: -0.4121325738874652
-      w: 0
-    c3:
-      x: 1334277.7562366328
-      y: -4654589.854065908
-      z: 4137560.699208686
-      w: 1
-  _localToGlobeFixedMatrixIsValid: 1
---- !u!81 &1272644132
-AudioListener:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1272644124}
-  m_Enabled: 1
---- !u!114 &1272644133
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1272644124}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
-  m_RenderShadows: 1
-  m_RequiresDepthTextureOption: 1
-  m_RequiresOpaqueTextureOption: 2
-  m_CameraType: 0
-  m_Cameras: []
-  m_RendererIndex: -1
-  m_VolumeLayerMask:
-    serializedVersion: 2
-    m_Bits: 1
-  m_VolumeTrigger: {fileID: 0}
-  m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 0
-  m_Antialiasing: 0
-  m_AntialiasingQuality: 2
-  m_StopNaN: 0
-  m_Dithering: 0
-  m_ClearDepth: 1
-  m_AllowXRRendering: 1
-  m_AllowHDROutput: 1
-  m_UseScreenCoordOverride: 0
-  m_ScreenSizeOverride: {x: 0, y: 0, z: 0, w: 0}
-  m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
-  m_RequiresDepthTexture: 0
-  m_RequiresColorTexture: 0
-  m_TaaSettings:
-    m_Quality: 3
-    m_FrameInfluence: 0.1
-    m_JitterScale: 1
-    m_MipBias: 0
-    m_VarianceClampScale: 0.9
-    m_ContrastAdaptiveSharpening: 0
-  m_Version: 2
---- !u!20 &1272644134
-Camera:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1272644124}
-  m_Enabled: 1
-  serializedVersion: 2
-  m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
-  m_projectionMatrixMode: 1
-  m_GateFitMode: 2
-  m_FOVAxisMode: 0
-  m_Iso: 200
-  m_ShutterSpeed: 0.005
-  m_Aperture: 16
-  m_FocusDistance: 10
-  m_FocalLength: 50
-  m_BladeCount: 5
-  m_Curvature: {x: 2, y: 11}
-  m_BarrelClipping: 0.25
-  m_Anamorphism: 0
-  m_SensorSize: {x: 36, y: 24}
-  m_LensShift: {x: 0, y: 0}
-  m_NormalizedViewPortRect:
-    serializedVersion: 2
-    x: 0
-    y: 0
-    width: 1
-    height: 1
-  near clip plane: 0.3
-  far clip plane: 40000
-  field of view: 60
-  orthographic: 0
-  orthographic size: 5
-  m_Depth: 0
-  m_CullingMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_RenderingPath: -1
-  m_TargetTexture: {fileID: 0}
-  m_TargetDisplay: 0
-  m_TargetEye: 3
-  m_HDR: 1
-  m_AllowMSAA: 1
-  m_AllowDynamicResolution: 0
-  m_ForceIntoRT: 0
-  m_OcclusionCulling: 1
-  m_StereoConvergence: 10
-  m_StereoSeparation: 0.022
 --- !u!33 &511702570800273636
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -1216,8 +1216,8 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4467402532697035493}
-  - {fileID: 350361229}
-  m_Father: {fileID: 807233411}
+  - {fileID: 1211195595}
+  m_Father: {fileID: 401674352}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &3688327180611523218
 Transform:
@@ -1547,11 +1547,12 @@ MonoBehaviour:
   terrainPrefab: {fileID: 9199438389127662534, guid: 9574ea8f6aa804d65ac0b14696014369, type: 3}
   importManifest: {fileID: 4900000, guid: 14ba87daeede6469e8fef667d97f728a, type: 3}
   matchTerrainToWater: 1
-  worldFrame: {fileID: 1164949309}
-  water: {fileID: 464246812}
-  cameraRig: {fileID: 1272644126}
+  vesselFile: vessels/t-class.json
+  worldFrame: {fileID: 1925740711}
+  water: {fileID: 694526496}
+  cameraRig: {fileID: 244328176}
   wheelhouseUI: {fileID: 1570490059724809582}
-  sun: {fileID: 600136197}
+  sun: {fileID: 408543965}
   helm: {fileID: 1639972061246204685}
   followScenarioTime: 1
   switchPanelWithCamera: 1
@@ -1567,7 +1568,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 19c7775003339410cb1ea38901d145c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: FerrySim.Unity.Slice::FerrySim.Slice.WorldWaterHeight
-  water: {fileID: 464246812}
+  water: {fileID: 694526496}
 --- !u!1 &7238897669444582096
 GameObject:
   m_ObjectHideFlags: 0
@@ -1670,8 +1671,8 @@ MonoBehaviour:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 807233411}
-  - {fileID: 600136199}
-  - {fileID: 987144729}
+  - {fileID: 401674352}
+  - {fileID: 408543967}
+  - {fileID: 1694537409}
   - {fileID: 5668731138382606479}
   - {fileID: 3688327180611523218}
