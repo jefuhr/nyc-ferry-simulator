@@ -1,0 +1,26 @@
+{
+	"name": "FerrySim.Unity.Slice.Authoring",
+	"rootNamespace": "FerrySim.Slice.Authoring",
+	"references": [
+		"FerrySim.Core",
+		"FerrySim.Core.Serialization",
+		"FerrySim.Unity.Sim",
+		"FerrySim.Unity.Sim.Cesium",
+		"FerrySim.Unity.Input",
+		"FerrySim.Unity.World",
+		"FerrySim.Unity.UI",
+		"FerrySim.Unity.Slice",
+		"CesiumForUnity",
+		"Unity.Mathematics",
+		"Unity.InputSystem"
+	],
+	"includePlatforms": ["Editor"],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": false,
+	"precompiledReferences": [],
+	"autoReferenced": false,
+	"defineConstraints": [],
+	"versionDefines": [],
+	"noEngineReferences": false
+}
