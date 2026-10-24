@@ -192,3 +192,55 @@ def test_approach_samples_the_face_instead_of_bulkhead(tmp_path, monkeypatch):
 	assert got[0].anchor_ne == pytest.approx((30, 0), abs=.02)
 	assert got[0].boxes[0]['stats']['min_depth_m'] == pytest.approx(3.2)
 	assert validate.depth_verdict(got[0].boxes[0]['stats'], 2.1)
+
+
+def test_contact_polyline_check_rejects_disconnected_or_reversed_outline(tmp_path, monkeypatch):
+	from types import SimpleNamespace
+	from shapely.geometry import box, MultiLineString
+	from ferrydata import geojsonio, landings, paths
+	monkeypatch.setattr(paths, 'PROCESSED_ROOT', tmp_path)
+	out = tmp_path / 'fixture'
+	out.mkdir()
+	outline = box(-14, 20, 14, 30)
+	line = LineString([(-14, 20), (-14, 30), (14, 30), (14, 20)])
+	feature = geojsonio.make_feature(landings.to_wgs84(outline), {'stop_id': 'a', 'stop_name': 'fixture'})
+	def save(contact):
+		feature['properties']['contact_geometry'] = geojsonio.make_feature(landings.to_wgs84(contact), {})['geometry']
+		geojsonio.write_collection(out / 'landing_faces.geojson', [feature], 'faces')
+	slice_ = SimpleNamespace(name='fixture')
+	save(line)
+	assert validate.check_contact_polylines(slice_).passed
+	save(LineString(list(line.coords)[::-1]))
+	assert not validate.check_contact_polylines(slice_).passed
+	save(MultiLineString([[(0, 30), (5, 30)], [(6, 30), (10, 30)]]))
+	assert not validate.check_contact_polylines(slice_).passed
+
+
+def test_validation_report_names_crew_source_and_keeps_chart_conflict_visible():
+	note = {'stop_id': '19', 'statement': 'The ramps face Manhattan', 'date': '2026-10-24', 'source': 'crew-reported: project crew reviewer'}
+	lines = validate.crew_evidence_details(note, {'verified': False, 'method': 'unverified'})
+	text = '\n'.join(lines)
+	assert note['statement'] in text
+	assert note['date'] in text
+	assert note['source'] in text
+	assert 'chart: FAIL' in text
+
+
+# Runtime filtering must not invent a joint across an unsupported side, lose a
+# primary subdivision, or claim crew support for an unreviewed end direction.
+def test_filtered_topology_reports_dropped_ends_and_separate_open_runs():
+	line = LineString([(0, 0), (0, 1), (1, 1), (2, 1), (2, 0)])
+	records = [{'index': i, 'on_primary_face': i in (1, 2), 'water_side_verified_by_pipeline': i in (1, 2)} for i in range(4)]
+	topology = validate.filtered_contact_topology(line, records)
+	assert topology == {'retained': [1, 2], 'dropped': [0, 3], 'runs': [[1, 2]], 'primary_retained': True}
+	records[1]['water_side_verified_by_pipeline'] = False
+	assert not validate.filtered_contact_topology(line, records)['primary_retained']
+	records[0]['water_side_verified_by_pipeline'] = True
+	assert validate.filtered_contact_topology(line, records)['runs'] == [[0], [2]]
+
+
+def test_crew_report_includes_note_id_and_provenance_kind():
+	note = {'id': 'pier11-use', 'kind': 'berth-use-policy', 'stop_id': '87', 'date': '2026-10-24',
+		'source': 'crew-reported: project crew reviewer', 'statement': 'Every ramp barge is used'}
+	text = '\n'.join(validate.crew_evidence_details(note, {'verified': True, 'method': 'direct-12m'}))
+	assert 'pier11-use' in text and 'berth-use-policy' in text

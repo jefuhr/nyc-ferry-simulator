@@ -203,39 +203,117 @@ namespace FerrySim.World.Import
 
 		public static IEnumerable<ContactSegment> LandingSegments(JObject feature)
 		{
-			var p = feature["properties"]; var coords = (JArray)p["face_geometry"]["coordinates"]; var outward = (JArray)p["outward_normal_ne"];
+			var p = feature["properties"]; var primary = (JArray)p["face_geometry"]["coordinates"];
+			var connected = p["contact_geometry"] != null;
+			var coords = connected ? (JArray)p["contact_geometry"]["coordinates"] : primary;
+			var outward = (JArray)p["outward_normal_ne"];
 			for (var i = 1; i < coords.Count; i++)
 			{
 				var a = coords[i - 1]; var b = coords[i];
 				var start = LocalTangentPlane.World.ToLocal(new GeodeticPosition((double)a[1], (double)a[0]));
 				var end = LocalTangentPlane.World.ToLocal(new GeodeticPosition((double)b[1], (double)b[0]));
-				if ((end.East - start.East) * (double)outward[0] - (end.North - start.North) * (double)outward[1] < 0) { var swap = start; start = end; end = swap; }
+				// A connected outline is already water-left. Flipping its short ends to
+				// the primary normal would break the exact joints and reverse the water side.
+				if (!connected && (end.East - start.East) * (double)outward[0] - (end.North - start.North) * (double)outward[1] < 0) { var swap = start; start = end; end = swap; }
+				var idKey = PhysicalEdgeIdentity(feature, a, b);
 				// Surface is only needed to use the core's orientation contract; it is not exported as a physical calibration.
-				yield return new ContactSegment(start, end, new ContactSurface(1, 0, 0, 1), StableId((string)p["stop_id"] + ":" + (i - 1)));
+				yield return new ContactSegment(start, end, new ContactSurface(1, 0, 0, 1), StableId(idKey));
 			}
 		}
+		private static string PhysicalEdgeIdentity(JObject feature, JToken a, JToken b)
+		{
+			var p = feature["properties"]; var stop = (string)p["stop_id"];
+			if (feature["geometry"]?["type"]?.Value<string>() != "Polygon")
+			{
+				// Legacy face-only fixtures have no source outline. Endpoint identity
+				// remains independent of primary/end role and endpoint order.
+				var first = a.ToString(Formatting.None); var second = b.ToString(Formatting.None);
+				return stop + ":legacy-edge:" + (string.CompareOrdinal(first, second) < 0 ? first + ":" + second : second + ":" + first);
+			}
+			var ring = ((JArray)feature["geometry"]["coordinates"][0]).TakeWhile((token, i) => i == 0 || !JToken.DeepEquals(token, feature["geometry"]["coordinates"][0][0])).ToList();
+			if (ring.Count < 3) throw new InvalidDataException("Landing source outline has fewer than three vertices: " + stop);
+			var originEast = (double)ring[0][0]; var originNorth = (double)ring[0][1]; var area = 0.0;
+			for (var i = 0; i < ring.Count; i++)
+			{
+				var next = ring[(i + 1) % ring.Count];
+				area += ((double)ring[i][0] - originEast) * ((double)next[1] - originNorth) - ((double)next[0] - originEast) * ((double)ring[i][1] - originNorth);
+			}
+			if (area > 0) ring.Reverse(); // fixed clockwise winding
+			var firstIndex = Enumerable.Range(0, ring.Count).OrderBy(i => (double)ring[i][0]).ThenBy(i => (double)ring[i][1]).First();
+			var outline = (string)p["outline_id"] ?? ((string)p["enc_id"] != null ? "enc:" + (string)p["enc_id"] : "derived-barge:" + stop + ":" + (string)p["bulkhead_enc_id"]);
+			for (var ordinal = 0; ordinal < ring.Count; ordinal++)
+			{
+				var start = ring[(firstIndex + ordinal) % ring.Count]; var end = ring[(firstIndex + ordinal + 1) % ring.Count];
+				if ((JToken.DeepEquals(start, a) && JToken.DeepEquals(end, b)) || (JToken.DeepEquals(start, b) && JToken.DeepEquals(end, a)))
+					return stop + ":" + outline + ":edge:" + ordinal.ToString(CultureInfo.InvariantCulture);
+			}
+			throw new InvalidDataException("Contact segment is not an edge of the landing source outline: " + stop);
+		}
+
+		private static int PrimaryIndex(JArray primary, JToken a, JToken b)
+		{
+			for (var i = 1; i < primary.Count; i++)
+				if ((JToken.DeepEquals(primary[i - 1], a) && JToken.DeepEquals(primary[i], b)) || (JToken.DeepEquals(primary[i - 1], b) && JToken.DeepEquals(primary[i], a))) return i - 1;
+			return -1;
+		}
+		public static bool PipelineWaterSideVerified(JObject feature)
+		{
+			var properties = feature["properties"];
+			return (bool)(properties["water_side_verified_by_pipeline"] ?? properties["water_side"]);
+		}
+		public static bool PipelineWaterSideVerified(JObject feature, int segmentIndex)
+		{
+			var evidence = SegmentEvidence(feature, segmentIndex);
+			if (evidence != null) return (bool?)evidence["water_side_verified_by_pipeline"] == true;
+			// Legacy primary-only evidence never verifies a different outline side.
+			var properties = feature["properties"];
+			var coords = (JArray)(properties["contact_geometry"] ?? properties["face_geometry"])["coordinates"];
+			return PrimaryIndex((JArray)properties["face_geometry"]["coordinates"], coords[segmentIndex], coords[segmentIndex + 1]) >= 0 && PipelineWaterSideVerified(feature);
+		}
+		private static JObject SegmentEvidence(JObject feature, int segmentIndex)
+		{
+			var properties = feature["properties"];
+			if (!(properties["contact_segment_evidence"] is JArray evidence)) return null;
+			var coords = (JArray)(properties["contact_geometry"] ?? properties["face_geometry"])["coordinates"];
+			if (evidence.Count != coords.Count - 1 || (int?)evidence[segmentIndex]["index"] != segmentIndex)
+				throw new InvalidDataException("Landing segment evidence does not match contact geometry for " + properties["stop_id"]);
+			return (JObject)evidence[segmentIndex];
+		}
+
 		private static int StableId(string value)
 		{
 			unchecked { uint h = 2166136261; foreach (var c in value) h = (h ^ c) * 16777619; return (int)(h & 0x7fffffff); }
 		}
 		private static JArray BuildLandings(GameObject parent, double geoid, Material material)
 		{
-			var contacts = new JArray(); var faces = ReadFeatures("landing_faces.geojson").ToDictionary(FeatureName, StringComparer.Ordinal);
+			var contacts = new JArray(); var contactIds = new HashSet<int>(); var faces = ReadFeatures("landing_faces.geojson").ToDictionary(FeatureName, StringComparer.Ordinal);
 			foreach (var stop in ReadFeatures("landings.geojson"))
 			{
 				var id = FeatureName(stop); if (!faces.TryGetValue(id, out var face)) throw new InvalidDataException("Missing landing face for GTFS stop " + id);
 				var marker = Child(parent, id); var segments = LandingSegments(face).ToArray();
 				for (var i = 0; i < segments.Length; i++)
 				{
-					var segment = segments[i]; var a = new Vector3((float)segment.Start.East, (float)geoid + .18f, (float)segment.Start.North); var b = new Vector3((float)segment.End.East, a.y, (float)segment.End.North);
+					var properties = face["properties"]; var coordinates = (JArray)(properties["contact_geometry"] ?? properties["face_geometry"])["coordinates"];
+					var onPrimary = PrimaryIndex((JArray)properties["face_geometry"]["coordinates"], coordinates[i], coordinates[i + 1]) >= 0;
+					var segment = segments[i];
+					if (!contactIds.Add(segment.Id)) throw new InvalidDataException("Duplicate contact segment ID: " + segment.Id);
+					var a = new Vector3((float)segment.Start.East, (float)geoid + .18f, (float)segment.Start.North); var b = new Vector3((float)segment.End.East, a.y, (float)segment.End.North);
 					var strip = GameObject.CreatePrimitive(PrimitiveType.Cube); strip.name = id + "-Contact-" + i; strip.transform.SetParent(marker.transform, false); strip.transform.position = (a + b) * .5f;
 					strip.transform.rotation = Quaternion.LookRotation(b - a); strip.transform.localScale = new Vector3(.65f, .35f, (float)segment.Length); strip.GetComponent<Renderer>().sharedMaterial = material;
 					strip.layer = 8;
-					contacts.Add(new JObject { ["id"] = segment.Id, ["stop_id"] = id, ["stop_name"] = stop["properties"]["stop_name"].DeepClone(),
+					var record = new JObject { ["id"] = segment.Id, ["stop_id"] = id, ["stop_name"] = stop["properties"]["stop_name"].DeepClone(),
 						["start_ne_m"] = new JArray(segment.Start.North, segment.Start.East), ["end_ne_m"] = new JArray(segment.End.North, segment.End.East),
 						["water_normal_ne"] = new JArray(segment.WaterNormal.North, segment.WaterNormal.East),
-						["source"] = face["properties"]["source"].DeepClone(), ["confidence"] = face["properties"]["confidence"].DeepClone(),
-						["verification"] = face["properties"]["verification"].DeepClone(), ["water_side_verified_by_pipeline"] = face["properties"]["water_side"].DeepClone() });
+						["source"] = properties["source"].DeepClone(), ["confidence"] = (onPrimary ? properties["confidence"] : properties["contact_confidence"] ?? properties["confidence"]).DeepClone(),
+						["polyline_id"] = "landing-" + id, ["index"] = i,
+						["verification"] = properties["verification"].DeepClone(), ["water_side_verified_by_pipeline"] = PipelineWaterSideVerified(face, i) };
+					if (onPrimary) record["primary_face"] = true;
+					var evidence = SegmentEvidence(face, i);
+					if (evidence?["water_side_evidence"] != null) record["water_side_evidence"] = evidence["water_side_evidence"].DeepClone();
+					if (properties["crew_evidence"] is JObject crew && (onPrimary || (string)crew["kind"] == "berth-use-policy")) record["crew_evidence"] = crew.DeepClone();
+					if (!onPrimary && (bool?)properties["contact_geometry_estimated"] == true) record["geometry_estimated"] = true;
+					if (onPrimary && (bool?)properties["water_side_crew_reported"] == true) record["water_side_crew_reported"] = true;
+					contacts.Add(record);
 				}
 			}
 			return contacts;

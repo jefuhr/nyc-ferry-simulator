@@ -1,6 +1,34 @@
 [
   {
-    "id": 1554019787,
+    "id": 720156151,
+    "stop_id": "114",
+    "stop_name": "Stuyvesant Cove",
+    "start_ne_m": [
+      3563.3474192465055,
+      3547.0605445080864
+    ],
+    "end_ne_m": [
+      3565.19558997372,
+      3557.0108067955375
+    ],
+    "water_normal_ne": [
+      0.983184037259503,
+      -0.1826174933518257
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "polyline_id": "landing-114",
+    "index": 0,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    }
+  },
+  {
+    "id": 703378532,
     "stop_id": "114",
     "stop_name": "Stuyvesant Cove",
     "start_ne_m": [
@@ -17,11 +45,76 @@
     ],
     "source": "enc-feature",
     "confidence": "medium",
+    "polyline_id": "landing-114",
+    "index": 1,
     "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": true
+    "water_side_verified_by_pipeline": true,
+    "primary_face": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    }
   },
   {
-    "id": 1713792972,
+    "id": 753711389,
+    "stop_id": "114",
+    "stop_name": "Stuyvesant Cove",
+    "start_ne_m": [
+      3540.4006268840744,
+      3561.6350433948187
+    ],
+    "end_ne_m": [
+      3538.5524500247379,
+      3551.6847489889915
+    ],
+    "water_normal_ne": [
+      -0.98318403430695667,
+      0.18261750924787323
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "polyline_id": "landing-114",
+    "index": 2,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    }
+  },
+  {
+    "id": 775345432,
+    "stop_id": "115",
+    "stop_name": "Corlears Hook",
+    "start_ne_m": [
+      1134.5445829139903,
+      3034.7079065176058
+    ],
+    "end_ne_m": [
+      1123.9176683451751,
+      3035.7093830494255
+    ],
+    "water_normal_ne": [
+      0.0938239240019257,
+      0.9955888063276328
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "polyline_id": "landing-115",
+    "index": 0,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "geometry_estimated": true
+  },
+  {
+    "id": 825678289,
     "stop_id": "115",
     "stop_name": "Corlears Hook",
     "start_ne_m": [
@@ -38,11 +131,77 @@
     ],
     "source": "derived-from-gtfs",
     "confidence": "low",
+    "polyline_id": "landing-115",
+    "index": 1,
     "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": true
+    "water_side_verified_by_pipeline": true,
+    "primary_face": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    }
   },
   {
-    "id": 859274532,
+    "id": 808900670,
+    "stop_id": "115",
+    "stop_name": "Corlears Hook",
+    "start_ne_m": [
+      1121.3413362683536,
+      3008.3991482620122
+    ],
+    "end_ne_m": [
+      1131.9571496490971,
+      3007.3977149828188
+    ],
+    "water_normal_ne": [
+      -0.0939171521298842,
+      -0.99558001613924152
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "polyline_id": "landing-115",
+    "index": 2,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "geometry_estimated": true
+  },
+  {
+    "id": 166770229,
+    "stop_id": "120",
+    "stop_name": "Brooklyn Navy Yard",
+    "start_ne_m": [
+      199.3948962429821,
+      3486.7881107057124
+    ],
+    "end_ne_m": [
+      209.70997892649794,
+      3484.0365903461916
+    ],
+    "water_normal_ne": [
+      -0.25773537825772325,
+      -0.96621554261683673
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "polyline_id": "landing-120",
+    "index": 0,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "geometry_estimated": true
+  },
+  {
+    "id": 116437372,
     "stop_id": "120",
     "stop_name": "Brooklyn Navy Yard",
     "start_ne_m": [
@@ -59,11 +218,77 @@
     ],
     "source": "derived-from-gtfs",
     "confidence": "low",
+    "polyline_id": "landing-120",
+    "index": 1,
     "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": true
+    "water_side_verified_by_pipeline": true,
+    "primary_face": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    }
   },
   {
-    "id": 1631635859,
+    "id": 133214991,
+    "stop_id": "120",
+    "stop_name": "Brooklyn Navy Yard",
+    "start_ne_m": [
+      216.78512690353972,
+      3510.5450133054578
+    ],
+    "end_ne_m": [
+      206.48115874188892,
+      3513.2965626273462
+    ],
+    "water_normal_ne": [
+      0.25799742765864941,
+      0.96614560358235846
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "polyline_id": "landing-120",
+    "index": 2,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "geometry_estimated": true
+  },
+  {
+    "id": 1057161322,
+    "stop_id": "136",
+    "stop_name": "Battery Park City/Vesey St.",
+    "start_ne_m": [
+      1654.6226138507295,
+      -231.08995153096214
+    ],
+    "end_ne_m": [
+      1656.0998940880438,
+      -241.66043725065958
+    ],
+    "water_normal_ne": [
+      -0.99037500917720145,
+      -0.13841004731325765
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "polyline_id": "landing-136",
+    "index": 0,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "geometry_estimated": true
+  },
+  {
+    "id": 1040383703,
     "stop_id": "136",
     "stop_name": "Battery Park City/Vesey St.",
     "start_ne_m": [
@@ -80,11 +305,47 @@
     ],
     "source": "derived-from-gtfs",
     "confidence": "low",
+    "polyline_id": "landing-136",
+    "index": 1,
     "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": true
+    "water_side_verified_by_pipeline": true,
+    "primary_face": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    }
   },
   {
-    "id": 517732403,
+    "id": 1023606084,
+    "stop_id": "136",
+    "stop_name": "Battery Park City/Vesey St.",
+    "start_ne_m": [
+      1683.2733150371187,
+      -237.86566649342768
+    ],
+    "end_ne_m": [
+      1681.7960401418732,
+      -227.29521871992768
+    ],
+    "water_normal_ne": [
+      0.99037500967668357,
+      0.13841004373927748
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "polyline_id": "landing-136",
+    "index": 2,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": false,
+    "water_side_evidence": {
+      "verified": false,
+      "method": "unverified"
+    },
+    "geometry_estimated": true
+  },
+  {
+    "id": 1238696637,
     "stop_id": "17",
     "stop_name": "East 34th Street",
     "start_ne_m": [
@@ -101,11 +362,19 @@
     ],
     "source": "enc-feature",
     "confidence": "low",
+    "polyline_id": "landing-17",
+    "index": 0,
     "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": true
+    "water_side_verified_by_pipeline": true,
+    "primary_face": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    }
   },
   {
-    "id": 500954784,
+    "id": 926901007,
     "stop_id": "17",
     "stop_name": "East 34th Street",
     "start_ne_m": [
@@ -122,11 +391,160 @@
     ],
     "source": "enc-feature",
     "confidence": "low",
+    "polyline_id": "landing-17",
+    "index": 1,
     "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": true
+    "water_side_verified_by_pipeline": true,
+    "primary_face": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    }
   },
   {
-    "id": 649364822,
+    "id": 910123388,
+    "stop_id": "17",
+    "stop_name": "East 34th Street",
+    "start_ne_m": [
+      4831.110323469843,
+      3720.5864492059027
+    ],
+    "end_ne_m": [
+      4832.530758874067,
+      3718.609360963736
+    ],
+    "water_normal_ne": [
+      -0.81213153048504372,
+      -0.58347440148820628
+    ],
+    "source": "enc-feature",
+    "confidence": "low",
+    "polyline_id": "landing-17",
+    "index": 2,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    }
+  },
+  {
+    "id": 960456245,
+    "stop_id": "17",
+    "stop_name": "East 34th Street",
+    "start_ne_m": [
+      4832.530758874067,
+      3718.609360963736
+    ],
+    "end_ne_m": [
+      4834.7834695110623,
+      3715.4494097841753
+    ],
+    "water_normal_ne": [
+      -0.8142690635499652,
+      -0.58048763306849416
+    ],
+    "source": "enc-feature",
+    "confidence": "low",
+    "polyline_id": "landing-17",
+    "index": 3,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    }
+  },
+  {
+    "id": 943678626,
+    "stop_id": "17",
+    "stop_name": "East 34th Street",
+    "start_ne_m": [
+      4834.7834695110623,
+      3715.4494097841753
+    ],
+    "end_ne_m": [
+      4835.6046564212083,
+      3714.3003360904331
+    ],
+    "water_normal_ne": [
+      -0.81359280040733073,
+      -0.58143508246867692
+    ],
+    "source": "enc-feature",
+    "confidence": "low",
+    "polyline_id": "landing-17",
+    "index": 4,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    }
+  },
+  {
+    "id": 859790531,
+    "stop_id": "17",
+    "stop_name": "East 34th Street",
+    "start_ne_m": [
+      4835.6046564212083,
+      3714.3003360904331
+    ],
+    "end_ne_m": [
+      4836.9252128708968,
+      3712.4499909188444
+    ],
+    "water_normal_ne": [
+      -0.81396615775436065,
+      -0.5809122946113322
+    ],
+    "source": "enc-feature",
+    "confidence": "low",
+    "polyline_id": "landing-17",
+    "index": 5,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    }
+  },
+  {
+    "id": 953927714,
+    "stop_id": "18",
+    "stop_name": "Greenpoint",
+    "start_ne_m": [
+      3460.6661422121852,
+      4350.5366462569509
+    ],
+    "end_ne_m": [
+      3455.1971854687454,
+      4341.3826359050372
+    ],
+    "water_normal_ne": [
+      -0.85846158668610739,
+      0.51287786478300157
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "polyline_id": "landing-18",
+    "index": 0,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "geometry_estimated": true
+  },
+  {
+    "id": 970705333,
     "stop_id": "18",
     "stop_name": "Greenpoint",
     "start_ne_m": [
@@ -143,11 +561,79 @@
     ],
     "source": "derived-from-gtfs",
     "confidence": "low",
+    "polyline_id": "landing-18",
+    "index": 1,
     "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": true
+    "water_side_verified_by_pipeline": true,
+    "primary_face": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    }
   },
   {
-    "id": 759313469,
+    "id": 920372476,
+    "stop_id": "18",
+    "stop_name": "Greenpoint",
+    "start_ne_m": [
+      3478.7424020492058,
+      4327.3120637386
+    ],
+    "end_ne_m": [
+      3484.2113416292632,
+      4336.4660553754593
+    ],
+    "water_normal_ne": [
+      0.85846183369505524,
+      -0.51287745133601181
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "polyline_id": "landing-18",
+    "index": 2,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "geometry_estimated": true
+  },
+  {
+    "id": 293498402,
+    "stop_id": "19",
+    "stop_name": "North Williamsburg",
+    "start_ne_m": [
+      2303.2252250092142,
+      4229.4578957547774
+    ],
+    "end_ne_m": [
+      2311.3604001297758,
+      4221.2324592673967
+    ],
+    "water_normal_ne": [
+      -0.71099706349250213,
+      -0.70319497701920419
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "polyline_id": "landing-19",
+    "index": 0,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "topology-corridor-8x30m",
+      "corridor_width_m": 8.0,
+      "corridor_length_m": 30.0,
+      "near_face_coverage_gap_m": 25.0,
+      "note": "Near-face DEPARE coverage is missing. Clear 8 m by 30 m corridor to charted water proves topology only; depth and operational berth remain unverified."
+    }
+  },
+  {
+    "id": 427719354,
     "stop_id": "19",
     "stop_name": "North Williamsburg",
     "start_ne_m": [
@@ -164,11 +650,41 @@
     ],
     "source": "enc-feature",
     "confidence": "medium",
+    "polyline_id": "landing-19",
+    "index": 1,
     "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": false
+    "water_side_verified_by_pipeline": true,
+    "primary_face": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "crew-reported",
+      "corridor_width_m": 8.0,
+      "corridor_length_m": 30.0,
+      "near_face_coverage_gap_m": 27.8,
+      "note": "Near-face DEPARE coverage is missing. Clear 8 m by 30 m corridor to charted water proves topology only; depth and operational berth remain unverified.",
+      "chart_verified": true,
+      "chart_method": "topology-corridor-8x30m",
+      "crew_note": {
+        "stop_id": "19",
+        "id": "north-williamsburg-face-orientation-2026-10-24",
+        "kind": "face-orientation",
+        "statement": "At North Williamsburg the ramps face Manhattan. The landing face is the pontoon side whose outward normal points west across the East River toward Manhattan.",
+        "date": "2026-10-24",
+        "source": "crew-reported: project crew reviewer",
+        "face_toward_fixed_land_near_stop_id": "114",
+        "reference_note": "Use the cached ENC LNDARE nearest Stuyvesant Cove (a Manhattan landing) to identify the opposite shore; no manual face coordinates are supplied.",
+        "water_side_crew_reported": true,
+        "limitations": "Crew confirms the water-facing side, not depths or the role/clearance of the charted submerged SLCONS polygon. Always-submerged geometry is disclosed as a depth hazard; it does not block the surface corridor."
+      }
+    },
+    "crew_evidence": {
+      "note_id": "north-williamsburg-face-orientation-2026-10-24",
+      "kind": "face-orientation"
+    },
+    "water_side_crew_reported": true
   },
   {
-    "id": 742535850,
+    "id": 444496973,
     "stop_id": "19",
     "stop_name": "North Williamsburg",
     "start_ne_m": [
@@ -185,11 +701,41 @@
     ],
     "source": "enc-feature",
     "confidence": "medium",
+    "polyline_id": "landing-19",
+    "index": 2,
     "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": false
+    "water_side_verified_by_pipeline": true,
+    "primary_face": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "crew-reported",
+      "corridor_width_m": 8.0,
+      "corridor_length_m": 30.0,
+      "near_face_coverage_gap_m": 27.8,
+      "note": "Near-face DEPARE coverage is missing. Clear 8 m by 30 m corridor to charted water proves topology only; depth and operational berth remain unverified.",
+      "chart_verified": true,
+      "chart_method": "topology-corridor-8x30m",
+      "crew_note": {
+        "stop_id": "19",
+        "id": "north-williamsburg-face-orientation-2026-10-24",
+        "kind": "face-orientation",
+        "statement": "At North Williamsburg the ramps face Manhattan. The landing face is the pontoon side whose outward normal points west across the East River toward Manhattan.",
+        "date": "2026-10-24",
+        "source": "crew-reported: project crew reviewer",
+        "face_toward_fixed_land_near_stop_id": "114",
+        "reference_note": "Use the cached ENC LNDARE nearest Stuyvesant Cove (a Manhattan landing) to identify the opposite shore; no manual face coordinates are supplied.",
+        "water_side_crew_reported": true,
+        "limitations": "Crew confirms the water-facing side, not depths or the role/clearance of the charted submerged SLCONS polygon. Always-submerged geometry is disclosed as a depth hazard; it does not block the surface corridor."
+      }
+    },
+    "crew_evidence": {
+      "note_id": "north-williamsburg-face-orientation-2026-10-24",
+      "kind": "face-orientation"
+    },
+    "water_side_crew_reported": true
   },
   {
-    "id": 725758231,
+    "id": 394164116,
     "stop_id": "19",
     "stop_name": "North Williamsburg",
     "start_ne_m": [
@@ -206,11 +752,101 @@
     ],
     "source": "enc-feature",
     "confidence": "medium",
+    "polyline_id": "landing-19",
+    "index": 3,
     "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": false
+    "water_side_verified_by_pipeline": true,
+    "primary_face": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "crew-reported",
+      "corridor_width_m": 8.0,
+      "corridor_length_m": 30.0,
+      "near_face_coverage_gap_m": 27.8,
+      "note": "Near-face DEPARE coverage is missing. Clear 8 m by 30 m corridor to charted water proves topology only; depth and operational berth remain unverified.",
+      "chart_verified": true,
+      "chart_method": "topology-corridor-8x30m",
+      "crew_note": {
+        "stop_id": "19",
+        "id": "north-williamsburg-face-orientation-2026-10-24",
+        "kind": "face-orientation",
+        "statement": "At North Williamsburg the ramps face Manhattan. The landing face is the pontoon side whose outward normal points west across the East River toward Manhattan.",
+        "date": "2026-10-24",
+        "source": "crew-reported: project crew reviewer",
+        "face_toward_fixed_land_near_stop_id": "114",
+        "reference_note": "Use the cached ENC LNDARE nearest Stuyvesant Cove (a Manhattan landing) to identify the opposite shore; no manual face coordinates are supplied.",
+        "water_side_crew_reported": true,
+        "limitations": "Crew confirms the water-facing side, not depths or the role/clearance of the charted submerged SLCONS polygon. Always-submerged geometry is disclosed as a depth hazard; it does not block the surface corridor."
+      }
+    },
+    "crew_evidence": {
+      "note_id": "north-williamsburg-face-orientation-2026-10-24",
+      "kind": "face-orientation"
+    },
+    "water_side_crew_reported": true
   },
   {
-    "id": 1444272253,
+    "id": 410941735,
+    "stop_id": "19",
+    "stop_name": "North Williamsburg",
+    "start_ne_m": [
+      2328.5381729246865,
+      4238.2049782263721
+    ],
+    "end_ne_m": [
+      2320.4030163984057,
+      4246.4304143130994
+    ],
+    "water_normal_ne": [
+      0.71099784995299564,
+      0.70319418183188753
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "polyline_id": "landing-19",
+    "index": 4,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": false,
+    "water_side_evidence": {
+      "verified": false,
+      "method": "unverified",
+      "corridor_land_overlap_m2": 80.034846687223066,
+      "corridor_other_structures": 1,
+      "far_end_charted": false,
+      "near_face_coverage_gap_m": 30.0
+    }
+  },
+  {
+    "id": 875932471,
+    "stop_id": "20",
+    "stop_name": "Dumbo/Fulton Ferry",
+    "start_ne_m": [
+      391.0358030811019,
+      1633.3367578786911
+    ],
+    "end_ne_m": [
+      395.03136729958675,
+      1623.4396393185966
+    ],
+    "water_normal_ne": [
+      -0.92728571750785038,
+      -0.37435437503246982
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "polyline_id": "landing-20",
+    "index": 0,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "geometry_estimated": true
+  },
+  {
+    "id": 892710090,
     "stop_id": "20",
     "stop_name": "Dumbo/Fulton Ferry",
     "start_ne_m": [
@@ -227,11 +863,77 @@
     ],
     "source": "derived-from-gtfs",
     "confidence": "low",
+    "polyline_id": "landing-20",
+    "index": 1,
     "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": true
+    "water_side_verified_by_pipeline": true,
+    "primary_face": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    }
   },
   {
-    "id": 775887281,
+    "id": 909487709,
+    "stop_id": "20",
+    "stop_name": "Dumbo/Fulton Ferry",
+    "start_ne_m": [
+      420.47475958988525,
+      1633.7105801271898
+    ],
+    "end_ne_m": [
+      416.47920703309887,
+      1643.5992192312813
+    ],
+    "water_normal_ne": [
+      0.92717463738725525,
+      0.3746294059277937
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "polyline_id": "landing-20",
+    "index": 2,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "geometry_estimated": true
+  },
+  {
+    "id": 628997205,
+    "stop_id": "4",
+    "stop_name": "Hunters Point South",
+    "start_ne_m": [
+      4642.9608231883794,
+      4503.4469257546034
+    ],
+    "end_ne_m": [
+      4646.2972505283387,
+      4493.3093856175346
+    ],
+    "water_normal_ne": [
+      -0.94987821417378515,
+      -0.31262018207086467
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "polyline_id": "landing-4",
+    "index": 0,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "geometry_estimated": true
+  },
+  {
+    "id": 578664348,
     "stop_id": "4",
     "stop_name": "Hunters Point South",
     "start_ne_m": [
@@ -248,11 +950,76 @@
     ],
     "source": "derived-from-gtfs",
     "confidence": "low",
+    "polyline_id": "landing-4",
+    "index": 1,
     "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": true
+    "water_side_verified_by_pipeline": true,
+    "primary_face": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    }
   },
   {
-    "id": 1101942229,
+    "id": 595441967,
+    "stop_id": "4",
+    "stop_name": "Hunters Point South",
+    "start_ne_m": [
+      4672.3545168789487,
+      4501.8749667968459
+    ],
+    "end_ne_m": [
+      4669.0292008660717,
+      4512.0040221957606
+    ],
+    "water_normal_ne": [
+      0.95010966802496633,
+      0.31191604435406672
+    ],
+    "source": "derived-from-gtfs",
+    "confidence": "low",
+    "polyline_id": "landing-4",
+    "index": 2,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "geometry_estimated": true
+  },
+  {
+    "id": 216221522,
+    "stop_id": "8",
+    "stop_name": "South Williamsburg",
+    "start_ne_m": [
+      956.71007234493038,
+      3780.9226350035683
+    ],
+    "end_ne_m": [
+      963.02413689598632,
+      3771.9112337790434
+    ],
+    "water_normal_ne": [
+      -0.81897208627592333,
+      -0.57383335725701912
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "polyline_id": "landing-8",
+    "index": 0,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    }
+  },
+  {
+    "id": 149111046,
     "stop_id": "8",
     "stop_name": "South Williamsburg",
     "start_ne_m": [
@@ -269,70 +1036,224 @@
     ],
     "source": "enc-feature",
     "confidence": "medium",
+    "polyline_id": "landing-8",
+    "index": 1,
     "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": true
+    "water_side_verified_by_pipeline": false,
+    "primary_face": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "crew-reported",
+      "chart_verified": false,
+      "chart_method": "unverified",
+      "crew_note": {
+        "stop_id": "8",
+        "id": "south-williamsburg-face-orientation-2026-10-24",
+        "kind": "face-orientation",
+        "statement": "At South Williamsburg (Broadway, stop 8), boats land on the long NW (river) side of the barge.",
+        "date": "2026-10-24",
+        "source": "crew-reported: project crew reviewer",
+        "face_outward_compass": "NW",
+        "water_side_crew_reported": true,
+        "limitations": "The crew answer outranks the chart check for orientation. Dry charted MORFAC 022646E95F81764B remains a chart conflict; its role is unverified. A pile or dolphin beside a berth can be worked alongside, but this report does not establish its role or clearance. Crew evidence does not verify depth or change the 2.10 m threshold."
+      }
+    },
+    "crew_evidence": {
+      "note_id": "south-williamsburg-face-orientation-2026-10-24",
+      "kind": "face-orientation"
+    },
+    "water_side_crew_reported": true
   },
   {
-    "id": 1417084842,
+    "id": 537299060,
     "stop_id": "87",
     "stop_name": "Wall St/Pier 11",
     "start_ne_m": [
-      405.596014372966,
-      741.97182265191907
+      305.41087457789547,
+      766.819920289015
     ],
     "end_ne_m": [
-      403.29745475542154,
-      743.34958030816347
+      304.89999979475022,
+      766.30444961914247
     ],
     "water_normal_ne": [
-      0.51411757992238871,
-      0.8577197176320166
+      -0.71026602358902224,
+      0.70393336029416775
     ],
     "source": "enc-feature",
     "confidence": "low",
+    "polyline_id": "landing-87",
+    "index": 0,
     "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": false
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "crew_evidence": {
+      "note_id": "pier11-berth-use-policy-2026-10-24",
+      "kind": "berth-use-policy"
+    }
   },
   {
-    "id": 1433862461,
+    "id": 587631917,
     "stop_id": "87",
     "stop_name": "Wall St/Pier 11",
     "start_ne_m": [
-      403.29745475542154,
-      743.34958030816347
+      304.89999979475022,
+      766.30444961914247
     ],
     "end_ne_m": [
-      396.8459455469465,
-      747.23773180327862
+      297.94770296935815,
+      759.67096594827228
     ],
     "water_normal_ne": [
-      0.51617823330994239,
-      0.85648119153722613
+      -0.6903232838999418,
+      0.72350104609848365
     ],
     "source": "enc-feature",
     "confidence": "low",
+    "polyline_id": "landing-87",
+    "index": 1,
     "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": false
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "crew_evidence": {
+      "note_id": "pier11-berth-use-policy-2026-10-24",
+      "kind": "berth-use-policy"
+    }
   },
   {
-    "id": 1383529604,
+    "id": 570854298,
     "stop_id": "87",
     "stop_name": "Wall St/Pier 11",
     "start_ne_m": [
-      396.8459455469465,
-      747.23773180327862
+      297.94770296935815,
+      759.67096594827228
     ],
     "end_ne_m": [
-      377.58026302220821,
-      758.8430598899638
+      298.13646842498576,
+      759.51037361672377
     ],
     "water_normal_ne": [
-      0.5159961668533426,
-      0.85659089172875147
+      -0.64798027604881114,
+      -0.76165711567063188
     ],
     "source": "enc-feature",
     "confidence": "low",
+    "polyline_id": "landing-87",
+    "index": 2,
     "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": false
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "crew_evidence": {
+      "note_id": "pier11-berth-use-policy-2026-10-24",
+      "kind": "berth-use-policy"
+    }
+  },
+  {
+    "id": 352745251,
+    "stop_id": "87",
+    "stop_name": "Wall St/Pier 11",
+    "start_ne_m": [
+      298.13646842498576,
+      759.51037361672377
+    ],
+    "end_ne_m": [
+      298.18088336728982,
+      759.46811301606931
+    ],
+    "water_normal_ne": [
+      -0.689318578776538,
+      -0.72445834728678082
+    ],
+    "source": "enc-feature",
+    "confidence": "low",
+    "polyline_id": "landing-87",
+    "index": 3,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "crew_evidence": {
+      "note_id": "pier11-berth-use-policy-2026-10-24",
+      "kind": "berth-use-policy"
+    }
+  },
+  {
+    "id": 335967632,
+    "stop_id": "87",
+    "stop_name": "Wall St/Pier 11",
+    "start_ne_m": [
+      298.18088336728982,
+      759.46811301606931
+    ],
+    "end_ne_m": [
+      323.02015437670605,
+      737.60236155211226
+    ],
+    "water_normal_ne": [
+      -0.66075038440201661,
+      -0.75060570841993146
+    ],
+    "source": "enc-feature",
+    "confidence": "low",
+    "polyline_id": "landing-87",
+    "index": 4,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": true,
+    "primary_face": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "crew_evidence": {
+      "note_id": "pier11-berth-use-policy-2026-10-24",
+      "kind": "berth-use-policy"
+    }
+  },
+  {
+    "id": 486966203,
+    "stop_id": "87",
+    "stop_name": "Wall St/Pier 11",
+    "start_ne_m": [
+      323.02015437670605,
+      737.60236155211226
+    ],
+    "end_ne_m": [
+      330.21685471691995,
+      745.40208112422113
+    ],
+    "water_normal_ne": [
+      0.73494623391739333,
+      -0.67812538165935077
+    ],
+    "source": "enc-feature",
+    "confidence": "low",
+    "polyline_id": "landing-87",
+    "index": 5,
+    "verification": "needs-crew-verification",
+    "water_side_verified_by_pipeline": false,
+    "water_side_evidence": {
+      "verified": false,
+      "method": "unverified"
+    },
+    "crew_evidence": {
+      "note_id": "pier11-berth-use-policy-2026-10-24",
+      "kind": "berth-use-policy"
+    }
   }
 ]
