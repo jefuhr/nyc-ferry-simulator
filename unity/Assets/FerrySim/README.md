@@ -26,7 +26,7 @@ Unity-side code for the simulator. The physics lives in `core/FerrySim.Core` (lo
 | `Slice/Authoring/` | `FerrySim.Unity.Slice.Authoring` (Editor only) | unity-slice-integration |
 | `Slice/Tests/EditMode/`, `Slice/Tests/PlayMode/` | `FerrySim.Unity.Slice.Tests.*` | unity-slice-integration |
 | `Tests/EditMode/`, `Tests/PlayMode/` | `FerrySim.Unity.Tests.*` | unity-project-bootstrap (project smoke tests) |
-| `Tests/E2E/` | none yet | slice-e2e-tests |
+| `Tests/E2E/` | `FerrySim.Unity.Tests.E2E` | slice-e2e-tests |
 
 Namespaces avoid `FerrySim.Unity.*` and `FerrySim.Input`, because inside those namespaces a bare `Unity` or `Input` would no longer resolve to the engine's.
 

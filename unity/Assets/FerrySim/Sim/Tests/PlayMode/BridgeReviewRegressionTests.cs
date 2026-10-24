@@ -295,7 +295,12 @@ namespace FerrySim.Sim.PlayModeTests
 				Assert.Throws<AssertionException>(() => Assert.Fail("controlled interruption during capture"));
 				(operation as IDisposable)?.Dispose();
 				fixture.TearDown();
-				for (var frame = 0; frame < 3; frame++) yield return null;
+				// Unloading the scene is asynchronous; under a heavy suite three frames are not always enough.
+				for (var frame = 0; frame < 300 && (capture != null || panel != null || target != null || runner != null
+					|| UnityEngine.SceneManagement.SceneManager.GetSceneByPath("Assets/FerrySim/Sim/Scenes/BridgeDev.unity").isLoaded); frame++)
+				{
+					yield return null;
+				}
 				Assert.That(capture == null, Is.True, "capture GameObject released on iterator disposal");
 				Assert.That(panel == null, Is.True, "capture panel released");
 				Assert.That(target == null, Is.True, "capture target destroyed as well as released");
