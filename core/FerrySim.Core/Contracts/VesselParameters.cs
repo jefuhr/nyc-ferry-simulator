@@ -161,7 +161,7 @@ namespace FerrySim.Core.Contracts
 		private static readonly string[] Values =
 		{
 			"m", "m2", "m3", "kg", "kg*m2", "s", "W", "N", "N*m",
-			"m/s", "m/s2", "rad", "rad/s", "rad/s2", "1", "count",
+			"m/s", "m/s2", "rad", "rad/s", "rad/s2", "1", "count", "N/m2", "N*s/m2",
 		};
 
 		public static IReadOnlyList<string> Allowed => Values;

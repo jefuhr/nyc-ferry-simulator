@@ -13,10 +13,10 @@ namespace FerrySim.Core.Dynamics
 			Create(parameters, environment, EmptyWorldGeometry.Instance, initialState);
 
 		/// <summary>
-		/// Contact forces are not modelled yet: <paramref name="geometry"/> is accepted but unused until the
-		/// core-contact-dynamics work wires it into <see cref="VesselDynamicsSimulation"/>.
+		/// The hull touches the structures in <paramref name="geometry"/>. Any geometry other than
+		/// <see cref="EmptyWorldGeometry"/> needs the parameter file's <c>contact</c> section.
 		/// </summary>
 		public ISimulation Create(VesselParameters parameters, IEnvironment environment, IWorldGeometry geometry, in VesselState initialState) =>
-			new VesselDynamicsSimulation(parameters, environment, initialState);
+			new VesselDynamicsSimulation(parameters, environment, geometry, initialState);
 	}
 }

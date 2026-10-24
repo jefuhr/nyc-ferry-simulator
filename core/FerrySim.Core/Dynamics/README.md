@@ -1,6 +1,6 @@
 # Vessel dynamics
 
-`VesselDynamicsFactory.Create` returns `VesselDynamicsSimulation`: a deterministic three-degree-of-freedom (surge, sway, yaw) manoeuvring model of a twin-screw, twin-rudder catamaran in MMG-style modular form, with engines, gears, a ZF-style control model, wind, current and shallow-water effects, and a light heave/roll/pitch layer for feel and visuals. It covers the NYC Ferry T-class (Incat Crowther IC16019, 26 m) and K-class (IC16112, 29.6 m) from `vessels/*.json`.
+`VesselDynamicsFactory.Create` returns `VesselDynamicsSimulation`: a deterministic three-degree-of-freedom (surge, sway, yaw) manoeuvring model of a twin-screw, twin-rudder catamaran in MMG-style modular form, with engines, gears, a ZF-style control model, wind, current and shallow-water effects, fender contact with fixed structures, and a light heave/roll/pitch layer for feel and visuals. It covers the NYC Ferry T-class (Incat Crowther IC16019, 26 m) and K-class (IC16112, 29.6 m) from `vessels/*.json`.
 
 Every model coefficient is a parameter with provenance in the vessel file. Nearly all are engineering estimates today. Calibration against AIS tracks and crew figures should change only parameters, never code.
 
@@ -18,6 +18,7 @@ Conventions (units, frames, signs) follow [docs/conventions.md](../../../docs/co
 - [Rudders](#rudders)
 - [Wind](#wind)
 - [Shallow water and grounding](#shallow-water-and-grounding)
+- [Contact](#contact)
 - [Heave, roll and pitch](#heave-roll-and-pitch)
 - [Telemetry](#telemetry)
 - [Parameters and calibration](#parameters-and-calibration)
@@ -39,6 +40,8 @@ Conventions (units, frames, signs) follow [docs/conventions.md](../../../docs/co
 | `RudderModel.cs` | Rudder inflow and forces |
 | `WindageModel.cs` | Wind loads |
 | `ShallowWaterModel.cs` | Finite-depth correction factors |
+| `ContactModel.cs` | Hull outline, fender law and contact forces against `IWorldGeometry` segments |
+| `PlanarRungeKutta.cs` | The classical Runge-Kutta step of the planar rigid body |
 | `MotionResponse.cs` | Heave, roll and pitch layer |
 | `PhysicalConstants.cs` | Water and air properties; required-parameter checks |
 
@@ -61,7 +64,7 @@ Each 10 ms step (`SimulationClock.FixedTimeStep`) runs in this order:
 1. Shallow-water factors from the depth sampled at the end of the previous step.
 2. Steering gear and both engine controls advance one step.
 3. Both drivelines (engine, clutch, shaft) advance in four 2.5 ms substeps, with the propeller inflow held at the start-of-step hull velocity.
-4. The rigid body (N, E, ψ, u, v, r) advances with classical fourth-order Runge-Kutta, with shaft speeds, rudder angle and environment held for the step. Thrust and rudder forces are re-evaluated at every stage.
+4. The rigid body (N, E, ψ, u, v, r) advances with classical fourth-order Runge-Kutta (`PlanarRungeKutta`), with shaft speeds, rudder angle and environment held for the step. Thrust and rudder forces are re-evaluated at every stage, and each stage's heading advances with that stage's yaw rate. When the hull is in contact with a structure or may touch one this step, the rigid body instead advances in ten 1 ms substeps with contact forces (see [Contact](#contact)).
 5. The heave/roll/pitch layer advances (semi-implicit Euler).
 6. Time becomes `SimulationClock.TimeAtStep(stepCount)`. The environment is sampled once (current, wind, depth) at the new position, and that sample is reused by the next step.
 
@@ -300,7 +303,74 @@ Grounding:
 
 - depth under keel is `depth − maxDraft`, or the hull draft when `maxDraft` is missing (flagged by `KeelDraftIsHullDraft`);
 - below zero, `IsAground` is true;
-- there is no contact force yet, so the boat keeps moving over the shoal.
+- there is no bottom contact force, so the boat keeps moving over the shoal. Contact covers fixed structures only (next section).
+
+## Contact
+
+`ContactModel` turns the structures from `IWorldGeometry` (docs/conventions.md, contact geometry) into forces on the hull. `VesselDynamicsFactory.Create(parameters, environment, geometry, state)` passes the geometry in. The three-argument form means open water (`EmptyWorldGeometry`), and its results are bit-identical to the model without contact. Any other geometry needs the parameter file's `contact` section.
+
+**Hull outline.** The `contact` section gives the plan view at the fender line (the sheer), in body axes from the reference point, as four polylines that join end to end:
+
+| Polyline | Runs | T-class | K-class |
+|---|---|---|---|
+| `starboardDemihull`, `portDemihull` | Outboard sheer, aft to forward | Transom corner at x −12.25 m, side at ±4.0 m to x 5.0 m, then a quarter-ellipse bow shoulder | Transom corner at x −14.35 m, side at ±4.25 m to x 5.5 m, then the shoulder |
+| `bowFenderLine` | Port to starboard | Flat, 4.0 m wide at x 13.76 m | Flat, 4.2 m wide at x 15.25 m |
+| `sternFenderLine` | Port to starboard | x −12.25 m, ±3.7 m | x −14.35 m, ±3.95 m |
+
+Bow to stern spans the published length overall, with the transom 0.3 m aft of the waterline's end; side to side spans the published beam. Every point is an estimate with its basis in the file. The bow's plan shape and width are crew questions.
+
+**Each step:**
+
+1. Query the segments within the hull's bounding radius plus a reach plus 5 m. The reach is twice the distance the fastest outline point travels in the step, plus 2 cm. The buffer and the contact model are sized when the simulation is built, for up to 4096 segments (`MaximumSegments`), so no step allocates. A query that finds more uses the first 4096 in the geometry's order, leaves the rest out and sets `SegmentQuerySaturated` (`SaturatedSegmentQueries` counts such queries since the reset).
+2. If some part of the outline is in contact, or lies within the reach of a face (on either side, within the segment's length give or take the reach), the rigid body advances in ten 1 ms Runge-Kutta substeps with contact forces at every stage, and the contact state is updated after each substep. Otherwise the step is exactly the open-water step. At 6 kn the hull moves 3 cm per step, against 0.25 to 0.5 m of fender travel, so it cannot pass a face unseen.
+3. The contact forces and per-segment details are recorded at the end of the step for telemetry.
+
+**Where the hull touches.** Contact depends on how the hull got there, not only on where it is. The outline is cut into cells of at most 0.1 m, and each cell is in contact with one face at a time, or none:
+
+- A cell comes into contact with a face only by crossing it from the water side within the segment's length. Being behind a face is not enough. So a hull clear of a structure's near face is never pushed by the far face of the same structure, however thin it is, and a hull placed overlapping a structure (at reset) is not pushed by it. `Reset` forgets all contact.
+- A cell in contact stays with its face, however deep it goes, until it is back on the water side. A point deep in a thin structure is pushed back out the way it came in, never through the far face.
+- A cell that slides off the end of its segment passes to the segment that starts there (end points within 1 mm) if it lies behind that one within its length, as along a face made of several segments. In an inside corner, behind both segments, it keeps its face. Past an outside corner, such as the end of a barge, it is let go: it is in open water. A structure's end face then meets the hull side as any face does.
+
+Along each outline edge, each run of cells in contact with one face is clipped exactly to its part behind the face (and the next segment's part, or the inside corner, past the face's ends). Each part is integrated with the midpoint rule at about 0.2 m spacing, with at least one point however short, so separate patches each keep their load. Contact length is measured along the hull outline.
+
+**Normal force** per metre of contact length, from the segment's `ContactSurface` in series with the hull's own fendering (`hullFenderStiffness`, `hullFenderDamping`, `hullFenderMaxCompression`):
+
+```
+f_n = max(0, f_el(δ) (1 + h δ̇/√(δ̇² + s₀²)) + c(δ) δ̇)
+```
+
+- δ is the total compression of both fenders and δ̇ its rate.
+- f_el is the two springs in series, piecewise linear. Both are soft at first. The side that reaches its compression limit first bottoms out: the structure behind it takes the load and its stiffness rises × `bottomedStiffnessFactor` (20). Then both are bottomed.
+- c combines the dampers so that they dissipate the same power when the compression splits in proportion to the compliances: c = Σ cᵢ φᵢ², with φᵢ each side's share. That is exact when both sides have the same c/k, and one damped side still dissipates when the other has no damping. A bottomed side's damping rises by √20, which keeps its damping ratio. Past each bottoming point c blends linearly into the next range's value over 1 cm (`FenderLaw.DampingBlend`). The elastic force is continuous there, so the total normal force has no jump while the hull moves either. c is a weighted mean of the three ranges' values, so never negative.
+- h is `fenderHysteresis` (0.2): the rubber's rate-independent loss, with both sides lumped together. The elastic force is 1.2× while the fenders compress and 0.8× while they recover, smoothed through zero rate. It is what brings a boat held on its fender to rest. Viscous damping sized for impacts does almost nothing at the 0.05 to 0.3 rad/s at which a held boat rocks, and the hull has almost no damping at mm/s speeds. Without hysteresis a held boat still rocks at 4 to 6 mm/s after a minute. With h = 0 the results are bit-identical to the model without hysteresis: `ContactModel.UseHysteresis = false` leaves it out whatever h says, and `FenderHysteresisTests` checks every bit of state and contact against it.
+- A fender never pulls (f_n ≥ 0).
+
+**Friction** acts along the segment: f_t = −μ f_n s/√(s² + s₀²), for slip speed s and μ from the surface. It is smooth through zero slip. s₀ is 1 mm/s, raised in a substep when the friction and hysteresis the contact carries, Σ(μ f_n + h f_el), would be too stiff for an explicit 1 ms substep: s₀ ≥ Σ × 1 ms / (0.5 m_eff), with m_eff a conservative effective mass at the farthest outline point. A held hull therefore creeps at well under 1 mm/s.
+
+The forces act at the contact points, so they turn the boat. A corner contact swings the boat toward lying along the face.
+
+**Telemetry and details:**
+
+- `VesselTelemetry.ContactForce` is the magnitude of the resultant contact force at the end of the step.
+- `ContactLoad` gives the same load in body axes (X, Y, and N about the reference point) and world axes.
+- `ContactCount` and `GetContact(i)` give each touching segment's id, normal and friction force, deepest compression, contact length, and whether a fender bottomed out. The deepest compression is that of the deepest point anywhere along the contact, found exactly (at a corner, the corner), so a fender counts as bottomed out as soon as any point passes its limit.
+- `SegmentQuerySaturated` is set when the last query found more than `MaximumSegments` segments and some were left out.
+- `LastForces` carries the contact forces at the start of the step with the other modules.
+
+Contact forces do not drive the heave/roll/pitch layer: they act near the fender line, not the thrust line the pitch model assumes.
+
+**Typical results** come from `ContactReportTests`, which writes `artifacts/core/contact-report.md`. The landing face is an estimated elastomeric barge fender: 1.0e6 N/m per m, 5e4 N·s/m per m, friction 0.3, 0.25 m. That is an estimate, not a landing survey. Landings coast in neutral, bow-on into the barge's long face.
+
+| Case | T-class | K-class |
+|---|---|---|
+| 1 kn bow-on: peak force, compression, rebound | 204 kN, 51 mm, 0.51 kn | 257 kN, 62 mm, 0.54 kn |
+| 3 kn bow-on: peak force, compression, rebound | 629 kN, 151 mm, 1.51 kn | 794 kN, 182 mm, 1.61 kn |
+| Restitution at 1 and 3 kn, h 0.2 (h 0) | 0.51 and 0.51 (0.63 and 0.62) | 0.55 and 0.54 (0.67 and 0.66) |
+| 6 kn head-on, and 30° off the normal: deepest compression | 0.29 m, 0.45 m | 0.35 m, 0.49 m |
+| Bow held 60 s, one engine at the ahead idle detent, helm half over: force, speed | 8.9 kN, 0.2 mm/s | 13.7 kN, 0.3 mm/s |
+| Bow held 60 s, both engines ahead idle: force | 18.1 kN | 27.9 kN |
+
+With one engine at idle, hard-over helm over-corrects the twist with the estimated rudders: the T-class rocks on its starboard bow corner and the K-class slowly pivots off the barge. With net ahead thrust and no line, a boat side-to slides along the face and swings bow-in (the friction cone). Both are reported, not asserted.
 
 ## Heave, roll and pitch
 
@@ -321,14 +391,16 @@ Damped oscillators at the natural periods, driven toward quasi-static targets. T
 | Speed through water | u_r, negative going astern |
 | SOG, COG | Ground velocity; COG is the heading when stopped |
 | Depth under keel | depth − keel draft (`maxDraft` when present) |
-| Contact force | 0 until a contact model exists |
+| Contact force | Magnitude of the resultant contact force at the end of the step (see [Contact](#contact)) |
 
 `VesselDynamicsSimulation` also exposes:
 
 - `IsAground`, `KeelDraft`, `KeelDraftIsHullDraft`;
 - `PortShiftPhase` and `StarboardShiftPhase`;
 - `RudderOrder`;
-- `LastForces`, the per-module force breakdown, for debug overlays.
+- `LastForces`, the per-module force breakdown, for debug overlays;
+- `ContactLoad`, `ContactCount` and `GetContact(i)`, the contact at the end of the step;
+- `SegmentQuerySaturated` and `SaturatedSegmentQueries`, when nearby structures exceeded `MaximumSegments`.
 
 ## Parameters and calibration
 
@@ -346,6 +418,7 @@ The sections of `vessels/*.json`:
 | `windage` | Areas, coefficients, centre |
 | `shallowWater` | Correction coefficients |
 | `motionResponse` | Metacentric heights, periods, damping, running attitude |
+| `contact` | Hull outline at the fender line, hull fender stiffness, damping and compression limit, bottomed stiffness factor, fender hysteresis |
 
 Estimated values were also added to existing contract fields where the contract already has a home for them:
 
@@ -365,6 +438,7 @@ Calibration knobs, roughly in order of influence:
 | Lever and shift timing (crew) | `controls.*`, `transmission.clutchFillTime` |
 | Twisting rate and walk with split engines | `propellers.reversedFlowLiftFactor`, `propellers.asternThrustDeduction`, `hull.crossFlowDragCoefficient` |
 | Speed in shallow stretches (AIS against charted depth) | `shallowWater.criticalSpeedAmplitude` |
+| Bounce and holding at landings (crew) | `contact.fenderHysteresis`, `contact.hullFender*`, and the landing's `ContactSurface` |
 
 If `pitchRatio`, `expandedAreaRatio` or the blade count changes, the four-quadrant curves refit automatically at construction.
 
@@ -413,7 +487,14 @@ The IMO limits are widened where small fast craft differ: at 25 kn the 5 s hard-
 
 ## Known limitations
 
-- **Contact.** No contact, fender or collision forces (the contract has no world geometry yet). Grounding is only reported.
+- **Contact.**
+  - Plan view only: contact does not heave, heel or trim the boat, and fender height is not modelled.
+  - Structures are fixed: a floating barge does not move on its piles, and there are no lines or springs.
+  - Contact starts only where the outline crosses a face from its water side. A hull placed overlapping a structure is not pushed by it. Where a segment ends with no segment starting there (an open end), a hull sliding in from beyond it is not pushed either. Faces of one structure must share end points (within 1 mm) for a hull to slide from one onto the next.
+  - Each 0.1 m cell of the outline touches one face at a time. In a corner, a cell that crosses two faces at once takes the one more of it crossed, so up to one cell's worth of contact is approximate there.
+  - At most 4096 segments within the query radius are used; past that some are left out, flagged by `SegmentQuerySaturated`.
+  - Hysteresis lumps the hull and landing rubber together; landing faces carry no surface values from the data pipeline yet.
+  - No hull-to-hull contact, and grounding is only reported.
 - **Out of scope.** No waves, vessel wakes, other vessels, bank or channel effects.
 - **Cavitation.** No cavitation or ventilation: the open-water curves hold at any blade loading, so thrust breakdown at high loading (full power at low speed, crash stops) is not represented.
 - **Current.** The current is sampled at the reference point only: no yaw moment from current shear across the hull (eddies at slips), and no added-mass force from spatial gradients.
