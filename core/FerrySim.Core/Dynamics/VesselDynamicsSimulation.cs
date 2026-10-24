@@ -10,7 +10,8 @@ namespace FerrySim.Core.Dynamics
 			double hullX, double hullY, double hullN,
 			double propellerX, double propellerY, double propellerN,
 			double rudderX, double rudderY, double rudderN,
-			double windX, double windY, double windN)
+			double windX, double windY, double windN,
+			double contactX, double contactY, double contactN)
 		{
 			HullX = hullX;
 			HullY = hullY;
@@ -24,6 +25,9 @@ namespace FerrySim.Core.Dynamics
 			WindX = windX;
 			WindY = windY;
 			WindN = windN;
+			ContactX = contactX;
+			ContactY = contactY;
+			ContactN = contactN;
 		}
 
 		public double HullX { get; }
@@ -49,6 +53,12 @@ namespace FerrySim.Core.Dynamics
 		public double WindY { get; }
 
 		public double WindN { get; }
+
+		public double ContactX { get; }
+
+		public double ContactY { get; }
+
+		public double ContactN { get; }
 	}
 
 	/// <summary>
@@ -62,14 +72,42 @@ namespace FerrySim.Core.Dynamics
 	/// fourth-order Runge-Kutta at the fixed 100 Hz step; the machinery is advanced first in four
 	/// substeps with the hull's inflow held, and the environment is sampled once per step.
 	/// </para>
+	/// <para>
+	/// With world geometry, each step queries the structures near the hull (up to
+	/// <see cref="MaximumSegments"/>). When some part of the outline is in contact or could reach a face within
+	/// the step, the rigid body advances in ten 1 ms Runge-Kutta substeps with the contact forces of
+	/// <see cref="ContactModel"/> added; otherwise the step is exactly the open-water one.
+	/// </para>
 	/// </summary>
 	public sealed class VesselDynamicsSimulation : ISimulation
 	{
+		/// <summary>
+		/// Most structure segments one step takes into account: the first this many the geometry returns within
+		/// the query radius (the hull's bounding radius, plus its reach in the step, plus 5 m). Past it the rest
+		/// are left out and <see cref="SegmentQuerySaturated"/> says so. The buffer and the contact model are
+		/// sized for it when the simulation is built.
+		/// </summary>
+		public const int MaximumSegments = 4096;
+
 		private const int DrivelineSubsteps = 4;
 		private const int PortSide = -1;
 		private const int StarboardSide = 1;
 
+		// Contact: rigid-body substeps in a step that may touch, the share of the explicit stability limit the
+		// friction and hysteresis regularisation may use, the slack added to the distance the hull can travel
+		// in a step, and the query margin around the hull.
+		private const int ContactSubsteps = 10;
+		private const double FrictionStability = 0.5;
+		private const double ReachMargin = 0.02;
+		private const double QueryMargin = 5.0;
+
 		private readonly IEnvironment _environment;
+		private readonly IWorldGeometry _geometry;
+		private readonly ContactModel _contact;
+		private readonly double _contactMass;
+
+		// One more than the most segments used, so a query that fills it is known to have left some out.
+		private readonly ContactSegment[] _segments;
 		private readonly HullModel _hull;
 		private readonly PropellerModel _propeller;
 		private readonly RudderModel _rudder;
@@ -96,6 +134,9 @@ namespace FerrySim.Core.Dynamics
 		private HorizontalVector _current;
 		private HorizontalVector _wind;
 		private double _depth;
+		private ContactLoad _contactLoad;
+		private bool _segmentQuerySaturated;
+		private long _saturatedSegmentQueries;
 
 		// Held over one step.
 		private ShallowWaterFactors _factors;
@@ -110,11 +151,24 @@ namespace FerrySim.Core.Dynamics
 		private double _determinant;
 		private ForceBreakdown _forces;
 		private double _surgeAcceleration;
+		private bool _contactActive;
+		private double _slipSpeed;
 
+		/// <summary>A vessel in open water, with no fixed structures to touch.</summary>
 		public VesselDynamicsSimulation(VesselParameters parameters, IEnvironment environment, in VesselState initialState)
+			: this(parameters, environment, EmptyWorldGeometry.Instance, initialState)
+		{
+		}
+
+		/// <summary>
+		/// A vessel whose hull can touch the structures in <paramref name="geometry"/>. Any geometry other than
+		/// <see cref="EmptyWorldGeometry"/> needs the parameter file's <c>contact</c> section.
+		/// </summary>
+		public VesselDynamicsSimulation(VesselParameters parameters, IEnvironment environment, IWorldGeometry geometry, in VesselState initialState)
 		{
 			Parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
 			_environment = environment ?? throw new ArgumentNullException(nameof(environment));
+			_geometry = geometry ?? throw new ArgumentNullException(nameof(geometry));
 
 			var particulars = Required.Section(parameters.Particulars, "particulars");
 			var machinery = Required.Section(parameters.Machinery, "machinery");
@@ -157,6 +211,19 @@ namespace FerrySim.Core.Dynamics
 				? Required.Positive(particulars.Draft, "particulars.draft")
 				: Required.Positive(maxDraft, "particulars.maxDraft");
 
+			_segments = Array.Empty<ContactSegment>();
+			if (!(geometry is EmptyWorldGeometry))
+			{
+				_contact = new ContactModel(parameters, MaximumSegments);
+				_segments = new ContactSegment[MaximumSegments + 1];
+
+				// A conservative effective mass for a tangential push anywhere on the outline: the lighter
+				// translational mass with the yaw inertia acting at the farthest outline point.
+				var translational = Math.Min(_mass + _hull.SurgeAddedMass, _mass + _hull.SwayAddedMass);
+				var lever = _contact.BoundingRadius + Math.Abs(_centreOfGravityX);
+				_contactMass = 1.0 / (1.0 / translational + lever * lever / (_yawInertia + _hull.YawAddedInertia));
+			}
+
 			Reset(initialState);
 		}
 
@@ -188,6 +255,35 @@ namespace FerrySim.Core.Dynamics
 		/// <summary>Module forces at the start of the last step.</summary>
 		public ForceBreakdown LastForces => _forces;
 
+		/// <summary>The hull outline and contact force model; null in open water.</summary>
+		public ContactModel Contact => _contact;
+
+		/// <summary>Resultant contact load at the end of the last step; zero when nothing touches.</summary>
+		public ContactLoad ContactLoad => _contactLoad;
+
+		/// <summary>Number of segments touching the hull at the end of the last step.</summary>
+		public int ContactCount => _contact == null ? 0 : _contact.ContactCount;
+
+		/// <summary>
+		/// True when the last query of nearby structures (at the start of the last step, or at reset) found more
+		/// than <see cref="MaximumSegments"/> segments, so some were left out of contact.
+		/// </summary>
+		public bool SegmentQuerySaturated => _segmentQuerySaturated;
+
+		/// <summary>Number of queries since the last reset (including its own) that found more than <see cref="MaximumSegments"/> segments.</summary>
+		public long SaturatedSegmentQueries => _saturatedSegmentQueries;
+
+		/// <summary>One touching segment at the end of the last step, <c>0 ≤ index &lt; ContactCount</c>.</summary>
+		public SegmentContact GetContact(int index)
+		{
+			if (_contact == null)
+			{
+				throw new ArgumentOutOfRangeException(nameof(index));
+			}
+
+			return _contact.Contact(index);
+		}
+
 		public void Reset(in VesselState initialState)
 		{
 			_stepCount = 0;
@@ -211,6 +307,21 @@ namespace FerrySim.Core.Dynamics
 			_motion.Reset(initialState.Down, initialState.Heave, initialState.Roll, initialState.RollRate, initialState.Pitch, initialState.PitchRate);
 			_forces = default;
 			_surgeAcceleration = 0.0;
+			_segmentQuerySaturated = false;
+			_saturatedSegmentQueries = 0;
+			ClearContact();
+			if (_contact != null)
+			{
+				// Nothing the hull overlaps at the start is in contact: contact begins by crossing a face.
+				_contact.Reset(_north, _east, _heading);
+			}
+
+			if (PrepareContact())
+			{
+				_slipSpeed = SlipSpeed(SimulationClock.FixedTimeStep / ContactSubsteps);
+				RecordContact();
+			}
+
 			Publish(0.0);
 		}
 
@@ -232,7 +343,15 @@ namespace FerrySim.Core.Dynamics
 			_starboardShaftSpeed = _starboardDriveline.ShaftSpeed;
 
 			UpdateMassMatrix();
-			IntegrateRigidBody(dt);
+			if (PrepareContact())
+			{
+				IntegrateWithContact(dt);
+			}
+			else
+			{
+				IntegrateRigidBody(dt);
+				ClearContact();
+			}
 
 			var froude = _surge / Math.Sqrt(PhysicalConstants.Gravity * _hull.Length);
 			var lateralArm = _hull.LateralForceDepth + _centreOfGravityHeight;
@@ -267,29 +386,100 @@ namespace FerrySim.Core.Dynamics
 
 		private void IntegrateRigidBody(double h)
 		{
-			var psi = _heading;
-			var u = _surge;
-			var v = _sway;
-			var r = _yawRate;
-
-			Derivatives(psi, u, v, r, true, out var n1, out var e1, out var u1, out var v1, out var r1);
-			Derivatives(psi + 0.5 * h * r, u + 0.5 * h * u1, v + 0.5 * h * v1, r + 0.5 * h * r1, false, out var n2, out var e2, out var u2, out var v2, out var r2);
-			Derivatives(psi + 0.5 * h * r2, u + 0.5 * h * u2, v + 0.5 * h * v2, r + 0.5 * h * r2, false, out var n3, out var e3, out var u3, out var v3, out var r3);
-			Derivatives(psi + h * r3, u + h * u3, v + h * v3, r + h * r3, false, out var n4, out var e4, out var u4, out var v4, out var r4);
-
-			var sixth = h / 6.0;
-			_north += sixth * (n1 + 2.0 * n2 + 2.0 * n3 + n4);
-			_east += sixth * (e1 + 2.0 * e2 + 2.0 * e3 + e4);
-			_heading = Angles.WrapTwoPi(psi + sixth * (r + 2.0 * (r + 0.5 * h * r1) + 2.0 * (r + 0.5 * h * r2) + (r + h * r3)));
-			_surge = u + sixth * (u1 + 2.0 * u2 + 2.0 * u3 + u4);
-			_sway = v + sixth * (v1 + 2.0 * v2 + 2.0 * v3 + v4);
-			_yawRate = r + sixth * (r1 + 2.0 * r2 + 2.0 * r3 + r4);
-			_surgeAcceleration = u1;
+			_surgeAcceleration = PlanarRungeKutta.Step(new RigidBodyRates(this, true), h,
+				ref _north, ref _east, ref _heading, ref _surge, ref _sway, ref _yawRate);
 		}
 
-		// Rates of the planar state for given heading and velocities through the water, with the
-		// machinery, rudder angle and environment held for the step.
-		private void Derivatives(double heading, double u, double v, double r, bool record,
+		// A step that may touch a structure: ContactSubsteps Runge-Kutta substeps with the contact forces at
+		// each stage's pose and velocity. The slip speed regularising friction and hysteresis is set per substep,
+		// and the parts of the hull in contact are updated after each one.
+		private void IntegrateWithContact(double dt)
+		{
+			var h = dt / ContactSubsteps;
+			_contactActive = true;
+			_contact.Begin(_north, _east, _heading);
+			for (var substep = 0; substep < ContactSubsteps; substep++)
+			{
+				_slipSpeed = SlipSpeed(h);
+				var first = substep == 0;
+				var surgeAcceleration = PlanarRungeKutta.Step(new RigidBodyRates(this, first), h,
+					ref _north, ref _east, ref _heading, ref _surge, ref _sway, ref _yawRate);
+				_contact.Commit(_north, _east, _heading);
+				if (first)
+				{
+					// The pitch layer models acceleration from thrust below the centre of gravity; contact
+					// loads act near the fender line, so they are left out of it.
+					_surgeAcceleration = surgeAcceleration - _forces.ContactX / _surgeMass;
+				}
+			}
+
+			_contactActive = false;
+			RecordContact();
+		}
+
+		// Queries the structures the hull could reach this step. True when some part of the outline is in
+		// contact or may touch one, so the step must integrate contact forces.
+		private bool PrepareContact()
+		{
+			if (_contact == null)
+			{
+				return false;
+			}
+
+			GroundVelocity(out var northRate, out var eastRate);
+			var speed = Math.Sqrt(northRate * northRate + eastRate * eastRate) + Math.Abs(_yawRate) * _contact.BoundingRadius;
+			var reach = 2.0 * speed * SimulationClock.FixedTimeStep + ReachMargin;
+			var radius = _contact.BoundingRadius + reach + QueryMargin;
+			var count = _geometry.QuerySegments(_north, _east, radius, _segments);
+			_segmentQuerySaturated = count > MaximumSegments;
+			if (_segmentQuerySaturated)
+			{
+				// The buffer filled up: there are more than MaximumSegments nearby, and the rest are left out.
+				_saturatedSegmentQueries++;
+				count = MaximumSegments;
+			}
+
+			_contact.Prepare(_segments, count);
+			return _contact.MayTouch(_north, _east, _heading, reach);
+		}
+
+		// Slip speed regularising friction and hysteresis over one substep: the floor, raised when the friction
+		// and hysteresis the contact carries would make them too stiff for an explicit substep of length h.
+		private double SlipSpeed(double h)
+		{
+			GroundVelocity(out var northRate, out var eastRate);
+			var load = _contact.FrictionLoad(_north, _east, _heading, northRate, eastRate, _yawRate);
+			return Math.Max(ContactModel.MinimumSlipSpeed, load * h / (FrictionStability * _contactMass));
+		}
+
+		// Contact forces and per-segment details at the end of the step, for telemetry.
+		private void RecordContact()
+		{
+			GroundVelocity(out var northRate, out var eastRate);
+			_contact.Forces(_north, _east, _heading, northRate, eastRate, _yawRate, _slipSpeed, true, out _, out _, out _);
+			_contactLoad = _contact.LastLoad;
+		}
+
+		private void ClearContact()
+		{
+			_contactLoad = default;
+			if (_contact != null)
+			{
+				_contact.ClearRecord();
+			}
+		}
+
+		private void GroundVelocity(out double northRate, out double eastRate)
+		{
+			var cos = Math.Cos(_heading);
+			var sin = Math.Sin(_heading);
+			northRate = _surge * cos - _sway * sin + _current.North;
+			eastRate = _surge * sin + _sway * cos + _current.East;
+		}
+
+		// Rates of the planar state for given pose and velocities through the water, with the machinery,
+		// rudder angle and environment held for the step. The position matters only for contact.
+		private void Derivatives(double north, double east, double heading, double u, double v, double r, bool record,
 			out double northRate, out double eastRate, out double surgeRate, out double swayRate, out double yawAcceleration)
 		{
 			_hull.Forces(u, v, r, _factors, out var hullX, out var hullY, out var hullN);
@@ -305,6 +495,16 @@ namespace FerrySim.Core.Dynamics
 			var x = hullX + portPropX + stbdPropX + portRudderX + stbdRudderX + windX;
 			var y = hullY + portPropY + stbdPropY + portRudderY + stbdRudderY + windY;
 			var n = hullN + portPropN + stbdPropN + portRudderN + stbdRudderN + windN;
+			var contactX = 0.0;
+			var contactY = 0.0;
+			var contactN = 0.0;
+			if (_contactActive)
+			{
+				_contact.Forces(north, east, heading, northRate, eastRate, r, _slipSpeed, false, out contactX, out contactY, out contactN);
+				x += contactX;
+				y += contactY;
+				n += contactN;
+			}
 
 			// MMG equations of motion at midships (Yasukawa and Yoshimura 2015, eq. 4).
 			var m = _mass;
@@ -321,7 +521,8 @@ namespace FerrySim.Core.Dynamics
 					hullX, hullY, hullN,
 					portPropX + stbdPropX, portPropY + stbdPropY, portPropN + stbdPropN,
 					portRudderX + stbdRudderX, portRudderY + stbdRudderY, portRudderN + stbdRudderN,
-					windX, windY, windN);
+					windX, windY, windN,
+					contactX, contactY, contactN);
 			}
 		}
 
@@ -360,10 +561,28 @@ namespace FerrySim.Core.Dynamics
 				speedOverGround,
 				speedOverGround > 1e-9 ? ground.Direction : _heading,
 				_depth - KeelDraft,
-				0.0);
+				_contactLoad.Magnitude);
 		}
 
 		private static EngineTelemetry Gauges(Driveline driveline, EngineControl control) =>
 			new EngineTelemetry(driveline.EngineSpeed, driveline.ShaftSpeed, control.Gear, control.Throttle);
+
+		// The equations of motion for the integrator; forces are recorded at the first stage when asked.
+		private readonly struct RigidBodyRates : IPlanarRates
+		{
+			private readonly VesselDynamicsSimulation _simulation;
+			private readonly bool _record;
+
+			public RigidBodyRates(VesselDynamicsSimulation simulation, bool record)
+			{
+				_simulation = simulation;
+				_record = record;
+			}
+
+			public void Rates(double north, double east, double heading, double surge, double sway, double yawRate, bool firstStage,
+				out double northRate, out double eastRate, out double surgeRate, out double swayRate, out double yawAcceleration) =>
+				_simulation.Derivatives(north, east, heading, surge, sway, yawRate, _record && firstStage,
+					out northRate, out eastRate, out surgeRate, out swayRate, out yawAcceleration);
+		}
 	}
 }

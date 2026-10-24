@@ -30,6 +30,8 @@ namespace FerrySim.Core.Contracts
 		public ShallowWaterParameters ShallowWater { get; set; }
 
 		public MotionResponseParameters MotionResponse { get; set; }
+
+		public ContactParameters Contact { get; set; }
 	}
 }
 
@@ -417,5 +419,57 @@ namespace FerrySim.Core.Dynamics
 
 		/// <summary>Dynamic sinkage at midships, m, positive down.</summary>
 		public ParameterValue Sinkage { get; set; }
+	}
+
+	/// <summary>
+	/// The hull's plan-view outline at the fender line and its own fendering, for contact with fixed
+	/// structures. Points are body axes from the reference point (x forward, y starboard, metres). The
+	/// outline is four open polylines that join end to end: each demihull's outboard sheer line from aft to
+	/// forward, the bow fender line across the bow and the stern fender line across the transoms.
+	/// </summary>
+	public sealed class ContactParameters
+	{
+		/// <summary>Points along the starboard demihull's outboard sheer line, from aft to forward.</summary>
+		public List<OutlinePoint> StarboardDemihull { get; set; }
+
+		/// <summary>Points along the port demihull's outboard sheer line, from aft to forward.</summary>
+		public List<OutlinePoint> PortDemihull { get; set; }
+
+		/// <summary>The bow fender line from port to starboard, joining the forward ends of the sheer lines.</summary>
+		public List<OutlinePoint> BowFenderLine { get; set; }
+
+		/// <summary>The stern fender line from port to starboard, joining the aft ends of the sheer lines.</summary>
+		public List<OutlinePoint> SternFenderLine { get; set; }
+
+		/// <summary>Normal stiffness of the hull's fendering per metre of contact length, N/m per m.</summary>
+		public ParameterValue HullFenderStiffness { get; set; }
+
+		/// <summary>Normal damping of the hull's fendering per metre of contact length, N·s/m per m.</summary>
+		public ParameterValue HullFenderDamping { get; set; }
+
+		/// <summary>Compression at which the hull's fendering bottoms out, m.</summary>
+		public ParameterValue HullFenderMaxCompression { get; set; }
+
+		/// <summary>
+		/// Stiffness of a fender past its compression limit, when the structure behind it takes the load,
+		/// as a multiple of the fender's own stiffness.
+		/// </summary>
+		public ParameterValue BottomedStiffnessFactor { get; set; }
+
+		/// <summary>
+		/// Rate-independent hysteresis of the fender rubber, hull and landing sides together: while a fender
+		/// compresses its elastic force is (1 + h) times the elastic law, while it recovers (1 − h) times.
+		/// </summary>
+		public ParameterValue FenderHysteresis { get; set; }
+	}
+
+	/// <summary>One point of the hull outline, body axes.</summary>
+	public sealed class OutlinePoint
+	{
+		/// <summary>Distance forward of midships, m.</summary>
+		public ParameterValue X { get; set; }
+
+		/// <summary>Distance to starboard of the centreline, m.</summary>
+		public ParameterValue Y { get; set; }
 	}
 }

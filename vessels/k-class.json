@@ -224,6 +224,101 @@
 		"lateralAreaCentre": { "value": 0.5, "unit": "m", "source": "Wheelhouse and upper deck slightly forward of midships", "confidence": "estimated" },
 		"lateralAreaHeight": { "value": 3.0, "unit": "m", "source": "Centroid of the profile above the waterline", "confidence": "estimated" }
 	},
+	"contact": {
+		"starboardDemihull": [
+			{
+				"x": { "value": -14.35, "unit": "m", "source": "Transom at the sheer 0.30 m aft of the waterline's aft end (LWL 28.1 m published, centred on the reference point), so bow to stern spans the published 29.6 m length overall; overhang estimated", "confidence": "estimated" },
+				"y": { "value": 3.95, "unit": "m", "source": "Stern fender across the transoms, ending 0.30 m inside half the published 8.5 m beam where the outboard corner rounds; estimated", "confidence": "estimated" }
+			},
+			{
+				"x": { "value": -14.1, "unit": "m", "source": "Outboard transom corner rounded over 0.25 m; estimated", "confidence": "estimated" },
+				"y": { "value": 4.25, "unit": "m", "source": "Outboard sheer at half the published 8.5 m beam, taken to include the rubbing strake; estimated", "confidence": "estimated" }
+			},
+			{
+				"x": { "value": 5.5, "unit": "m", "source": "Sheer parallel over the aft two thirds of the length overall, to where the bow shoulder begins; estimated, confirm from the general arrangement", "confidence": "estimated" },
+				"y": { "value": 4.25, "unit": "m", "source": "Outboard sheer at half the published 8.5 m beam, taken to include the rubbing strake; estimated", "confidence": "estimated" }
+			},
+			{
+				"x": { "value": 8.513, "unit": "m", "source": "Bow shoulder at the sheer: quarter ellipse from the end of the parallel sheer (5.5 m forward of midships) to the end of the bow fender line, a rounded bluff bow for bow loading; shape estimated, confirm from the general arrangement", "confidence": "estimated" },
+				"y": { "value": 4.145, "unit": "m", "source": "Bow shoulder at the sheer: quarter ellipse from the end of the parallel sheer (5.5 m forward of midships) to the end of the bow fender line, a rounded bluff bow for bow loading; shape estimated, confirm from the general arrangement", "confidence": "estimated" }
+			},
+			{
+				"x": { "value": 11.231, "unit": "m", "source": "Bow shoulder at the sheer: quarter ellipse from the end of the parallel sheer (5.5 m forward of midships) to the end of the bow fender line, a rounded bluff bow for bow loading; shape estimated, confirm from the general arrangement", "confidence": "estimated" },
+				"y": { "value": 3.839, "unit": "m", "source": "Bow shoulder at the sheer: quarter ellipse from the end of the parallel sheer (5.5 m forward of midships) to the end of the bow fender line, a rounded bluff bow for bow loading; shape estimated, confirm from the general arrangement", "confidence": "estimated" }
+			},
+			{
+				"x": { "value": 13.388, "unit": "m", "source": "Bow shoulder at the sheer: quarter ellipse from the end of the parallel sheer (5.5 m forward of midships) to the end of the bow fender line, a rounded bluff bow for bow loading; shape estimated, confirm from the general arrangement", "confidence": "estimated" },
+				"y": { "value": 3.364, "unit": "m", "source": "Bow shoulder at the sheer: quarter ellipse from the end of the parallel sheer (5.5 m forward of midships) to the end of the bow fender line, a rounded bluff bow for bow loading; shape estimated, confirm from the general arrangement", "confidence": "estimated" }
+			},
+			{
+				"x": { "value": 14.773, "unit": "m", "source": "Bow shoulder at the sheer: quarter ellipse from the end of the parallel sheer (5.5 m forward of midships) to the end of the bow fender line, a rounded bluff bow for bow loading; shape estimated, confirm from the general arrangement", "confidence": "estimated" },
+				"y": { "value": 2.764, "unit": "m", "source": "Bow shoulder at the sheer: quarter ellipse from the end of the parallel sheer (5.5 m forward of midships) to the end of the bow fender line, a rounded bluff bow for bow loading; shape estimated, confirm from the general arrangement", "confidence": "estimated" }
+			},
+			{
+				"x": { "value": 15.25, "unit": "m", "source": "Bow fender at the sheer, the published 29.6 m length overall forward of the transom; whether the published length includes the bow fender is open (research conflict C-07)", "confidence": "estimated", "note": "Ask crew: plan shape and width of the fendered bow, and where it touches the barge (reference kit: fenders, bow-in or side-to)." },
+				"y": { "value": 2.1, "unit": "m", "source": "Flat fendered bow face about half the beam wide, for bow loading (Professional Mariner describes bow loading); width estimated", "confidence": "estimated" }
+			}
+		],
+		"portDemihull": [
+			{
+				"x": { "value": -14.35, "unit": "m", "source": "Transom at the sheer 0.30 m aft of the waterline's aft end (LWL 28.1 m published, centred on the reference point), so bow to stern spans the published 29.6 m length overall; overhang estimated", "confidence": "estimated" },
+				"y": { "value": -3.95, "unit": "m", "source": "Stern fender across the transoms, ending 0.30 m inside half the published 8.5 m beam where the outboard corner rounds; estimated", "confidence": "estimated" }
+			},
+			{
+				"x": { "value": -14.1, "unit": "m", "source": "Outboard transom corner rounded over 0.25 m; estimated", "confidence": "estimated" },
+				"y": { "value": -4.25, "unit": "m", "source": "Outboard sheer at half the published 8.5 m beam, taken to include the rubbing strake; estimated", "confidence": "estimated" }
+			},
+			{
+				"x": { "value": 5.5, "unit": "m", "source": "Sheer parallel over the aft two thirds of the length overall, to where the bow shoulder begins; estimated, confirm from the general arrangement", "confidence": "estimated" },
+				"y": { "value": -4.25, "unit": "m", "source": "Outboard sheer at half the published 8.5 m beam, taken to include the rubbing strake; estimated", "confidence": "estimated" }
+			},
+			{
+				"x": { "value": 8.513, "unit": "m", "source": "Bow shoulder at the sheer: quarter ellipse from the end of the parallel sheer (5.5 m forward of midships) to the end of the bow fender line, a rounded bluff bow for bow loading; shape estimated, confirm from the general arrangement", "confidence": "estimated" },
+				"y": { "value": -4.145, "unit": "m", "source": "Bow shoulder at the sheer: quarter ellipse from the end of the parallel sheer (5.5 m forward of midships) to the end of the bow fender line, a rounded bluff bow for bow loading; shape estimated, confirm from the general arrangement", "confidence": "estimated" }
+			},
+			{
+				"x": { "value": 11.231, "unit": "m", "source": "Bow shoulder at the sheer: quarter ellipse from the end of the parallel sheer (5.5 m forward of midships) to the end of the bow fender line, a rounded bluff bow for bow loading; shape estimated, confirm from the general arrangement", "confidence": "estimated" },
+				"y": { "value": -3.839, "unit": "m", "source": "Bow shoulder at the sheer: quarter ellipse from the end of the parallel sheer (5.5 m forward of midships) to the end of the bow fender line, a rounded bluff bow for bow loading; shape estimated, confirm from the general arrangement", "confidence": "estimated" }
+			},
+			{
+				"x": { "value": 13.388, "unit": "m", "source": "Bow shoulder at the sheer: quarter ellipse from the end of the parallel sheer (5.5 m forward of midships) to the end of the bow fender line, a rounded bluff bow for bow loading; shape estimated, confirm from the general arrangement", "confidence": "estimated" },
+				"y": { "value": -3.364, "unit": "m", "source": "Bow shoulder at the sheer: quarter ellipse from the end of the parallel sheer (5.5 m forward of midships) to the end of the bow fender line, a rounded bluff bow for bow loading; shape estimated, confirm from the general arrangement", "confidence": "estimated" }
+			},
+			{
+				"x": { "value": 14.773, "unit": "m", "source": "Bow shoulder at the sheer: quarter ellipse from the end of the parallel sheer (5.5 m forward of midships) to the end of the bow fender line, a rounded bluff bow for bow loading; shape estimated, confirm from the general arrangement", "confidence": "estimated" },
+				"y": { "value": -2.764, "unit": "m", "source": "Bow shoulder at the sheer: quarter ellipse from the end of the parallel sheer (5.5 m forward of midships) to the end of the bow fender line, a rounded bluff bow for bow loading; shape estimated, confirm from the general arrangement", "confidence": "estimated" }
+			},
+			{
+				"x": { "value": 15.25, "unit": "m", "source": "Bow fender at the sheer, the published 29.6 m length overall forward of the transom; whether the published length includes the bow fender is open (research conflict C-07)", "confidence": "estimated", "note": "Ask crew: plan shape and width of the fendered bow, and where it touches the barge (reference kit: fenders, bow-in or side-to)." },
+				"y": { "value": -2.1, "unit": "m", "source": "Flat fendered bow face about half the beam wide, for bow loading (Professional Mariner describes bow loading); width estimated", "confidence": "estimated" }
+			}
+		],
+		"bowFenderLine": [
+			{
+				"x": { "value": 15.25, "unit": "m", "source": "Bow fender at the sheer, the published 29.6 m length overall forward of the transom; whether the published length includes the bow fender is open (research conflict C-07)", "confidence": "estimated", "note": "Ask crew: plan shape and width of the fendered bow, and where it touches the barge (reference kit: fenders, bow-in or side-to)." },
+				"y": { "value": -2.1, "unit": "m", "source": "Flat fendered bow face about half the beam wide, for bow loading (Professional Mariner describes bow loading); width estimated", "confidence": "estimated" }
+			},
+			{
+				"x": { "value": 15.25, "unit": "m", "source": "Bow fender at the sheer, the published 29.6 m length overall forward of the transom; whether the published length includes the bow fender is open (research conflict C-07)", "confidence": "estimated", "note": "Ask crew: plan shape and width of the fendered bow, and where it touches the barge (reference kit: fenders, bow-in or side-to)." },
+				"y": { "value": 2.1, "unit": "m", "source": "Flat fendered bow face about half the beam wide, for bow loading (Professional Mariner describes bow loading); width estimated", "confidence": "estimated" }
+			}
+		],
+		"sternFenderLine": [
+			{
+				"x": { "value": -14.35, "unit": "m", "source": "Transom at the sheer 0.30 m aft of the waterline's aft end (LWL 28.1 m published, centred on the reference point), so bow to stern spans the published 29.6 m length overall; overhang estimated", "confidence": "estimated" },
+				"y": { "value": -3.95, "unit": "m", "source": "Stern fender across the transoms, ending 0.30 m inside half the published 8.5 m beam where the outboard corner rounds; estimated", "confidence": "estimated" }
+			},
+			{
+				"x": { "value": -14.35, "unit": "m", "source": "Transom at the sheer 0.30 m aft of the waterline's aft end (LWL 28.1 m published, centred on the reference point), so bow to stern spans the published 29.6 m length overall; overhang estimated", "confidence": "estimated" },
+				"y": { "value": 3.95, "unit": "m", "source": "Stern fender across the transoms, ending 0.30 m inside half the published 8.5 m beam where the outboard corner rounds; estimated", "confidence": "estimated" }
+			}
+		],
+		"hullFenderStiffness": { "value": 3500000, "unit": "N/m2", "source": "Assumed continuous rubber fender (rubbing strake) along the sheer, across the bow and the transoms, as on harbour ferries that berth against fendered barges: a hollow D section about 200 mm deep gives about 350 kN per metre at 0.10 m compression", "confidence": "estimated", "note": "Ask crew: section, size and material of the hull fendering (reference kit: fenders)." },
+		"hullFenderDamping": { "value": 70000, "unit": "N*s/m2", "source": "Rubber hysteresis as a damping time c/k of 0.02 s on the stiffness above: a loss factor of about 0.2 at the 10 rad/s of a fender contact", "confidence": "estimated" },
+		"hullFenderMaxCompression": { "value": 0.1, "unit": "m", "source": "About half the depth of a 200 mm hollow D fender, its usual rated deflection", "confidence": "estimated" },
+		"bottomedStiffnessFactor": { "value": 20, "unit": "1", "source": "Past a fender's compression limit the aluminium hull and the landing structure take the load: 20 times the fender stiffness stops a 6 kn head-on impact within centimetres and stays accurate in the 1 ms contact substeps", "confidence": "estimated" },
+		"fenderHysteresis": { "value": 0.2, "unit": "1", "source": "Engineering estimate: elastomeric fenders return less energy on recovery than they absorb in compression (loading and unloading hysteresis); 0.2 makes the loading force 1.2 and the unloading force 0.8 times the elastic law, a loss of about a third of the energy per cycle. Lumps the barge fender's and the hull fendering's rubber together until landing data or crew input says otherwise", "confidence": "estimated", "note": "Ask crew: how far a boat bounces back off the barge after a firm landing in neutral." }
+	},
 	"shallowWater": {
 		"blockageCoefficient": { "value": 0.1242, "unit": "1", "source": "Lackenby (1963) shallow-water speed-loss formula, potential-flow term 0.1242 (A_X/h^2 - 0.05)", "confidence": "estimated" },
 		"criticalSpeedAmplitude": { "value": 0.5, "unit": "1", "source": "Residuary resistance peaks near depth Froude number 1 in shallow water (Millward 1983); amplitude for these hulls uncertain", "confidence": "estimated", "note": "Calibration parameter: fit from AIS speed against charted depth." },

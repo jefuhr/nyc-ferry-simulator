@@ -106,7 +106,7 @@ Fixed structures the hull can touch (landing faces, piers, bulkheads) reach the 
 | Field | Required | Content |
 |---|---|---|
 | `value` | yes | The number, in the SI unit named by `unit` |
-| `unit` | yes | One of `m m2 m3 kg kg*m2 s W N N*m m/s m/s2 rad rad/s rad/s2 1 count` |
+| `unit` | yes | One of `m m2 m3 kg kg*m2 s W N N*m m/s m/s2 rad rad/s rad/s2 1 count N/m2 N*s/m2` |
 | `asPublished` | no | The original figure, for example `85'4"` or `815 hp at 2,100 rpm each` |
 | `source` | yes | A key in the file's `sources` map. For `estimated` values, free text stating the basis |
 | `confidence` | yes | `published`, `ais-derived`, `crew-reported` or `estimated` |
