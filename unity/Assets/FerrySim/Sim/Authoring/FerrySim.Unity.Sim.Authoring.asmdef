@@ -1,0 +1,14 @@
+{
+	"name": "FerrySim.Unity.Sim.Authoring",
+	"rootNamespace": "FerrySim.Sim.Authoring",
+	"references": ["FerrySim.Core", "FerrySim.Core.Serialization", "FerrySim.Unity.Sim", "FerrySim.Unity.Input", "Unity.InputSystem"],
+	"includePlatforms": ["Editor"],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": false,
+	"precompiledReferences": [],
+	"autoReferenced": false,
+	"defineConstraints": [],
+	"versionDefines": [],
+	"noEngineReferences": false
+}
