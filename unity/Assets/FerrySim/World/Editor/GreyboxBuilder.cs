@@ -1,0 +1,595 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text;
+using FerrySim.Core.Contracts.Geodesy;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.Rendering;
+using Object = UnityEngine.Object;
+
+namespace FerrySim.World.EditorTools
+{
+	/// <summary>
+	/// Builds the water-level greybox from the pipeline's outputs: the slice datum asset, one floating
+	/// barge per landing face (outline, berthing line, outward normal and a label with the confidence
+	/// flag) and the Brooklyn, Manhattan and Williamsburg bridges (deck at the published clearance,
+	/// estimated towers). Writes assets under World/Greybox/ and World/Data/; overwrites in place so
+	/// GUIDs stay stable. Positions go through the core's LocalTangentPlane, never the pipeline's
+	/// rounded local coordinates, which are only used as a cross-check.
+	/// </summary>
+	public static class GreyboxBuilder
+	{
+		public const string WorldFolder = "Assets/FerrySim/World";
+		public const string GreyboxFolder = WorldFolder + "/Greybox";
+		public const string MeshFolder = GreyboxFolder + "/Meshes";
+		public const string MaterialFolder = GreyboxFolder + "/Materials";
+		public const string PrefabPath = GreyboxFolder + "/LowerEastRiverGreybox.prefab";
+		public const string DataFolder = WorldFolder + "/Data";
+		public const string DatumPath = DataFolder + "/LowerEastRiverDatum.asset";
+
+		// Greybox sizes: estimates chosen for visibility, not survey data.
+		public const float BargeFreeboard = 1.2f;
+		public const float BargeDraft = 1.5f;
+		public const float DeckDepth = 4f;
+		public const float TowerAlongSpan = 12f;
+		public const float TowerExtraWidth = 6f;
+		public const float TowerTopAboveClearance = 45f;
+		public const float TowerBaseBelowWater = 8f;
+
+		/// <summary>Largest allowed gap between our tangent-plane coordinates and the pipeline's (it rounds to 1 mm).</summary>
+		public const double LocalCoordinateTolerance = 0.01;
+
+		public static readonly string[] BridgeNames = { "Brooklyn Bridge", "Manhattan Bridge", "Williamsburg Bridge" };
+
+		/// <summary>Builds every greybox asset; throws if the data cannot produce a complete greybox.</summary>
+		public static GreyboxReport Build(PipelineData data)
+		{
+			EnsureFolder(GreyboxFolder);
+			EnsureFolder(MeshFolder);
+			EnsureFolder(MaterialFolder);
+			EnsureFolder(DataFolder);
+
+			var report = new GreyboxReport();
+			var datum = WriteDatum(data);
+			var materials = new GreyboxMaterials();
+			var root = new GameObject("LowerEastRiverGreybox");
+			try
+			{
+				var landings = Child(root.transform, "Landings", WorldLayers.Structure);
+				landings.AddComponent<FloatOnWater>();
+				foreach (var face in data.Faces.OrderBy(f => f.StopId, StringComparer.Ordinal))
+				{
+					BuildBarge(face, data, datum, materials, landings.transform, report);
+				}
+
+				var bridges = Child(root.transform, "Bridges", WorldLayers.Structure);
+				foreach (var name in BridgeNames)
+				{
+					BuildBridge(name, data, datum, materials, bridges.transform, report);
+				}
+
+				if (report.Errors.Count > 0)
+				{
+					throw new InvalidOperationException("Greybox build failed:\n" + string.Join("\n", report.Errors));
+				}
+
+				PrefabUtility.SaveAsPrefabAsset(root, PrefabPath, out var saved);
+				if (!saved)
+				{
+					throw new InvalidOperationException("Could not save " + PrefabPath);
+				}
+			}
+			finally
+			{
+				Object.DestroyImmediate(root);
+			}
+
+			AssetDatabase.SaveAssets();
+			return report;
+		}
+
+		/// <summary>Writes (or updates) the slice datum asset from geoid_offset.json and the datum station.</summary>
+		public static SliceDatum WriteDatum(PipelineData data)
+		{
+			var geoid = data.Geoid;
+			var datums = data.Datums;
+			var provenance = new StringBuilder()
+				.AppendLine($"Geoid: data/processed/{geoid.Slice}/geoid_offset.json, {geoid.Model}; {geoid.Transformation}.")
+				.AppendLine($"Tidal datums: NOAA CO-OPS {datums.StationId} {datums.StationName}, epoch {datums.Epoch}, {datums.SourceUrl} (cached {datums.SourceFile}, sha256 {datums.SourceSha256}). Datum station chosen by the pipeline (depth_merged_navd88.json).")
+				.Append("NAVD88 height of a datum = its value minus the NAVD88 value, both relative to station datum (STND).")
+				.ToString();
+
+			var values = new SliceDatumValues
+			{
+				SliceName = geoid.Slice,
+				SouthLatitude = geoid.South,
+				NorthLatitude = geoid.North,
+				WestLongitude = geoid.West,
+				EastLongitude = geoid.East,
+				GeoidModel = geoid.Model,
+				GeoidSouthWest = geoid.SouthWest,
+				GeoidSouthEast = geoid.SouthEast,
+				GeoidNorthWest = geoid.NorthWest,
+				GeoidNorthEast = geoid.NorthEast,
+				GeoidCentre = geoid.Centre,
+				DatumStation = $"{datums.StationId} {datums.StationName}",
+				TidalDatumEpoch = datums.Epoch,
+				MeanHighWaterNavd88 = datums.MeanHighWaterNavd88,
+				MeanLowerLowWaterNavd88 = datums.MeanLowerLowWaterNavd88,
+				Provenance = provenance,
+			};
+
+			var datum = AssetDatabase.LoadAssetAtPath<SliceDatum>(DatumPath);
+			if (datum == null)
+			{
+				datum = ScriptableObject.CreateInstance<SliceDatum>();
+				datum.Assign(values);
+				AssetDatabase.CreateAsset(datum, DatumPath);
+			}
+			else
+			{
+				datum.Assign(values);
+				EditorUtility.SetDirty(datum);
+			}
+
+			return datum;
+		}
+
+		private static void BuildBarge(LandingFace face, PipelineData data, SliceDatum datum, GreyboxMaterials materials, Transform parent, GreyboxReport report)
+		{
+			var plane = LocalTangentPlane.World;
+			var outline = new List<PlanePoint>();
+			for (var i = 0; i < face.OutlineLonLat.Count; i++)
+			{
+				var point = ToPlane(face.OutlineLonLat[i]);
+				outline.Add(point);
+				report.Check(face.StopId + " outline", point, face.OutlineNorthEast[i]);
+			}
+
+			var ring = PolygonGeometry.CounterClockwise(PolygonGeometry.CleanRing(outline));
+			if (ring.Count < 3)
+			{
+				report.Errors.Add($"Landing {face.StopId}: outline has {ring.Count} distinct points.");
+				return;
+			}
+
+			var centroid = PolygonGeometry.Centroid(ring);
+			var waterline = WaterSurface.SurfaceUpAt(datum, centroid.North, centroid.East, 0.0);
+			var gtfs = data.Landings.FirstOrDefault(l => l.StopId == face.StopId);
+			if (gtfs == null)
+			{
+				report.Errors.Add($"Landing face {face.StopId} has no GTFS stop in landings.geojson.");
+				return;
+			}
+
+			var gtfsLocal = plane.ToLocal(new GeodeticPosition(gtfs.Latitude, gtfs.Longitude));
+			report.Check(face.StopId + " GTFS stop", new PlanePoint(gtfsLocal.East, gtfsLocal.North), new[] { gtfs.North, gtfs.East });
+
+			var barge = Child(parent, $"{face.StopId} {face.StopName}".Replace('/', '-'), WorldLayers.Structure);
+			barge.transform.localPosition = new Vector3((float)centroid.East, (float)waterline, (float)centroid.North);
+
+			// Hull: the outline extruded from the draft to the freeboard, in coordinates relative to the centroid.
+			var relative = ring.Select(p => p - centroid).ToList();
+			var mesh = UpsertMesh($"{MeshFolder}/Barge_{face.StopId}.asset", ExtrudedPrism(relative, BargeFreeboard, -BargeDraft, $"Barge {face.StopId}"));
+			var hull = Child(barge.transform, "Hull", WorldLayers.Structure);
+			hull.AddComponent<MeshFilter>().sharedMesh = mesh;
+			hull.AddComponent<MeshRenderer>().sharedMaterial = materials.Barge(face.Confidence);
+
+			// Berthing face: a bar along the face line, just outside the hull, and an arrow along the outward normal.
+			var start = ToPlane(face.FaceLonLat[0]);
+			var end = ToPlane(face.FaceLonLat[face.FaceLonLat.Count - 1]);
+			report.Check(face.StopId + " face start", start, face.FaceNorthEast[0]);
+			report.Check(face.StopId + " face end", end, face.FaceNorthEast[face.FaceNorthEast.Count - 1]);
+			var along = end - start;
+			var length = along.Length;
+			var normal = new PlanePoint(face.OutwardNormalEast, face.OutwardNormalNorth);
+			var middle = (start + end) * 0.5 - centroid;
+			Box(barge.transform, "BerthingFace", middle + normal * 0.3, BargeFreeboard - 0.3f, new Vector3(0.6f, 1.2f, (float)length), Bearing(along), materials.Face);
+			Box(barge.transform, "FaceNormal", middle + normal * 3.0, BargeFreeboard + 0.25f, new Vector3(0.4f, 0.4f, 5f), Bearing(normal), materials.Face);
+
+			var component = barge.AddComponent<LandingBarge>();
+			component.Assign(new LandingBargeValues
+			{
+				StopId = face.StopId,
+				StopName = face.StopName,
+				RouteIds = face.RouteIds,
+				Source = face.Source,
+				Confidence = face.Confidence,
+				Verification = face.Verification,
+				EncId = face.EncId,
+				GtfsLatitude = gtfs.Latitude,
+				GtfsLongitude = gtfs.Longitude,
+				GtfsNorth = gtfsLocal.North,
+				GtfsEast = gtfsLocal.East,
+				FaceStartNorth = start.North,
+				FaceStartEast = start.East,
+				FaceEndNorth = end.North,
+				FaceEndEast = end.East,
+				FaceHeadingDegrees = face.FaceHeadingDegrees,
+				OutwardNormalNorth = face.OutwardNormalNorth,
+				OutwardNormalEast = face.OutwardNormalEast,
+				Freeboard = BargeFreeboard,
+				Draft = BargeDraft,
+			});
+
+			Label(barge.transform, new Vector3(0f, BargeFreeboard + 2.5f, 0f), component.LabelText, materials.LabelColor(face.Confidence), materials.LabelBacking);
+			report.Barges.Add($"{face.StopId} {face.StopName}: {face.Source}, {face.Confidence}, waterline {waterline:F3} m");
+		}
+
+		private static void BuildBridge(string name, PipelineData data, SliceDatum datum, GreyboxMaterials materials, Transform parent, GreyboxReport report)
+		{
+			var features = data.Bridges.Where(b => b.Name == name).ToList();
+			var main = features.Where(f => f.HasClearance && f.VerticalClearance.HasValue).ToList();
+			if (main.Count != 1)
+			{
+				report.Errors.Add($"{name}: expected one span with a published clearance, found {main.Count}.");
+				return;
+			}
+
+			var span = main[0];
+			var spanPoints = span.RingsLonLat.SelectMany(r => r).Select(ToPlane).ToList();
+			var rectangle = PolygonGeometry.MinimumAreaRectangle(spanPoints);
+			var axis = rectangle.Axis;
+
+			// The deck covers every ENC piece of this bridge along the main span's axis.
+			var minAlong = double.MaxValue;
+			var maxAlong = double.MinValue;
+			foreach (var point in features.SelectMany(f => f.RingsLonLat).SelectMany(r => r).Select(ToPlane))
+			{
+				var s = (point - rectangle.Centre).Dot(axis);
+				minAlong = Math.Min(minAlong, s);
+				maxAlong = Math.Max(maxAlong, s);
+			}
+
+			// Tower positions are not in the ENC data. Put their inner faces just outside both the main-span
+			// polygon and the published navigable width, centred on the span, so a greybox tower never
+			// narrows the channel; the deck reaches at least to the towers' outer faces.
+			var halfGap = 0.5 * Math.Max(rectangle.Length, span.HorizontalClearance ?? 0.0);
+			minAlong = Math.Min(minAlong, -halfGap - TowerAlongSpan);
+			maxAlong = Math.Max(maxAlong, halfGap + TowerAlongSpan);
+
+			var deckCentre = rectangle.Centre + axis * (0.5 * (minAlong + maxAlong));
+			var deckLength = maxAlong - minAlong;
+			var clearance = span.VerticalClearance.Value;
+			var undersideNavd88 = datum.MeanHighWaterNavd88 + clearance;
+			var towerTopNavd88 = undersideNavd88 + TowerTopAboveClearance;
+			var undersideUp = WaterSurface.SurfaceUpAt(datum, deckCentre.North, deckCentre.East, undersideNavd88);
+			var deckGeodetic = LocalTangentPlane.World.ToGeodetic(deckCentre.North, deckCentre.East);
+			var undersideEllipsoidal = undersideNavd88 + datum.GeoidHeight(deckGeodetic.LatitudeDegrees, deckGeodetic.LongitudeDegrees);
+
+			// Bridge origin at the deck centre on the tangent plane, z along the span; children use absolute heights.
+			var bridge = Child(parent, name, WorldLayers.Structure);
+			bridge.transform.localPosition = new Vector3((float)deckCentre.East, 0f, (float)deckCentre.North);
+			bridge.transform.localRotation = Quaternion.Euler(0f, (float)rectangle.AxisBearingDegrees, 0f);
+
+			var deck = Box(bridge.transform, "Deck", default, 0f, new Vector3((float)rectangle.Width, DeckDepth, (float)deckLength), 0.0, materials.Deck);
+			deck.transform.localPosition = new Vector3(0f, (float)(undersideUp + 0.5 * DeckDepth), 0f);
+			deck.transform.localRotation = Quaternion.identity;
+
+			var offset = (rectangle.Centre - deckCentre).Dot(axis);
+			foreach (var side in new[] { -1.0, 1.0 })
+			{
+				var along = offset + side * (halfGap + 0.5 * TowerAlongSpan);
+				var position = deckCentre + axis * along;
+				var top = WaterSurface.SurfaceUpAt(datum, position.North, position.East, towerTopNavd88);
+				var bottom = WaterSurface.SurfaceUpAt(datum, position.North, position.East, 0.0) - TowerBaseBelowWater;
+				var tower = Box(bridge.transform, side < 0 ? "Tower A" : "Tower B", default, 0f, new Vector3((float)rectangle.Width + TowerExtraWidth, (float)(top - bottom), TowerAlongSpan), 0.0, materials.Tower);
+				tower.transform.localPosition = new Vector3(0f, (float)(0.5 * (top + bottom)), (float)along);
+				tower.transform.localRotation = Quaternion.identity;
+			}
+
+			var component = bridge.AddComponent<BridgeGreybox>();
+			component.Assign(new BridgeGreyboxValues
+			{
+				BridgeName = name,
+				EncIds = features.Select(f => f.Id).OrderBy(id => id, StringComparer.Ordinal).ToArray(),
+				VerticalClearance = clearance,
+				ClearanceDatum = span.ClearanceDatum,
+				HorizontalClearance = span.HorizontalClearance ?? double.NaN,
+				Information = span.Information,
+				MeanHighWaterNavd88 = datum.MeanHighWaterNavd88,
+				DeckUndersideNavd88 = undersideNavd88,
+				DeckUndersideEllipsoidal = undersideEllipsoidal,
+				TowerTopNavd88 = towerTopNavd88,
+				TowerHeightIsEstimate = true,
+			});
+
+			var text = string.Format(CultureInfo.InvariantCulture, "{0}\nclearance {1:F1} m above {2} (NOAA ENC)\ntowers: greybox estimate", name, clearance, span.ClearanceDatum);
+			// Above the towers, so the label never hides the deck it describes.
+			var towerTopUp = WaterSurface.SurfaceUpAt(datum, deckCentre.North, deckCentre.East, towerTopNavd88);
+			Label(bridge.transform, new Vector3(0f, (float)(towerTopUp + 6.0), 0f), text, materials.BridgeLabel, materials.LabelBacking);
+			report.Bridges.Add(string.Format(CultureInfo.InvariantCulture, "{0}: clearance {1} m above {2}, deck underside {3:F2} m NAVD88 ({4:F2} m ellipsoidal), span {5:F0} m x {6:F0} m, deck {7:F0} m", name, clearance, span.ClearanceDatum, undersideNavd88, undersideEllipsoidal, rectangle.Length, rectangle.Width, deckLength));
+		}
+
+		/// <summary>The outline extruded between two heights: top, bottom and outward walls, flat-shaded.</summary>
+		public static Mesh ExtrudedPrism(IReadOnlyList<PlanePoint> counterClockwiseRing, float top, float bottom, string name)
+		{
+			var vertices = new List<Vector3>();
+			var triangles = new List<int>();
+			var cap = PolygonGeometry.Triangulate(counterClockwiseRing);
+
+			// Top faces up: Unity's front faces are clockwise seen from the front, so reverse each
+			// counter-clockwise (seen from above) triangle.
+			var topStart = vertices.Count;
+			foreach (var point in counterClockwiseRing)
+			{
+				vertices.Add(new Vector3((float)point.East, top, (float)point.North));
+			}
+
+			for (var i = 0; i < cap.Count; i += 3)
+			{
+				triangles.Add(topStart + cap[i]);
+				triangles.Add(topStart + cap[i + 2]);
+				triangles.Add(topStart + cap[i + 1]);
+			}
+
+			// Bottom faces down: the same triangles keep their order (clockwise seen from below).
+			var bottomStart = vertices.Count;
+			foreach (var point in counterClockwiseRing)
+			{
+				vertices.Add(new Vector3((float)point.East, bottom, (float)point.North));
+			}
+
+			for (var i = 0; i < cap.Count; i += 3)
+			{
+				triangles.Add(bottomStart + cap[i]);
+				triangles.Add(bottomStart + cap[i + 1]);
+				triangles.Add(bottomStart + cap[i + 2]);
+			}
+
+			// Walls: walking a counter-clockwise ring the outside is on the right.
+			for (var i = 0; i < counterClockwiseRing.Count; i++)
+			{
+				var a = counterClockwiseRing[i];
+				var b = counterClockwiseRing[(i + 1) % counterClockwiseRing.Count];
+				var start = vertices.Count;
+				vertices.Add(new Vector3((float)a.East, top, (float)a.North));
+				vertices.Add(new Vector3((float)b.East, top, (float)b.North));
+				vertices.Add(new Vector3((float)b.East, bottom, (float)b.North));
+				vertices.Add(new Vector3((float)a.East, bottom, (float)a.North));
+				triangles.Add(start);
+				triangles.Add(start + 1);
+				triangles.Add(start + 2);
+				triangles.Add(start);
+				triangles.Add(start + 2);
+				triangles.Add(start + 3);
+			}
+
+			var mesh = new Mesh { name = name };
+			mesh.SetVertices(vertices);
+			mesh.SetTriangles(triangles, 0);
+			mesh.RecalculateNormals();
+			mesh.RecalculateBounds();
+			return mesh;
+		}
+
+		private static PlanePoint ToPlane(double[] lonLat)
+		{
+			var local = LocalTangentPlane.World.ToLocal(new GeodeticPosition(lonLat[1], lonLat[0]));
+			return new PlanePoint(local.East, local.North);
+		}
+
+		private static double Bearing(PlanePoint direction) => Math.Atan2(direction.East, direction.North) * 180.0 / Math.PI;
+
+		private static GameObject Child(Transform parent, string name, int layer)
+		{
+			var child = new GameObject(name) { layer = layer };
+			child.transform.SetParent(parent, false);
+			return child;
+		}
+
+		private static GameObject Box(Transform parent, string name, PlanePoint centre, float height, Vector3 size, double bearingDegrees, Material material)
+		{
+			var box = GameObject.CreatePrimitive(PrimitiveType.Cube);
+			Object.DestroyImmediate(box.GetComponent<Collider>());
+			box.name = name;
+			box.layer = WorldLayers.Structure;
+			box.transform.SetParent(parent, false);
+			box.transform.localPosition = new Vector3((float)centre.East, height, (float)centre.North);
+			box.transform.localRotation = Quaternion.Euler(0f, (float)bearingDegrees, 0f);
+			box.transform.localScale = size;
+			box.GetComponent<MeshRenderer>().sharedMaterial = material;
+			return box;
+		}
+
+		private static void Label(Transform parent, Vector3 localPosition, string text, Color color, Material backing)
+		{
+			var label = new GameObject("Label");
+			label.transform.SetParent(parent, false);
+			label.transform.localPosition = localPosition;
+			var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+			var mesh = label.AddComponent<TextMesh>();
+			mesh.text = text;
+			mesh.font = font;
+			mesh.fontSize = 64;
+			mesh.characterSize = 0.08f;
+			mesh.anchor = TextAnchor.LowerCenter;
+			mesh.alignment = TextAlignment.Center;
+			mesh.color = color;
+			var renderer = label.GetComponent<MeshRenderer>();
+			renderer.sharedMaterial = font.material;
+			renderer.shadowCastingMode = ShadowCastingMode.Off;
+			renderer.receiveShadows = false;
+
+			var plate = GameObject.CreatePrimitive(PrimitiveType.Quad);
+			Object.DestroyImmediate(plate.GetComponent<Collider>());
+			plate.name = "Backing";
+			plate.transform.SetParent(label.transform, false);
+			var plateRenderer = plate.GetComponent<MeshRenderer>();
+			plateRenderer.sharedMaterial = backing;
+			plateRenderer.shadowCastingMode = ShadowCastingMode.Off;
+			plateRenderer.receiveShadows = false;
+			label.AddComponent<Billboard>().SetBacking(plate.transform);
+		}
+
+		private static Mesh UpsertMesh(string path, Mesh mesh)
+		{
+			var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+			if (existing == null)
+			{
+				AssetDatabase.CreateAsset(mesh, path);
+				return mesh;
+			}
+
+			EditorUtility.CopySerialized(mesh, existing);
+			EditorUtility.SetDirty(existing);
+			Object.DestroyImmediate(mesh);
+			return existing;
+		}
+
+		internal static void EnsureFolder(string path)
+		{
+			if (AssetDatabase.IsValidFolder(path))
+			{
+				return;
+			}
+
+			var parent = System.IO.Path.GetDirectoryName(path).Replace('\\', '/');
+			EnsureFolder(parent);
+			AssetDatabase.CreateFolder(parent, System.IO.Path.GetFileName(path));
+		}
+
+		/// <summary>Greybox materials (URP Lit), written once and updated in place.</summary>
+		private sealed class GreyboxMaterials
+		{
+			public GreyboxMaterials()
+			{
+				Low = Upsert("Barge_LowConfidence", new Color(0.93f, 0.45f, 0.20f), 0f);
+				Medium = Upsert("Barge_MediumConfidence", new Color(0.95f, 0.76f, 0.22f), 0f);
+				High = Upsert("Barge_HighConfidence", new Color(0.30f, 0.72f, 0.36f), 0f);
+				Face = Upsert("BerthingFace", new Color(0.10f, 0.85f, 0.95f), 0.8f);
+				Deck = Upsert("BridgeDeck", new Color(0.56f, 0.56f, 0.60f), 0f);
+				Tower = Upsert("BridgeTower", new Color(0.62f, 0.55f, 0.47f), 0f);
+				LabelBacking = UpsertLabelBacking();
+			}
+
+			/// <summary>Translucent black plate behind label text (URP Unlit, transparent, drawn just before the text).</summary>
+			public Material LabelBacking { get; }
+
+			public Material Low { get; }
+
+			public Material Medium { get; }
+
+			public Material High { get; }
+
+			public Material Face { get; }
+
+			public Material Deck { get; }
+
+			public Material Tower { get; }
+
+			public Color BridgeLabel => new Color(1f, 1f, 1f);
+
+			public Material Barge(string confidence) =>
+				confidence == "high" ? High : confidence == "medium" ? Medium : Low;
+
+			public Color LabelColor(string confidence) =>
+				confidence == "high" ? new Color(0.55f, 1f, 0.6f) : confidence == "medium" ? new Color(1f, 0.9f, 0.45f) : new Color(1f, 0.65f, 0.45f);
+
+			private static Material UpsertLabelBacking()
+			{
+				var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? throw new InvalidOperationException("URP Unlit shader not found.");
+				var material = new Material(shader) { name = "LabelBacking" };
+				material.SetFloat("_Surface", 1f);
+				material.SetFloat("_Blend", 0f);
+				material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+				material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+				material.SetFloat("_SrcBlendAlpha", (float)BlendMode.One);
+				material.SetFloat("_DstBlendAlpha", (float)BlendMode.OneMinusSrcAlpha);
+				material.SetFloat("_ZWrite", 0f);
+				material.SetColor("_BaseColor", new Color(0f, 0f, 0f, 0.55f));
+				material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+				material.SetOverrideTag("RenderType", "Transparent");
+
+				// GUI/Text Shader draws at 3000; the plate must come first.
+				material.renderQueue = 2999;
+				return Store(material);
+			}
+
+			private static Material Store(Material material)
+			{
+				var path = $"{MaterialFolder}/{material.name}.mat";
+				var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
+				if (existing == null)
+				{
+					AssetDatabase.CreateAsset(material, path);
+					return material;
+				}
+
+				existing.shader = material.shader;
+				existing.CopyPropertiesFromMaterial(material);
+				existing.shaderKeywords = material.shaderKeywords;
+				existing.globalIlluminationFlags = material.globalIlluminationFlags;
+				existing.SetOverrideTag("RenderType", material.GetTag("RenderType", false));
+				existing.renderQueue = material.renderQueue;
+				EditorUtility.SetDirty(existing);
+				Object.DestroyImmediate(material);
+				return existing;
+			}
+
+			private static Material Upsert(string name, Color color, float emission)
+			{
+				var shader = Shader.Find("Universal Render Pipeline/Lit");
+				if (shader == null)
+				{
+					throw new InvalidOperationException("URP Lit shader not found.");
+				}
+
+				var material = new Material(shader) { name = name };
+				material.SetColor("_BaseColor", color);
+				material.SetFloat("_Smoothness", 0.15f);
+				material.SetFloat("_Metallic", 0f);
+				if (emission > 0f)
+				{
+					material.EnableKeyword("_EMISSION");
+					material.SetColor("_EmissionColor", color * emission);
+					material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+				}
+
+				return Store(material);
+			}
+		}
+	}
+
+	/// <summary>What a greybox build produced, and the cross-check against the pipeline's local coordinates.</summary>
+	public sealed class GreyboxReport
+	{
+		public List<string> Barges { get; } = new List<string>();
+
+		public List<string> Bridges { get; } = new List<string>();
+
+		public List<string> Errors { get; } = new List<string>();
+
+		/// <summary>Largest gap between our (north, east) and the pipeline's local_coordinates, metres.</summary>
+		public double MaxLocalCoordinateGap { get; private set; }
+
+		internal void Check(string what, PlanePoint ours, double[] pipelineNorthEast)
+		{
+			var gap = Math.Sqrt(Math.Pow(ours.North - pipelineNorthEast[0], 2) + Math.Pow(ours.East - pipelineNorthEast[1], 2));
+			MaxLocalCoordinateGap = Math.Max(MaxLocalCoordinateGap, gap);
+			if (gap > GreyboxBuilder.LocalCoordinateTolerance)
+			{
+				Errors.Add($"{what}: tangent plane gives {ours}, pipeline local_coordinates (N {pipelineNorthEast[0]}, E {pipelineNorthEast[1]}), {gap:F3} m apart.");
+			}
+		}
+
+		public override string ToString()
+		{
+			var text = new StringBuilder();
+			text.AppendLine($"Greybox: {Barges.Count} landing barges, {Bridges.Count} bridges; largest gap to pipeline local coordinates {MaxLocalCoordinateGap * 1000.0:F2} mm.");
+			foreach (var line in Barges.Concat(Bridges))
+			{
+				text.AppendLine("  " + line);
+			}
+
+			foreach (var error in Errors)
+			{
+				text.AppendLine("  ERROR " + error);
+			}
+
+			return text.ToString();
+		}
+	}
+}
