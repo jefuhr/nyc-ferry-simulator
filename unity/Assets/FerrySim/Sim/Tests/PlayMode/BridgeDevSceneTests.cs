@@ -174,6 +174,12 @@ namespace FerrySim.Sim.PlayModeTests
 		{
 			var previous = camera.targetTexture;
 			var target = RenderTexture.GetTemporary(Width, Height, 24, RenderTextureFormat.ARGB32);
+#if UNITY_EDITOR
+			// A fresh Library compiles shaders asynchronously and draws placeholders until they are ready, which
+			// made the first capture in a new worktree unlit. Compile synchronously for this one render.
+			var asyncCompilation = UnityEditor.ShaderUtil.allowAsyncCompilation;
+			UnityEditor.ShaderUtil.allowAsyncCompilation = false;
+#endif
 			try
 			{
 				camera.targetTexture = target;
@@ -182,6 +188,9 @@ namespace FerrySim.Sim.PlayModeTests
 			}
 			finally
 			{
+#if UNITY_EDITOR
+				UnityEditor.ShaderUtil.allowAsyncCompilation = asyncCompilation;
+#endif
 				camera.targetTexture = previous;
 				RenderTexture.ReleaseTemporary(target);
 			}

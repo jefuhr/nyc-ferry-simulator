@@ -22,6 +22,9 @@ Unity-side code for the simulator. The physics lives in `core/FerrySim.Core` (lo
 | `UI/` | `FerrySim.Unity.UI` | wheelhouse-ui |
 | `UI/Editor/` | `FerrySim.Unity.UI.Editor` (Editor only) | wheelhouse-ui |
 | `UI/Tests/EditMode/`, `UI/Tests/PlayMode/` | `FerrySim.Unity.UI.Tests.*` | wheelhouse-ui |
+| `Slice/` | `FerrySim.Unity.Slice` | unity-slice-integration |
+| `Slice/Authoring/` | `FerrySim.Unity.Slice.Authoring` (Editor only) | unity-slice-integration |
+| `Slice/Tests/EditMode/`, `Slice/Tests/PlayMode/` | `FerrySim.Unity.Slice.Tests.*` | unity-slice-integration |
 | `Tests/EditMode/`, `Tests/PlayMode/` | `FerrySim.Unity.Tests.*` | unity-project-bootstrap (project smoke tests) |
 | `Tests/E2E/` | none yet | slice-e2e-tests |
 
