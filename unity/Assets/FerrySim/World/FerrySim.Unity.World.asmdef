@@ -1,7 +1,7 @@
 {
 	"name": "FerrySim.Unity.World",
 	"rootNamespace": "FerrySim.World",
-	"references": ["FerrySim.Unity.Sim", "CesiumRuntime"],
+	"references": ["FerrySim.Core", "FerrySim.Unity.Sim", "CesiumForUnity", "Unity.Mathematics", "Unity.InputSystem"],
 	"includePlatforms": [],
 	"excludePlatforms": [],
 	"allowUnsafeCode": false,

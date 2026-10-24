@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6ceb6e4eec9e4730b74be135f550d85, type: 3}
+  m_Name: LowerEastRiverDatum
+  m_EditorClassIdentifier: FerrySim.Unity.World::FerrySim.World.SliceDatum
+  sliceName: lower-east-river
+  southLatitude: 40.695
+  northLatitude: 40.75
+  westLongitude: -74.02
+  eastLongitude: -73.96
+  geoidModel: GEOID18 (CONUS), via PROJ grid us_noaa_g2018u0.tif
+  geoidSouthWest: -31.9117
+  geoidSouthEast: -31.7913
+  geoidNorthWest: -31.8531
+  geoidNorthEast: -31.6862
+  geoidCentre: -31.8005
+  datumStation: 8518750 The Battery
+  tidalDatumEpoch: 1983-2001
+  meanHighWaterNavd88: 0.5969999999999998
+  meanLowerLowWaterNavd88: -0.8460000000000001
+  provenance: 'Geoid: data/processed/lower-east-river/geoid_offset.json, GEOID18
+    (CONUS), via PROJ grid us_noaa_g2018u0.tif; Inverse of NAD83(2011) to NAVD88
+    height (3) (with axis order normalized for visualization).
+
+    Tidal datums:
+    NOAA CO-OPS 8518750 The Battery, epoch 1983-2001, https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8518750/datums.json?units=metric
+    (cached datums_8518750.json, sha256 e99b3f733f8efd1b9f1d6f56a5baabeaba0c86d1a511c7f1235ab23b2ed2504e).
+    Datum station chosen by the pipeline (depth_merged_navd88.json).
+
+    NAVD88
+    height of a datum = its value minus the NAVD88 value, both relative to station
+    datum (STND).'
