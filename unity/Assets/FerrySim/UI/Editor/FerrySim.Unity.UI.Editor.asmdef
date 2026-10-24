@@ -1,0 +1,18 @@
+{
+	"name": "FerrySim.Unity.UI.Editor",
+	"rootNamespace": "FerrySim.UI.Editor",
+	"references": [
+		"FerrySim.Unity.UI"
+	],
+	"includePlatforms": [
+		"Editor"
+	],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": false,
+	"precompiledReferences": [],
+	"autoReferenced": false,
+	"defineConstraints": [],
+	"versionDefines": [],
+	"noEngineReferences": false
+}
