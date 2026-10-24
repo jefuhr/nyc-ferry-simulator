@@ -1,0 +1,16 @@
+{
+	"name": "FerrySim.Unity.Build.Editor",
+	"rootNamespace": "FerrySim.Build",
+	"references": [
+		"FerrySim.Unity.Slice"
+	],
+	"includePlatforms": ["Editor"],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": false,
+	"precompiledReferences": [],
+	"autoReferenced": false,
+	"defineConstraints": [],
+	"versionDefines": [],
+	"noEngineReferences": false
+}

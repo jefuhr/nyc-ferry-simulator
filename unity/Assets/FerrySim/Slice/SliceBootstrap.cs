@@ -22,8 +22,9 @@ namespace FerrySim.Slice
 	/// camera button swap the wheelhouse and chase views. It fails closed: if the landing files are missing or malformed
 	/// the runner is stopped with an error naming the file and the reason, and any run that starts anyway, or starts less
 	/// than <see cref="FaceClearance.MinimumMetres"/> from a face, is ended before its first physics step with the reason
-	/// kept in <see cref="StartRefusal"/>; the vessel never runs through the landings by accident. The slice runs in the
-	/// editor only for now: a player without the scenario's vessel file stops with an error saying so.
+	/// kept in <see cref="StartRefusal"/>; the vessel never runs through the landings by accident. A player reads the
+	/// scenario's vessel file from StreamingAssets, where every player build copies it (FerrySim.Build.PlayerPayload);
+	/// a player without it stops with an error naming the file.
 	/// </summary>
 	[DefaultExecutionOrder(-500)]
 	[DisallowMultipleComponent]
@@ -60,7 +61,7 @@ namespace FerrySim.Slice
 		[SerializeField]
 		private bool matchTerrainToWater = true;
 
-		[Tooltip("The vessel file the runner's scenario loads. Players do not package it yet, so a player without it stops with an error (Slice/README.md).")]
+		[Tooltip("The vessel file the runner's scenario loads. Player builds copy it into StreamingAssets; a player without it stops with an error (docs/releasing.md).")]
 		[SerializeField]
 		private string vesselFile = string.Empty;
 
@@ -164,10 +165,10 @@ namespace FerrySim.Slice
 		}
 
 		/// <summary>
-		/// Why a player cannot run the slice, or null. The slice is supported in the editor only for now
-		/// (Slice/README.md): nothing packages the scenario's vessel file into a player, so the runner could not load it
-		/// unless it has been copied to StreamingAssets. The editor resolves it from the repository and reports a missing
-		/// file itself.
+		/// Why a player cannot run the slice, or null. A player reads the scenario's vessel file from StreamingAssets,
+		/// where every player build copies it (FerrySim.Build.PlayerPayload, docs/releasing.md); without it the runner
+		/// would have only its own file-not-found exception to show. The editor resolves the file from the repository and
+		/// reports a missing one itself.
 		/// </summary>
 		public static string PlayerProblem(bool isEditor, string vesselFile)
 		{
@@ -182,8 +183,8 @@ namespace FerrySim.Slice
 				return null;
 			}
 
-			return $"The Lower East River slice runs in the editor only for now: this player has no vessel file '{vesselFile}' (looked at {path}). " +
-				"Nothing packages it into StreamingAssets yet; player packaging is a later task (Slice/README.md).";
+			return $"This player is missing the vessel file '{vesselFile}' (looked at {path}). Player builds copy it into StreamingAssets; " +
+				"rebuild the player with scripts/release.sh or the editor's Build menu (docs/releasing.md).";
 		}
 
 		private void OnEnable()

@@ -3,9 +3,10 @@ using NUnit.Framework;
 namespace FerrySim.Slice.Tests
 {
 	/// <summary>
-	/// The slice runs in the editor only for now (Astra review finding 5): a player does not package the vessel file
-	/// the scenario loads. Failure modes guarded: a player that cannot find the file disabling the runner with only
-	/// the runner's file-not-found exception in the log, and the check getting in the way in the editor, where the
+	/// A player reads the scenario's vessel file from its StreamingAssets, where every player build copies it
+	/// (FerrySim.Build.PlayerPayload). Failure modes guarded: a player that cannot find the file disabling the runner
+	/// with only the runner's file-not-found exception in the log, a message that still calls players unsupported when
+	/// the fault is a build that left the file out, and the check getting in the way in the editor, where the
 	/// repository holds the file.
 	/// </summary>
 	public class PlayerSupportTests
@@ -16,10 +17,10 @@ namespace FerrySim.Slice.Tests
 			var problem = SliceBootstrap.PlayerProblem(false, "vessels/not-packaged.json");
 
 			Assert.That(problem, Is.Not.Null);
-			Assert.That(problem, Does.Contain("editor only"));
+			Assert.That(problem, Does.Not.Contain("editor only"), "players are supported; a missing file is a packaging fault");
 			Assert.That(problem, Does.Contain("vessels/not-packaged.json"));
 			Assert.That(problem, Does.Contain("StreamingAssets"));
-			Assert.That(problem, Does.Contain("Slice/README.md"));
+			Assert.That(problem, Does.Contain("docs/releasing.md"));
 		}
 
 		[Test]

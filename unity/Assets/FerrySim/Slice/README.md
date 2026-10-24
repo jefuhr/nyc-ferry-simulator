@@ -8,6 +8,7 @@ Owner: **unity-slice-integration**. The Lower East River slice as one drivable s
 | `Slice/Authoring/` | `FerrySim.Unity.Slice.Authoring` (editor only) | `SliceSceneBuilder`: builds the scene from code |
 | `Slice/Data/` | (data) | `landing-contact-surfaces.json`: the landings' fender parameters |
 | `Slice/Scenes/` | (generated) | `LowerEastRiverSlice.unity` and its scenario asset |
+| `Slice/Player/` | (in `FerrySim.Unity.Slice`) | `PlayerBuildInfo`, the build's record in a player; `PlayerSmokeRun` with its options and report, the release smoke run |
 | `Slice/Tests/EditMode/`, `Slice/Tests/PlayMode/` | `FerrySim.Unity.Slice.Tests.*` | Tests for this folder and the integration |
 
 ## The scene
@@ -35,9 +36,21 @@ lockf -k "$HOME/FerrySim-cache/unity.lock" "$UNITY" -batchmode -nographics -proj
 
 The builder also appends the scene, enabled, to the build settings if it is missing (coordinator-approved; existing entries untouched).
 
-## Editor only
+## Players
 
-The scene is enabled in the build settings, but the slice is supported **in the Unity editor only** for now. The scenario's vessel file, `vessels/t-class.json`, is a repository path, and nothing packages it into a player's StreamingAssets yet (`SimPaths.Resolve`). In a player without it the bootstrap stops the runner with an error that says the slice is editor-only and names the missing file (`SliceBootstrap.PlayerError`), rather than leaving the runner's own file-not-found exception as the only sign. The landing data and fenders travel as TextAssets and are not the problem. Player packaging, and a player run away from the repository, are a later task; no player has been built.
+The slice runs in a player as it does in the editor. A player has no repository, so every standalone player build copies the files the slice reads at run time into the player's StreamingAssets, at their repository paths, where `SimPaths.Resolve` looks first (`Build/Editor/`, `FerrySim.Build.PlayerPayload`).
+- **Which files.** The build copies the files that the built scenes, and the project assets they reference, name in serialized `*File` fields. Today those are the scenario's `vessels/t-class.json` and the placement's `geoid_offset.json`.
+- **The record.** Beside the files goes `build-info.json` (`PlayerBuildInfo`): the version, the commit, whether the tree was dirty, and each file's SHA-256. A player logs it at startup.
+- **A missing file.** A player whose build left out the vessel file stops with an error naming it (`SliceBootstrap.PlayerError`), rather than with the runner's own file-not-found exception.
+- **Other data.** The landing data and fenders travel as TextAssets. Recordings go to the player's persistent data folder (`runs/`).
+
+**Smoke run.** In a player, `-ferrysim-smoke <folder> [-ferrysim-smoke-seconds <s>]` starts `PlayerSmokeRun`. It:
+1. waits for the scene's run to step
+2. restarts it with both levers at −0.3, astern off the face the scenario starts at, for 10 simulated seconds unless told otherwise
+3. captures the wheelhouse and chase views
+4. ends the run and writes `smoke.json`
+
+It quits with 0 when every check passed, 1 when one failed, and 2 when the switches are unusable. [docs/releasing.md](../../../../docs/releasing.md) lists the checks. `scripts/release.sh` runs it on the app installed from the disk image.
 
 ## Landing faces from data
 
@@ -83,7 +96,8 @@ Run with the commands in `unity/README.md` (`-assemblyNames FerrySim.Unity.Slice
 | `SliceScenarioTests`, `LandingApproachTests` | The shipped scenario is the builder's scenario for the imported data; the approach off a primary face, whole or split, and a bent face refused |
 | `WorldGeometryDigestTests`, `GeometryIdentityTests` | The digest, and recordings and replays with the same and other faces (EditMode, through the runner) |
 | `FaceClearanceTests`, `WorldWaterHeightTests`, `ImportedTerrainTests` | Scenario clearance, the water adapter, the terrain correction, applied once per instance |
-| `PlayerSupportTests` | A player without the vessel file fails with the editor-only message |
+| `PlayerSupportTests` | A player without the vessel file fails with a message naming the file, StreamingAssets and docs/releasing.md |
+| `PlayerSmokeOptionsTests`, `PlayerBuildInfoTests` | The smoke run's switches; the build record's round trip, and a missing, malformed or version-less record |
 | `IntegratedNoDataTests` (a) | Before the first step and after the run ends every instrument, the HUD and the alarms show no data |
 | `IntegratedContactLatchTests` (b) | A one-step touch of South Williamsburg's primary face between rendered frames is latched and shown (PEAK on the contact indicator) |
 | `IntegratedRunResetTests` (c) | An acknowledged depth alarm and the contact latch reset on a new run |
@@ -94,6 +108,7 @@ Run with the commands in `unity/README.md` (`-assemblyNames FerrySim.Unity.Slice
 | `StartClearanceTests` | A start overlapping the face or 0.5 m off it is ended before its first step, after a reset too, with the reason kept |
 | `SliceSceneSmokeTests` | The scene as a user opens it runs without errors; one handler for the helm's camera button; the player check reads the scenario's vessel file |
 | `SliceEvidenceTests` | Screenshots `artifacts/unity/slice-wheelhouse.png` and `slice-chase-landing-contact.png`, frame time and GC allocations in `artifacts/unity/slice-performance.json` |
+| `PlayerSmokeRunTests` | The release smoke run on the scene: passes on its 10 s astern drive; fails on a logged error, and on a vessel file read from the repository where a player must read StreamingAssets; quits with its code; writes `artifacts/unity/slice/player-smoke/` |
 
 ## Known limits
 

@@ -25,6 +25,9 @@ Unity-side code for the simulator. The physics lives in `core/FerrySim.Core` (lo
 | `Slice/` | `FerrySim.Unity.Slice` | unity-slice-integration |
 | `Slice/Authoring/` | `FerrySim.Unity.Slice.Authoring` (Editor only) | unity-slice-integration |
 | `Slice/Tests/EditMode/`, `Slice/Tests/PlayMode/` | `FerrySim.Unity.Slice.Tests.*` | unity-slice-integration |
+| `Slice/Player/` | (in `FerrySim.Unity.Slice`) | release-build |
+| `Build/Editor/` | `FerrySim.Unity.Build.Editor` (Editor only) | release-build |
+| `Build/Tests/EditMode/` | `FerrySim.Unity.Build.Tests.EditMode` | release-build |
 | `Tests/EditMode/`, `Tests/PlayMode/` | `FerrySim.Unity.Tests.*` | unity-project-bootstrap (project smoke tests) |
 | `Tests/E2E/` | `FerrySim.Unity.Tests.E2E` | slice-e2e-tests |
 

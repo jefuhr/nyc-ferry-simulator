@@ -13,6 +13,7 @@ data-pipeline/            Python (uv) pipeline for GTFS, NOAA charts, depths, cu
 data/manifests/           committed manifests; raw and processed data stay out of git
 unity/                    Unity 6.3 LTS project (URP)
 scripts/check.sh          runs every automated check and writes results to artifacts/
+scripts/release.sh        builds, packages and smoke-tests the macOS and Windows players
 ```
 
 Start with [docs/conventions.md](docs/conventions.md). It defines the units, frames and sign conventions every part of the simulator shares.
@@ -30,9 +31,16 @@ Start with [docs/conventions.md](docs/conventions.md). It defines the units, fra
 dotnet test core/dotnet --logger "trx;LogFilePrefix=core" --results-directory artifacts/core
 ```
 
+## Releases
+
+Releases are a universal macOS app and a Windows x64 player, published on the private repository's Releases page. [docs/releasing.md](docs/releasing.md) covers building one and installing it.
+
 ## Status
 
-Early foundations (milestone M0). The physics model behind `VesselDynamicsFactory` is currently a clearly labelled kinematic placeholder that only exists to exercise the plumbing.
+Milestone M2 is the drivable Lower East River slice, from Pier 11 to DUMBO and South Williamsburg. It has the T-class on the twin-screw dynamics, landing contact physics, the wheelhouse instruments, every control type, and record and replay. End-to-end trip tests cover it. Not done yet:
+- currents, wind and real depths in the slice
+- the K-class in the slice
+- a crew review session
 
 ## Disclaimer
 
