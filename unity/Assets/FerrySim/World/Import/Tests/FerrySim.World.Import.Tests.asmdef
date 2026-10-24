@@ -1,0 +1,23 @@
+{
+	"name": "FerrySim.World.Import.Tests",
+	"rootNamespace": "FerrySim.World.Import",
+	"references": [
+		"FerrySim.Core",
+		"FerrySim.World.Import.Runtime",
+		"FerrySim.World.Import.Editor",
+		"UnityEngine.TestRunner",
+		"UnityEditor.TestRunner"
+	],
+	"includePlatforms": [
+		"Editor"
+	],
+	"autoReferenced": false,
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"nunit.framework.dll",
+		"Newtonsoft.Json.dll"
+	],
+	"defineConstraints": [
+		"UNITY_INCLUDE_TESTS"
+	]
+}

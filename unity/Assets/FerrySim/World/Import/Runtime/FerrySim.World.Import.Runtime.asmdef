@@ -1,0 +1,9 @@
+{
+	"name": "FerrySim.World.Import.Runtime",
+	"rootNamespace": "FerrySim.World.Import",
+	"references": [
+		"FerrySim.Core"
+	],
+	"includePlatforms": [],
+	"autoReferenced": true
+}
