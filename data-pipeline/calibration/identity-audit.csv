@@ -1,0 +1,46 @@
+mmsi,name,length_m,beam_m,report_count,class,design,source,identity_reason
+367798420,MCSHINY,26,8.0,18856,T,IC16019,https://www.incatcrowther.com/ships/ferries/commuter/ic16019/,exact_designer_name_and_integer_dimensions
+368081160,TRAVERSITY,29,8.0,20883,unclassified,,,no_exact_designer_name
+368097380,KOALAFIED CRUISER,29,9.0,18781,unclassified,,,no_exact_designer_name
+368141510,WHITE SANDS,26,8.0,18347,T,IC16019,https://www.incatcrowther.com/ships/ferries/commuter/ic16019/,exact_designer_name_and_integer_dimensions
+367778670,URBAN JOURNEY,26,8.0,19059,T,IC16019,https://www.incatcrowther.com/ships/ferries/commuter/ic16019/,exact_designer_name_and_integer_dimensions
+367779550,SUNSET CROSSING,26,8.0,18805,T,IC16019,https://www.incatcrowther.com/ships/ferries/commuter/ic16019/,exact_designer_name_and_integer_dimensions
+368141540,CITY FISHY,27,8.0,16347,unclassified,,,no_exact_designer_name
+367784640,GREAT EAGLE,26,8.0,18693,T,IC16019,https://www.incatcrowther.com/ships/ferries/commuter/ic16019/,exact_designer_name_and_integer_dimensions
+367790830,OWLS HEAD,26,8.0,17892,T,IC16019,https://www.incatcrowther.com/ships/ferries/commuter/ic16019/,exact_designer_name_and_integer_dimensions
+367776270,LUNCHBOX,26,8.0,16511,T,IC16019,https://www.incatcrowther.com/ships/ferries/commuter/ic16019/,exact_designer_name_and_integer_dimensions
+368081150,UNITY,28,9.0,15821,unclassified,,,no_exact_designer_name
+368051230,SEAS THE DAY,29,8.0,16322,unclassified,,,no_exact_designer_name
+368152730,TOOTH FERRY,26,10.0,18242,unclassified,IC16019,https://www.incatcrowther.com/ships/ferries/commuter/ic16019/,dimension_conflict
+368061020,GOLDEN NARROWS,28,9.0,15351,unclassified,,,no_exact_designer_name
+368098930,DREAM BOAT,29,10.0,15144,unclassified,,,no_exact_designer_name
+368130870,MELTING POT,27,8.0,16448,unclassified,,,no_exact_designer_name
+367798430,STARLIGHT,26,8.0,13829,T,IC16019,https://www.incatcrowther.com/ships/ferries/commuter/ic16019/,exact_designer_name_and_integer_dimensions
+368025020,FERRY GODMOTHER,26,8.0,14290,T,IC16019,https://www.incatcrowther.com/ships/ferries/commuter/ic16019/,exact_designer_name_and_integer_dimensions
+367797260,SPRING MALLARD,26,8.0,13488,T,IC16019,https://www.incatcrowther.com/ships/ferries/commuter/ic16019/,exact_designer_name_and_integer_dimensions
+368116140,SIGNS TO LIBERTY,28,9.0,14395,unclassified,,,no_exact_designer_name
+368135270,CURIOSITY,29,8.0,18579,K-IC18130,IC18130,https://www.incatcrowther.com/ships/ferries/commuter/ic18130/,exact_designer_name_and_integer_dimensions
+367782690,FRIENDSHIP EXPRESS,26,8.0,11252,T,IC16019,https://www.incatcrowther.com/ships/ferries/commuter/ic16019/,exact_designer_name_and_integer_dimensions
+368129810,PURPOSE,30,9.0,11286,K-IC18130,IC18130,https://www.incatcrowther.com/ships/ferries/commuter/ic18130/,exact_designer_name_and_integer_dimensions
+367779540,WAVES OF WONDER,26,8.0,10488,T,IC16019,https://www.incatcrowther.com/ships/ferries/commuter/ic16019/,exact_designer_name_and_integer_dimensions
+367791540,OPPORTUNITY,26,8.0,15063,unclassified,,,no_exact_designer_name
+367784630,HAPPY HAULER,26,8.0,18317,T,IC16019,https://www.incatcrowther.com/ships/ferries/commuter/ic16019/,exact_designer_name_and_integer_dimensions
+368004120,ATLANTIC COMPASS,26,8.0,10077,T,IC16019,https://www.incatcrowther.com/ships/ferries/commuter/ic16019/,exact_designer_name_and_integer_dimensions
+368130050,BAY HOPPER,29,8.0,11636,unclassified,IC16019,https://www.incatcrowther.com/ships/ferries/commuter/ic16019/,dimension_conflict
+367782880,CONNECTOR,26,8.0,20265,unclassified,,,no_exact_designer_name
+368043070,OCEANQUEENROCKSTAR,29,9.0,8884,unclassified,,,no_exact_designer_name
+366651000,HENRY HUDSON,30,8.0,10883,unclassified,,,no_exact_designer_name
+366990540,PORT IMPERIAL MANHAT,30,8.0,11339,unclassified,,,no_exact_designer_name
+366990620,ABRAHAM LINCOLN,30,6.0,11425,unclassified,,,no_exact_designer_name
+367434160,FRANK SINATRA,26,8.0,17219,unclassified,,,no_exact_designer_name
+366902350,GOV THOMAS H KEAN,26,10.0,11648,unclassified,,,no_exact_designer_name
+367791550,FLYER,26,8.0,10662,unclassified,,,no_exact_designer_name
+367434210,FIORELLO LAGUARDIA,26,10.0,11797,unclassified,,,no_exact_designer_name
+366902320,ADM RICHARD E BENNIS,26,9.0,10240,unclassified,,,no_exact_designer_name
+368063930,RAINBOW CRUISE,29,10.0,4245,unclassified,,,no_exact_designer_name
+367496240,PETER R WEISS,26,9.0,8251,unclassified,,,no_exact_designer_name
+366702000,ROBERT FULTON,28,8.0,6756,unclassified,,,no_exact_designer_name
+366868360,HOBOKEN,26,8.0,7286,unclassified,,,no_exact_designer_name
+367434220,YOGI BERRA,25,8.0,8387,unclassified,,,no_exact_designer_name
+366902360,CONG ROBERT A ROE,26,8.0,4107,unclassified,,,no_exact_designer_name
+366863240,CHRISTOPHER COLUMBUS,27,8.0,3479,unclassified,,,no_exact_designer_name

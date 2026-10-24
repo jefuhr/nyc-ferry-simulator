@@ -1,0 +1,431 @@
+{
+	"files": [
+		{
+			"name": "NYH1919_2024-10-07.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1919&begin_date=20241007&end_date=20241014&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1919",
+			"week": "2024-10-07",
+			"retrieved_utc": "2026-10-23T12:33:52.453175+00:00",
+			"sha256": "74d70791623cd425a9522a17c7b40120ee2217f5b49076e7562e88f07885ab27",
+			"size_bytes": 74270,
+			"rows": 1920,
+			"depth_m": [
+				9.4
+			],
+			"bin": [
+				9
+			]
+		},
+		{
+			"name": "NYH1919_2025-01-13.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1919&begin_date=20250113&end_date=20250120&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1919",
+			"week": "2025-01-13",
+			"retrieved_utc": "2026-10-23T12:33:52.608948+00:00",
+			"sha256": "97bcac6a848e9fff303a24f8ff5371f364af00dd329da471593fc84edce98f67",
+			"size_bytes": 74499,
+			"rows": 1920,
+			"depth_m": [
+				9.4
+			],
+			"bin": [
+				9
+			]
+		},
+		{
+			"name": "NYH1919_2025-04-14.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1919&begin_date=20250414&end_date=20250421&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1919",
+			"week": "2025-04-14",
+			"retrieved_utc": "2026-10-23T12:33:52.742049+00:00",
+			"sha256": "43055df365989f42b6549cc0c38b29a49533e7e87ff39aecdb78b43cabd880bc",
+			"size_bytes": 74236,
+			"rows": 1920,
+			"depth_m": [
+				9.4
+			],
+			"bin": [
+				9
+			]
+		},
+		{
+			"name": "NYH1919_2025-07-14.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1919&begin_date=20250714&end_date=20250721&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1919",
+			"week": "2025-07-14",
+			"retrieved_utc": "2026-10-23T12:33:52.916012+00:00",
+			"sha256": "554b584c64974f29b8dc768c567a5caf78d6da3c914699211c5094a0c05fda36",
+			"size_bytes": 74637,
+			"rows": 1920,
+			"depth_m": [
+				9.4
+			],
+			"bin": [
+				9
+			]
+		},
+		{
+			"name": "NYH1920_2024-10-07.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1920&begin_date=20241007&end_date=20241014&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1920",
+			"week": "2024-10-07",
+			"retrieved_utc": "2026-10-23T12:33:53.049788+00:00",
+			"sha256": "edda33aa8aa8d459a289bfa2e3bd1981c354c0d0be2ef20fcfe93fa648534552",
+			"size_bytes": 78618,
+			"rows": 1920,
+			"depth_m": [
+				2.4
+			],
+			"bin": [
+				12
+			]
+		},
+		{
+			"name": "NYH1920_2025-01-13.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1920&begin_date=20250113&end_date=20250120&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1920",
+			"week": "2025-01-13",
+			"retrieved_utc": "2026-10-23T12:33:53.217081+00:00",
+			"sha256": "c4e860737f3db8b7b129b67e9344e37f3eff35fb2d14222320a45cdc044c69e0",
+			"size_bytes": 78756,
+			"rows": 1920,
+			"depth_m": [
+				2.4
+			],
+			"bin": [
+				12
+			]
+		},
+		{
+			"name": "NYH1920_2025-04-14.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1920&begin_date=20250414&end_date=20250421&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1920",
+			"week": "2025-04-14",
+			"retrieved_utc": "2026-10-23T12:33:53.361747+00:00",
+			"sha256": "47eba4e97f10f34d14e052bf64e9e7d2834f9b45c0fce8280eb8ae9fdd73ed4f",
+			"size_bytes": 78632,
+			"rows": 1920,
+			"depth_m": [
+				2.4
+			],
+			"bin": [
+				12
+			]
+		},
+		{
+			"name": "NYH1920_2025-07-14.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1920&begin_date=20250714&end_date=20250721&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1920",
+			"week": "2025-07-14",
+			"retrieved_utc": "2026-10-23T12:33:53.544501+00:00",
+			"sha256": "a21db39e848fe87f7ce5ef8a66842e738956633ccdce14cb2c92e9c7f8786de4",
+			"size_bytes": 78883,
+			"rows": 1920,
+			"depth_m": [
+				2.4
+			],
+			"bin": [
+				12
+			]
+		},
+		{
+			"name": "NYH1921_2024-10-07.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1921&begin_date=20241007&end_date=20241014&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1921",
+			"week": "2024-10-07",
+			"retrieved_utc": "2026-10-23T12:33:53.698093+00:00",
+			"sha256": "c9370a605313d913a964fc638ac50d42b3f01fd772bd21557cfca9e12a7574e3",
+			"size_bytes": 78865,
+			"rows": 1920,
+			"depth_m": [
+				2.1
+			],
+			"bin": [
+				11
+			]
+		},
+		{
+			"name": "NYH1921_2025-01-13.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1921&begin_date=20250113&end_date=20250120&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1921",
+			"week": "2025-01-13",
+			"retrieved_utc": "2026-10-23T12:33:53.875357+00:00",
+			"sha256": "649336a2fb230af31394420f6753739c8f7fbc2208f961615474546cddfb3a27",
+			"size_bytes": 79003,
+			"rows": 1920,
+			"depth_m": [
+				2.1
+			],
+			"bin": [
+				11
+			]
+		},
+		{
+			"name": "NYH1921_2025-04-14.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1921&begin_date=20250414&end_date=20250421&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1921",
+			"week": "2025-04-14",
+			"retrieved_utc": "2026-10-23T12:33:54.052239+00:00",
+			"sha256": "0ece4c3fa266bf20e13383fc54b4a86691d1cbb66d21e82ea3a3ba16708565b8",
+			"size_bytes": 78906,
+			"rows": 1920,
+			"depth_m": [
+				2.1
+			],
+			"bin": [
+				11
+			]
+		},
+		{
+			"name": "NYH1921_2025-07-14.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1921&begin_date=20250714&end_date=20250721&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1921",
+			"week": "2025-07-14",
+			"retrieved_utc": "2026-10-23T12:33:54.210723+00:00",
+			"sha256": "b34f56b68f420374619d74a2148afb4d85ddc28ae450b485fed0a390a082c587",
+			"size_bytes": 79040,
+			"rows": 1920,
+			"depth_m": [
+				2.1
+			],
+			"bin": [
+				11
+			]
+		},
+		{
+			"name": "NYH1922_2024-10-07.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1922&begin_date=20241007&end_date=20241014&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1922",
+			"week": "2024-10-07",
+			"retrieved_utc": "2026-10-23T12:33:54.441478+00:00",
+			"sha256": "668e0ffa7e69e264991941e02ffa853e7956324de0357042e2dfb6de2370ca49",
+			"size_bytes": 77990,
+			"rows": 1920,
+			"depth_m": [
+				1.5
+			],
+			"bin": [
+				8
+			]
+		},
+		{
+			"name": "NYH1922_2025-01-13.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1922&begin_date=20250113&end_date=20250120&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1922",
+			"week": "2025-01-13",
+			"retrieved_utc": "2026-10-23T12:33:54.658979+00:00",
+			"sha256": "fac7bf1809b5c2cc834c6a4f859849c8b9d01c94e5f137142bc71fffe50eeb74",
+			"size_bytes": 78027,
+			"rows": 1920,
+			"depth_m": [
+				1.5
+			],
+			"bin": [
+				8
+			]
+		},
+		{
+			"name": "NYH1922_2025-04-14.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1922&begin_date=20250414&end_date=20250421&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1922",
+			"week": "2025-04-14",
+			"retrieved_utc": "2026-10-23T12:33:54.812077+00:00",
+			"sha256": "a78eb912dc93dc5cd3a96b04291731e4ae3f3201a9ad9479058099c13ba88efe",
+			"size_bytes": 77972,
+			"rows": 1920,
+			"depth_m": [
+				1.5
+			],
+			"bin": [
+				8
+			]
+		},
+		{
+			"name": "NYH1922_2025-07-14.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1922&begin_date=20250714&end_date=20250721&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1922",
+			"week": "2025-07-14",
+			"retrieved_utc": "2026-10-23T12:33:54.990470+00:00",
+			"sha256": "8bc1dd0335b5d22133dfab9f4f1561c522a83f1963df18c82254bee8a371a7c6",
+			"size_bytes": 78172,
+			"rows": 1920,
+			"depth_m": [
+				1.5
+			],
+			"bin": [
+				8
+			]
+		},
+		{
+			"name": "NYH1927_2024-10-07.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1927&begin_date=20241007&end_date=20241014&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1927",
+			"week": "2024-10-07",
+			"retrieved_utc": "2026-10-23T12:33:55.172033+00:00",
+			"sha256": "d4558b301b673dcc2a4f48075bfecaceafc7212787abfbf102c8740c375d3510",
+			"size_bytes": 77874,
+			"rows": 1920,
+			"depth_m": [
+				2.1
+			],
+			"bin": [
+				13
+			]
+		},
+		{
+			"name": "NYH1927_2025-01-13.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1927&begin_date=20250113&end_date=20250120&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1927",
+			"week": "2025-01-13",
+			"retrieved_utc": "2026-10-23T12:33:55.349920+00:00",
+			"sha256": "eccca571e509367db398ac2e81d030f92293e0e39bbb8b49337cc40ddce67628",
+			"size_bytes": 77929,
+			"rows": 1920,
+			"depth_m": [
+				2.1
+			],
+			"bin": [
+				13
+			]
+		},
+		{
+			"name": "NYH1927_2025-04-14.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1927&begin_date=20250414&end_date=20250421&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1927",
+			"week": "2025-04-14",
+			"retrieved_utc": "2026-10-23T12:33:55.543337+00:00",
+			"sha256": "11840fab041858acfca5a808ba7b03069cb8950ca333cbc2a6910df5b7dd6e70",
+			"size_bytes": 77899,
+			"rows": 1920,
+			"depth_m": [
+				2.1
+			],
+			"bin": [
+				13
+			]
+		},
+		{
+			"name": "NYH1927_2025-07-14.csv",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=currents_predictions&station=NYH1927&begin_date=20250714&end_date=20250721&interval=6&time_zone=gmt&units=metric&format=csv",
+			"station": "NYH1927",
+			"week": "2025-07-14",
+			"retrieved_utc": "2026-10-23T12:33:55.718040+00:00",
+			"sha256": "1fc2ba0e961f311958b3d792d4c3523454a5475be91c7d33ccd4744933b1cd3c",
+			"size_bytes": 78148,
+			"rows": 1920,
+			"depth_m": [
+				2.1
+			],
+			"bin": [
+				13
+			]
+		}
+	],
+	"source": "NOAA CO-OPS harmonic current predictions",
+	"units": "metric: cm/s converted to m/s",
+	"direction": "toward",
+	"station_metadata_source": "data/manifests/coops.json",
+	"stations": [
+		{
+			"id": "NYH1919",
+			"name": "Dimond Reef",
+			"kind": "current_prediction",
+			"station_type": "harmonic",
+			"series": "6-minute",
+			"depths_m": [
+				3.35,
+				5.49,
+				9.45
+			],
+			"in_slice": false,
+			"file": "currents/NYH1919.csv",
+			"rows": 720,
+			"lat": 40.697898864746094,
+			"lon": -74.02130126953125,
+			"north_m": -233.308,
+			"east_m": -532.572
+		},
+		{
+			"id": "NYH1920",
+			"name": "Brooklyn Bridge",
+			"kind": "current_prediction",
+			"station_type": "harmonic",
+			"series": "6-minute",
+			"depths_m": [
+				2.44,
+				4.27,
+				13.41
+			],
+			"in_slice": true,
+			"file": "currents/NYH1920.csv",
+			"rows": 720,
+			"lat": 40.70600128173828,
+			"lon": -73.9977035522461,
+			"north_m": 666.575,
+			"east_m": 1461.687
+		},
+		{
+			"id": "NYH1921",
+			"name": "Corlears Hook",
+			"kind": "current_prediction",
+			"station_type": "harmonic",
+			"series": "6-minute",
+			"depths_m": [
+				2.13,
+				4.88,
+				11.89
+			],
+			"in_slice": true,
+			"file": "currents/NYH1921.csv",
+			"rows": 720,
+			"lat": 40.70949935913086,
+			"lon": -73.97640228271484,
+			"north_m": 1055.603,
+			"east_m": 3261.642
+		},
+		{
+			"id": "NYH1922",
+			"name": "Newtown Creek",
+			"kind": "current_prediction",
+			"station_type": "harmonic",
+			"series": "6-minute",
+			"depths_m": [
+				1.52,
+				4.57,
+				8.53
+			],
+			"in_slice": true,
+			"file": "currents/NYH1922.csv",
+			"rows": 720,
+			"lat": 40.73469924926758,
+			"lon": -73.9656982421875,
+			"north_m": 3854.466,
+			"east_m": 4164.6
+		},
+		{
+			"id": "NYH1927",
+			"name": "Hudson River Entrance",
+			"kind": "current_prediction",
+			"station_type": "harmonic",
+			"series": "6-minute",
+			"depths_m": [
+				2.13,
+				7.01,
+				13.11
+			],
+			"in_slice": false,
+			"file": "currents/NYH1927.csv",
+			"rows": 720,
+			"lat": 40.70759963989258,
+			"lon": -74.02529907226562,
+			"north_m": 843.977,
+			"east_m": -870.332
+		}
+	],
+	"limitations": [
+		"Nearest harmonic station is a spatial proxy, not a local measured current.",
+		"No subordinate-event interpolation; API-default prediction bins; shallowest selection not verified; no cross-channel/shear model.",
+		"Dimond Reef metadata depths are 3.35/5.49/9.45 m; recorded API-default responses are 9.4 m, Bin 9. The bin/depth mapping is unresolved."
+	],
+	"bin_selection": "api_default"
+}
