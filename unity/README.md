@@ -19,17 +19,17 @@ UNITY="/Applications/Unity/Hub/Editor/6000.3.27f1/Unity.app/Contents/MacOS/Unity
 Run from the repository root. Use **absolute** paths for `-testResults`; Unity resolves a relative `-testResults` against the project folder (`unity/`), not the working directory.
 
 ```
-mkdir -p artifacts/unity
+mkdir -p "$HOME/FerrySim-cache" artifacts/unity
 
 # EditMode (no graphics needed)
 lockf -k "$HOME/FerrySim-cache/unity.lock" "$UNITY" -batchmode -nographics -projectPath unity \
   -runTests -testPlatform EditMode \
-  -testResults "$PWD/artifacts/unity/editmode.xml" -logFile artifacts/unity/editmode.log
+  -testResults "$PWD/artifacts/unity/editmode.xml" -logFile "$PWD/artifacts/unity/editmode.log"
 
 # PlayMode (needs graphics: do NOT pass -nographics)
 lockf -k "$HOME/FerrySim-cache/unity.lock" "$UNITY" -batchmode -projectPath unity \
   -runTests -testPlatform PlayMode \
-  -testResults "$PWD/artifacts/unity/playmode.xml" -logFile artifacts/unity/playmode.log
+  -testResults "$PWD/artifacts/unity/playmode.xml" -logFile "$PWD/artifacts/unity/playmode.log"
 ```
 
 - The process exits by itself when the run completes; do not add `-quit` to `-runTests`.
@@ -48,7 +48,7 @@ All verification output goes to `artifacts/` at the repo root, which is gitignor
 
 ## Lock convention
 
-Only one Unity process may run on this machine at a time (16 GB RAM; two editors on one project also corrupt `Library/`). Wrap every batchmode invocation in `lockf -k "$HOME/FerrySim-cache/unity.lock" ...`. `lockf` waits for the lock, so concurrent workers queue up instead of colliding. A Unity editor open in the GUI is not covered by the lock; close it before running batchmode against the same project.
+Only one Unity process may run on this machine at a time, including processes in other worktrees (16 GB RAM; two editors on one project also corrupt `Library/`). Create the lock directory with `mkdir -p "$HOME/FerrySim-cache"` first, then wrap every Unity invocation, including GUI editor launches, in `lockf -k "$HOME/FerrySim-cache/unity.lock" ...`. `lockf` waits for the lock, so concurrent workers queue up instead of colliding. Close any GUI editor launched without the lock before starting another Unity process anywhere on this machine; closing only the editor for the same project is not sufficient.
 
 ## Layout
 
