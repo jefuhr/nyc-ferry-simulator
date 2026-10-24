@@ -1,0 +1,17 @@
+{
+	"schemaVersion": 1,
+	"firstContactSpeed": {
+		"value": 1.5,
+		"unit": "kn",
+		"source": "crew-reported: project crew reviewer, 2026-10-24",
+		"confidence": "crew-reported"
+	},
+	"peakForceReference": {
+		"speed": 2.0,
+		"unit": "kn",
+		"scenario": "ContactScenarios.BowOnLanding(T-class, EstimatedBargeFender, speed)",
+		"source": "core/dotnet/FerrySim.Core.Tests/Dynamics/ContactScenarios.cs; computed on every test run",
+		"confidence": "estimated"
+	},
+	"note": "The crew-reported 1.5 kn first-contact speed limit is separate from the estimated peak-force reference. The model-derived 2 kn bow-on reference sits above the crew speed limit as a force margin. Faces, fenders and vessel dynamics remain estimates; these are software acceptance thresholds, not a measured safe operating envelope."
+}
