@@ -9,7 +9,7 @@ Owner: **release-build**. This folder holds the editor-only assembly `FerrySim.U
 | `PlayerBuild` | The command-line build (`-executeMethod FerrySim.Build.PlayerBuild.BuildFromCommandLine -ferrysimTarget mac\|windows -ferrysimOutput <absolute folder> [-ferrysimVersion <x.y.z>]`): see below |
 | `PlayerPayload` | Finds the repository files a player reads at run time and packages them into its StreamingAssets with `build-info.json` |
 | `PlayerPayloadBuildStep` | Runs `PlayerPayload` in every standalone build, scripted or from the Build menu |
-| `GitState` | The commit a build comes from, and whether the tree was dirty |
+| `GitState` | The commit a build comes from, and whether the tree was dirty. The build step runs first of all build steps (`int.MinValue`), so it reads the tree before other steps write into it; the performance-testing package, for one, adds files under `Assets/Resources` for the length of every player build |
 
 ### `PlayerBuild`
 

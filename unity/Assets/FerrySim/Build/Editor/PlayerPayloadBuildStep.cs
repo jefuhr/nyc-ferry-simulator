@@ -25,7 +25,9 @@ namespace FerrySim.Build
 		private static bool _active;
 		private static GitState _git;
 
-		public int callbackOrder => 0;
+		// First of all build steps: the git state must be the tree's before any other step writes into it. The performance
+		// testing package, for one, adds files under Assets/Resources for the length of every player build.
+		public int callbackOrder => int.MinValue;
 
 		public void OnPreprocessBuild(BuildReport report)
 		{
