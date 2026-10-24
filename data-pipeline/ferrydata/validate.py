@@ -12,8 +12,9 @@ import numpy as np
 import pandas as pd
 import rasterio
 from shapely.geometry import LineString, MultiLineString, MultiPolygon, Point, Polygon, shape
+from shapely.ops import nearest_points
 
-from ferrydata import depth, geodesy, landings as landing_module, paths
+from ferrydata import crew_notes, depth, geodesy, landings as landing_module, paths
 
 SHORE_MAX_M = 50.0
 UKC_MARGIN_M = 0.5
@@ -133,6 +134,9 @@ def check_shoreline(slice_):
 	stops = _load_json(slice_.name, "landings.geojson")["features"]
 	faces = _load_json(slice_.name, "landing_faces.geojson")["features"]
 	water, land = landing_module.chart_masks(out)
+	notes, notes_sha256 = crew_notes.load()
+	construction_file = out / 'shoreline_constructions.geojson'
+	constructions = [(landing_module.to_local(shape(f['geometry'])), f['properties']) for f in _load_json(slice_.name, 'shoreline_constructions.geojson')['features']] if construction_file.exists() else None
 	rows = []
 	for stop in stops:
 		p = stop["properties"]
@@ -142,12 +146,100 @@ def check_shoreline(slice_):
 			props = matches[0]["properties"]
 			face = landing_module.to_local(shape(props["face_geometry"]))
 			point = Point(p["east_m"], p["north_m"])
-			row.update(distance_m=face.distance(point), source=props["source"], confidence=props["confidence"],
-				water_side=landing_module.face_on_water_side(face, props["outward_normal_ne"], props["bulkhead_anchor_en_m"], water, land))
+			blockers = landing_module.surface_structures(constructions, props.get('enc_id')) if constructions is not None else []
+			proof = landing_module.water_side_evidence(face, props['outward_normal_ne'], props['bulkhead_anchor_en_m'], water, land, blockers,
+				landing_module.to_local(shape(matches[0]['geometry'])) if props['source'] == 'enc-feature' and constructions is not None else None)
+			note = notes.get(p['stop_id'])
+			if note and note.get('water_side_crew_reported') and props.get('crew_notes_sha256') == notes_sha256:
+				barge = landing_module.to_local(shape(matches[0]['geometry']))
+				if note.get('face_outward_compass'):
+					vector = landing_module.crew_compass_direction(note)
+				else:
+					reference = next(f['properties'] for f in stops if f['properties']['stop_id'] == note['face_toward_fixed_land_near_stop_id'])
+					reference_point = Point(reference['east_m'], reference['north_m'])
+					areas = [landing_module.to_local(shape(f['geometry'])) for f in _load_json(slice_.name, 'land_areas.geojson')['features']]
+					manhattan = min(areas, key=lambda g: g.distance(reference_point))
+					_, shore = nearest_points(barge.centroid, manhattan.boundary)
+					vector = np.array([shore.y - barge.centroid.y, shore.x - barge.centroid.x]); vector /= np.linalg.norm(vector)
+				expected, normal = landing_module.berthing_face(barge, vector)
+				if expected.hausdorff_distance(face) < .03 and np.dot(normal, props['outward_normal_ne']) > .999:
+					proof = {**proof, 'chart_verified': proof['verified'], 'chart_method': proof['method'], 'verified': True, 'method': 'crew-reported'}
+			row.update(distance_m=face.distance(point), source=props["source"], confidence=props["confidence"], water_side=proof['verified'], proof=proof)
 		rows.append(row)
 	result = shoreline_result(rows)
-	result.details += ["", "The face line, not the GTFS passenger point or nearest bulkhead, defines the berth. Water-side validation recomputes coverage 0.5 m outside the face and at a 12 m outward probe against ENC depth and land polygons and checks the outward normal points away from the fixed shoreline. Derived faces and operational berth assignments require crew verification."]
+	result.details += ["", "The 12 m probe and coverage 0.5 m outside the face remain the primary test, with the full face swept between 0.5 and 12 m checked against LNDARE and surface/unknown construction blockers. A separate topology fallback is restricted to charted floating outlines at least 8 m long whose 12 m point misses DEPARE: an 8 m wide corridor extends 30 m outward, intersects no LNDARE or surface/unknown construction, and has its whole far end in charted water. WATLEV=3 (always submerged) structures are disclosed separately as depth hazards and do not block the horizontal corridor. This proves the water side, not depth or operational berth. Faces shorter than 8 m cannot use this fixed-width fallback, but may pass the direct test. Fallback faces remain low confidence unless independent chart support and a face-orientation crew note justify medium; berth-use-policy notes never change geometry confidence; unresolved details retain needs-crew-verification.", ""]
+	result.details += _md_table(['landing', 'water-side method', 'chart check', 'near-face DEPARE gap along corridor (m)'],
+		[(r['stop_name'], r.get('proof', {}).get('method', 'missing'), 'PASS' if r.get('proof', {}).get('chart_verified', r['water_side']) else 'FAIL', _fmt(r.get('proof', {}).get('near_face_coverage_gap_m'), 1)) for r in rows])
+	for r in rows:
+		if r['stop_id'] in notes:
+			proof = r.get('proof', {})
+			result.details += ['', f"### Crew evidence for {r['stop_name']}", ''] + crew_evidence_details(notes[r['stop_id']],
+				{'verified': proof.get('chart_verified', r['water_side']), 'method': proof.get('chart_method', proof.get('method'))})
 	return result
+
+
+def crew_evidence_details(note, chart):
+	lines = [f"{note['date']} — {note['source']}: {note['statement']}",
+		f"Crew provenance: {note.get('id', 'legacy note')} ({note.get('kind', 'unspecified')}); separate from ordinal geometry confidence.",
+		f"Independent chart: {'PASS' if chart['verified'] else 'FAIL'} ({chart['method']}). Crew evidence does not change chart depths or clear a charted obstruction."]
+	for key in ('limitations', 'modelling_decision', 'follow_up'):
+		if note.get(key):
+			lines.append(note[key])
+	return lines
+
+
+def filtered_contact_topology(line, records):
+	"""Runtime's chart OR crew inclusion gate; preserve separate runs across gaps."""
+	retained = [r['index'] for r in records if r.get('water_side_verified_by_pipeline') or r.get('water_side_crew_reported')]
+	runs = []
+	coords = list(line.coords)
+	for index in retained:
+		if runs and index == runs[-1][-1] + 1:
+			runs[-1].append(index)
+		else:
+			runs.append([index])
+	return {'retained': retained, 'dropped': [i for i in range(len(coords) - 1) if i not in retained], 'runs': runs,
+		'primary_retained': any(r['on_primary_face'] for r in records) and all(r['index'] in retained for r in records if r['on_primary_face'])}
+
+
+def check_contact_polylines(slice_):
+	rows, errors, filtered_rows = [], [], []
+	out = paths.processed_dir(slice_.name)
+	for f in _load_json(slice_.name, 'landing_faces.geojson')['features']:
+		p = f['properties']
+		if 'contact_geometry' not in p:
+			problems = ['missing connected contact_geometry']
+		else:
+			line = landing_module.to_local(shape(p['contact_geometry']))
+			problems = landing_module.polyline_errors(line, landing_module.to_local(shape(f['geometry'])))
+			if 'contact_segment_evidence' in p:
+				water, land = landing_module.chart_masks(out)
+				shore = [(landing_module.to_local(shape(s['geometry'])), s['properties']) for s in _load_json(slice_.name, 'shoreline_constructions.geojson')['features']]
+				barge = landing_module.to_local(shape(f['geometry'])) if p['source'] == 'enc-feature' else None
+				face = landing_module.to_local(shape(p['face_geometry']))
+				blockers = landing_module.surface_structures(shore, p.get('enc_id'))
+				primary_chart = landing_module.water_side_evidence(face, p['outward_normal_ne'], p['bulkhead_anchor_en_m'], water, land, blockers, barge)
+				recomputed = landing_module.contact_segment_evidence(line, face,
+					primary_chart, p['bulkhead_anchor_en_m'], water, land, blockers,
+					barge, p.get('water_side_crew_reported', False))
+				stored = p['contact_segment_evidence']
+				if len(stored) != len(recomputed) or any(
+					any(a.get(k, False) != b.get(k, False) for k in ('index', 'on_primary_face', 'water_side_verified_by_pipeline', 'water_side_crew_reported'))
+					for a, b in zip(stored, recomputed)):
+					problems.append('stored segment eligibility differs from independent per-side evidence')
+				topology = filtered_contact_topology(line, recomputed)
+				if not topology['primary_retained']:
+					problems.append('runtime filter loses a primary face subdivision')
+				for run in topology['runs']:
+					problems.extend(landing_module.polyline_errors(LineString(list(line.coords)[run[0]:run[-1] + 2]), landing_module.to_local(shape(f['geometry']))))
+				filtered_rows.append((p['stop_name'], ', '.join(map(str, topology['retained'])), ', '.join(map(str, topology['dropped'])) or 'none',
+					str(topology['runs']), 'yes' if topology['primary_retained'] else 'NO'))
+		rows.append((p['stop_name'], len(p.get('contact_geometry', {}).get('coordinates', [])) - 1, '; '.join(problems) or 'pass'))
+		errors.extend(f"{p['stop_name']}: {problem}" for problem in problems)
+	return CheckResult('Landing contact polylines connected and solid-right', bool(rows) and not errors,
+		'; '.join(errors) if errors else f'all {len(rows)} open polylines preserve shared vertices and water-left orientation',
+		_md_table(['landing', 'segments', 'result'], rows) + ['', 'Runtime eligibility is chart verification OR crew water-side support. Indices are original polyline indices; gaps remain separate open runs, never bridged.', ''] +
+		_md_table(['landing', 'retained indices', 'dropped indices', 'open runs after filter', 'all primary subdivisions retained'], filtered_rows))
 
 
 def reference_water_level(slice_):
@@ -250,6 +342,8 @@ def check_depth(slice_):
 	summary = (f"all {len(approaches)} approach boxes at least {required:.2f} m deep at {min_level:.2f} m NAVD88" if not failures
 		else f"{len(failures)} of {len(approaches)} approach boxes fail: " + ", ".join(failures))
 	summary += f"; CUDEM-only {len(cudem_failures)} of {len(approaches)} fail"
+	from ferrydata import landing_audit
+	details += ['', '## Per-landing source and depth diagnosis', ''] + landing_audit.write(slice_, approaches, baseline, min_level, required)
 	return CheckResult(f"Landing approach depth >= {required:.2f} m at the window's lowest water level", not failures, summary, details)
 
 
@@ -415,6 +509,7 @@ def run(slice_, log=print):
 	results = [
 		_guard("Required outputs exist", lambda: check_outputs(slice_)),
 		_guard("GTFS landing faces", lambda: check_shoreline(slice_)),
+		_guard("Landing contact polylines", lambda: check_contact_polylines(slice_)),
 		_guard("Landing approach depth", lambda: check_depth(slice_)),
 		_guard("Aids", lambda: check_aids(_load_json(name, "aids.geojson"))),
 		_guard("Bridges", lambda: check_bridges(_load_json(name, "bridges.geojson"))),

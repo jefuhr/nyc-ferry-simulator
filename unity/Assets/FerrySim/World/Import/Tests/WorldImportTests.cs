@@ -98,6 +98,7 @@ namespace FerrySim.World.Import.Tests
 		[Test]
 		public void PublishedHeightsIncludeNonzeroMhwToNavd88Correction()
 		{
+			RequirePipelineInputs(SliceImporter.Inputs);
 			var cache = Environment.GetEnvironmentVariable("FERRYSIM_CACHE") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "FerrySim-cache");
 			var datums = JObject.Parse(File.ReadAllText(Path.Combine(cache, "data/raw/coops/datums_8518750.json")));
 			var values = ((JArray)datums["datums"]).ToDictionary(d => (string)d["name"], d => (double)d["value"]);
@@ -180,6 +181,7 @@ namespace FerrySim.World.Import.Tests
 		[Test]
 		public void KnownAidUsesCoreGeodesyAndNavd88Offset()
 		{
+			RequirePipelineInputs(SliceImporter.Inputs);
 			var feature = SliceImporter.ReadFeatures("aids.geojson").First();
 			var coordinate = (JArray)feature["geometry"]["coordinates"];
 			var lon = (double)coordinate[0]; var lat = (double)coordinate[1];
@@ -196,17 +198,64 @@ namespace FerrySim.World.Import.Tests
 			Assert.That(aid.position.z, Is.EqualTo(local.North).Within(.5));
 		}
 
+		// Failure modes: end faces flipped to the main face normal, disconnected joints,
+		// unstable primary segment IDs, and fresh checkouts failing before data is built.
 		[Test]
 		public void EveryLandingSegmentHasWaterOnLeft()
 		{
+			RequirePipelineInputs(SliceImporter.Inputs);
 			foreach (var feature in SliceImporter.ReadFeatures("landing_faces.geojson"))
 			{
-				var normal = (JArray)feature["properties"]["outward_normal_ne"];
 				var segments = SliceImporter.LandingSegments(feature).ToArray();
 				Assert.That(segments.Length, Is.GreaterThan(0));
-				foreach (var segment in segments)
-					Assert.That(segment.WaterNormal.North * (double)normal[0] + segment.WaterNormal.East * (double)normal[1], Is.GreaterThan(.99));
+				var ring = (JArray)feature["geometry"]["coordinates"][0];
+				var centreNorth = ring.Take(ring.Count - 1).Average(p => LocalTangentPlane.World.ToLocal(new GeodeticPosition((double)p[1], (double)p[0])).North);
+				var centreEast = ring.Take(ring.Count - 1).Average(p => LocalTangentPlane.World.ToLocal(new GeodeticPosition((double)p[1], (double)p[0])).East);
+				for (var i = 0; i < segments.Length; i++)
+				{
+					var segment = segments[i];
+					var north = (segment.Start.North + segment.End.North) * .5 - centreNorth;
+					var east = (segment.Start.East + segment.End.East) * .5 - centreEast;
+					Assert.That(segment.WaterNormal.North * north + segment.WaterNormal.East * east, Is.GreaterThan(0));
+					if (i > 0) Assert.That(Math.Sqrt(Math.Pow(segments[i - 1].End.North - segment.Start.North, 2) + Math.Pow(segments[i - 1].End.East - segment.Start.East, 2)), Is.LessThan(.001));
+				}
 			}
+		}
+
+		[Test]
+		public void ConnectedContactOutlineKeepsItsEndNormalsAndPrimaryId()
+		{
+			var feature = JObject.Parse(@"{'properties':{'stop_id':'fixture','face_geometry':{'type':'LineString','coordinates':[[-74.0151,40.7001],[-74.0149,40.7001]]},'outward_normal_ne':[1,0]}}");
+			var primary = SliceImporter.LandingSegments(feature).Single();
+			feature["properties"]["contact_geometry"] = JObject.Parse(@"{'type':'LineString','coordinates':[[-74.0151,40.7],[-74.0151,40.7001],[-74.0149,40.7001],[-74.0149,40.7]]}");
+			var segments = SliceImporter.LandingSegments(feature).ToArray();
+			Assert.That(segments.Length, Is.EqualTo(3));
+			Assert.That(segments[1].Id, Is.EqualTo(primary.Id));
+			Assert.That(segments[0].WaterNormal.East, Is.LessThan(-.99));
+			Assert.That(segments[1].WaterNormal.North, Is.GreaterThan(.99));
+			Assert.That(segments[2].WaterNormal.East, Is.GreaterThan(.99));
+			Assert.That(segments.Select(x => x.Id).Distinct().Count(), Is.EqualTo(3));
+			for (var i = 1; i < segments.Length; i++)
+			{
+				Assert.That(segments[i - 1].End.North, Is.EqualTo(segments[i].Start.North));
+				Assert.That(segments[i - 1].End.East, Is.EqualTo(segments[i].Start.East));
+			}
+		}
+
+		[Test]
+		public void MissingPipelineDirectorySkipsWithBuildCommandButExistingDirectoryDoesNotSkip()
+		{
+			var directory = Path.Combine(Path.GetTempPath(), "ferrysim-import-" + Guid.NewGuid().ToString("N"));
+			var skip = Assert.Throws<NUnit.Framework.IgnoreException>(() => RequirePipelineInputs(directory));
+			Assert.That(skip.Message, Does.Contain("uv run --project data-pipeline python data-pipeline/ferrydata build --slice lower-east-river"));
+			Directory.CreateDirectory(directory);
+			try { Assert.DoesNotThrow(() => RequirePipelineInputs(directory)); }
+			finally { Directory.Delete(directory); }
+		}
+
+		private static void RequirePipelineInputs(string directory)
+		{
+			if (!Directory.Exists(directory)) Assert.Ignore("Pipeline outputs are not built in this checkout; run uv run --project data-pipeline python data-pipeline/ferrydata build --slice lower-east-river then uv run --project data-pipeline python data-pipeline/ferrydata export-unity --slice lower-east-river.");
 		}
 
 		[Test]
@@ -219,9 +268,158 @@ namespace FerrySim.World.Import.Tests
 		}
 
 		[Test]
+		public void CrewApprovalCannotTurnAFailedChartCheckIntoPipelineVerification()
+		{
+			var feature = JObject.Parse(@"{'properties':{'water_side':true,'water_side_verified_by_pipeline':false,'water_side_crew_reported':true}}");
+			Assert.That(SliceImporter.PipelineWaterSideVerified(feature), Is.False);
+			((JObject)feature["properties"]).Remove("water_side_verified_by_pipeline");
+			Assert.That(SliceImporter.PipelineWaterSideVerified(feature), Is.True, "legacy files retain their old field semantics");
+		}
+
+		[Test]
+		public void CrewReportedWaterSideIsExportedAlongsideIndependentChartSupport()
+		{
+			RequirePipelineInputs(SliceImporter.Inputs);
+			SliceImporter.Import();
+			var contacts = JArray.Parse(File.ReadAllText(SliceImporter.Output + "/contacts.json"));
+			var north = contacts.Where(c => (string)c["stop_id"] == "19").ToArray();
+			Assert.That(north.Length, Is.GreaterThan(0));
+			foreach (var contact in north)
+			{
+				if ((int)contact["index"] >= 1 && (int)contact["index"] <= 3)
+					Assert.That((bool?)contact["water_side_crew_reported"], Is.True);
+				else Assert.That(contact["water_side_crew_reported"], Is.Null, "ENC end-side normals are not a separate crew observation");
+				Assert.That((bool)contact["water_side_verified_by_pipeline"], Is.EqualTo((int)contact["index"] != 4));
+			}
+			foreach (var contact in contacts.Where(c => (string)c["stop_id"] != "19" && (string)c["stop_id"] != "8"))
+				Assert.That(contact["water_side_crew_reported"], Is.Null);
+		}
+
+		[Test]
+		public void ReviewPhysicalEdgeIdsSurvivePrimaryRoleChangesAndOutlineWinding()
+		{
+			var feature = JObject.Parse(@"{'geometry':{'type':'Polygon','coordinates':[[[-74.0151,40.7],[-74.0151,40.7001],[-74.0149,40.7001],[-74.0149,40.7],[-74.0151,40.7]]]},'properties':{'stop_id':'fixture','enc_id':'ENC-fixture','source':'enc-feature','outward_normal_ne':[1,0],'face_geometry':{'type':'LineString','coordinates':[[-74.0151,40.7001],[-74.0149,40.7001]]},'contact_geometry':{'type':'LineString','coordinates':[[-74.0151,40.7],[-74.0151,40.7001],[-74.0149,40.7001],[-74.0149,40.7]]}}}");
+			var first = SliceImporter.LandingSegments(feature).Select(s => s.Id).ToArray();
+			feature["properties"]["face_geometry"] = JObject.Parse(@"{'type':'LineString','coordinates':[[-74.0151,40.7],[-74.0151,40.7001]]}");
+			var second = SliceImporter.LandingSegments(feature).Select(s => s.Id).ToArray();
+			Assert.That(second, Is.EqualTo(first), "physical IDs cannot depend on primary/end role");
+			Assert.That(first.Distinct().Count(), Is.EqualTo(3));
+			var ring = (JArray)feature["geometry"]["coordinates"][0];
+			feature["geometry"]["coordinates"][0] = new JArray(ring.Reverse());
+			Assert.That(SliceImporter.LandingSegments(feature).Select(s => s.Id).ToArray(), Is.EqualTo(first));
+		}
+
+		[Test]
+		public void ReviewUnsupportedNorthEnd787614137CannotInheritPrimaryProof()
+		{
+			RequirePipelineInputs(SliceImporter.Inputs);
+			SliceImporter.Import();
+			var contacts = JArray.Parse(File.ReadAllText(SliceImporter.Output + "/contacts.json"));
+			var end = contacts.Single(c => (string)c["stop_id"] == "19" && (int)c["index"] == 4); // reviewed old ID 787614137, migrated to physical-edge identity
+			Assert.That((int)end["index"], Is.EqualTo(4));
+			Assert.That((bool)end["water_side_verified_by_pipeline"], Is.False);
+			Assert.That(end["water_side_crew_reported"], Is.Null);
+			Assert.That(end["water_side_evidence"], Is.Not.Null);
+			foreach (var primary in contacts.Where(c => (string)c["stop_id"] == "19" && (int)c["index"] >= 1 && (int)c["index"] <= 3))
+				Assert.That((bool)primary["water_side_verified_by_pipeline"], Is.True);
+		}
+
+		[Test]
+		public void ReviewCrewEvidenceDoesNotReplaceOrdinalGeometryConfidence()
+		{
+			RequirePipelineInputs(SliceImporter.Inputs);
+			SliceImporter.Import();
+			var contacts = JArray.Parse(File.ReadAllText(SliceImporter.Output + "/contacts.json"));
+			foreach (var contact in contacts)
+				Assert.That(new[] { "high", "medium", "low" }, Does.Contain((string)contact["confidence"]));
+			var north = contacts.Single(c => (string)c["stop_id"] == "19" && (int)c["index"] == 2);
+			Assert.That((string)north["confidence"], Is.EqualTo("medium"));
+			Assert.That((string)north["crew_evidence"]["kind"], Is.EqualTo("face-orientation"));
+			var pier = contacts.Single(c => (string)c["stop_id"] == "87" && (int)c["index"] == 2);
+			Assert.That((string)pier["confidence"], Is.EqualTo("low"));
+			Assert.That((string)pier["crew_evidence"]["kind"], Is.EqualTo("berth-use-policy"));
+			Assert.That(pier["water_side_crew_reported"], Is.Null);
+		}
+
+		[Test]
+		public void ReviewNorthHullUsesMediumOrdinalConfidenceMaterial()
+		{
+			RequirePipelineInputs(SliceImporter.Inputs);
+			var greybox = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/FerrySim/World/Greybox/LowerEastRiverGreybox.prefab");
+			var hull = greybox.GetComponentsInChildren<MeshRenderer>(true).Single(r => r.name == "Hull" && r.transform.parent.name.StartsWith("19 ", StringComparison.Ordinal));
+			Assert.That(hull.sharedMaterial.name, Is.EqualTo("Barge_MediumConfidence"));
+		}
+
+		[Test]
+		public void PrimaryFaceFlagsExactlyMatchSelectedSubsegmentsForEveryStop()
+		{
+			RequirePipelineInputs(SliceImporter.Inputs);
+			SliceImporter.Import();
+			var contacts = JArray.Parse(File.ReadAllText(SliceImporter.Output + "/contacts.json"));
+			var faces = (JArray)JObject.Parse(File.ReadAllText(Path.Combine(SliceImporter.Inputs, "landing_faces.geojson")))["features"];
+			Assert.That(contacts.Select(c => (string)c["stop_id"]).Distinct().Count(), Is.EqualTo(faces.Count));
+			foreach (JObject face in faces)
+			{
+				var stop = (string)face["properties"]["stop_id"];
+				var primaryOnly = (JObject)face.DeepClone();
+				((JObject)primaryOnly["properties"]).Remove("contact_geometry");
+				var expected = SliceImporter.LandingSegments(primaryOnly).ToArray();
+				var segments = contacts.Where(c => (string)c["stop_id"] == stop).OrderBy(c => (int)c["index"]).ToArray();
+				var flagged = segments.Where(c => (bool?)c["primary_face"] == true).ToArray();
+				Assert.That(expected.Length, Is.GreaterThan(0), stop);
+				Assert.That(flagged.Select(c => (int)c["id"]).ToArray(), Is.EqualTo(expected.Select(s => s.Id).ToArray()), stop + ": flag every selected primary subdivision and no other side");
+				var indices = flagged.Select(c => (int)c["index"]).ToArray();
+				Assert.That(indices, Is.EqualTo(Enumerable.Range(indices[0], indices.Length).ToArray()), stop + ": primary indices must be contiguous");
+				for (var i = 0; i < flagged.Length; i++)
+				{
+					Assert.That(flagged[i]["primary_face"].Type, Is.EqualTo(JTokenType.Boolean), stop);
+					Assert.That((double)flagged[i]["start_ne_m"][0], Is.EqualTo(expected[i].Start.North), stop);
+					Assert.That((double)flagged[i]["start_ne_m"][1], Is.EqualTo(expected[i].Start.East), stop);
+					Assert.That((double)flagged[i]["end_ne_m"][0], Is.EqualTo(expected[i].End.North), stop);
+					Assert.That((double)flagged[i]["end_ne_m"][1], Is.EqualTo(expected[i].End.East), stop);
+				}
+				foreach (var other in segments.Where(c => !expected.Any(s => s.Id == (int)c["id"])))
+					Assert.That(other["primary_face"], Is.Null, stop + ": non-primary ends must omit the field");
+			}
+		}
+
+		[Test]
+		public void SouthWilliamsburgCrewPrimaryPreservesChartFailureAndPhysicalIds()
+		{
+			RequirePipelineInputs(SliceImporter.Inputs);
+			SliceImporter.Import();
+			var contacts = JArray.Parse(File.ReadAllText(SliceImporter.Output + "/contacts.json"));
+			var south = contacts.Where(c => (string)c["stop_id"] == "8").OrderBy(c => (int)c["index"]).ToArray();
+			Assert.That(south.Select(c => (int)c["id"]).ToArray(), Is.EqualTo(new[] { 216221522, 149111046 }), "IDs from the previous contacts.json must survive the role change");
+			var primary = south.Where(c => (bool?)c["primary_face"] == true).ToArray();
+			Assert.That(primary.Select(c => (int)c["index"]).ToArray(), Is.EqualTo(new[] { 1 }));
+			foreach (var contact in primary)
+			{
+				Assert.That((bool)contact["water_side_verified_by_pipeline"], Is.False);
+				Assert.That((bool?)contact["water_side_crew_reported"], Is.True);
+				Assert.That((string)contact["crew_evidence"]["note_id"], Is.EqualTo("south-williamsburg-face-orientation-2026-10-24"));
+				Assert.That((string)contact["crew_evidence"]["kind"], Is.EqualTo("face-orientation"));
+				Assert.That((string)contact["confidence"], Is.EqualTo("medium"));
+			}
+			Assert.That(south[0]["primary_face"], Is.Null);
+			Assert.That(south[0]["water_side_crew_reported"], Is.Null);
+			Assert.That(south[0]["crew_evidence"], Is.Null);
+			Assert.That((bool)south[0]["water_side_verified_by_pipeline"], Is.True);
+			Assert.That((string)south[0]["water_side_evidence"]["method"], Is.EqualTo("direct-12m"));
+		}
+
+		[Test]
 		public void ImportTwicePreservesEveryGeneratedByteAndGuid()
 		{
+			RequirePipelineInputs(SliceImporter.Inputs);
 			SliceImporter.Import();
+			var contacts = JArray.Parse(File.ReadAllText(SliceImporter.Output + "/contacts.json"));
+			foreach (var group in contacts.GroupBy(c => (string)c["stop_id"]))
+			{
+				var segments = group.OrderBy(c => (int)c["index"]).ToArray();
+				Assert.That(segments.Select(c => (string)c["polyline_id"]).Distinct().Count(), Is.EqualTo(1));
+				for (var i = 1; i < segments.Length; i++) Assert.That(JToken.DeepEquals(segments[i - 1]["end_ne_m"], segments[i]["start_ne_m"]), Is.True);
+			}
 			var first = SliceImporter.GeneratedHashes();
 			var firstPrefab = File.ReadAllBytes(SliceImporter.Output + "/lower-east-river.prefab");
 			Assert.That(AssetDatabase.LoadAssetAtPath<Material>(SliceImporter.Output + "/buoy-grey.mat").shader.name, Is.EqualTo("FerrySim/SolidColour"));
