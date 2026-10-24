@@ -1,0 +1,3 @@
+ahead_engine,ahead_rpm,astern_rpm,yaw_rate_deg_s,time_to_180_s,walk,note
+port,650,650,2.5,70,creeps ahead and a little to starboard,SYNTHETIC idle split to starboard
+port,900,900,4,45,creeps ahead,SYNTHETIC 900 rpm split

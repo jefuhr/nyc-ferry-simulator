@@ -1,0 +1,7 @@
+port_rpm,starboard_rpm,gear,speed_kn,speed_tolerance_kn,speed_reference,load,wind_kn,current,depth,note
+650,650,ahead,7.9,0.5,through-water,half,5,slack,deep,SYNTHETIC: idle in gear (generated at scale 0.85)
+1100,1100,ahead,12.3,0.5,through-water,half,5,slack,deep,SYNTHETIC (generated at scale 0.85)
+1560,1560,ahead,17.7,0.5,over-ground,half,5,slack,deep,SYNTHETIC: over-ground at slack (generated at scale 0.85)
+1920,1920,ahead,23.0,0.5,through-water,half,5,slack,deep,SYNTHETIC (generated at scale 0.85)
+2060,2060,ahead,25.1,1.0,through-water,half,5,slack,deep,SYNTHETIC: full lever (generated at scale 0.85)
+900,900,astern,4.5,1.0,through-water,half,5,slack,deep,SYNTHETIC: astern rows are reported as targets and not fitted

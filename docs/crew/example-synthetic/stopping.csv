@@ -1,0 +1,4 @@
+initial_speed_kn,method,distance_m,distance_boat_lengths,time_s,bow_swing,note
+25,normal,,8,60,none,SYNTHETIC: levers to idle at about 8 lengths out then astern idle
+25,full-astern,95,,16,starboard,SYNTHETIC crash stop
+25,neutral,,20,120,none,SYNTHETIC coast in neutral

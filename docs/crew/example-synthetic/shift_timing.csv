@@ -1,0 +1,5 @@
+from_gear,to_gear,from_rpm,seconds,lever_technique,note
+neutral,ahead,650,0.5,straight-through,SYNTHETIC
+neutral,astern,650,0.6,straight-through,SYNTHETIC
+ahead,astern,650,2.8,straight-through,SYNTHETIC: straight through from idle
+ahead,astern,1500,6.5,paused-in-neutral,SYNTHETIC: from cruising rpm with a deliberate pause; reported and not derived
