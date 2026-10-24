@@ -1,0 +1,18 @@
+question_id,value,unit,note
+E1,650,rpm,SYNTHETIC: confirms the datasheet idle
+C3,15,%,SYNTHETIC: clutch in at about 15% of travel
+C4,22,%,SYNTHETIC: rpm starts rising just past the detent
+C8,0.5,s,SYNTHETIC
+C9,900,rpm,SYNTHETIC: shift inhibited above 900 rpm
+S1,follow-up,text,SYNTHETIC: wheel position orders rudder angle
+S2,35,deg,SYNTHETIC
+S3,9,s,SYNTHETIC hard over to hard over
+E5,2.519,ratio,SYNTHETIC: same as the published ratio (shows the published-value warning)
+E8,outward-turning,text,SYNTHETIC
+E3,5,s,SYNTHETIC target: idle to full rpm in gear
+A1,25,s,SYNTHETIC target: standstill to service speed
+A6,ramped,text,SYNTHETIC: eases the levers up for passenger comfort
+T3,30,%,SYNTHETIC target: speed lost in a hard turn
+L2,3,kn,SYNTHETIC target: approach speed at a barge
+L4,20,deg,SYNTHETIC target: final approach angle
+W1,35,kn,SYNTHETIC target: wind limit

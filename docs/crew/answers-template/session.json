@@ -1,0 +1,31 @@
+{
+	"sessionId": "<yyyy-mm-dd>-<role>-<code>",
+	"synthetic": false,
+	"date": "<yyyy-mm-dd>",
+	"respondentRole": "<captain | mate | deckhand | chief-engineer | engineer | port-captain | training-captain | other-crew>",
+	"respondentCode": "<A>",
+	"respondentExperience": "",
+	"vesselClass": "<t-class | k-class>",
+	"variant": "unknown",
+	"hull": "",
+	"method": "interview",
+	"conditions": {
+		"load": "unknown",
+		"windKn": null,
+		"windFrom": "",
+		"current": "unknown",
+		"currentKn": null,
+		"tide": "",
+		"depth": "unknown",
+		"notes": ""
+	},
+	"consent": {
+		"respondentAgreed": false,
+		"operatorApproved": false,
+		"approvedByRole": null,
+		"approvalDate": null,
+		"notes": ""
+	},
+	"photos": "",
+	"notes": ""
+}
