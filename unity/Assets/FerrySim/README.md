@@ -10,6 +10,8 @@ Unity-side code for the simulator. The physics lives in `core/FerrySim.Core` (lo
 | `Sim/Tests/EditMode/`, `Sim/Tests/PlayMode/` | `FerrySim.Unity.Sim.Tests.*` | unity-sim-bridge-controls |
 | `Input/` | `FerrySim.Unity.Input` | unity-sim-bridge-controls |
 | `Input/Profiles/` | (in `FerrySim.Unity.Input`) | unity-input-profiles |
+| `Input/Profiles/Editor/` | `FerrySim.Input.Profiles.Editor` (Editor only) | unity-input-profiles |
+| `Input/Profiles/Tests/EditMode/`, `Input/Profiles/Tests/PlayMode/` | `FerrySim.Input.Profiles.Tests.*` | unity-input-profiles |
 | `World/` | `FerrySim.Unity.World` | unity-world-slice |
 | `World/Editor/` | `FerrySim.Unity.World.Editor` (Editor only) | unity-world-slice |
 | `World/Tests/EditMode/`, `World/Tests/PlayMode/` | `FerrySim.Unity.World.Tests.*` | unity-world-slice |

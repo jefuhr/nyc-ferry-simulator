@@ -1,5 +1,6 @@
 using System;
 using FerrySim.Core.Contracts;
+using FerrySim.Controls.Profiles;
 using UnityEngine.InputSystem;
 
 namespace FerrySim.Controls
@@ -38,6 +39,8 @@ namespace FerrySim.Controls
 		private int _starboardStepHeld;
 		private int _bothStepHeld;
 		private bool _disposed;
+		private DeviceProfileRouter _profileRouter;
+		private readonly object[] _targetOwners = new object[3];
 
 		public HelmInputMapper(InputActionAsset actions, int leverNotches = DefaultLeverNotches)
 		{
@@ -112,7 +115,11 @@ namespace FerrySim.Controls
 		/// <summary>The current lever and helm positions as the core's normalized inputs.</summary>
 		public ControlInputs Current => new ControlInputs(_portLever, _starboardLever, _helmOrder);
 
-		public void Enable() => _map.Enable();
+		public void Enable()
+		{
+			_map.Enable();
+			_profileRouter?.Resync();
+		}
 
 		public void Disable() => _map.Disable();
 
@@ -122,16 +129,18 @@ namespace FerrySim.Controls
 		/// </summary>
 		public void ResyncWithDevices()
 		{
-			_portLever = Clamp(_port.ReadValue<float>());
-			_starboardLever = Clamp(_starboard.ReadValue<float>());
+			Array.Clear(_targetOwners, 0, _targetOwners.Length);
+			_portLever = ReadAbsolute(_port, ProfileTarget.PortLever);
+			_starboardLever = ReadAbsolute(_starboard, ProfileTarget.StarboardLever);
 			var both = _both.ReadValue<float>();
 			if (both != 0f)
 			{
-				_portLever = Clamp(both);
-				_starboardLever = Clamp(both);
+				if (_profileRouter?.OwnsInput(_both.activeControl, ProfileTarget.PortLever) != true) _portLever = Clamp(both);
+				if (_profileRouter?.OwnsInput(_both.activeControl, ProfileTarget.StarboardLever) != true) _starboardLever = Clamp(both);
 			}
 
-			_helmOrder = Clamp(_helm.ReadValue<float>());
+			_helmOrder = ReadAbsolute(_helm, ProfileTarget.Helm);
+			_profileRouter?.Resync();
 		}
 
 		/// <summary>
@@ -157,6 +166,7 @@ namespace FerrySim.Controls
 			}
 
 			_disposed = true;
+			_profileRouter?.Dispose();
 			_port.performed -= OnPort;
 			_port.canceled -= OnPort;
 			_starboard.performed -= OnStarboard;
@@ -179,25 +189,96 @@ namespace FerrySim.Controls
 			_map.Disable();
 		}
 
+		internal void AttachProfileRouter(DeviceProfileRouter router)
+		{
+			if (_profileRouter != null) throw new InvalidOperationException("A profile router is already attached.");
+			_profileRouter = router;
+		}
+		internal void DetachProfileRouter(DeviceProfileRouter router)
+		{
+			if (_profileRouter == router) _profileRouter = null;
+		}
+		internal void ApplyProfileInput(ProfileTarget target, double value, object owner)
+		{
+			SetOwner(target, owner);
+			switch (target)
+			{
+				case ProfileTarget.PortLever: _portLever = Clamp(value); break;
+				case ProfileTarget.StarboardLever: _starboardLever = Clamp(value); break;
+				case ProfileTarget.BothLevers: _portLever = _starboardLever = Clamp(value); break;
+				case ProfileTarget.Helm: _helmOrder = Clamp(value); break;
+			}
+		}
+		internal void ApplyProfileDelta(ProfileTarget target, double delta, object owner)
+		{
+			SetOwner(target, owner);
+			switch (target)
+			{
+				case ProfileTarget.PortLever: _portLever = Clamp(_portLever + delta); break;
+				case ProfileTarget.StarboardLever: _starboardLever = Clamp(_starboardLever + delta); break;
+				case ProfileTarget.BothLevers:
+					_portLever = Clamp(_portLever + delta); _starboardLever = Clamp(_starboardLever + delta); break;
+				case ProfileTarget.Helm: _helmOrder = Clamp(_helmOrder + delta); break;
+			}
+		}
+		private void SetOwner(ProfileTarget target, object owner)
+		{
+			if (target == ProfileTarget.PortLever || target == ProfileTarget.BothLevers) _targetOwners[0] = owner;
+			if (target == ProfileTarget.StarboardLever || target == ProfileTarget.BothLevers) _targetOwners[1] = owner;
+			if (target == ProfileTarget.Helm) _targetOwners[2] = owner;
+		}
+		internal void ReleaseProfileInput(object owner)
+		{
+			// Only release commands still owned by this route. A later keyboard/device order survives.
+			for (var index = 0; index < _targetOwners.Length; index++)
+			{
+				if (!ReferenceEquals(_targetOwners[index], owner)) continue;
+				var target = index == 0 ? ProfileTarget.PortLever : index == 1 ? ProfileTarget.StarboardLever : ProfileTarget.Helm;
+				var action = index == 0 ? _port : index == 1 ? _starboard : _helm;
+				var value = ReadAbsolute(action, target);
+				var source = action.activeControl;
+				if (index < 2 && _both.ReadValue<float>() != 0f && _profileRouter?.OwnsInput(_both.activeControl, target) != true)
+				{
+					value = Clamp(_both.ReadValue<float>()); source = _both.activeControl;
+				}
+				ApplyProfileInput(target, value, source);
+			}
+		}
+
+		private bool ProfileOwns(InputAction.CallbackContext context, ProfileTarget target) => _profileRouter?.OwnsInput(context.control, target) == true;
+		private double ReadAbsolute(InputAction action, ProfileTarget target) => _profileRouter?.OwnsInput(action.activeControl, target) == true
+			? 0.0 : Clamp(action.ReadValue<float>());
+
 		private InputAction Find(string name) => _map.FindAction(name, throwIfNotFound: true);
 
-		private void OnPort(InputAction.CallbackContext context) => _portLever = Clamp(context.ReadValue<float>());
+		private void OnPort(InputAction.CallbackContext context)
+		{
+			if (!ProfileOwns(context, ProfileTarget.PortLever)) { _portLever = Clamp(context.ReadValue<float>()); SetOwner(ProfileTarget.PortLever, context.control); }
+		}
 
-		private void OnStarboard(InputAction.CallbackContext context) => _starboardLever = Clamp(context.ReadValue<float>());
+		private void OnStarboard(InputAction.CallbackContext context)
+		{
+			if (!ProfileOwns(context, ProfileTarget.StarboardLever)) { _starboardLever = Clamp(context.ReadValue<float>()); SetOwner(ProfileTarget.StarboardLever, context.control); }
+		}
 
 		private void OnBoth(InputAction.CallbackContext context)
 		{
-			_portLever = Clamp(context.ReadValue<float>());
-			_starboardLever = _portLever;
+			var value = Clamp(context.ReadValue<float>());
+			if (!ProfileOwns(context, ProfileTarget.PortLever)) { _portLever = value; SetOwner(ProfileTarget.PortLever, context.control); }
+			if (!ProfileOwns(context, ProfileTarget.StarboardLever)) { _starboardLever = value; SetOwner(ProfileTarget.StarboardLever, context.control); }
 		}
 
-		private void OnHelm(InputAction.CallbackContext context) => _helmOrder = Clamp(context.ReadValue<float>());
+		private void OnHelm(InputAction.CallbackContext context)
+		{
+			if (!ProfileOwns(context, ProfileTarget.Helm)) { _helmOrder = Clamp(context.ReadValue<float>()); SetOwner(ProfileTarget.Helm, context.control); }
+		}
 
 		private void OnPortStep(InputAction.CallbackContext context)
 		{
 			if (TryStep(context, ref _portStepHeld, out var direction))
 			{
 				_portLever = StepNotch(_portLever, direction, _notches);
+				SetOwner(ProfileTarget.PortLever, context.control);
 			}
 		}
 
@@ -206,6 +287,7 @@ namespace FerrySim.Controls
 			if (TryStep(context, ref _starboardStepHeld, out var direction))
 			{
 				_starboardLever = StepNotch(_starboardLever, direction, _notches);
+				SetOwner(ProfileTarget.StarboardLever, context.control);
 			}
 		}
 
@@ -214,7 +296,9 @@ namespace FerrySim.Controls
 			if (TryStep(context, ref _bothStepHeld, out var direction))
 			{
 				_portLever = StepNotch(_portLever, direction, _notches);
+				SetOwner(ProfileTarget.PortLever, context.control);
 				_starboardLever = StepNotch(_starboardLever, direction, _notches);
+				SetOwner(ProfileTarget.StarboardLever, context.control);
 			}
 		}
 
