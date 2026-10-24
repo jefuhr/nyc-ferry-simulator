@@ -1,0 +1,6 @@
+{
+	"name": "FerrySim.Input.Profiles.Editor",
+	"references": ["FerrySim.Unity.Input", "Unity.InputSystem"],
+	"includePlatforms": ["Editor"],
+	"autoReferenced": true
+}
