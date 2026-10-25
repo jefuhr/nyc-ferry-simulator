@@ -66,7 +66,7 @@ def write(result, root, destination):
 		'## Source policy and limitations', '',
 		'- All calibration current files are verified against `data/manifests/coops-calibration.json` before parsing. A mismatched or untracked raw file fails without refetching.',
 		'- Current components point toward flow; metric NOAA major-axis velocities arrive in cm/s. Bin/depth and daily peak flood/ebb magnitudes below come from the selected API-default response, without asserting shallowest selection.',
-		'- Dimond Reef uses a 9.4 m bin and is a known weak surface-current proxy. Spatial shear and a resolved current field are outside v1.',
+		'- Dimond Reef (NYH1919) uses its API-default bin 9, which CO-OPS measures 9.4 m up from the seabed (depthType S): its shallowest bin, about 5 m below the surface. Between stations the current field (field_digest) interpolates along the channels.',
 		'- Water levels use NAVD88 only. Observations win; missing observations use same-datum predictions with `source=predicted`. Prediction raw file names and SHA-256 values appear in day notes when used.',
 		'- Wind uses the first available station per day in Battery, Kings Point, Robbins Reef, Bergen Point order; only that station is in the pack. Meteorological from-directions become toward-components. Gusts are preserved and sensor height remains unknown.',
 		'- NOAA reports no Battery wind for all four weeks. Kings Point is more exposed on Long Island Sound and is explicitly labelled a spatial proxy. No missing wind is invented.',
@@ -94,7 +94,8 @@ def write(result, root, destination):
 		for station, s in item['currents'].items():
 			flood = f'{s["flood"]:.4f}' if s['flood'] is not None else 'not present'
 			ebb = f'{s["ebb"]:.4f}' if s['ebb'] is not None else 'not present'
-			lines.append(f'| {day} | {station} | {s["bin"]} | {s["depth_m"]} | {flood} | {ebb} |')
+			bin_, depth_ = ('—', '—') if s['bin'] is None else (s['bin'], s['depth_m'])
+			lines.append(f'| {day} | {station} | {bin_} | {depth_} | {flood} | {ebb} |')
 	day = next(iter(result['days']))
 	_plot(root, day, destination / 'currents-tide.png')
 	lines += ['', '## One-day plot', '', f'![Current north components and tide, {day}](currents-tide.png)', '']

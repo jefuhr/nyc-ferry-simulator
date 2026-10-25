@@ -55,21 +55,48 @@ def _unique_object(pairs):
 	return result
 
 
-# These schemas mirror EnvironmentPackJson.Node, including required nullable keys.
+# These schemas mirror EnvironmentPackJson.Node, including required nullable keys; OPTIONAL lists the keys a schema
+# may also have.
 POSITION = dict(id='text', name='text', lat='number', lon='number', north_m='number', east_m='number', source='text', source_sha256='hex')
 GRID = dict(id='text', file='text', origin_north_m='number', origin_east_m='number', cell_m='number', rows='count', cols='count', nodata='text', sha256='hex')
 SOURCE = dict(name='text', sha256='hex')
 DEPTH = dict(format='text', region='text', datum='text', value='text', grids=[GRID], outside_depth_m='number', sources=[SOURCE])
+FILE = dict(name='text', sha256='hex')
+DERIVATION = dict(method='text', reference_station='text', reference_bin='count', slack_before_flood_min='number', max_flood_min='number',
+	slack_before_ebb_min='number', max_ebb_min='number', flood_ratio='number', ebb_ratio='number', flood_dir_deg='number',
+	ebb_dir_deg='number', sources=[FILE])
+CURRENT_STATION = dict(POSITION, kind='text', bin_depth_m='nullable-number')
 DAY = dict(format='text', region='text', date='text', epoch_utc='text', time_coverage_s=['number'], depth_digest='hex',
-	current_stations=[dict(POSITION, kind='text', bin_depth_m='nullable-number')], water_level_stations=[POSITION],
+	current_stations=[CURRENT_STATION], water_level_stations=[POSITION],
 	wind_stations=[dict(POSITION, sensor_height_m='nullable-number')], files={name: 'hex' for name in COLUMNS}, notes=['text'])
+FIELD_STATION = dict(id='text', north_m='number', east_m='number', frame_north='number', frame_east='number')
+FIELD_GRID = dict(id='text', values_file='text', stations_file='text', origin_north_m='number', origin_east_m='number', cell_m='number',
+	rows='count', cols='count', slots='count', values_sha256='hex', stations_sha256='hex')
+FIELD_PARAMETERS = dict(cell_m='number', computation_north_m=['number'], computation_east_m=['number'], inflow='text', outflow='text',
+	conveyance_exponent='number', min_depth_m='number', smoothing_m='number', shelter_threshold='number', depth_exponent='number',
+	depth_smoothing_m='number', cross_taper_m='number', station_disk_m='number', station_reach_m='number', across_reach_m='number',
+	tolerance='number')
+FIELD = dict(format='text', region='text', method='text', stations=[FIELD_STATION], grids=[FIELD_GRID], parameters=FIELD_PARAMETERS,
+	sources=[SOURCE], notes=['text'])
+OPTIONAL = {id(SOURCE): {'note': 'nullable-text'}, id(DAY): {'field_digest': 'hex'}, id(CURRENT_STATION): {'derivation': DERIVATION}}
+
+FIELD_FORMAT = 'ferrysim-env-field/1'
+FIELD_METHOD = 'channel-harmonic/1'
+SUBORDINATE_METHOD = 'noaa-subordinate'
+# Shared with the C# reader (CurrentFieldGrid, EnvironmentPackJson): how far a water cell's axis may be from unit length
+# and its weights from summing to 1 (float32 storage), and a day's station from the position the field solved it at.
+UNIT_AXIS_TOLERANCE = 1e-5
+WEIGHT_SUM_TOLERANCE = 1e-5
+STATION_POSITION_TOLERANCE_M = .01
+MAX_SLOTS = 8
+EMPTY_SLOT = 255
 
 
 def _validate(value, schema, label):
 	if isinstance(schema, dict):
 		if not isinstance(value, dict):
 			raise ValueError(f'{label}: expected an object')
-		optional = {'note': 'nullable-text'} if schema is SOURCE else {}
+		optional = OPTIONAL.get(id(schema), {})
 		missing, unknown = schema.keys() - value.keys(), value.keys() - schema.keys() - optional.keys()
 		if missing or unknown:
 			raise ValueError(f'{label}: missing keys {sorted(missing)}, unknown keys {sorted(unknown)}')
@@ -134,8 +161,20 @@ def depth_digest(directory):
 	return _file_digest(directory, ['manifest.json', *[grid['file'] for grid in metadata['grids']]])
 
 
-def day_digest(directory, depth):
-	return _file_digest(directory, ['manifest.json', *COLUMNS], depth.encode('ascii') + b'\0')
+def day_digest(directory, depth, field=None):
+	"""Without a field the 2026-10-25 rule exactly; with one, the field digest's hex and NUL after the depth digest's."""
+	suffix = depth.encode('ascii') + b'\0'
+	if field is not None:
+		suffix += field.encode('ascii') + b'\0'
+	return _file_digest(directory, ['manifest.json', *COLUMNS], suffix)
+
+
+def field_digest(directory):
+	metadata = _read_manifest(directory)
+	names = ['manifest.json']
+	for grid in metadata['grids']:
+		names += [grid['values_file'], grid['stations_file']]
+	return _file_digest(directory, names)
 
 
 def write_digest(directory, digest):
@@ -157,7 +196,33 @@ def _verify_digest(directory, actual):
 	return expected
 
 
-def write_day(root, region, day, depth_digest, current_stations, water_level_stations, wind_stations, currents, water_levels, wind, notes):
+def write_field(directory, region, stations, grids, parameters, sources, notes):
+	"""A field set: stations as dicts (id, north_m, east_m, frame_north, frame_east), grids as dicts (id, origin_north_m,
+	origin_east_m, cell_m, values (rows, cols, 4 + slots) float32, slots (rows, cols, slots) uint8)."""
+	directory = Path(directory)
+	directory.mkdir(parents=True, exist_ok=True)
+	entries = []
+	for grid in grids:
+		values = np.ascontiguousarray(grid['values'], dtype='<f4')
+		slots = np.ascontiguousarray(grid['slots'], dtype=np.uint8)
+		rows, cols, count = slots.shape
+		if values.shape != (rows, cols, 4 + count):
+			raise ValueError(f'grid {grid["id"]}: values and slots disagree on shape')
+		names = (grid['id'] + '.f32', grid['id'] + '.u8')
+		for name, body in zip(names, (values.tobytes(order='C'), slots.tobytes(order='C'))):
+			(directory / name).write_bytes(body)
+		entries.append(dict(id=grid['id'], values_file=names[0], stations_file=names[1], origin_north_m=float(grid['origin_north_m']),
+			origin_east_m=float(grid['origin_east_m']), cell_m=float(grid['cell_m']), rows=int(rows), cols=int(cols), slots=int(count),
+			values_sha256=hashlib.sha256(values.tobytes(order='C')).hexdigest(), stations_sha256=hashlib.sha256(slots.tobytes(order='C')).hexdigest()))
+	metadata = dict(format=FIELD_FORMAT, region=region, method=FIELD_METHOD, stations=stations, grids=entries, parameters=parameters,
+		sources=sources, notes=sorted(set(notes)))
+	write_json(directory / 'manifest.json', metadata)
+	write_digest(directory, field_digest(directory))
+	return metadata
+
+
+def write_day(root, region, day, depth_digest, current_stations, water_level_stations, wind_stations, currents, water_levels, wind, notes,
+	field_digest=None):
 	directory = Path(root) / 'days' / day
 	directory.mkdir(parents=True, exist_ok=True)
 	files = {}
@@ -170,11 +235,13 @@ def write_day(root, region, day, depth_digest, current_stations, water_level_sta
 		(directory / name).write_bytes(body)
 		files[name] = hashlib.sha256(body).hexdigest()
 	metadata = dict(format='ferrysim-env/1', region=region, date=day, epoch_utc=series.epoch_utc(day),
-		time_coverage_s=list(series.COVERAGE), depth_digest=depth_digest,
-		current_stations=current_stations, water_level_stations=water_level_stations,
+		time_coverage_s=list(series.COVERAGE), depth_digest=depth_digest)
+	if field_digest is not None:
+		metadata['field_digest'] = field_digest
+	metadata.update(current_stations=current_stations, water_level_stations=water_level_stations,
 		wind_stations=wind_stations, files=files, notes=sorted(set(notes)))
 	write_json(directory / 'manifest.json', metadata)
-	write_digest(directory, day_digest(directory, depth_digest))
+	write_digest(directory, day_digest(directory, depth_digest, field_digest))
 	return metadata
 
 
@@ -182,6 +249,82 @@ def _safe_file(directory, name):
 	if not isinstance(name, str) or Path(name).name != name:
 		raise ValueError(f'unsafe pack file: {name}')
 	return Path(directory) / name
+
+
+def _plain_id(value):
+	return bool(value) and value not in ('.', '..') and re.fullmatch('[A-Za-z0-9_.-]+', value) is not None
+
+
+def verify_field(directory, region):
+	"""Checks a field set and returns its digest and manifest; refuses anything outside the format with the path."""
+	directory = Path(directory)
+	metadata = _read_manifest(directory)
+	path = directory / 'manifest.json'
+	_validate(metadata, FIELD, str(path))
+	if metadata['format'] != FIELD_FORMAT or metadata['method'] != FIELD_METHOD or metadata['region'] != region:
+		raise ValueError(f'{path}: format must be {FIELD_FORMAT}, method {FIELD_METHOD}, region {region}')
+	stations = metadata['stations']
+	ids = [x['id'] for x in stations]
+	if not ids or len(ids) >= EMPTY_SLOT or len(ids) != len(set(ids)) or any(',' in i or '"' in i or not i for i in ids):
+		raise ValueError(f'{path}: stations must be 1 to {EMPTY_SLOT - 1} unique ids without comma or quote')
+	if any(not math.hypot(x['frame_north'], x['frame_east']) > 1e-3 for x in stations):
+		raise ValueError(f'{path}: a station frame is near zero')
+	parameters = metadata['parameters']
+	if len(parameters['computation_north_m']) != 2 or len(parameters['computation_east_m']) != 2:
+		raise ValueError(f'{path}: computation bounds must be [low, high]')
+	bounds, grid_ids = [], set()
+	for grid in metadata['grids']:
+		if grid['id'] in grid_ids or not _plain_id(grid['id']) or grid['values_file'] != grid['id'] + '.f32' or grid['stations_file'] != grid['id'] + '.u8':
+			raise ValueError(f'{path}: grid IDs must be unique plain names, with files ID.f32 and ID.u8')
+		grid_ids.add(grid['id'])
+		rows, cols, slots = grid['rows'], grid['cols'], grid['slots']
+		if rows < 2 or cols < 2 or not grid['cell_m'] > 0 or not 1 <= slots <= MAX_SLOTS:
+			raise ValueError(f'{path}: grid {grid["id"]} needs at least 2 by 2 cells, a positive cell and 1 to {MAX_SLOTS} slots')
+		bodies = {}
+		for key in ('values', 'stations'):
+			p = _safe_file(directory, grid[key + '_file'])
+			bodies[key] = p.read_bytes()
+			if hashlib.sha256(bodies[key]).hexdigest() != grid[key + '_sha256']:
+				raise ValueError(f'{p}: checksum mismatch')
+		values_path, slots_path = directory / grid['values_file'], directory / grid['stations_file']
+		if len(bodies['values']) != rows * cols * (4 + slots) * 4 or len(bodies['stations']) != rows * cols * slots:
+			raise ValueError(f'{values_path}: sizes do not fit {rows} by {cols} cells of {slots} slots')
+		values = np.frombuffer(bodies['values'], dtype='<f4').reshape(rows, cols, 4 + slots).astype(float)
+		slot = np.frombuffer(bodies['stations'], dtype=np.uint8).reshape(rows, cols, slots)
+		weights = values[..., 4:]
+		empty = slot == EMPTY_SLOT
+		wet = ~empty.all(axis=-1)
+		if not np.isfinite(values).all():
+			raise ValueError(f'{values_path}: non-finite values')
+		if ((values[..., 2:4] < 0) | (values[..., 2:4] > 1)).any():
+			raise ValueError(f'{values_path}: along and cross factors must lie in [0, 1]')
+		if (~empty & (slot >= len(ids))).any():
+			raise ValueError(f'{slots_path}: a slot names no station of the field')
+		if (empty & (weights != 0)).any() or (~empty & ((weights < 0) | (weights > 1))).any():
+			raise ValueError(f'{values_path}: weights must be 0 in empty slots and in [0, 1] otherwise')
+		if (np.abs(np.hypot(values[..., 0], values[..., 1]) - 1)[wet] > UNIT_AXIS_TOLERANCE).any():
+			raise ValueError(f'{values_path}: water cells need a unit axis (within {UNIT_AXIS_TOLERANCE})')
+		if (np.abs(weights.sum(axis=-1) - 1)[wet] > WEIGHT_SUM_TOLERANCE).any():
+			raise ValueError(f'{values_path}: water cells need weights summing to 1 (within {WEIGHT_SUM_TOLERANCE})')
+		if (values[..., :4][~wet] != 0).any():
+			raise ValueError(f'{values_path}: dry cells (no station slot) must be all zeros')
+		n, e, cell = grid['origin_north_m'], grid['origin_east_m'], grid['cell_m']
+		b = (n, e, n + (rows - 1) * cell, e + (cols - 1) * cell)
+		for a in bounds:
+			if max(a[0], b[0]) < min(a[2], b[2]) and max(a[1], b[1]) < min(a[3], b[3]):
+				raise ValueError(f'{path}: overlapping grids')
+		bounds.append(b)
+	return _verify_digest(directory, field_digest(directory)), metadata
+
+
+def _check_derivation(station, label):
+	d = station.get('derivation')
+	if d is None:
+		return
+	if (d['method'] != SUBORDINATE_METHOD or not d['flood_ratio'] > 0 or not d['ebb_ratio'] > 0 or not d['sources']
+		or not all(0 <= d[k] < 360 for k in ('flood_dir_deg', 'ebb_dir_deg')) or station['kind'] != 'subordinate-prediction'):
+		raise ValueError(f'{label}: {station["id"]} derivation must be {SUBORDINATE_METHOD} for a subordinate-prediction, positive ratios, '
+			'directions in [0, 360) and its sources')
 
 
 def verify(root):
@@ -215,7 +358,7 @@ def verify(root):
 				raise ValueError('overlapping grids')
 		bounds.append(b)
 	depth_hash = _verify_digest(directory, depth_digest(directory))
-	digests = []
+	digests, field = [], None
 	for directory in sorted((root / 'days').iterdir()):
 		if not directory.is_dir():
 			continue
@@ -229,6 +372,21 @@ def verify(root):
 			raise ValueError(f'{directory}: invalid date or epoch')
 		if metadata['time_coverage_s'] != list(series.COVERAGE) or metadata['depth_digest'] != depth_hash:
 			raise ValueError(f'{directory / "manifest.json"}: coverage/depth digest mismatch')
+		field_hash = metadata.get('field_digest')
+		if field_hash is not None:
+			if field is None:
+				field = verify_field(root / 'field', depth['region'])
+			if field_hash != field[0]:
+				raise ValueError(f'{directory / "manifest.json"}: field_digest differs from field/DIGEST')
+			currents = {x['id']: x for x in metadata['current_stations']}
+			for station in field[1]['stations']:
+				day_station = currents.get(station['id'])
+				if day_station is None or math.hypot(day_station['north_m'] - station['north_m'],
+					day_station['east_m'] - station['east_m']) > STATION_POSITION_TOLERANCE_M:
+					raise ValueError(f'{directory / "manifest.json"}: field station {station["id"]} is missing or more than '
+						f'{STATION_POSITION_TOLERANCE_M} m from where the field solved it')
+		for station in metadata['current_stations']:
+			_check_derivation(station, str(directory / 'manifest.json'))
 		for name, columns in COLUMNS.items():
 			p = directory / name
 			body = p.read_bytes()
@@ -271,7 +429,7 @@ def verify(root):
 			for station, ts in times.items():
 				if not ts or ts[0] > series.COVERAGE[0] or ts[-1] < series.COVERAGE[1]:
 					raise ValueError(f'{p}: {station} lacks required endpoint coverage')
-		digests.append(_verify_digest(directory, day_digest(directory, depth_hash)))
+		digests.append(_verify_digest(directory, day_digest(directory, depth_hash, field_hash)))
 	if not digests:
 		raise ValueError('no scenario-day packs')
 	return digests

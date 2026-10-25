@@ -35,6 +35,12 @@ namespace FerrySim.Core.Serialization
 		/// <summary>Largest distance, m, between a station's north_m/east_m and its latitude and longitude in the world frame.</summary>
 		public const double PositionTolerance = 0.01;
 
+		/// <summary>
+		/// Largest distance, m, between a day's current station and the position the current field solved it at (the
+		/// pipeline checks the same).
+		/// </summary>
+		public const double FieldStationTolerance = 0.01;
+
 		private const string EpochFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
 		/// <summary>
@@ -67,11 +73,18 @@ namespace FerrySim.Core.Serialization
 			}
 
 			files.Finish();
-			var computed = EnvironmentPackDigests.DayDigest(manifestBytes, series, depth.Digest);
+			var fieldDigest = manifest.OptionalHex("field_digest");
+			var field = fieldDigest == null ? null : LoadCurrentField(FieldFolderOf(dayFolder));
+			var computed = EnvironmentPackDigests.DayDigest(manifestBytes, series, depth.Digest, field?.Digest);
 			if (computed != recorded)
 			{
 				throw new EnvironmentPackException(digestPath,
-					$"the day digest of manifest.json, the series files and the depth digest is {computed}, but DIGEST says {recorded}: manifest.json or DIGEST has changed.");
+					$"the day digest of manifest.json, the series files, the depth digest{(field == null ? string.Empty : " and the field digest")} is {computed}, but DIGEST says {recorded}: manifest.json or DIGEST has changed.");
+			}
+
+			if (field != null && fieldDigest != field.Digest)
+			{
+				throw manifest.Error("field_digest", $"is {fieldDigest}, but the field set's DIGEST is {field.Digest}.");
 			}
 
 			var format = manifest.Text("format");
@@ -120,9 +133,25 @@ namespace FerrySim.Core.Serialization
 				var kind = node.Text("kind");
 				Position(node, out var latitude, out var longitude, out var north, out var east);
 				var binDepth = node.NullableNumber("bin_depth_m");
+				var derivation = Derivation(node, kind);
 				currents.Add(new CurrentStation(id, name, kind, latitude, longitude, north, east, binDepth, node.Text("source"), node.Hex("source_sha256"),
-					new VectorSeries(rows.Times, rows.First, rows.Second)));
+					new VectorSeries(rows.Times, rows.First, rows.Second), derivation));
 				node.Finish();
+			}
+
+			if (field != null)
+			{
+				foreach (var station in field.Stations)
+				{
+					var day = currents.Find(c => c.Id == station.Id);
+					var miss = day == null ? double.PositiveInfinity : Math.Sqrt((day.North - station.North) * (day.North - station.North) + (day.East - station.East) * (day.East - station.East));
+					if (!(miss <= FieldStationTolerance))
+					{
+						throw manifest.Error("current_stations", day == null
+							? $"lacks {station.Id}, a station of the current field."
+							: $"places {station.Id} {miss:F3} m from where the current field solved it; the most allowed is {FieldStationTolerance} m.");
+					}
+				}
 			}
 
 			var gauges = new List<WaterLevelStation>();
@@ -152,7 +181,7 @@ namespace FerrySim.Core.Serialization
 
 			try
 			{
-				return new EnvironmentPack(region, date, epoch, coverage[0], coverage[1], depth, currents, gauges, winds, notes, computed);
+				return new EnvironmentPack(region, date, epoch, coverage[0], coverage[1], depth, currents, gauges, winds, notes, computed, field);
 			}
 			catch (ArgumentException exception)
 			{
@@ -284,6 +313,214 @@ namespace FerrySim.Core.Serialization
 
 		/// <summary>The depth folder the layout puts beside a day folder: <c>days/&lt;date&gt;/../../depth</c>.</summary>
 		public static string DepthFolderOf(string dayFolder) => Path.GetFullPath(Path.Combine(dayFolder, "..", "..", "depth"));
+
+		/// <summary>The current-field folder the layout puts beside a day folder: <c>days/&lt;date&gt;/../../field</c>.</summary>
+		public static string FieldFolderOf(string dayFolder) => Path.GetFullPath(Path.Combine(dayFolder, "..", "..", "field"));
+
+		/// <summary>
+		/// Loads and verifies a current-field set (ferrysim-env-field/1): its manifest, every grid's values and stations
+		/// files against their SHA-256 and sizes, the DIGEST, the stations and every cell's values.
+		/// </summary>
+		public static CurrentFieldBasis LoadCurrentField(string fieldFolder)
+		{
+			if (string.IsNullOrEmpty(fieldFolder))
+			{
+				throw new ArgumentException("A field folder is required.", nameof(fieldFolder));
+			}
+
+			var manifestPath = Path.Combine(fieldFolder, EnvironmentPackDigests.ManifestFile);
+			var manifestBytes = ReadFile(manifestPath);
+			var digestPath = Path.Combine(fieldFolder, EnvironmentPackDigests.DigestFile);
+			var recorded = ReadDigestFile(digestPath);
+			var manifest = new Node(manifestPath, ParseObject(manifestPath, manifestBytes), "manifest");
+			var gridNodes = manifest.Objects("grids");
+			if (gridNodes.Count == 0)
+			{
+				throw manifest.Error("grids", "must list at least one grid.");
+			}
+
+			// Integrity first: each file against its hash, then DIGEST over the manifest and the files.
+			var names = new List<string>();
+			var files = new List<byte[]>();
+			foreach (var node in gridNodes)
+			{
+				var id = node.Text("id");
+				foreach (var (key, extension) in new[] { ("values", ".f32"), ("stations", ".u8") })
+				{
+					var file = node.Text(key + "_file");
+					if (file != id + extension || !IsPlainName(id))
+					{
+						throw node.Error(key + "_file", $"must be the grid's id with {extension} ('{id}{extension}'), a plain file name, found '{file}'.");
+					}
+
+					var path = Path.Combine(fieldFolder, file);
+					var bytes = ReadFile(path);
+					CheckHash(path, bytes, node.Hex(key + "_sha256"));
+					names.Add(file);
+					files.Add(bytes);
+				}
+			}
+
+			var computed = EnvironmentPackDigests.FieldDigest(manifestBytes, names, files);
+			if (computed != recorded)
+			{
+				throw new EnvironmentPackException(digestPath,
+					$"the field digest of manifest.json and the grid files is {computed}, but DIGEST says {recorded}: manifest.json or DIGEST has changed.");
+			}
+
+			var format = manifest.Text("format");
+			if (format != CurrentFieldBasis.Format)
+			{
+				throw manifest.Error("format", $"must be {CurrentFieldBasis.Format}, found '{format}'.");
+			}
+
+			var region = manifest.Text("region");
+			var method = manifest.Text("method");
+			if (method != CurrentFieldBasis.Method)
+			{
+				throw manifest.Error("method", $"must be {CurrentFieldBasis.Method}, the method this reader samples, found '{method}'.");
+			}
+
+			var stations = new List<CurrentFieldStation>();
+			foreach (var node in manifest.Objects("stations"))
+			{
+				var id = node.Text("id");
+				if (id.Length == 0 || id.IndexOf(',') >= 0 || id.IndexOf('"') >= 0)
+				{
+					throw node.Error("id", "must be non-empty with no comma or quote.");
+				}
+
+				try
+				{
+					stations.Add(new CurrentFieldStation(id, node.Number("north_m"), node.Number("east_m"), node.Number("frame_north"), node.Number("frame_east")));
+				}
+				catch (ArgumentException exception)
+				{
+					throw new EnvironmentPackException(manifestPath, exception.Message, exception);
+				}
+
+				node.Finish();
+			}
+
+			var parameters = FieldParameters(manifest.Object("parameters"));
+			var sources = new List<DepthSource>();
+			foreach (var node in manifest.Objects("sources"))
+			{
+				sources.Add(new DepthSource(node.Text("name"), node.Hex("sha256"), node.OptionalText("note")));
+				node.Finish();
+			}
+
+			var notes = manifest.Texts("notes");
+			manifest.Finish();
+
+			var grids = new List<CurrentFieldGrid>();
+			for (var g = 0; g < gridNodes.Count; g++)
+			{
+				var node = gridNodes[g];
+				var originNorth = node.Number("origin_north_m");
+				var originEast = node.Number("origin_east_m");
+				var cell = node.Number("cell_m");
+				var rows = node.Count("rows");
+				var columns = node.Count("cols");
+				var slots = node.Count("slots");
+				node.Finish();
+				var valuesPath = Path.Combine(fieldFolder, names[2 * g]);
+				var stationsPath = Path.Combine(fieldFolder, names[2 * g + 1]);
+				if (slots > CurrentFieldGrid.MaximumSlots)
+				{
+					throw node.Error("slots", $"must be 1 to {CurrentFieldGrid.MaximumSlots}, found {slots}.");
+				}
+
+				var valuesBytes = files[2 * g];
+				var stationBytes = files[2 * g + 1];
+				var cells = (long)rows * columns;
+				if (valuesBytes.LongLength != 4L * cells * (CurrentFieldGrid.Leading + slots))
+				{
+					throw new EnvironmentPackException(valuesPath, $"has {valuesBytes.LongLength} bytes; {rows} by {columns} cells of {CurrentFieldGrid.Leading + slots} float32 need {4L * cells * (CurrentFieldGrid.Leading + slots)}.");
+				}
+
+				if (stationBytes.LongLength != cells * slots)
+				{
+					throw new EnvironmentPackException(stationsPath, $"has {stationBytes.LongLength} bytes; {rows} by {columns} cells of {slots} slots need {cells * slots}.");
+				}
+
+				var values = new float[valuesBytes.Length / 4];
+				for (var i = 0; i < values.Length; i++)
+				{
+					values[i] = BitConverter.Int32BitsToSingle(valuesBytes[4 * i] | valuesBytes[4 * i + 1] << 8 | valuesBytes[4 * i + 2] << 16 | valuesBytes[4 * i + 3] << 24);
+				}
+
+				try
+				{
+					grids.Add(new CurrentFieldGrid(node.Text("id"), originNorth, originEast, cell, rows, columns, slots, values, stationBytes, stations.Count));
+				}
+				catch (ArgumentException exception)
+				{
+					throw new EnvironmentPackException(valuesPath, exception.Message, exception);
+				}
+			}
+
+			try
+			{
+				return new CurrentFieldBasis(region, stations, grids, parameters, sources, notes, computed);
+			}
+			catch (ArgumentException exception)
+			{
+				throw new EnvironmentPackException(manifestPath, exception.Message, exception);
+			}
+		}
+
+		private static CurrentFieldParameters FieldParameters(Node node)
+		{
+			var north = node.Numbers("computation_north_m");
+			var east = node.Numbers("computation_east_m");
+			if (north.Count != 2 || east.Count != 2)
+			{
+				throw node.Error("computation_north_m", "and computation_east_m must be [low, high].");
+			}
+
+			var parameters = new CurrentFieldParameters(node.Number("cell_m"), north[0], north[1], east[0], east[1], node.Text("inflow"), node.Text("outflow"),
+				node.Number("conveyance_exponent"), node.Number("min_depth_m"), node.Number("smoothing_m"), node.Number("shelter_threshold"),
+				node.Number("depth_exponent"), node.Number("depth_smoothing_m"), node.Number("cross_taper_m"), node.Number("station_disk_m"),
+				node.Number("station_reach_m"), node.Number("across_reach_m"), node.Number("tolerance"));
+			node.Finish();
+			return parameters;
+		}
+
+		private static CurrentStationDerivation Derivation(Node station, string kind)
+		{
+			var node = station.OptionalObject("derivation");
+			if (node == null)
+			{
+				return null;
+			}
+
+			if (kind != "subordinate-prediction")
+			{
+				throw node.Error("method", $"a derivation belongs to a subordinate-prediction station, not '{kind}'.");
+			}
+
+			var method = node.Text("method");
+			var sources = new List<SourceFile>();
+			foreach (var source in node.Objects("sources"))
+			{
+				sources.Add(new SourceFile(source.Text("name"), source.Hex("sha256")));
+				source.Finish();
+			}
+
+			try
+			{
+				var derivation = new CurrentStationDerivation(method, node.Text("reference_station"), node.Count("reference_bin"),
+					node.Number("slack_before_flood_min"), node.Number("max_flood_min"), node.Number("slack_before_ebb_min"), node.Number("max_ebb_min"),
+					node.Number("flood_ratio"), node.Number("ebb_ratio"), node.Number("flood_dir_deg"), node.Number("ebb_dir_deg"), sources);
+				node.Finish();
+				return derivation;
+			}
+			catch (ArgumentException exception)
+			{
+				throw node.Error("method", exception.Message);
+			}
+		}
 
 		/// <summary>
 		/// Local midnight in America/New_York on a date, as UTC, by the US daylight-saving rule in force since 2007
@@ -509,6 +746,33 @@ namespace FerrySim.Core.Serialization
 				}
 
 				return (string)token;
+			}
+
+			public string OptionalHex(string key)
+			{
+				var text = OptionalText(key);
+				if (text != null && !EnvironmentPackDigests.IsHexDigest(text))
+				{
+					throw Error(key, $"must be 64 lower-case hex characters, found '{text}'.");
+				}
+
+				return text;
+			}
+
+			public Node OptionalObject(string key)
+			{
+				_read.Add(key);
+				if (!_object.TryGetValue(key, StringComparison.Ordinal, out var token))
+				{
+					return null;
+				}
+
+				if (token.Type != JTokenType.Object)
+				{
+					throw Error(key, "must be a JSON object.");
+				}
+
+				return new Node(_file, (JObject)token, _path + "." + key);
 			}
 
 			public string Hex(string key)

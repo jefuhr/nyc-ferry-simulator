@@ -28,6 +28,7 @@ namespace FerrySim.Core.Serialization
 			}
 
 			var depthDigest = WriteDepthSet(pack.Depth, Path.Combine(environmentFolder, "depth"));
+			var fieldDigest = pack.CurrentField == null ? null : WriteCurrentField(pack.CurrentField, Path.Combine(environmentFolder, "field"));
 			var dayFolder = Path.Combine(environmentFolder, "days", pack.Date);
 			Directory.CreateDirectory(dayFolder);
 			var series = new[]
@@ -50,6 +51,11 @@ namespace FerrySim.Core.Serialization
 				Number(writer, pack.CoverageEnd);
 				writer.WriteEndArray();
 				Property(writer, "depth_digest", depthDigest);
+				if (fieldDigest != null)
+				{
+					Property(writer, "field_digest", fieldDigest);
+				}
+
 				writer.WritePropertyName("current_stations");
 				writer.WriteStartArray();
 				foreach (var station in pack.CurrentStations)
@@ -62,6 +68,11 @@ namespace FerrySim.Core.Serialization
 					writer.WritePropertyName("bin_depth_m");
 					Number(writer, station.BinDepth);
 					Sources(writer, station);
+					if (station.Derivation != null)
+					{
+						Derivation(writer, station.Derivation);
+					}
+
 					writer.WriteEndObject();
 				}
 
@@ -120,8 +131,158 @@ namespace FerrySim.Core.Serialization
 			}
 
 			File.WriteAllBytes(Path.Combine(dayFolder, EnvironmentPackDigests.DigestFile),
-				EnvironmentPackDigests.DigestFileBytes(EnvironmentPackDigests.DayDigest(manifest, series, depthDigest)));
+				EnvironmentPackDigests.DigestFileBytes(EnvironmentPackDigests.DayDigest(manifest, series, depthDigest, fieldDigest)));
 			return dayFolder;
+		}
+
+		/// <summary>Writes a current-field set folder (ferrysim-env-field/1) and returns its digest. The basis needs its parameters.</summary>
+		public static string WriteCurrentField(CurrentFieldBasis basis, string fieldFolder)
+		{
+			var parameters = basis.Parameters ?? throw new ArgumentException("Writing a current field needs its parameters.");
+			Directory.CreateDirectory(fieldFolder);
+			var names = new List<string>();
+			var files = new List<byte[]>();
+			foreach (var grid in basis.Grids)
+			{
+				var values = new byte[4 * grid.Rows * grid.Columns * grid.ValuesPerCell];
+				var index = 0;
+				for (var r = 0; r < grid.Rows; r++)
+				{
+					for (var c = 0; c < grid.Columns; c++)
+					{
+						for (var j = 0; j < grid.ValuesPerCell; j++)
+						{
+							var bits = BitConverter.SingleToInt32Bits(grid.Value(r, c, j));
+							values[index++] = (byte)bits;
+							values[index++] = (byte)(bits >> 8);
+							values[index++] = (byte)(bits >> 16);
+							values[index++] = (byte)(bits >> 24);
+						}
+					}
+				}
+
+				var stations = new byte[grid.Rows * grid.Columns * grid.Slots];
+				index = 0;
+				for (var r = 0; r < grid.Rows; r++)
+				{
+					for (var c = 0; c < grid.Columns; c++)
+					{
+						for (var j = 0; j < grid.Slots; j++)
+						{
+							stations[index++] = grid.Slot(r, c, j);
+						}
+					}
+				}
+
+				names.Add(grid.Id + ".f32");
+				files.Add(values);
+				names.Add(grid.Id + ".u8");
+				files.Add(stations);
+			}
+
+			var manifest = Json(writer =>
+			{
+				writer.WriteStartObject();
+				Property(writer, "format", CurrentFieldBasis.Format);
+				Property(writer, "region", basis.Region);
+				Property(writer, "method", CurrentFieldBasis.Method);
+				writer.WritePropertyName("stations");
+				writer.WriteStartArray();
+				foreach (var station in basis.Stations)
+				{
+					writer.WriteStartObject();
+					Property(writer, "id", station.Id);
+					NumberProperty(writer, "north_m", station.North);
+					NumberProperty(writer, "east_m", station.East);
+					NumberProperty(writer, "frame_north", station.FrameNorth);
+					NumberProperty(writer, "frame_east", station.FrameEast);
+					writer.WriteEndObject();
+				}
+
+				writer.WriteEndArray();
+				writer.WritePropertyName("grids");
+				writer.WriteStartArray();
+				for (var i = 0; i < basis.Grids.Count; i++)
+				{
+					var grid = basis.Grids[i];
+					writer.WriteStartObject();
+					Property(writer, "id", grid.Id);
+					Property(writer, "values_file", names[2 * i]);
+					Property(writer, "stations_file", names[2 * i + 1]);
+					NumberProperty(writer, "origin_north_m", grid.OriginNorth);
+					NumberProperty(writer, "origin_east_m", grid.OriginEast);
+					NumberProperty(writer, "cell_m", grid.CellSize);
+					writer.WritePropertyName("rows");
+					writer.WriteValue(grid.Rows);
+					writer.WritePropertyName("cols");
+					writer.WriteValue(grid.Columns);
+					writer.WritePropertyName("slots");
+					writer.WriteValue(grid.Slots);
+					Property(writer, "values_sha256", EnvironmentPackDigests.Sha256Hex(files[2 * i]));
+					Property(writer, "stations_sha256", EnvironmentPackDigests.Sha256Hex(files[2 * i + 1]));
+					writer.WriteEndObject();
+				}
+
+				writer.WriteEndArray();
+				writer.WritePropertyName("parameters");
+				writer.WriteStartObject();
+				NumberProperty(writer, "cell_m", parameters.CellSize);
+				writer.WritePropertyName("computation_north_m");
+				writer.WriteStartArray();
+				Number(writer, parameters.SouthNorth);
+				Number(writer, parameters.NorthNorth);
+				writer.WriteEndArray();
+				writer.WritePropertyName("computation_east_m");
+				writer.WriteStartArray();
+				Number(writer, parameters.WestEast);
+				Number(writer, parameters.EastEast);
+				writer.WriteEndArray();
+				Property(writer, "inflow", parameters.Inflow);
+				Property(writer, "outflow", parameters.Outflow);
+				NumberProperty(writer, "conveyance_exponent", parameters.ConveyanceExponent);
+				NumberProperty(writer, "min_depth_m", parameters.MinimumDepth);
+				NumberProperty(writer, "smoothing_m", parameters.Smoothing);
+				NumberProperty(writer, "shelter_threshold", parameters.ShelterThreshold);
+				NumberProperty(writer, "depth_exponent", parameters.DepthExponent);
+				NumberProperty(writer, "depth_smoothing_m", parameters.DepthSmoothing);
+				NumberProperty(writer, "cross_taper_m", parameters.CrossTaper);
+				NumberProperty(writer, "station_disk_m", parameters.StationDisk);
+				NumberProperty(writer, "station_reach_m", parameters.StationReach);
+				NumberProperty(writer, "across_reach_m", parameters.AcrossReach);
+				NumberProperty(writer, "tolerance", parameters.Tolerance);
+				writer.WriteEndObject();
+				writer.WritePropertyName("sources");
+				writer.WriteStartArray();
+				foreach (var source in basis.Sources)
+				{
+					writer.WriteStartObject();
+					Property(writer, "name", source.Name);
+					Property(writer, "sha256", source.Sha256);
+					Property(writer, "note", source.Note);
+					writer.WriteEndObject();
+				}
+
+				writer.WriteEndArray();
+				writer.WritePropertyName("notes");
+				writer.WriteStartArray();
+				foreach (var note in basis.Notes)
+				{
+					writer.WriteValue(note);
+				}
+
+				writer.WriteEndArray();
+				writer.WriteEndObject();
+			});
+
+			File.WriteAllBytes(Path.Combine(fieldFolder, EnvironmentPackDigests.ManifestFile), manifest);
+			for (var i = 0; i < files.Count; i++)
+			{
+				File.WriteAllBytes(Path.Combine(fieldFolder, names[i]), files[i]);
+			}
+
+			var digest = EnvironmentPackDigests.FieldDigest(manifest, names, files);
+			File.WriteAllBytes(Path.Combine(fieldFolder, EnvironmentPackDigests.DigestFile), EnvironmentPackDigests.DigestFileBytes(digest));
+			return digest;
 		}
 
 		/// <summary>Writes a depth set folder and returns its digest.</summary>
@@ -219,6 +380,42 @@ namespace FerrySim.Core.Serialization
 			Number(writer, station.North);
 			writer.WritePropertyName("east_m");
 			Number(writer, station.East);
+		}
+
+		private static void Derivation(JsonWriter writer, CurrentStationDerivation derivation)
+		{
+			writer.WritePropertyName("derivation");
+			writer.WriteStartObject();
+			Property(writer, "method", derivation.Method);
+			Property(writer, "reference_station", derivation.ReferenceStation);
+			writer.WritePropertyName("reference_bin");
+			writer.WriteValue(derivation.ReferenceBin);
+			NumberProperty(writer, "slack_before_flood_min", derivation.SlackBeforeFloodMinutes);
+			NumberProperty(writer, "max_flood_min", derivation.MaximumFloodMinutes);
+			NumberProperty(writer, "slack_before_ebb_min", derivation.SlackBeforeEbbMinutes);
+			NumberProperty(writer, "max_ebb_min", derivation.MaximumEbbMinutes);
+			NumberProperty(writer, "flood_ratio", derivation.FloodRatio);
+			NumberProperty(writer, "ebb_ratio", derivation.EbbRatio);
+			NumberProperty(writer, "flood_dir_deg", derivation.FloodDirectionDegrees);
+			NumberProperty(writer, "ebb_dir_deg", derivation.EbbDirectionDegrees);
+			writer.WritePropertyName("sources");
+			writer.WriteStartArray();
+			foreach (var source in derivation.Sources)
+			{
+				writer.WriteStartObject();
+				Property(writer, "name", source.Name);
+				Property(writer, "sha256", source.Sha256);
+				writer.WriteEndObject();
+			}
+
+			writer.WriteEndArray();
+			writer.WriteEndObject();
+		}
+
+		private static void NumberProperty(JsonWriter writer, string name, double value)
+		{
+			writer.WritePropertyName(name);
+			Number(writer, value);
 		}
 
 		private static void Sources(JsonWriter writer, EnvironmentStation station)

@@ -1,16 +1,21 @@
 """Checksum-first raw cache access; only new CO-OPS files enter our own cache."""
+import io
 import json
 import os
 import re
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
+import numpy as np
 import pandas as pd
 
 from ferrydata import coops, fetcher, geodesy, manifest, paths
-from ferrydata.environment import series
+from ferrydata.environment import series, subordinate
 
 SOURCE = 'coops-environment'
+# Reference series and events reach this far beyond a week's coverage, so every subordinate sample is bracketed by
+# shifted events (offsets here are at most a few hours) and every warped time lies inside the reference series.
+REFERENCE_MARGIN = timedelta(hours=12)
 
 
 def checked_bytes(m, name, path):
@@ -174,6 +179,64 @@ class Inputs:
 			predicted=sum(r[3] == 'predicted' for r in rows), min_m=min(r[2] for r in rows), max_m=max(r[2] for r in rows),
 			first_s=rows[0][1], last_s=rows[-1][1])
 		return metadata, rows, [f'Water {station["id"]}: {note}' for note in notes], stats
+
+	def subordinate_offsets(self, station_id):
+		name = f'offsets_{station_id}.json'
+		payload = self.json(name, f'{coops.MDAPI}/stations/{station_id}.json?expand=currentpredictionoffsets&units=metric')
+		station = payload['stations'][0]
+		return subordinate.offsets(station), station, name
+
+	def _prediction_window(self, station_id, bin_, week, interval, name):
+		start = series.epoch(week) + timedelta(seconds=series.COVERAGE[0]) - REFERENCE_MARGIN
+		end = series.epoch(week) + timedelta(days=6, seconds=series.COVERAGE[1]) + REFERENCE_MARGIN
+		params = dict(product='currents_predictions', station=station_id, bin=bin_, begin_date=start.strftime('%Y%m%d %H:%M'),
+			end_date=end.strftime('%Y%m%d %H:%M'), interval=interval, time_zone='gmt', units='metric', format='csv')
+		return self.get(name, f'{coops.API}?{urlencode(params)}').decode('utf-8')
+
+	def reference_predictions(self, station_id, bin_, week):
+		"""A reference station's 6-minute signed major-axis predictions for a scenario week, (seconds since the week's epoch, m/s)."""
+		name = f'currents_{station_id}_bin{bin_}_{week}.csv'
+		frame = coops.parse_currents_csv(self._prediction_window(station_id, bin_, week, '6', name))
+		if frame.empty or sorted(set(frame['bin'])) != [bin_]:
+			raise ValueError(f'{name}: expected bin {bin_} predictions')
+		t = (pd.to_datetime(frame['time_utc'], utc=True) - pd.Timestamp(series.epoch(week))).dt.total_seconds().to_numpy()
+		return t, frame['velocity_major_mps'].to_numpy(), name
+
+	def prediction_events(self, station_id, bin_, week):
+		"""MAX_SLACK events for a scenario week, times in seconds since the week's epoch, velocities in m/s."""
+		name = f'events_{station_id}_bin{bin_}_{week}.csv'
+		text = self._prediction_window(station_id, bin_, week, 'MAX_SLACK', name)
+		coops._check_api_text(text)
+		raw = pd.read_csv(io.StringIO(text), skipinitialspace=True)
+		if raw.empty or sorted(set(raw['Bin'])) != [bin_]:
+			raise ValueError(f'{name}: expected bin {bin_} events')
+		t = (pd.to_datetime(raw['Time'], utc=True) - pd.Timestamp(series.epoch(week))).dt.total_seconds()
+		events = [subordinate.Event(float(s), str(kind).strip(), float(v) / 100.) for s, kind, v in zip(t, raw['Type'], raw['Velocity_Major'])]
+		return events, name
+
+	def subordinate_current(self, station_id, day):
+		"""A subordinate station's day series by NOAA's method, plus what it was made from and the published events."""
+		o, station, offsets_name = self.subordinate_offsets(station_id)
+		week = next(w for w in series.WEEKS if 0 <= (datetime.fromisoformat(day)-datetime.fromisoformat(w)).days < 7)
+		ref_t, ref_v, ref_name = self.reference_predictions(o.reference, o.reference_bin, week)
+		ref_events, events_name = self.prediction_events(o.reference, o.reference_bin, week)
+		published, published_name = self.prediction_events(station_id, int(station['currbin']), week)
+		day_offset = (series.epoch(day) - series.epoch(week)).total_seconds()
+		times = np.arange(series.COVERAGE[0], series.COVERAGE[1] + 1, series.CADENCE, dtype=float)
+		velocity = subordinate.series(times + day_offset, ref_t, ref_v, ref_events, o)
+		north, east = subordinate.components(velocity, o)
+		metadata = dict(**location(station), kind='subordinate-prediction', bin_depth_m=None,
+			**self.reference(ref_name))
+		derivation = dict(method='noaa-subordinate', reference_station=o.reference, reference_bin=o.reference_bin,
+			slack_before_flood_min=o.slack_before_flood_s / 60., max_flood_min=o.max_flood_s / 60.,
+			slack_before_ebb_min=o.slack_before_ebb_s / 60., max_ebb_min=o.max_ebb_s / 60.,
+			flood_ratio=o.flood_ratio, ebb_ratio=o.ebb_ratio, flood_dir_deg=o.flood_dir, ebb_dir_deg=o.ebb_dir,
+			sources=[dict(name=name, sha256=self.manifest.files[name]['sha256']) for name in (offsets_name, ref_name, events_name)])
+		rows = [(station_id, float(t), float(n), float(e)) for t, n, e in zip(times, north, east)]
+		inputs = dict(offsets=o, reference_t=ref_t - day_offset, reference_v=ref_v,
+			reference_events=[subordinate.Event(e.t - day_offset, e.kind, e.velocity) for e in ref_events],
+			published=[subordinate.Event(e.t - day_offset, e.kind, e.velocity) for e in published], published_source=published_name)
+		return metadata, derivation, rows, velocity, inputs
 
 	def wind(self, station, day, week):
 		payload, name = self.window('wind', station['id'], week)

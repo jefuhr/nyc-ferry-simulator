@@ -16,7 +16,10 @@ namespace FerrySim.Core.Serialization
 	/// <c>grids</c> order its file name, NUL, the file's bytes, NUL.</item>
 	/// <item>Day digest: SHA-256 over <c>manifest.json</c>, NUL, the day manifest's bytes, NUL; then currents.csv,
 	/// water_levels.csv and wind.csv in that order, each as name, NUL, bytes, NUL; then the depth digest's 64 hex
-	/// characters and a NUL.</item>
+	/// characters and a NUL; then, only when the day names a current field (<c>field_digest</c>), the field digest's 64
+	/// hex characters and a NUL.</item>
+	/// <item>Field digest: SHA-256 over <c>manifest.json</c>, NUL, the field manifest's bytes, NUL; then for each grid in
+	/// <c>grids</c> order its values file and its stations file, each as name, NUL, bytes, NUL.</item>
 	/// </list>
 	/// </summary>
 	public static class EnvironmentPackDigests
@@ -40,27 +43,22 @@ namespace FerrySim.Core.Serialization
 		}
 
 		/// <summary>The depth digest from the depth manifest's bytes and each grid's file name and bytes, in grid order.</summary>
-		public static string DepthDigest(byte[] manifest, IReadOnlyList<string> gridFileNames, IReadOnlyList<byte[]> gridFiles)
-		{
-			if (gridFileNames.Count != gridFiles.Count)
-			{
-				throw new ArgumentException("One file's bytes per grid file name is needed.");
-			}
+		public static string DepthDigest(byte[] manifest, IReadOnlyList<string> gridFileNames, IReadOnlyList<byte[]> gridFiles) =>
+			FilesDigest(manifest, gridFileNames, gridFiles);
 
-			using (var stream = new MemoryStream())
-			{
-				Append(stream, ManifestFile, manifest);
-				for (var i = 0; i < gridFiles.Count; i++)
-				{
-					Append(stream, gridFileNames[i], gridFiles[i]);
-				}
-
-				return Sha256Hex(stream.ToArray());
-			}
-		}
+		/// <summary>
+		/// The field digest from the field manifest's bytes and each grid's values file then stations file, name and bytes,
+		/// in grid order.
+		/// </summary>
+		public static string FieldDigest(byte[] manifest, IReadOnlyList<string> fileNames, IReadOnlyList<byte[]> files) =>
+			FilesDigest(manifest, fileNames, files);
 
 		/// <summary>The day digest from the day manifest's bytes, the three series files' bytes (in <see cref="SeriesFiles"/> order) and the depth digest.</summary>
-		public static string DayDigest(byte[] manifest, IReadOnlyList<byte[]> seriesFiles, string depthDigest)
+		public static string DayDigest(byte[] manifest, IReadOnlyList<byte[]> seriesFiles, string depthDigest) =>
+			DayDigest(manifest, seriesFiles, depthDigest, null);
+
+		/// <summary>The day digest of a day that names a current field (or none, when <paramref name="fieldDigest"/> is null).</summary>
+		public static string DayDigest(byte[] manifest, IReadOnlyList<byte[]> seriesFiles, string depthDigest, string fieldDigest)
 		{
 			if (seriesFiles.Count != SeriesFiles.Count)
 			{
@@ -75,9 +73,12 @@ namespace FerrySim.Core.Serialization
 					Append(stream, SeriesFiles[i], seriesFiles[i]);
 				}
 
-				var depth = Encoding.ASCII.GetBytes(depthDigest);
-				stream.Write(depth, 0, depth.Length);
-				stream.WriteByte(0);
+				AppendDigest(stream, depthDigest);
+				if (fieldDigest != null)
+				{
+					AppendDigest(stream, fieldDigest);
+				}
+
 				return Sha256Hex(stream.ToArray());
 			}
 		}
@@ -183,6 +184,32 @@ namespace FerrySim.Core.Serialization
 			var power = decimalPoint - 1;
 			builder.Append('e').Append(power < 0 ? '-' : '+').Append(Math.Abs(power).ToString("00", CultureInfo.InvariantCulture));
 			return builder.ToString();
+		}
+
+		private static string FilesDigest(byte[] manifest, IReadOnlyList<string> fileNames, IReadOnlyList<byte[]> files)
+		{
+			if (fileNames.Count != files.Count)
+			{
+				throw new ArgumentException("One file's bytes per file name is needed.");
+			}
+
+			using (var stream = new MemoryStream())
+			{
+				Append(stream, ManifestFile, manifest);
+				for (var i = 0; i < files.Count; i++)
+				{
+					Append(stream, fileNames[i], files[i]);
+				}
+
+				return Sha256Hex(stream.ToArray());
+			}
+		}
+
+		private static void AppendDigest(Stream stream, string digest)
+		{
+			var bytes = Encoding.ASCII.GetBytes(digest);
+			stream.Write(bytes, 0, bytes.Length);
+			stream.WriteByte(0);
 		}
 
 		private static void Append(Stream stream, string name, byte[] bytes)
