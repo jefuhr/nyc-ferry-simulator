@@ -7,6 +7,12 @@ Use only numbered claims as the retained factual baseline. The scope is the exac
 
 [River T-Class](vessel-t-class.md) · [85-foot Rockaway variant](vessel-t-class-rockaway.md) · [K-Class](vessel-k-class.md) · [Fleet identity](fleet-roster.md) · [Routes and landings](routes-and-landings.md) · [Harbor environment](harbor-environment.md) · [Regulations and incidents](regulations-and-procedures.md) · [Comparables](comparable-vessel-handling.md) · [Conflicts](conflicts.md) · [Crew questions](crew-questions.md) · [Source index](sources.md) · [Verification log](verification-log.md) · [Unverified leads and original-claim ledger](unverified-leads.md).
 
+## M3 environment and world research
+
+[Currents across the harbor](environment-currents.md) · [Wind and water levels](environment-wind-and-water.md) · [Harbor station list (CSV)](environment-stations.csv) · [World streaming spike](world-streaming-spike.md).
+
+Researched on 2026-10-24 and 2026-10-25 for M3 and reviewed before integration. These documents follow their own evidence notes rather than the numbered claims above. Coefficients marked *proposed, to be calibrated* are modelling choices, not verified facts. The streaming spike's measurements stand behind [decision 0004](../decisions/0004-harbor-world-local-3d-tiles.md).
+
 
 ## Top 10 handling unknowns
 
