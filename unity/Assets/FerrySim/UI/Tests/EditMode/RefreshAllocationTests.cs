@@ -9,7 +9,7 @@ namespace FerrySim.UI.Tests.EditMode
 	/// The panel and HUD refresh on every rendered frame, so their steady states must not make garbage (GC
 	/// spikes stutter the 3D view). Guards against per-frame allocations while there is no telemetry, while
 	/// the sample has not changed (paused, or several frames inside one physics step) with an alarm
-	/// flashing, and in the contact and alarm logic. Values that do change still format new strings.
+	/// flashing, and in the contact and alarm logic. Moving readouts have separate PlayMode coverage.
 	/// </summary>
 	public class RefreshAllocationTests
 	{

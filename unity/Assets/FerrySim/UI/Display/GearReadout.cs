@@ -60,9 +60,9 @@ namespace FerrySim.UI
 			Shaft == ShaftRotation.Stopped ? "STOPPED" :
 			InstrumentFormat.NoValue;
 
-		public static GearReadout From(EngineTelemetry engine)
+		public static GearReadout From(EngineTelemetry engine, bool formatShaftSpeed = true)
 		{
-			var shaftRpm = InstrumentFormat.Rpm(engine.ShaftSpeed);
+			var shaftRpm = formatShaftSpeed ? InstrumentFormat.Rpm(engine.ShaftSpeed) : InstrumentFormat.NoValue;
 			var shaft = ShaftDirection(engine.ShaftSpeed);
 			switch (engine.Gear)
 			{

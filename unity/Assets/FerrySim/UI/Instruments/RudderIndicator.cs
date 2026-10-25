@@ -14,6 +14,8 @@ namespace FerrySim.UI
 	/// </summary>
 	public sealed class RudderIndicator : VisualElement, IPaletteAware
 	{
+		private readonly ReadoutText _portText = new ReadoutText();
+		private readonly ReadoutText _starboardText = new ReadoutText();
 		private readonly Scale _scale;
 		private readonly Label _portValue;
 		private readonly Label _starboardValue;
@@ -56,8 +58,8 @@ namespace FerrySim.UI
 
 		public void SetAngles(double portRadians, double starboardRadians)
 		{
-			PaletteRoles.SetText(_portValue, InstrumentFormat.Rudder(portRadians));
-			PaletteRoles.SetText(_starboardValue, InstrumentFormat.Rudder(starboardRadians));
+			PaletteRoles.SetText(_portValue, _portText.Rudder(portRadians));
+			PaletteRoles.SetText(_starboardValue, _starboardText.Rudder(starboardRadians));
 			_scale.SetAngles(
 				InstrumentFormat.IsFinite(portRadians) ? DisplayUnits.Degrees(portRadians) : double.NaN,
 				InstrumentFormat.IsFinite(starboardRadians) ? DisplayUnits.Degrees(starboardRadians) : double.NaN);
@@ -136,7 +138,7 @@ namespace FerrySim.UI
 				VectorDraw.Line(painter, new Vector2(zero, topTrack.yMin), new Vector2(zero, bottomTrack.yMax), Palette.Scale, 1f);
 				if (InstrumentFormat.IsFinite(_scales.HardOverDegrees))
 				{
-					foreach (var side in new[] { -1.0, 1.0 })
+					for (var side = -1; side <= 1; side += 2)
 					{
 						var x = X(rect, side * _scales.HardOverDegrees);
 						VectorDraw.DashedLine(painter, new Vector2(x, topTrack.yMin), new Vector2(x, bottomTrack.yMax), Palette.TextDim, 1.5f, 3f, 3f);

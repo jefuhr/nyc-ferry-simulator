@@ -32,24 +32,28 @@ namespace FerrySim.World.EditorTools
 		/// <summary>Distance the camera may move before Cesium recentres the georeference on it, metres.</summary>
 		public const double OriginShiftDistance = 100.0;
 
-		public static void Build(PipelineData data)
+		public static void Build(PipelineData data, string worldFolder = GreyboxBuilder.WorldFolder)
 		{
+			var scenePath = WorldBuildPaths.At(worldFolder, ScenePath);
+			var previous = WorldFileIds.Read(scenePath);
+			var lightingPath = WorldBuildPaths.At(worldFolder, LightingPath);
+			var materialFolder = WorldBuildPaths.At(worldFolder, MaterialFolder);
 			var reference = data.Landings.FirstOrDefault(l => l.StopId == ReferenceStopId)
 				?? throw new InvalidOperationException($"GTFS stop {ReferenceStopId} is missing from landings.geojson.");
 
 			// A new single scene unloads unreferenced assets, so load everything after creating it.
 			var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-			var datum = AssetDatabase.LoadAssetAtPath<SliceDatum>(GreyboxBuilder.DatumPath);
-			var greybox = AssetDatabase.LoadAssetAtPath<GameObject>(GreyboxBuilder.PrefabPath);
+			var datum = AssetDatabase.LoadAssetAtPath<SliceDatum>(WorldBuildPaths.At(worldFolder, GreyboxBuilder.DatumPath));
+			var greybox = AssetDatabase.LoadAssetAtPath<GameObject>(WorldBuildPaths.At(worldFolder, GreyboxBuilder.PrefabPath));
 			if (datum == null || !datum.IsPopulated || greybox == null)
 			{
 				throw new InvalidOperationException("Build the greybox first (FerrySim > World > Rebuild Greybox From Pipeline Data).");
 			}
 
-			GreyboxBuilder.EnsureFolder(MaterialFolder);
-			GreyboxBuilder.EnsureFolder(GreyboxBuilder.WorldFolder + "/Scenes");
-			var waterMaterial = UpsertMaterial(WaterMaterialPath, "FerrySim/Water", null);
-			var skyMaterial = UpsertMaterial(SkyMaterialPath, "FerrySim/Sky", null);
+			GreyboxBuilder.EnsureFolder(materialFolder);
+			GreyboxBuilder.EnsureFolder(worldFolder + "/Scenes");
+			var waterMaterial = UpsertMaterial(WorldBuildPaths.At(worldFolder, WaterMaterialPath), "FerrySim/Water", null);
+			var skyMaterial = UpsertMaterial(WorldBuildPaths.At(worldFolder, SkyMaterialPath), "FerrySim/Sky", null);
 
 			// Georeference first: anchors added under it take their ECEF pose from its origin.
 			var georeferenceObject = new GameObject("CesiumGeoreference");
@@ -131,11 +135,11 @@ namespace FerrySim.World.EditorTools
 			RenderSettings.sun = light;
 			sun.SetLocalTime(2026, 6, 15, 12.0);
 
-			var lighting = AssetDatabase.LoadAssetAtPath<LightingSettings>(LightingPath);
+			var lighting = AssetDatabase.LoadAssetAtPath<LightingSettings>(lightingPath);
 			if (lighting == null)
 			{
 				lighting = new LightingSettings { name = "LowerEastRiverLighting" };
-				AssetDatabase.CreateAsset(lighting, LightingPath);
+				AssetDatabase.CreateAsset(lighting, lightingPath);
 			}
 
 			lighting.bakedGI = false;
@@ -148,12 +152,13 @@ namespace FerrySim.World.EditorTools
 			check.Configure(georeference, worldFrame, reference.StopName, reference.Latitude, reference.Longitude,
 				$"NYC Ferry GTFS stop {reference.StopId} via data/processed/{PipelineData.DefaultSlice}/landings.geojson");
 
-			if (!EditorSceneManager.SaveScene(scene, ScenePath))
+			if (!EditorSceneManager.SaveScene(scene, scenePath))
 			{
-				throw new InvalidOperationException("Could not save " + ScenePath);
+				throw new InvalidOperationException("Could not save " + scenePath);
 			}
 
 			AssetDatabase.SaveAssets();
+			WorldFileIds.Stabilize(scenePath, previous);
 		}
 
 		private static Material UpsertMaterial(string path, string shaderName, Action<Material> configure)
