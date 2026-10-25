@@ -12,6 +12,18 @@ namespace FerrySim.Core.Dynamics
 			double rudderX, double rudderY, double rudderN,
 			double windX, double windY, double windN,
 			double contactX, double contactY, double contactN)
+			: this(hullX, hullY, hullN, propellerX, propellerY, propellerN, rudderX, rudderY, rudderN, windX, windY, windN,
+				contactX, contactY, contactN, 0.0, 0.0, 0.0)
+		{
+		}
+
+		public ForceBreakdown(
+			double hullX, double hullY, double hullN,
+			double propellerX, double propellerY, double propellerN,
+			double rudderX, double rudderY, double rudderN,
+			double windX, double windY, double windN,
+			double contactX, double contactY, double contactN,
+			double groundingX, double groundingY, double groundingN)
 		{
 			HullX = hullX;
 			HullY = hullY;
@@ -28,6 +40,9 @@ namespace FerrySim.Core.Dynamics
 			ContactX = contactX;
 			ContactY = contactY;
 			ContactN = contactN;
+			GroundingX = groundingX;
+			GroundingY = groundingY;
+			GroundingN = groundingN;
 		}
 
 		public double HullX { get; }
@@ -59,6 +74,12 @@ namespace FerrySim.Core.Dynamics
 		public double ContactY { get; }
 
 		public double ContactN { get; }
+
+		public double GroundingX { get; }
+
+		public double GroundingY { get; }
+
+		public double GroundingN { get; }
 	}
 
 	/// <summary>
@@ -73,10 +94,17 @@ namespace FerrySim.Core.Dynamics
 	/// substeps with the hull's inflow held, and the environment is sampled once per step.
 	/// </para>
 	/// <para>
+	/// The current is also sampled along the hull (<see cref="CurrentAlongHull"/>). Where it differs from the reference
+	/// point's, the hull, propellers and rudders see the motion relative to the local water, so a current stronger at
+	/// one end yaws the boat and a shear pushes it sideways; in a uniform current the step is exactly the
+	/// reference-point one.
+	/// </para>
+	/// <para>
 	/// With world geometry, each step queries the structures near the hull (up to
 	/// <see cref="MaximumSegments"/>). When some part of the outline is in contact or could reach a face within
 	/// the step, the rigid body advances in ten 1 ms Runge-Kutta substeps with the contact forces of
-	/// <see cref="ContactModel"/> added; otherwise the step is exactly the open-water one.
+	/// <see cref="ContactModel"/> added; otherwise the step is exactly the open-water one. A step that starts with the
+	/// bed above the keel takes the same substeps with the bed friction of <see cref="GroundingModel"/>.
 	/// </para>
 	/// </summary>
 	public sealed class VesselDynamicsSimulation : ISimulation
@@ -102,9 +130,12 @@ namespace FerrySim.Core.Dynamics
 		private const double QueryMargin = 5.0;
 
 		private readonly IEnvironment _environment;
+		private readonly bool _uniformEnvironment;
 		private readonly IWorldGeometry _geometry;
 		private readonly ContactModel _contact;
 		private readonly double _contactMass;
+		private readonly CurrentAlongHull _alongHull;
+		private readonly GroundingModel _grounding;
 
 		// One more than the most segments used, so a query that fills it is known to have left some out.
 		private readonly ContactSegment[] _segments;
@@ -137,6 +168,10 @@ namespace FerrySim.Core.Dynamics
 		private ContactLoad _contactLoad;
 		private bool _segmentQuerySaturated;
 		private long _saturatedSegmentQueries;
+		private bool _currentVaries;
+		private double _penetration;
+		private double _bedLoad;
+		private GroundingState _groundingState;
 
 		// Held over one step.
 		private ShallowWaterFactors _factors;
@@ -153,6 +188,8 @@ namespace FerrySim.Core.Dynamics
 		private double _surgeAcceleration;
 		private bool _contactActive;
 		private double _slipSpeed;
+		private bool _groundingActive;
+		private double _bedSlipSpeed;
 
 		/// <summary>A vessel in open water, with no fixed structures to touch.</summary>
 		public VesselDynamicsSimulation(VesselParameters parameters, IEnvironment environment, in VesselState initialState)
@@ -168,6 +205,7 @@ namespace FerrySim.Core.Dynamics
 		{
 			Parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
 			_environment = environment ?? throw new ArgumentNullException(nameof(environment));
+			_uniformEnvironment = environment is UniformEnvironment;
 			_geometry = geometry ?? throw new ArgumentNullException(nameof(geometry));
 
 			var particulars = Required.Section(parameters.Particulars, "particulars");
@@ -212,6 +250,7 @@ namespace FerrySim.Core.Dynamics
 				: Required.Positive(maxDraft, "particulars.maxDraft");
 
 			_segments = Array.Empty<ContactSegment>();
+			var translational = Math.Min(_mass + _hull.SurgeAddedMass, _mass + _hull.SwayAddedMass);
 			if (!(geometry is EmptyWorldGeometry))
 			{
 				_contact = new ContactModel(parameters, MaximumSegments);
@@ -219,10 +258,15 @@ namespace FerrySim.Core.Dynamics
 
 				// A conservative effective mass for a tangential push anywhere on the outline: the lighter
 				// translational mass with the yaw inertia acting at the farthest outline point.
-				var translational = Math.Min(_mass + _hull.SurgeAddedMass, _mass + _hull.SwayAddedMass);
 				var lever = _contact.BoundingRadius + Math.Abs(_centreOfGravityX);
 				_contactMass = 1.0 / (1.0 / translational + lever * lever / (_yawInertia + _hull.YawAddedInertia));
 			}
+
+			// The same for a push at the farthest keel point, for the bed friction.
+			var keelEnd = Math.Abs(_hull.StripPosition(0));
+			var keelLever = Math.Sqrt(keelEnd * keelEnd + 0.25 * _hull.DemihullSeparation * _hull.DemihullSeparation) + Math.Abs(_centreOfGravityX);
+			_alongHull = new CurrentAlongHull(_hull);
+			_grounding = new GroundingModel(parameters, _hull, 1.0 / (1.0 / translational + keelLever * keelLever / (_yawInertia + _hull.YawAddedInertia)));
 
 			Reset(initialState);
 		}
@@ -251,6 +295,18 @@ namespace FerrySim.Core.Dynamics
 
 		/// <summary>Rudder angle the steering gear is driving toward, rad.</summary>
 		public double RudderOrder => _steering.Order;
+
+		/// <summary>
+		/// False samples the current at the reference point only, as v0.1.0 did, kept so the two can be compared in one
+		/// build. In a uniform current they agree in every bit. True unless changed; change it before <see cref="Reset"/>.
+		/// </summary>
+		public bool UseCurrentAlongHull { get; set; } = true;
+
+		/// <summary>The bed under the hull at the end of the last step: grounded flag, penetration, bed load and friction.</summary>
+		public GroundingState Grounding => _groundingState;
+
+		/// <summary>The current along the hull from the last sample, as differences from the reference point's.</summary>
+		public CurrentAlongHull CurrentAlongHull => _alongHull;
 
 		/// <summary>Module forces at the start of the last step.</summary>
 		public ForceBreakdown LastForces => _forces;
@@ -329,23 +385,35 @@ namespace FerrySim.Core.Dynamics
 		{
 			const double dt = SimulationClock.FixedTimeStep;
 
-			_factors = _shallow.Evaluate(_depth, _surge);
+			// Through the water the hull and the propellers see their own water when the current varies along the hull.
+			var hullSurge = _surge;
+			var propellerSurge = _surge;
+			if (_currentVaries)
+			{
+				_alongHull.Resolve(Math.Cos(_heading), Math.Sin(_heading), out var currentSurge, out _, out var surgeSlope, out _);
+				hullSurge = _surge - currentSurge;
+				propellerSurge = _surge - (currentSurge + surgeSlope * _propeller.LongitudinalPosition);
+			}
+
+			_factors = _shallow.Evaluate(_depth, hullSurge);
 			_steering.Step(controls.Helm, dt);
 			_rudderAngle = _steering.Angle;
 
 			_portControl.Step(controls.PortLever, _portDriveline.EngineSpeed, dt);
 			_starboardControl.Step(controls.StarboardLever, _starboardDriveline.EngineSpeed, dt);
 			_portDriveline.Step(dt, DrivelineSubsteps, _portControl.Throttle, _portControl.ClutchDirection, _portControl.ClutchPressure,
-				_propeller.AdvanceSpeed(PortSide, _surge, _yawRate));
+				_propeller.AdvanceSpeed(PortSide, propellerSurge, _yawRate));
 			_starboardDriveline.Step(dt, DrivelineSubsteps, _starboardControl.Throttle, _starboardControl.ClutchDirection, _starboardControl.ClutchPressure,
-				_propeller.AdvanceSpeed(StarboardSide, _surge, _yawRate));
+				_propeller.AdvanceSpeed(StarboardSide, propellerSurge, _yawRate));
 			_portShaftSpeed = _portDriveline.ShaftSpeed;
 			_starboardShaftSpeed = _starboardDriveline.ShaftSpeed;
 
 			UpdateMassMatrix();
-			if (PrepareContact())
+			var touching = PrepareContact();
+			_groundingActive = _bedLoad > 0.0;
+			if (touching || _groundingActive)
 			{
-				IntegrateWithContact(dt);
+				IntegrateWithContact(dt, touching);
 			}
 			else
 			{
@@ -371,6 +439,14 @@ namespace FerrySim.Core.Dynamics
 			_current = _environment.SampleCurrent(_north, _east, time);
 			_wind = _environment.SampleWind(_north, _east, time);
 			_depth = _environment.SampleDepth(_north, _east, time);
+
+			// A uniform environment's current is the same along the hull, so it needs no samples there.
+			_currentVaries = UseCurrentAlongHull && !_uniformEnvironment && _alongHull.Sample(_environment, _north, _east, _heading, time, _current);
+
+			// The bed above the keel holds the hull through the next step.
+			var penetration = KeelDraft - _depth;
+			_penetration = penetration > 0.0 ? penetration : 0.0;
+			_bedLoad = _grounding.BedLoad(_penetration);
 		}
 
 		private void UpdateMassMatrix()
@@ -390,31 +466,57 @@ namespace FerrySim.Core.Dynamics
 				ref _north, ref _east, ref _heading, ref _surge, ref _sway, ref _yawRate);
 		}
 
-		// A step that may touch a structure: ContactSubsteps Runge-Kutta substeps with the contact forces at
-		// each stage's pose and velocity. The slip speed regularising friction and hysteresis is set per substep,
-		// and the parts of the hull in contact are updated after each one.
-		private void IntegrateWithContact(double dt)
+		// A step that may touch a structure or starts aground: ContactSubsteps Runge-Kutta substeps with the contact
+		// forces (when touching) and the bed friction (when aground) at each stage's pose and velocity. The slip speed
+		// regularising friction and hysteresis is set per substep, and the parts of the hull in contact are updated
+		// after each one. The bed's load is held for the step, and so is its slip speed.
+		private void IntegrateWithContact(double dt, bool touching)
 		{
 			var h = dt / ContactSubsteps;
-			_contactActive = true;
-			_contact.Begin(_north, _east, _heading);
+			_contactActive = touching;
+			if (touching)
+			{
+				_contact.Begin(_north, _east, _heading);
+			}
+
+			if (_groundingActive)
+			{
+				_bedSlipSpeed = _grounding.SlipSpeed(_bedLoad, h);
+			}
+
 			for (var substep = 0; substep < ContactSubsteps; substep++)
 			{
-				_slipSpeed = SlipSpeed(h);
+				if (touching)
+				{
+					_slipSpeed = SlipSpeed(h);
+				}
+
 				var first = substep == 0;
 				var surgeAcceleration = PlanarRungeKutta.Step(new RigidBodyRates(this, first), h,
 					ref _north, ref _east, ref _heading, ref _surge, ref _sway, ref _yawRate);
-				_contact.Commit(_north, _east, _heading);
+				if (touching)
+				{
+					_contact.Commit(_north, _east, _heading);
+				}
+
 				if (first)
 				{
 					// The pitch layer models acceleration from thrust below the centre of gravity; contact
-					// loads act near the fender line, so they are left out of it.
+					// loads act near the fender line, so they are left out of it. Bed friction, at the keel, stays in.
 					_surgeAcceleration = surgeAcceleration - _forces.ContactX / _surgeMass;
 				}
 			}
 
 			_contactActive = false;
-			RecordContact();
+			_groundingActive = false;
+			if (touching)
+			{
+				RecordContact();
+			}
+			else
+			{
+				ClearContact();
+			}
 		}
 
 		// Queries the structures the hull could reach this step. True when some part of the outline is in
@@ -482,15 +584,38 @@ namespace FerrySim.Core.Dynamics
 		private void Derivatives(double north, double east, double heading, double u, double v, double r, bool record,
 			out double northRate, out double eastRate, out double surgeRate, out double swayRate, out double yawAcceleration)
 		{
-			_hull.Forces(u, v, r, _factors, out var hullX, out var hullY, out var hullN);
-			Appendages(PortSide, _portShaftSpeed, u, v, r, out var portPropX, out var portPropY, out var portPropN, out var portRudderX, out var portRudderY, out var portRudderN);
-			Appendages(StarboardSide, _starboardShaftSpeed, u, v, r, out var stbdPropX, out var stbdPropY, out var stbdPropN, out var stbdRudderX, out var stbdRudderY, out var stbdRudderN);
+			double hullX, hullY, hullN, portPropX, portPropY, portPropN, portRudderX, portRudderY, portRudderN;
+			double stbdPropX, stbdPropY, stbdPropN, stbdRudderX, stbdRudderY, stbdRudderN, cos, sin, waterSurge, waterSway;
+			if (_currentVaries)
+			{
+				// The hull moves through its own water: the reference point's velocity relative to the current's line along
+				// the hull, whose slope turns like a yaw rate, and each strip's leftover for the cross-flow drag. The
+				// propellers see the water at their own station and the rudders the line's.
+				cos = Math.Cos(heading);
+				sin = Math.Sin(heading);
+				_alongHull.Resolve(cos, sin, out var currentSurge, out var currentSway, out var surgeSlope, out var swaySlope);
+				waterSurge = u - currentSurge;
+				waterSway = v - currentSway;
+				var waterYawRate = r - swaySlope;
+				_hull.Forces(waterSurge, waterSway, waterYawRate, _factors, _alongHull.Residuals(cos, sin, currentSway, swaySlope), out hullX, out hullY, out hullN);
+				var propellerSurge = u - (currentSurge + surgeSlope * _propeller.LongitudinalPosition);
+				Appendages(PortSide, _portShaftSpeed, propellerSurge, r, waterSway, waterYawRate, out portPropX, out portPropY, out portPropN, out portRudderX, out portRudderY, out portRudderN);
+				Appendages(StarboardSide, _starboardShaftSpeed, propellerSurge, r, waterSway, waterYawRate, out stbdPropX, out stbdPropY, out stbdPropN, out stbdRudderX, out stbdRudderY, out stbdRudderN);
+			}
+			else
+			{
+				_hull.Forces(u, v, r, _factors, out hullX, out hullY, out hullN);
+				Appendages(PortSide, _portShaftSpeed, u, r, v, r, out portPropX, out portPropY, out portPropN, out portRudderX, out portRudderY, out portRudderN);
+				Appendages(StarboardSide, _starboardShaftSpeed, u, r, v, r, out stbdPropX, out stbdPropY, out stbdPropN, out stbdRudderX, out stbdRudderY, out stbdRudderN);
+				cos = Math.Cos(heading);
+				sin = Math.Sin(heading);
+				waterSurge = u;
+				waterSway = v;
+			}
 
-			var cos = Math.Cos(heading);
-			var sin = Math.Sin(heading);
 			northRate = u * cos - v * sin + _current.North;
 			eastRate = u * sin + v * cos + _current.East;
-			_windage.Forces(_wind, new HorizontalVector(northRate, eastRate), heading, u, v, out var windX, out var windY, out var windN);
+			_windage.Forces(_wind, new HorizontalVector(northRate, eastRate), heading, waterSurge, waterSway, out var windX, out var windY, out var windN);
 
 			var x = hullX + portPropX + stbdPropX + portRudderX + stbdRudderX + windX;
 			var y = hullY + portPropY + stbdPropY + portRudderY + stbdRudderY + windY;
@@ -504,6 +629,20 @@ namespace FerrySim.Core.Dynamics
 				x += contactX;
 				y += contactY;
 				n += contactN;
+			}
+
+			var groundingX = 0.0;
+			var groundingY = 0.0;
+			var groundingN = 0.0;
+			if (_groundingActive)
+			{
+				// The bed resists the keel's motion over the ground.
+				var groundSurge = u + _current.North * cos + _current.East * sin;
+				var groundSway = v - _current.North * sin + _current.East * cos;
+				_grounding.Forces(groundSurge, groundSway, r, _bedLoad, _bedSlipSpeed, out groundingX, out groundingY, out groundingN);
+				x += groundingX;
+				y += groundingY;
+				n += groundingN;
 			}
 
 			// MMG equations of motion at midships (Yasukawa and Yoshimura 2015, eq. 4).
@@ -522,11 +661,14 @@ namespace FerrySim.Core.Dynamics
 					portPropX + stbdPropX, portPropY + stbdPropY, portPropN + stbdPropN,
 					portRudderX + stbdRudderX, portRudderY + stbdRudderY, portRudderN + stbdRudderN,
 					windX, windY, windN,
-					contactX, contactY, contactN);
+					contactX, contactY, contactN,
+					groundingX, groundingY, groundingN);
 			}
 		}
 
-		private void Appendages(int side, double shaftSpeed, double u, double v, double r,
+		// One propeller and its rudder: the propeller's inflow from the surge through the water at it and the yaw rate,
+		// the rudder's cross flow from the sway and yaw rate it sees.
+		private void Appendages(int side, double shaftSpeed, double u, double r, double v, double rudderYawRate,
 			out double propX, out double propY, out double propN, out double rudderX, out double rudderY, out double rudderN)
 		{
 			var advance = _propeller.AdvanceSpeed(side, u, r);
@@ -537,7 +679,7 @@ namespace FerrySim.Core.Dynamics
 			propY = walk;
 			propN = -_propeller.LateralPosition(side) * hullThrust + _propeller.LongitudinalPosition * walk;
 			var jet = _propeller.SlipstreamSpeed(thrust, advance);
-			_rudder.Forces(side, _rudderAngle, v, r, advance, jet, _propeller.SlipstreamFactor, _propeller.UpstreamInflowFactor,
+			_rudder.Forces(side, _rudderAngle, v, rudderYawRate, advance, jet, _propeller.SlipstreamFactor, _propeller.UpstreamInflowFactor,
 				out rudderX, out rudderY, out rudderN);
 		}
 
@@ -550,6 +692,24 @@ namespace FerrySim.Core.Dynamics
 			State = new VesselState(time, _north, _east, _motion.Heave, _motion.Roll, _motion.Pitch, _heading,
 				groundSurge, groundSway, _motion.HeaveRate, _motion.RollRate, _motion.PitchRate, _yawRate);
 
+			// The bed's hold for the depth just sampled, at the velocity the next step starts from. Contact force is the
+			// resultant of every contact load, fenders and bed together.
+			var contactForce = _contactLoad.Magnitude;
+			if (_bedLoad > 0.0)
+			{
+				_grounding.Forces(groundSurge, groundSway, _yawRate, _bedLoad, _grounding.SlipSpeed(_bedLoad, SimulationClock.FixedTimeStep / ContactSubsteps),
+					out var bedX, out var bedY, out var bedN);
+				var bed = new ContactLoad(bedX * cos - bedY * sin, bedX * sin + bedY * cos, bedN, _heading);
+				_groundingState = new GroundingState(_penetration, _bedLoad, bed);
+				var north = _contactLoad.North + bed.North;
+				var east = _contactLoad.East + bed.East;
+				contactForce = Math.Sqrt(north * north + east * east);
+			}
+			else
+			{
+				_groundingState = new GroundingState(_penetration, 0.0, default);
+			}
+
 			var ground = State.GroundVelocity;
 			var speedOverGround = ground.Magnitude;
 			Telemetry = new VesselTelemetry(
@@ -561,7 +721,7 @@ namespace FerrySim.Core.Dynamics
 				speedOverGround,
 				speedOverGround > 1e-9 ? ground.Direction : _heading,
 				_depth - KeelDraft,
-				_contactLoad.Magnitude);
+				contactForce);
 		}
 
 		private static EngineTelemetry Gauges(Driveline driveline, EngineControl control) =>
