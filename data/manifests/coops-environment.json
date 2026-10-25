@@ -1,0 +1,236 @@
+{
+	"source": "coops-environment",
+	"description": "Scenario-day CO-OPS observations and prediction gap fills for ferrysim-env/1",
+	"homepage": "https://tidesandcurrents.noaa.gov/",
+	"license": "Public domain: NOAA CO-OPS data are produced by the US Government. Disclaimer and data use: https://tidesandcurrents.noaa.gov/disclaimers.html (NOAA asks that users cite NOAA CO-OPS as the source).",
+	"terms_url": "https://tidesandcurrents.noaa.gov/disclaimers.html",
+	"notes": [
+		"UTC, metric; water levels and predictions use NAVD (NAVD88). Raw API no-data JSON is preserved, never converted to zero observations."
+	],
+	"files": [
+		{
+			"name": "datums_8516945.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8516945/datums.json?units=metric",
+			"retrieved_utc": "2026-10-25T03:03:59Z",
+			"sha256": "f953b42feb9d6dcbf4f466a824d821efacbcc1fb299d10dd022233722525d031",
+			"size_bytes": 2305
+		},
+		{
+			"name": "datums_8516990.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8516990/datums.json?units=metric",
+			"retrieved_utc": "2026-10-25T03:03:59Z",
+			"sha256": "7ec324e2c7f8ab53ff66b0e322f82b09c363f5edc5e0c97991b26ff9b22fed4f",
+			"size_bytes": 2219
+		},
+		{
+			"name": "datums_8518750.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8518750/datums.json?units=metric",
+			"retrieved_utc": "2026-10-25T03:03:58Z",
+			"sha256": "e99b3f733f8efd1b9f1d6f56a5baabeaba0c86d1a511c7f1235ab23b2ed2504e",
+			"size_bytes": 2221
+		},
+		{
+			"name": "datums_8519483.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8519483/datums.json?units=metric",
+			"retrieved_utc": "2026-10-25T03:03:58Z",
+			"sha256": "cafe664f56c3bd2c938770cdf617f0f97c6f3c9db8334a5b432a76c6cb27cf5c",
+			"size_bytes": 2132
+		},
+		{
+			"name": "predictions_8516990_2024-10-07.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&station=8516990&begin_date=20241007+03%3A00&end_date=20241014+05%3A00&time_zone=gmt&units=metric&format=json&datum=NAVD&interval=6",
+			"retrieved_utc": "2026-10-25T03:04:51Z",
+			"sha256": "840fb466beb3cad3cf64c5a6a96592d5c3c65e8c6abca8da1e8281ba7cddcbc1",
+			"size_bytes": 65314
+		},
+		{
+			"name": "predictions_8516990_2025-01-13.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&station=8516990&begin_date=20250113+04%3A00&end_date=20250120+06%3A00&time_zone=gmt&units=metric&format=json&datum=NAVD&interval=6",
+			"retrieved_utc": "2026-10-25T03:04:52Z",
+			"sha256": "80c0bcb2c3aca1a2747912ae0a042806d290f314079c4e6fba19df9efcc57f16",
+			"size_bytes": 65388
+		},
+		{
+			"name": "predictions_8516990_2025-04-14.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&station=8516990&begin_date=20250414+03%3A00&end_date=20250421+05%3A00&time_zone=gmt&units=metric&format=json&datum=NAVD&interval=6",
+			"retrieved_utc": "2026-10-25T03:04:53Z",
+			"sha256": "522bc1f734c885e57de700fd47d1ef9a42032104fcf7c81052c798494c53a19d",
+			"size_bytes": 65343
+		},
+		{
+			"name": "predictions_8516990_2025-07-14.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&station=8516990&begin_date=20250714+03%3A00&end_date=20250721+05%3A00&time_zone=gmt&units=metric&format=json&datum=NAVD&interval=6",
+			"retrieved_utc": "2026-10-25T03:04:53Z",
+			"sha256": "492d004e3996c616b8e0a5f0e720830380d0e4cf88ec964cb46813611b5268af",
+			"size_bytes": 65307
+		},
+		{
+			"name": "station_8516945.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8516945.json",
+			"retrieved_utc": "2026-10-25T03:03:59Z",
+			"sha256": "280f0088a6ce5d455b7ec4e341af216c9cb9e5191f1b1693b31c93806b78652b",
+			"size_bytes": 2634
+		},
+		{
+			"name": "station_8516990.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8516990.json",
+			"retrieved_utc": "2026-10-25T03:03:59Z",
+			"sha256": "265603da6dc5a8d3b7ed20b8495ee0de4a93a9dca4a4174e5970493f78087ece",
+			"size_bytes": 2634
+		},
+		{
+			"name": "station_8518750.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8518750.json",
+			"retrieved_utc": "2026-10-25T03:03:58Z",
+			"sha256": "c41566cb497253ced5c6b4e384a3091d97f02c5815b9700f275dd9017547399b",
+			"size_bytes": 2637
+		},
+		{
+			"name": "station_8519483.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8519483.json",
+			"retrieved_utc": "2026-10-25T03:03:58Z",
+			"sha256": "65f7fceb084b0fded47b878a535632752440a126954b11e899157be5dfc14fbd",
+			"size_bytes": 2643
+		},
+		{
+			"name": "water_level_8516945_2024-10-07.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8516945&begin_date=20241007+03%3A00&end_date=20241014+05%3A00&time_zone=gmt&units=metric&format=json&datum=NAVD",
+			"retrieved_utc": "2026-10-25T03:04:00Z",
+			"sha256": "22fa99cd479a8b3de485eda8766079a89495d084a9a7efaf6a6c96a8d552e540",
+			"size_bytes": 128025
+		},
+		{
+			"name": "water_level_8516945_2025-01-13.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8516945&begin_date=20250113+04%3A00&end_date=20250120+06%3A00&time_zone=gmt&units=metric&format=json&datum=NAVD",
+			"retrieved_utc": "2026-10-25T03:04:04Z",
+			"sha256": "35f8d3454ffd4a1777e17735fd3784e3f8697385cd2c46ed0a32336ce6462537",
+			"size_bytes": 128182
+		},
+		{
+			"name": "water_level_8516945_2025-04-14.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8516945&begin_date=20250414+03%3A00&end_date=20250421+05%3A00&time_zone=gmt&units=metric&format=json&datum=NAVD",
+			"retrieved_utc": "2026-10-25T03:04:05Z",
+			"sha256": "07ba2bf0435c01850e399533884e1d7416b3e470605cf58570042c76f233e86e",
+			"size_bytes": 128205
+		},
+		{
+			"name": "water_level_8516945_2025-07-14.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8516945&begin_date=20250714+03%3A00&end_date=20250721+05%3A00&time_zone=gmt&units=metric&format=json&datum=NAVD",
+			"retrieved_utc": "2026-10-25T03:04:08Z",
+			"sha256": "e477bd968f4257a2443bd212e3c76e7d118732b77e230dde3682c7c9c3ff95cf",
+			"size_bytes": 128153
+		},
+		{
+			"name": "water_level_8516990_2024-10-07.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8516990&begin_date=20241007+03%3A00&end_date=20241014+05%3A00&time_zone=gmt&units=metric&format=json&datum=NAVD",
+			"retrieved_utc": "2026-10-25T03:04:50Z",
+			"sha256": "500bdf8b7540e3b178fa94711e95e7bd7633578dac4778da5faed9dc45cbfb0f",
+			"size_bytes": 115
+		},
+		{
+			"name": "water_level_8516990_2025-01-13.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8516990&begin_date=20250113+04%3A00&end_date=20250120+06%3A00&time_zone=gmt&units=metric&format=json&datum=NAVD",
+			"retrieved_utc": "2026-10-25T03:04:51Z",
+			"sha256": "500bdf8b7540e3b178fa94711e95e7bd7633578dac4778da5faed9dc45cbfb0f",
+			"size_bytes": 115
+		},
+		{
+			"name": "water_level_8516990_2025-04-14.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8516990&begin_date=20250414+03%3A00&end_date=20250421+05%3A00&time_zone=gmt&units=metric&format=json&datum=NAVD",
+			"retrieved_utc": "2026-10-25T03:04:53Z",
+			"sha256": "500bdf8b7540e3b178fa94711e95e7bd7633578dac4778da5faed9dc45cbfb0f",
+			"size_bytes": 115
+		},
+		{
+			"name": "water_level_8516990_2025-07-14.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8516990&begin_date=20250714+03%3A00&end_date=20250721+05%3A00&time_zone=gmt&units=metric&format=json&datum=NAVD",
+			"retrieved_utc": "2026-10-25T03:04:53Z",
+			"sha256": "500bdf8b7540e3b178fa94711e95e7bd7633578dac4778da5faed9dc45cbfb0f",
+			"size_bytes": 115
+		},
+		{
+			"name": "water_level_8518750_2024-10-07.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8518750&begin_date=20241007+03%3A00&end_date=20241014+05%3A00&time_zone=gmt&units=metric&format=json&datum=NAVD",
+			"retrieved_utc": "2026-10-25T03:03:59Z",
+			"sha256": "bb5c018558e099fa52f9623ac1b2c5b57030b05a05a158dcc8ee65ccecdabe88",
+			"size_bytes": 127976
+		},
+		{
+			"name": "water_level_8518750_2025-01-13.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8518750&begin_date=20250113+04%3A00&end_date=20250120+06%3A00&time_zone=gmt&units=metric&format=json&datum=NAVD",
+			"retrieved_utc": "2026-10-25T03:04:02Z",
+			"sha256": "1a9007863e6ac41f6ef26b937a758af0e0f7ab168266a8a8816bb2e9caf1aef3",
+			"size_bytes": 128150
+		},
+		{
+			"name": "water_level_8518750_2025-04-14.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8518750&begin_date=20250414+03%3A00&end_date=20250421+05%3A00&time_zone=gmt&units=metric&format=json&datum=NAVD",
+			"retrieved_utc": "2026-10-25T03:04:05Z",
+			"sha256": "b68f9bbb331ac673eac7bc4c1624f210dc87fdb8781fa05fdd487296d1015839",
+			"size_bytes": 128187
+		},
+		{
+			"name": "water_level_8518750_2025-07-14.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8518750&begin_date=20250714+03%3A00&end_date=20250721+05%3A00&time_zone=gmt&units=metric&format=json&datum=NAVD",
+			"retrieved_utc": "2026-10-25T03:04:07Z",
+			"sha256": "9d83863f393975897059f1d5becff988525c3238e4d319a3152b1280320c3931",
+			"size_bytes": 128011
+		},
+		{
+			"name": "wind_8516945_2024-10-07.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=wind&station=8516945&begin_date=20241007+03%3A00&end_date=20241014+05%3A00&time_zone=gmt&units=metric&format=json",
+			"retrieved_utc": "2026-10-25T03:04:00Z",
+			"sha256": "8e9c049f373a754e71542c9d2214baafa0e94066d54663b5d4ed8ba1c1cfb3c3",
+			"size_bytes": 139854
+		},
+		{
+			"name": "wind_8516945_2025-01-13.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=wind&station=8516945&begin_date=20250113+04%3A00&end_date=20250120+06%3A00&time_zone=gmt&units=metric&format=json",
+			"retrieved_utc": "2026-10-25T03:04:04Z",
+			"sha256": "d81bc14903e0b8aa875c222cba27ff6729b69403727969b017f17ae97f0b9bfa",
+			"size_bytes": 140139
+		},
+		{
+			"name": "wind_8516945_2025-04-14.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=wind&station=8516945&begin_date=20250414+03%3A00&end_date=20250421+05%3A00&time_zone=gmt&units=metric&format=json",
+			"retrieved_utc": "2026-10-25T03:04:06Z",
+			"sha256": "23162ccf50a57277b52524fb0eb005340fe135e33aae93c25a059e25a4f83eed",
+			"size_bytes": 140583
+		},
+		{
+			"name": "wind_8516945_2025-07-14.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=wind&station=8516945&begin_date=20250714+03%3A00&end_date=20250721+05%3A00&time_zone=gmt&units=metric&format=json",
+			"retrieved_utc": "2026-10-25T03:04:08Z",
+			"sha256": "0c364ad32d9600acc9053709318ace03eed7f295332169814d8cfa1b3a6f1479",
+			"size_bytes": 139406
+		},
+		{
+			"name": "wind_8518750_2024-10-07.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=wind&station=8518750&begin_date=20241007+03%3A00&end_date=20241014+05%3A00&time_zone=gmt&units=metric&format=json",
+			"retrieved_utc": "2026-10-25T03:03:59Z",
+			"sha256": "500bdf8b7540e3b178fa94711e95e7bd7633578dac4778da5faed9dc45cbfb0f",
+			"size_bytes": 115
+		},
+		{
+			"name": "wind_8518750_2025-01-13.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=wind&station=8518750&begin_date=20250113+04%3A00&end_date=20250120+06%3A00&time_zone=gmt&units=metric&format=json",
+			"retrieved_utc": "2026-10-25T03:04:04Z",
+			"sha256": "500bdf8b7540e3b178fa94711e95e7bd7633578dac4778da5faed9dc45cbfb0f",
+			"size_bytes": 115
+		},
+		{
+			"name": "wind_8518750_2025-04-14.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=wind&station=8518750&begin_date=20250414+03%3A00&end_date=20250421+05%3A00&time_zone=gmt&units=metric&format=json",
+			"retrieved_utc": "2026-10-25T03:04:05Z",
+			"sha256": "500bdf8b7540e3b178fa94711e95e7bd7633578dac4778da5faed9dc45cbfb0f",
+			"size_bytes": 115
+		},
+		{
+			"name": "wind_8518750_2025-07-14.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=wind&station=8518750&begin_date=20250714+03%3A00&end_date=20250721+05%3A00&time_zone=gmt&units=metric&format=json",
+			"retrieved_utc": "2026-10-25T03:04:08Z",
+			"sha256": "500bdf8b7540e3b178fa94711e95e7bd7633578dac4778da5faed9dc45cbfb0f",
+			"size_bytes": 115
+		}
+	]
+}
