@@ -1,12 +1,14 @@
 """NOAA ENC (S-57) cells: aids to navigation, channels, shoreline constructions and bridges."""
 
+import io
 import zipfile
+import xml.etree.ElementTree as ET
 
 import geopandas as gpd
 import numpy as np
 import pandas as pd
 import pyogrio
-from shapely.geometry import Point, box
+from shapely.geometry import Point, Polygon, box
 
 from ferrydata import fetcher, geojsonio, lights as lights_module, manifest as manifest_module, paths
 from ferrydata.slices import clip_geometry
@@ -37,6 +39,36 @@ CATSLC = {
 	9: "revetment", 10: "sea wall", 11: "landing steps", 12: "ramp", 13: "slipway", 14: "fender", 15: "solid face wharf", 16: "open face wharf",
 }
 TRAFIC = {1: "inbound", 2: "outbound", 3: "one-way", 4: "two-way"}
+
+
+def catalog_cells(xml, polygon):
+	"""Band 5 cells intersecting a lon/lat polygon in NOAA's ISO 19115 catalogue.
+
+	GML pos uses latitude then longitude (EPSG geographic axis order).
+	"""
+	ns = {"g": "http://www.isotc211.org/2005/gmd", "c": "http://www.isotc211.org/2005/gco",
+		"m": "http://www.opengis.net/gml/3.2"}
+	# Stream the national catalogue: a full ElementTree retains hundreds of
+	# megabytes of cells irrelevant to the harbor.
+	source = io.BytesIO(xml.encode() if isinstance(xml, str) else xml) if isinstance(xml, (str, bytes)) else xml
+	cells = set()
+	for _, metadata in ET.iterparse(source, events=("end",)):
+		if metadata.tag != f"{{{ns['g']}}}MD_Metadata":
+			continue
+		info = metadata.find("g:identificationInfo/g:MD_DataIdentification", ns)
+		if info is None:
+			metadata.clear()
+			continue
+		name = info.findtext("g:citation/g:CI_Citation/g:title/c:CharacterString", namespaces=ns)
+		if not name or not name.startswith("US5"):
+			metadata.clear()
+			continue
+		for ring in info.findall(".//m:exterior/m:LinearRing", ns):
+			positions = [list(map(float, p.text.split())) for p in ring.findall("m:pos", ns)]
+			if len(positions) >= 4 and Polygon([(p[1], p[0]) for p in positions]).intersects(polygon):
+				cells.add(name)
+		metadata.clear()
+	return tuple(sorted(cells))
 
 
 def datum_name(code):
@@ -243,6 +275,8 @@ def fetch(slice_, force=False, log=print):
 
 
 def _cell_path(m, cell):
+	if f"{cell}.zip" not in m.files:
+		m = manifest_module.load_combined(SOURCE)
 	zip_path = paths.raw_dir(SOURCE) / f"{cell}.zip"
 	if not m.verify(f"{cell}.zip", zip_path):
 		raise SystemExit(f"{zip_path} is missing or does not match the manifest; run fetch first")

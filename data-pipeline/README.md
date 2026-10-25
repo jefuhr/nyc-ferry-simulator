@@ -25,6 +25,25 @@ Raw downloads live outside the repo in `$HOME/FerrySim-cache/data/raw/<source>/`
 
 Fetch policy: a cached file that matches its manifest entry is never downloaded again. A cached file that does not match, or a fresh download whose sha256 differs from the manifest (the upstream changed), is an error until you pass `--force`. Floating catalogues such as the CO-OPS station list are exempt.
 
+## Harbor tiles v1
+
+```
+uv run --project data-pipeline python data-pipeline/ferrydata fetch --harbor
+uv run --project data-pipeline python data-pipeline/ferrydata build --harbor
+uv run --project data-pipeline python data-pipeline/ferrydata build --harbor --tiles tile_0_0,tile_1_0
+uv run --project data-pipeline python data-pipeline/ferrydata validate --harbor
+```
+
+The grid has 36 candidates: north/east indices -2 through 3, 4000 m squares in the shared world tangent plane. `tile_<i>_<j>` owns north `[4000*i, 4000*(i+1))` and east `[4000*j, 4000*(j+1))`; outputs use a 250 m margin. Vector clipping follows the local square transformed through `geodesy.from_local`, rather than its larger lon/lat read envelope. Tiles are active if an ENC DEPARE intersects their square or they own a ferry stop. GTFS ferry routes (`route_type=4`) identify the 24 harbor landings; Rockaway (88) and the feed's bus shuttle stops are explicitly listed as excluded in the index.
+
+Harbor downloads append records in `data/manifests/<source>-harbor.json` and share the existing raw source directories. Reads verify the original plus the additive manifest, rejecting conflicting pins. Original manifests and existing raw files stay unchanged: the slice's merged-depth metadata hashes those original manifests, so appending harbor entries directly to them would change the slice's output bytes. Harbor fetch never refreshes existing pinned files or catalogues and does not support `--force`.
+
+Outputs live in `data/processed/harbor/tiles/<id>/`, with every candidate and output SHA-256 in `index.json`. `raw_sources.json` records each tile's raw dependencies; validation verifies their hashes against the original/additive manifests. `build_metrics.json` measures elapsed time and peak RSS in an isolated subprocess for each tile. Tile processing runs serially under `$HOME/FerrySim-cache/heavy.lock`, including CUDEM mosaics. A subset build preserves the previous index entries for other tiles; validation still checks every active tile and fails on unbuilt ones.
+
+Depth rasters share one exact 1/9 arc-second lattice anchored at 0° latitude/longitude, using nearest-neighbour sampling to remove small origin/resolution rounding differences between CUDEM source headers. The conservative merge reads a further 100 m support halo so its 60 m shoreline buffer agrees at tile boundaries. It never fills missing CUDEM cells or extrapolates individual soundings; missing cells whose centres lie in charted DEPARE water fail validation. The Battery MLLW/NAVD88 offset is a disclosed constant across the harbor, not a spatial VDatum transformation. CO-OPS outputs list current prediction and water-level station metadata within each grown square; harbor v1 does not fetch additional prediction time series. Landing faces, contact geometry and Unity export are excluded from harbor v1.
+
+Validation also writes `depth_chart_audit.json`: per-tile counts, worst discrepancy and location for merged depth more than 5 m below a DEPARE maximum or more than 2 m shallower than its minimum, compared in MLLW. Cells are counted once in each category; on overlapping polygons every finite bound is tested, which also exposes chart-range conflicts. These are `INFO` findings for wave 2, with no effect on pass/fail gates or merged elevations.
+
 ## Coordinates
 
 Every output carries WGS84 lon/lat and the world-local `north_m`/`east_m` of `docs/conventions.md`: the WGS84 ECEF tangent plane through 40.7000, -74.0150, height 0 (`ferrydata/geodesy.py`, tested against the vectors in `core/dotnet/FerrySim.Core.Tests/Contracts/LocalTangentPlaneTests.cs` to 1e-3 m; `validate` re-parses that C# file so the check cannot drift).
@@ -81,6 +100,12 @@ And `data/processed/ais/candidate_roster.csv` and `nycferry_tracks.parquet` (see
 6. Current series cover the window with no gap over 1 h (the gap includes the distance from each window edge to the nearest sample).
 7. The geoid offset is within -35 to -29 m.
 8. `geodesy.py` matches the C# reference vectors.
+
+### Harbor bridge clearances
+
+Harbor validation merges bridge pieces from every tile by ENC `LNAM`, then groups features whose geometries touch or are within 2 m in the shared local metre frame. Grouping is transitive and crosses tile seams. One harbor-level gate checks each GTFS ferry route (`route_type=4`) crossing a physical bridge: at least one span intersected by that route must have finite `vertical_clearance_m` (`VERCLR`, or `VERCCL` for an opening bridge). A channel span with clearance covers a route that also crosses an uncharted side span; a route crossing only the uncharted side span fails. Bus-shuttle shapes do not enter this gate. Failures name the bridge names, ENC ids and routes. Per-tile ENC bridge equality checks and the slice's bridge check remain unchanged.
+
+`bridge_clearance_audit.json` records all physical bridge groups, their names, ids, categories and tiles, every span without vertical clearance and whether a ferry route crosses it, and each route's crossed spans carrying clearance. Missing-clearance spans are report-only `INFO` findings, including bridges that no ferry route crosses. The audit is hashed in the index's root `outputs`, beside `depth_chart_audit.json`; neither audit changes clearances or elevations. The validation report includes one bridge-audit `INFO` row per tile. Run harbor validation under `lockf -k "$HOME/FerrySim-cache/heavy.lock"` to coordinate with other memory-heavy work.
 
 ### Landing faces and charted depth
 

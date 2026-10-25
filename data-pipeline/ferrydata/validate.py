@@ -522,3 +522,310 @@ def run(slice_, log=print):
 		log(f"{'PASS' if r.passed else 'FAIL'}  {r.name}: {r.summary}")
 	log(f"report: {target}")
 	return 0 if passed else 1
+
+
+def harbor_water_coverage(dataset, polygons, footprint=None):
+	"""Count missing cells in charted water; no interpolation or nodata waiver."""
+	from rasterio import features
+	array = dataset.read(1)
+	inside = features.geometry_mask(polygons, out_shape=array.shape, transform=dataset.transform,
+		invert=True, all_touched=False) if polygons else np.zeros(array.shape, dtype=bool)
+	if footprint is not None:
+		# GeoJSON's seven-decimal coordinate rounding can extend a clipped
+		# DEPARE a few mm past the true output square. Those outside cells
+		# are deliberately masked; they are not water coverage gaps.
+		inside &= features.geometry_mask([footprint], out_shape=array.shape, transform=dataset.transform, invert=True)
+	valid = np.isfinite(array)
+	if dataset.nodata is not None:
+		valid &= array != dataset.nodata
+	return {"charted_cells": int(inside.sum()), "nodata_cells": int((inside & ~valid).sum())}
+
+
+def harbor_chart_depth_audit(dataset, area_features, mllw_navd88_offset_m):
+	"""Report-only DEPARE range outliers, comparing depth in the chart's MLLW datum.
+
+	Count each cell once per category. On overlapping areas, test every finite
+	bound: the shallowest DRVAL2 and deepest DRVAL1 give the union of outliers.
+	This also exposes contradictory overlapping chart ranges for later review.
+	"""
+	from rasterio import features
+	array = dataset.read(1)
+	valid = np.isfinite(array) & (array != dataset.nodata) if dataset.nodata is not None else np.isfinite(array)
+	charted = [f for f in area_features if f['properties'].get('feature_class') == 'DEPARE']
+	bounds = {}
+	for name, prop, reverse in (('upper', 'max_depth_m', True), ('lower', 'min_depth_m', False)):
+		shapes = [(f['geometry'], float(f['properties'][prop])) for f in charted
+			if f['properties'].get(prop) is not None and np.isfinite(f['properties'][prop])]
+		bounds[name] = features.rasterize(sorted(shapes, key=lambda p: p[1], reverse=reverse),
+			out_shape=array.shape, transform=dataset.transform, fill=np.nan, dtype='float64') if shapes else np.full(array.shape, np.nan)
+	depths = mllw_navd88_offset_m - array.astype(float)
+	result = {'compared_cells': int((valid & (np.isfinite(bounds['upper']) | np.isfinite(bounds['lower']))).sum()),
+		'overlap_policy': 'Unique cells disagreeing with at least one finite DEPARE bound; shallowest DRVAL2 and deepest DRVAL1 on overlaps.',
+		'deep_threshold_m': 5., 'shallow_threshold_m': 2., 'report_only': True}
+	for name, excess, bound, threshold in (
+		('too_deep', depths - bounds['upper'], bounds['upper'], 5.),
+		('too_shallow', bounds['lower'] - depths, bounds['lower'], 2.)):
+		flagged = valid & np.isfinite(bound) & (excess > threshold)
+		count = int(flagged.sum())
+		worst = None
+		if count:
+			row, col = np.unravel_index(np.argmax(np.where(flagged, excess, -np.inf)), array.shape)
+			lon, lat = dataset.xy(int(row), int(col))
+			north, east = geodesy.to_local(lat, lon)
+			worst = {'excess_m': float(excess[row, col]), 'merged_depth_mllw_m': float(depths[row, col]),
+				'bed_elevation_navd88_m': float(array[row, col]), 'chart_bound_mllw_m': float(bound[row, col]),
+				'lon': float(lon), 'lat': float(lat), 'north_m': float(north), 'east_m': float(east)}
+		result[name] = {'cells': count, 'worst': worst}
+	return result
+
+
+def harbor_overlap(path_a, path_b, polygon):
+	"""Compare coincident cell centres in the shared grown-square footprint."""
+	from rasterio import features, windows
+	from ferrydata import tiles
+	with rasterio.open(path_a) as a, rasterio.open(path_b) as b:
+		if a.crs != b.crs or not np.allclose(a.res, b.res, rtol=0, atol=1e-12):
+			raise ValueError("overlap rasters have different CRS or resolution")
+		if a.transform.b != 0 or a.transform.d != 0 or b.transform.b != 0 or b.transform.d != 0:
+			raise ValueError("rotated overlap grids are unsupported")
+		dx = (b.transform.c - a.transform.c) / a.transform.a
+		dy = (b.transform.f - a.transform.f) / a.transform.e
+		if abs(dx - round(dx)) > 1e-6 or abs(dy - round(dy)) > 1e-6:
+			raise ValueError("overlap raster pixel centres do not align")
+		w, s, e, n = polygon.bounds
+		w = max(w, a.bounds.left, b.bounds.left); e = min(e, a.bounds.right, b.bounds.right)
+		s = max(s, a.bounds.bottom, b.bounds.bottom); n = min(n, a.bounds.top, b.bounds.top)
+		if w >= e or s >= n:
+			raise ValueError("neighbour rasters have no shared cells")
+		win = windows.from_bounds(w, s, e, n, a.transform).round_offsets().round_lengths()
+		win = win.intersection(windows.Window(0, 0, a.width, a.height))
+		other = windows.Window(win.col_off - round(dx), win.row_off - round(dy), win.width, win.height)
+		other = other.intersection(windows.Window(0, 0, b.width, b.height))
+		win = windows.Window(other.col_off + round(dx), other.row_off + round(dy), other.width, other.height)
+		aa, bb = a.read(1, window=win), b.read(1, window=other)
+		mask = features.geometry_mask([polygon], out_shape=aa.shape, transform=a.window_transform(win), invert=True)
+		if not mask.any():
+			raise ValueError("neighbour overlap contains no raster cell centres")
+		return tiles.overlap_result(aa, bb, a.nodata, b.nodata, mask)
+
+
+def harbor_bridge_clearances(bridges_by_tile, routes_by_tile, ferry_route_ids):
+	"""Merge LNAM pieces, group within 2 local metres, then gate each ferry crossing.
+
+	Unknown spans are always audited. A clearance is usable only on a span
+	intersected by the same ferry route, not merely elsewhere on its bridge.
+	"""
+	from shapely.ops import unary_union
+	pieces = {}
+	for tile_id, features in sorted(bridges_by_tile.items()):
+		for feature in features:
+			props = feature['properties']
+			identifier = props['id']
+			item = pieces.setdefault(identifier, {'geometries': [], 'names': set(), 'category_codes': set(),
+				'tiles': set(), 'clearances': set()})
+			item['geometries'].append(local_geometry(feature))
+			item['tiles'].add(tile_id)
+			if props.get('name'):
+				item['names'].add(props['name'])
+			item['category_codes'].update(props.get('category_codes') or [])
+			value = props.get('vertical_clearance_m')
+			if value is not None and np.isfinite(value):
+				item['clearances'].add(float(value))
+	identifiers = sorted(pieces)
+	geometries = {key: unary_union(pieces[key]['geometries']) for key in identifiers}
+	parents = {key: key for key in identifiers}
+	def root(key):
+		while parents[key] != key:
+			parents[key] = parents[parents[key]]
+			key = parents[key]
+		return key
+	for pos, key in enumerate(identifiers):
+		for other in identifiers[pos + 1:]:
+			if geometries[key].distance(geometries[other]) <= 2.:
+				parents[root(other)] = root(key)
+	groups = {}
+	for key in identifiers:
+		groups.setdefault(root(key), []).append(key)
+	# Merge route pieces too, retaining only GTFS ferry route ids. One shape
+	# may serve multiple routes; each must have its own crossed-span evidence.
+	route_pieces = {}
+	for _, features in sorted(routes_by_tile.items()):
+		for feature in features:
+			for route_id in sorted(set(feature['properties']['route_ids']) & set(ferry_route_ids)):
+				route_pieces.setdefault(route_id, []).append(local_geometry(feature))
+	routes = {key: unary_union(value) for key, value in sorted(route_pieces.items())}
+	crossed = {key: [route_id for route_id, geometry in routes.items() if geometry.intersects(geometries[key])]
+		for key in identifiers}
+	audit = {'report_only': True, 'group_distance_m': 2., 'feature_count': len(identifiers),
+		'missing_clearance_features': 0, 'physical_bridges_with_missing_clearance': 0, 'physical_bridges': []}
+	failures = []
+	crossed_groups = 0
+	for ids in sorted(groups.values()):
+		names = sorted({name for key in ids for name in pieces[key]['names']})
+		group = {'ids': ids, 'names': names,
+			'category_codes': sorted({code for key in ids for code in pieces[key]['category_codes']}),
+			'tiles': sorted({tile for key in ids for tile in pieces[key]['tiles']}),
+			'missing_clearance_spans': [], 'route_crossings': []}
+		for key in ids:
+			if not pieces[key]['clearances']:
+				group['missing_clearance_spans'].append({'id': key, 'names': sorted(pieces[key]['names']),
+					'category_codes': sorted(pieces[key]['category_codes']), 'tiles': sorted(pieces[key]['tiles']),
+					'ferry_route_ids': crossed[key], 'crossed_by_ferry_route': bool(crossed[key])})
+		for route_id in sorted({route_id for key in ids for route_id in crossed[key]}):
+			span_ids = [key for key in ids if route_id in crossed[key]]
+			charted = [{'id': key, 'vertical_clearance_m': min(pieces[key]['clearances'])}
+				for key in span_ids if pieces[key]['clearances']]
+			group['route_crossings'].append({'route_id': route_id, 'crossed_span_ids': span_ids,
+				'charted_crossed_spans': charted})
+			if not charted:
+				failures.append(f"bridge names={names}, ids={ids}; route={route_id}, crossed spans={span_ids}: no vertical clearance on a crossed span")
+		crossed_groups += bool(group['route_crossings'])
+		audit['missing_clearance_features'] += len(group['missing_clearance_spans'])
+		audit['physical_bridges_with_missing_clearance'] += bool(group['missing_clearance_spans'])
+		audit['physical_bridges'].append(group)
+	summary = f"{crossed_groups} ferry-route physical bridges / {len(groups)} physical bridges ({len(identifiers)} ENC features); {len(failures)} uncharted route crossings"
+	if failures:
+		summary += '; ' + '; '.join(failures)
+	return CheckResult('Ferry-route bridge vertical clearances', not failures, summary), audit
+
+
+def _harbor_tile_checks(tile, entry):
+	from ferrydata import enc, manifest, tiles
+	out = paths.processed_dir(tile.name)
+	checks = []
+	def check(name, passed, detail):
+		checks.append(CheckResult(f"{tile.id}: {name}", bool(passed), str(detail)))
+	required = [name for name in REQUIRED_OUTPUTS if name not in
+		('landing_faces.geojson', 'landing_depth_diff.csv')] + ['raw_sources.json', 'depth_chart_navd88.tif']
+	missing = sorted({name for name in required if not (out / name).is_file()})
+	check('outputs', not missing and not entry.get('build_error'), entry.get('build_error') or f"missing: {missing}")
+	if missing:
+		return checks
+	outputs = entry.get('outputs', [])
+	hashes_bad = [p['file'] for p in outputs if not (paths.processed_dir('harbor') / p['file']).is_file()
+		or manifest.sha256_file(paths.processed_dir('harbor') / p['file']) != p['sha256']]
+	listed = {p['file'].split('/')[-1] for p in outputs}
+	check('output hashes', not hashes_bad and set(required).issubset(listed), f"changed: {hashes_bad}; required files indexed: {set(required).issubset(listed)}")
+	stations = tiles._json(out / 'coops_stations.json')
+	expected_raw = tiles._raw_sources(tile, stations)
+	raw = tiles._json(out / 'raw_sources.json')['files']
+	bad = [f"{r['source']}/{r['name']}" for r in raw if not manifest.load_combined(r['source']).verify(r['name'], paths.raw_dir(r['source']) / r['name'])
+		or manifest.load_combined(r['source']).files[r['name']]['sha256'] != r['sha256']]
+	check('raw provenance', not bad and raw == expected_raw, f"unverified raw files: {bad}; complete dependency list: {raw == expected_raw}")
+	landings = tiles._json(out / 'landings.geojson')['features']
+	ids = [f['properties']['stop_id'] for f in landings]
+	check('landing ownership', sorted(ids) == sorted(entry['stop_ids']) and len(ids) == len(set(ids)), f"expected {entry['stop_ids']}; actual {ids}")
+	fc = tiles._json(out / 'depth_areas.geojson')
+	polygons = [f['geometry'] for f in fc['features'] if f['properties']['feature_class'] == 'DEPARE']
+	with rasterio.open(out / 'depth_merged_navd88.tif') as raster:
+		coverage = harbor_water_coverage(raster, polygons, tile.polygon)
+		merged_meta = tiles._json(out / 'depth_merged_navd88.json')
+		audit = harbor_chart_depth_audit(raster, fc['features'], merged_meta['mllw_zero_navd88_m'])
+	check('charted-water depth', coverage['nodata_cells'] == 0, f"{coverage['nodata_cells']} nodata cells / {coverage['charted_cells']} charted cells")
+	check('depth/chart audit (report only)', True, json.dumps(audit))
+	bridges = tiles._json(out / 'bridges.geojson')['features']
+	no_clearance = [f['properties']['id'] for f in bridges if f['properties'].get('vertical_clearance_m') is None
+		or not np.isfinite(f['properties']['vertical_clearance_m'])]
+	check('bridge clearance audit (report only)', True, f"{len(bridges)} bridge pieces; {len(no_clearance)} without vertical clearance; ids={no_clearance}; see bridge_clearance_audit.json for physical groups")
+	layers, datum = enc.read_layers(tile, enc.AID_LAYERS + ('BRIDGE', 'DEPARE'))
+	expected_aids = enc._features(enc.aid_records({k: v for k, v in layers.items() if k in enc.AID_LAYERS}), tile)
+	aids = tiles._json(out / 'aids.geojson')['features']
+	check('ENC aids', aids == expected_aids, f"expected {len(expected_aids)} aids; actual {len(aids)}")
+	vertical = sorted({d['vertical'] for d in datum.values()})
+	expected_bridges = enc._features(enc.bridge_records(layers['BRIDGE'], vertical[0]) if 'BRIDGE' in layers else [], tile)
+	check('ENC bridges', bridges == expected_bridges, f"expected {len(expected_bridges)} bridges; actual {len(bridges)}")
+	expected_water = enc._features(enc.depth_area_records(layers['DEPARE']) if 'DEPARE' in layers else [], tile)
+	actual_water = [f for f in fc['features'] if f['properties']['feature_class'] == 'DEPARE']
+	check('ENC charted water', actual_water == expected_water, f"expected {len(expected_water)} DEPARE; actual {len(actual_water)}")
+	check('CO-OPS stations', stations == tiles._stations(tile), f"{len(stations['stations'])} current/water-level stations checked against cached NOAA listings")
+	geoid_payload = tiles._json(out / 'geoid_offset.json')
+	geoid_result = check_geoid(geoid_payload)
+	check('geoid offset', geoid_result.passed and set(geoid_payload['points']) == {'centre', 'sw', 'se', 'nw', 'ne'}, geoid_result.summary)
+	return checks
+
+
+def run_harbor(log=print):
+	"""Validate every candidate/active tile; fail visibly on missing source or output."""
+	from ferrydata import tiles
+	out = paths.processed_dir('harbor')
+	out.mkdir(parents=True, exist_ok=True)
+	results = []
+	index = None
+	bridge_audit = {'report_only': True, 'physical_bridges': [], 'incomplete': True}
+	try:
+		index = tiles._json(out / 'index.json')
+		expected = tiles.inventory()
+		keys = ('id', 'i', 'j', 'bounds_local_m', 'grown_bounds_local_m', 'grown_corners_latlon', 'read_bbox_lonlat', 'active', 'reasons', 'stop_ids')
+		normal = lambda value: json.loads(json.dumps(value))
+		actual_grid = [{k: e[k] for k in keys} for e in index['tiles']]
+		expected_grid = normal([{k: e[k] for k in keys} for e in expected['tiles']])
+		results.append(CheckResult('Grid and activity', actual_grid == expected_grid and len(actual_grid) == 36,
+			f"{sum(e['active'] for e in expected['tiles'])} active / 36 candidates; activity recomputed from ENC DEPARE and ferry landings"))
+		results.append(CheckResult('Index source inventory', index.get('stops') == expected['stops']
+			and index.get('excluded_stops') == expected['excluded_stops'] and index.get('enc_cells') == expected['enc_cells']
+			and index.get('schema') == expected['schema'] and index.get('origin_latlon') == expected['origin_latlon']
+			and index.get('bounds_order') == expected['bounds_order']
+			and index.get('tile_size_m') == tiles.SIZE_M and index.get('margin_m') == tiles.MARGIN_M,
+			'GTFS stop details, exclusions, source cells, origin, tile size and margin checked against cached sources'))
+		owners = [sid for e in index['tiles'] if e['active'] for sid in e['stop_ids']]
+		stops = expected['stops']
+		outside = [s['stop_id'] for s in stops if s['tile'] is None]
+		passed = len(stops) == 24 and not outside and len(owners) == len(set(owners)) == 24 and set(owners) == {s['stop_id'] for s in stops}
+		results.append(CheckResult('24 non-Rockaway ferry stops', passed, f"{len(stops)} ferry stops, {len(owners)} owners; outside extent: {outside}"))
+		active = [e for e in index['tiles'] if e['active']]
+		for entry in active:
+			tile = tiles.get_tile(entry['id'], expected['enc_cells'])
+			try:
+				results.extend(_harbor_tile_checks(tile, entry))
+			except (Exception, SystemExit) as error:
+				results.append(CheckResult(f"{tile.id}: validation", False, f"{type(error).__name__}: {error}"))
+		try:
+			feed = tiles._feed()
+			ferry_route_ids = set(feed['routes'].loc[feed['routes'].route_type == '4', 'route_id'])
+			bridge_features = {}
+			route_features = {}
+			for entry in active:
+				folder = out / 'tiles' / entry['id']
+				bridge_features[entry['id']] = tiles._json(folder / 'bridges.geojson')['features']
+				route_features[entry['id']] = tiles._json(folder / 'routes.geojson')['features']
+			bridge_check, bridge_audit = harbor_bridge_clearances(bridge_features, route_features, ferry_route_ids)
+			results.append(bridge_check)
+		except (Exception, SystemExit) as error:
+			results.append(CheckResult('Ferry-route bridge vertical clearances', False, f"{type(error).__name__}: {error}"))
+		for a in active:
+			for b in active:
+				if (b['i'], b['j']) <= (a['i'], a['j']) or max(abs(a['i'] - b['i']), abs(a['j'] - b['j'])) != 1:
+					continue
+				ta, tb = tiles.get_tile(a['id']), tiles.get_tile(b['id'])
+				try:
+					comparison = harbor_overlap(paths.processed_dir(ta.name) / 'depth_merged_navd88.tif',
+						paths.processed_dir(tb.name) / 'depth_merged_navd88.tif', ta.polygon.intersection(tb.polygon))
+					results.append(CheckResult(f"overlap {ta.id} / {tb.id}", comparison['passed'], json.dumps(comparison)))
+				except (Exception, SystemExit) as error:
+					results.append(CheckResult(f"overlap {ta.id} / {tb.id}", False, f"{type(error).__name__}: {error}"))
+	except (Exception, SystemExit) as error:
+		results.append(CheckResult('Harbor inputs and index', False, f"{type(error).__name__}: {error}"))
+	def report_only(result):
+		return result.name.endswith((': depth/chart audit (report only)', ': bridge clearance audit (report only)'))
+	def status(result):
+		return 'INFO' if report_only(result) else ('PASS' if result.passed else 'FAIL')
+	audits = {r.name.split(':', 1)[0]: json.loads(r.summary) for r in results if r.name.endswith(': depth/chart audit (report only)')}
+	tiles._write(out / 'depth_chart_audit.json', {'report_only': True, 'tiles': audits})
+	tiles._write(out / 'bridge_clearance_audit.json', bridge_audit)
+	lines = ['# Harbor tiles v1 validation', '', 'Thresholds are unchanged. Missing data and unbuilt active tiles fail validation. INFO depth/chart and bridge clearance audit rows are findings for wave 2 and do not affect the verdict.', '',
+		*_md_table(['check', 'result', 'detail'], [(r.name, status(r), r.summary.replace('\n', ' ')) for r in results]), '']
+	(out / 'validation.md').write_text('\n'.join(lines), encoding='utf-8')
+	# Include root validation outputs in the index without modifying any tile's
+	# data or hashes. The report-only audit is carried by each tile's row above.
+	if isinstance(index, dict):
+		from ferrydata import manifest
+		index['outputs'] = [{'file': name, 'sha256': manifest.sha256_file(out / name),
+			'size_bytes': (out / name).stat().st_size} for name in ('validation.md', 'depth_chart_audit.json', 'bridge_clearance_audit.json')]
+		tiles._write(out / 'index.json', index)
+	for result in results:
+		log(f"{status(result)} {result.name}: {result.summary}")
+	gates = [r for r in results if not report_only(r)]
+	info_count = sum(report_only(r) for r in results)
+	log(f"INFO bridge clearance audit: {bridge_audit.get('missing_clearance_features', 'unknown')} features without vertical clearance in {bridge_audit.get('physical_bridges_with_missing_clearance', 'unknown')} physical bridges")
+	log(f"{sum(r.passed for r in gates)}/{len(gates)} checks passed; {info_count} report-only audits; {out / 'validation.md'}")
+	return 0 if gates and all(r.passed for r in gates) else 1

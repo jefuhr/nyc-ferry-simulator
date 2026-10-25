@@ -152,3 +152,59 @@ def build(slice_, log=print):
 	(out / 'depth_merged_navd88.json').write_text(json.dumps(metadata, indent='\t') + '\n')
 	log(f"  depth_merged_navd88.tif: {changed.sum()} cells deepened; {flagged.sum()} chart/CUDEM differences > 1 m")
 	log('  landing_depth_diff.csv; depth_chart_navd88.tif; depth_disagreement_gt1m.tif')
+
+
+def build_harbor(tile, log=print):
+	"""The conservative merge without landing faces (harbor v1 excludes them).
+
+	Read an extra 100 m beyond the output square so the 60 m shoreline support
+	buffer is identical on both sides of a tile seam, including its outer edge.
+	The Battery's measured MLLW/NAVD88 offset is a disclosed harbor-wide
+	approximation, not a spatial VDatum conversion or a depth-gap filler.
+	"""
+	from ferrydata import enc, tiles
+	out = paths.processed_dir(tile.name)
+	station_id = '8518750'
+	datum_path = tiles._cached('coops', f'datums_{station_id}.json')
+	datum = json.loads(datum_path.read_text(encoding='utf-8'))
+	offset = datum_offset(datum)
+	layers, cells = enc.read_layers(tile.expanded(100), enc.SHORE_LAYERS + enc.DEPTH_AREA_LAYERS + ('SOUNDG', 'LNDARE'))
+	if any(c['sounding'] != 'MLLW' for c in cells.values()):
+		raise ValueError('unsupported ENC sounding datum; expected MLLW')
+	areas = []
+	for name in enc.DEPTH_AREA_LAYERS:
+		if name in layers:
+			areas += [(r.geometry, float(r.DRVAL1)) for r in layers[name].itertuples() if r.DRVAL1 is not None and np.isfinite(r.DRVAL1)]
+	soundings = []
+	if 'SOUNDG' in layers:
+		for r in layers['SOUNDG'].itertuples():
+			points = r.geometry.geoms if r.geometry.geom_type == 'MultiPoint' else [r.geometry]
+			soundings += [(p, p.z) for p in points if p.has_z]
+	shore = [landings.to_local(g) for name in enc.SHORE_LAYERS if name != 'MORFAC' and name in layers for g in layers[name].geometry]
+	buffer = landings.to_wgs84(unary_union([g.buffer(BUFFER_M) for g in shore]))
+	land = list(layers['LNDARE'].geometry) if 'LNDARE' in layers else []
+	with rasterio.open(out / 'depth_navd88.tif') as source:
+		cudem = source.read(1)
+		profile = source.profile.copy()
+		chart = rasterize_chart(areas, soundings, cudem.shape, source.transform, offset)
+		inside = features.geometry_mask([tile.polygon], out_shape=cudem.shape, transform=source.transform, invert=True)
+		chart[~inside] = np.nan
+		allowed = features.geometry_mask([buffer], out_shape=cudem.shape, transform=source.transform, invert=True) if not buffer.is_empty else np.zeros(cudem.shape, dtype=bool)
+		if land:
+			allowed &= ~features.geometry_mask(land, out_shape=cudem.shape, transform=source.transform, invert=True)
+		merged, changed, flagged = merge_elevations(cudem, chart, allowed & inside, source.nodata)
+		tags = {'vertical_datum': 'NAVD88', 'units': 'm', 'positive': 'up', 'datum_station': station_id,
+			'mllw_zero_navd88_m': str(offset), 'datum_epoch': datum.get('epoch', '')}
+		_write_raster(out / 'depth_merged_navd88.tif', merged, profile, tags)
+		_write_raster(out / 'depth_chart_navd88.tif', np.where(np.isfinite(chart), chart, NODATA).astype('float32'),
+			{**profile, 'dtype': 'float32', 'nodata': NODATA}, tags)
+		_write_raster(out / 'depth_disagreement_gt1m.tif', flagged.astype('uint8'),
+			{**profile, 'dtype': 'uint8', 'nodata': None, 'predictor': 1}, {'meaning': '1 = chart/CUDEM difference > 1 m inside support buffer'})
+	metadata = {'source_cudem': 'depth_navd88.tif', 'source_chart': ['depth_areas.geojson', 'soundings.geojson'],
+		'buffer_m': BUFFER_M, 'support_halo_m': 100, 'datum_station': station_id, 'datum_epoch': datum.get('epoch'),
+		'datum_source': manifest.load_combined('coops').files[f'datums_{station_id}.json'], 'mllw_zero_navd88_m': offset,
+		'changed_cells': int(changed.sum()), 'cells_diff_gt1m': int(flagged.sum()),
+		'rules': 'Keep valid CUDEM unless supported chart elevation is lower within 60 m of construction and outside ENC LNDARE. SOUNDG measurements override DEPARE bounds in their sampled cells only. Never extrapolate soundings or fill CUDEM nodata.',
+		'uncertainty': 'The Battery datum offset is spatially constant across the harbor; no VDatum surface transformation. Harbor v1 excludes landing faces and contact geometry.'}
+	(out / 'depth_merged_navd88.json').write_text(json.dumps(metadata, indent='\t') + '\n', encoding='utf-8')
+	log(f"  depth_merged_navd88.tif: {changed.sum()} cells deepened; {flagged.sum()} chart/CUDEM differences > 1 m")

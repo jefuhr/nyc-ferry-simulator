@@ -1,0 +1,37 @@
+{
+	"source": "coops-harbor",
+	"description": "NOAA CO-OPS current predictions (6-minute series at harmonic stations, max/slack events at subordinate ones) and observed water levels in NAVD88",
+	"homepage": "https://tidesandcurrents.noaa.gov/",
+	"license": "Public domain: NOAA CO-OPS data are produced by the US Government. Disclaimer and data use: https://tidesandcurrents.noaa.gov/disclaimers.html (NOAA asks that users cite NOAA CO-OPS as the source).",
+	"terms_url": "https://tidesandcurrents.noaa.gov/disclaimers.html",
+	"notes": [
+		"Times are UTC (time_zone=gmt). Currents are requested with units=metric: velocities arrive in cm/s and are converted to m/s at build time.",
+		"Current directions are the direction the water flows toward, degrees true; the default (shallowest) bin of each station is used.",
+		"Water levels are observed (verified when available) at 6 minute intervals in metres relative to NAVD88.",
+		"Stations without a NAVD88 datum answer with an error and are skipped; the skipped ids are listed in skipped_water_level_stations."
+	],
+	"skipped_water_level_stations": [
+		{
+			"station": "8519483",
+			"reason": "HTTP 400 from https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&datum=NAVD&station=8519483&begin_date=20260614&end_date=20260616&time_zone=gmt&units=metric&format=csv: The supported Datum values are: MHHW, MHW, MTL, MSL, MLW, MLLW, LWI, HWI"
+		},
+		{
+			"station": "8516990",
+			"reason": "Date Time, Water Level, Sigma, O or I (for verified), F, R, L, Quality \nError: No data was found. This product may not be offered at this station at the requested time."
+		}
+	],
+	"window_utc": {
+		"start": "2026-06-14",
+		"end": "2026-06-16"
+	},
+	"harbor_note": "Additive harbor records sharing the original raw directory; original slice pins remain unchanged.",
+	"files": [
+		{
+			"name": "stations_waterlevels.json",
+			"url": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=waterlevels&units=metric",
+			"retrieved_utc": "2026-10-25T03:24:20Z",
+			"sha256": "815c061ecd4aac2f51031c84e09ddc03f0e6e3d5b300e4c10f86671dc6aa134b",
+			"size_bytes": 777387
+		}
+	]
+}

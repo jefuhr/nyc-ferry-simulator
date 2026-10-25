@@ -21,6 +21,7 @@ PREFIX = "dem/NCEI_ninth_Topobathy_2014_8483/"
 DOI = "10.25921/ds9v-ky35"
 NODATA = -99999.0
 OUTPUT_CRS = CRS.from_epsg(4269)  # the tiles are NAD83 (EPSG:4269) + NAVD88; NAD83 and WGS84 agree to about a metre
+HARBOR_RESOLUTION_DEG = 1.0 / (9 * 3600)
 
 
 def _list(prefix, delimiter=None):
@@ -79,6 +80,8 @@ def fetch(slice_, force=False, log=print):
 
 
 def _tile_files(m, slice_):
+	if hasattr(slice_, "id"):
+		m = manifest_module.load_combined(SOURCE)
 	cache = paths.raw_dir(SOURCE)
 	files = []
 	for tile_id in cudem_tile_ids(slice_):
@@ -119,12 +122,25 @@ def build(slice_, log=print):
 	datasets = [rasterio.open(t) for t in tiles]
 	try:
 		res = datasets[0].res
-		array, transform = merge(datasets, bounds=slice_.bbox, res=res, nodata=NODATA, dtype="float32", method="first")
+		bounds = slice_.bbox
+		if hasattr(slice_, "id"):
+			# Source headers round quarter-degree origins and resolutions
+			# slightly differently. Use the exact product resolution on one
+			# global lattice, with nearest-neighbour sampling by merge().
+			from math import floor, ceil
+			res = (HARBOR_RESOLUTION_DEG, HARBOR_RESOLUTION_DEG)
+			w, s, e, n = bounds
+			bounds = (floor(w / res[0]) * res[0], floor(s / res[1]) * res[1],
+				ceil(e / res[0]) * res[0], ceil(n / res[1]) * res[1])
+		array, transform = merge(datasets, bounds=bounds, res=res, nodata=NODATA, dtype="float32", method="first")
 		tile_tags = {t.name: dict(d.tags()) for t, d in zip(tiles, datasets)}
 	finally:
 		for d in datasets:
 			d.close()
 	band = array[0]
+	if hasattr(slice_, "id"):
+		inside = features.geometry_mask([slice_.polygon], out_shape=band.shape, transform=transform, invert=True)
+		band[~inside] = NODATA
 	profile = {
 		"driver": "GTiff", "height": band.shape[0], "width": band.shape[1], "count": 1, "dtype": "float32",
 		"crs": OUTPUT_CRS, "transform": transform, "nodata": NODATA, "compress": "deflate", "predictor": 3, "tiled": True,
@@ -176,5 +192,8 @@ def build(slice_, log=print):
 			"Bridges and piers are not in a bare-earth/bathymetry model; do not read the raster as obstruction clearance.",
 		],
 	}
+	if hasattr(slice_, "id"):
+		metadata["harbor_grid"] = {"resolution_deg": HARBOR_RESOLUTION_DEG, "edge_anchor_lonlat": [0., 0.],
+			"resampling": "nearest neighbour; removes differing source-header rounding phases without interpolating elevations"}
 	(out / "depth_navd88.json").write_text(json.dumps(metadata, indent="\t") + "\n", encoding="utf-8")
-	log(f"  depth_navd88.tif: {band.shape[1]}x{band.shape[0]}, valid {metadata['valid_cell_fraction']:.1%}, min {metadata['elevation_min_m']:.1f} m, max {metadata['elevation_max_m']:.1f} m")
+	log(f"  depth_navd88.tif: {band.shape[1]}x{band.shape[0]}, valid {metadata['valid_cell_fraction']:.1%}, min {metadata['elevation_min_m']} m, max {metadata['elevation_max_m']} m")

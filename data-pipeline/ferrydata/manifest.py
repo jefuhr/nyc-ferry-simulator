@@ -20,6 +20,20 @@ def utc_now() -> str:
 	return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def load_combined(source):
+	"""Read original + additive harbor records without changing slice provenance.
+
+	A sidecar may add names, but cannot shadow an existing pinned record.
+	"""
+	base = Manifest.load(source)
+	extra = Manifest.load(source + "-harbor")
+	for name, entry in extra.files.items():
+		if name in base.files and base.files[name] != entry:
+			raise ValueError(f"harbor manifest shadows pinned {source}/{name}")
+		base.files[name] = entry
+	return base
+
+
 class Manifest:
 	def __init__(self, source, path, header, files):
 		self.source = source
