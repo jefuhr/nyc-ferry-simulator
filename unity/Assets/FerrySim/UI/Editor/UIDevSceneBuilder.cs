@@ -12,9 +12,10 @@ namespace FerrySim.UI.Editor
 {
 	/// <summary>
 	/// Builds UI/Scenes/UIDev.unity: a camera, a <see cref="FakeTelemetrySource"/> playing the committed
-	/// sample, and a <see cref="WheelhouseUI"/> with the development toolbar. The saved scene is rewritten
-	/// with object ids derived from object names and types (Unity picks random ones), so rebuilding gives
-	/// the same bytes and the scene diffs cleanly.
+	/// sample, a <see cref="FakeEnvironmentSource"/> (synthetic water and air), a <see cref="FakeScenarioHost"/>
+	/// (a fake catalog and launcher for the scenario picker), and a <see cref="WheelhouseUI"/> with the
+	/// development toolbar. The saved scene is rewritten with object ids derived from object names and types
+	/// (Unity picks random ones), so rebuilding gives the same bytes and the scene diffs cleanly.
 	/// <code>
 	/// Unity -batchmode -nographics -quit -projectPath unity -executeMethod FerrySim.UI.Editor.UIDevSceneBuilder.Build
 	/// </code>
@@ -25,6 +26,7 @@ namespace FerrySim.UI.Editor
 
 		private static readonly Regex BlockHeader = new Regex(@"^--- !u!(\d+) &(-?\d+)(.*)$", RegexOptions.Multiline);
 		private static readonly Regex FileIdReference = new Regex(@"fileID: (-?\d+)");
+		private static readonly Regex TrailingSpace = new Regex(@"[ \t]+$", RegexOptions.Multiline);
 
 		[MenuItem("FerrySim/UI/Rebuild UIDev Scene")]
 		public static void Build()
@@ -40,10 +42,22 @@ namespace FerrySim.UI.Editor
 			var telemetryObject = new GameObject("Telemetry (fake CSV playback)");
 			var source = telemetryObject.AddComponent<FakeTelemetrySource>();
 
+			var environmentObject = new GameObject("Environment (fake, synthetic water and air)");
+			var environment = environmentObject.AddComponent<FakeEnvironmentSource>();
+			Set(environment, "telemetry", source);
+
+			var scenarioObject = new GameObject("Scenarios (fake catalog and launcher)");
+			var scenarios = scenarioObject.AddComponent<FakeScenarioHost>();
+			Set(scenarios, "telemetry", source);
+			Set(scenarios, "environment", environment);
+
 			var uiObject = new GameObject("Wheelhouse UI");
 			var ui = uiObject.AddComponent<WheelhouseUI>();
 			var serialized = new SerializedObject(ui);
 			serialized.FindProperty("telemetrySource").objectReferenceValue = source;
+			serialized.FindProperty("environmentSource").objectReferenceValue = environment;
+			serialized.FindProperty("scenarioCatalog").objectReferenceValue = scenarios;
+			serialized.FindProperty("scenarioLauncher").objectReferenceValue = scenarios;
 			serialized.FindProperty("showDevToolbar").boolValue = true;
 			serialized.ApplyModifiedPropertiesWithoutUndo();
 
@@ -59,13 +73,22 @@ namespace FerrySim.UI.Editor
 			Debug.Log("UIDevSceneBuilder: wrote " + ScenePath);
 		}
 
+		private static void Set(UnityEngine.Object component, string property, UnityEngine.Object value)
+		{
+			var serialized = new SerializedObject(component);
+			serialized.FindProperty(property).objectReferenceValue = value;
+			serialized.ApplyModifiedPropertiesWithoutUndo();
+		}
+
 		/// <summary>
 		/// Replaces every object id defined in the scene with one hashed from the object's class, its
 		/// GameObject's name and (for scripts) the script reference, then sorts the objects by id. Small
-		/// fixed ids (the scene settings objects) are kept.
+		/// fixed ids (the scene settings objects) are kept. Trailing spaces (Unity writes "m_Name: " for an
+		/// empty name) are dropped: YAML ignores them, and the scene then passes git diff --check.
 		/// </summary>
 		internal static string Canonicalize(string yaml)
 		{
+			yaml = TrailingSpace.Replace(yaml, string.Empty);
 			var headers = BlockHeader.Matches(yaml).Cast<Match>().ToList();
 			if (headers.Count == 0)
 			{

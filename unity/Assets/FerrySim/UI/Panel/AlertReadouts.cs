@@ -8,7 +8,8 @@ namespace FerrySim.UI
 	/// Depth under keel with its shallow-water alarm. While the alarm is unacknowledged the block flashes
 	/// between alarm-filled and alarm-outlined; once acknowledged (click the block) it stays filled until
 	/// the depth recovers. This is the only flashing element on the panel. The threshold line marks the
-	/// 5 ft default PLACEHOLDER until crew confirm it.
+	/// 5 ft default PLACEHOLDER until crew confirm it. Beside the caption, OFF DEPTH GRID says when the depth
+	/// shown is the environment pack's stand-in for water outside its depth grids rather than a surveyed depth.
 	/// </summary>
 	public sealed class DepthReadout : VisualElement, IPaletteAware
 	{
@@ -26,8 +27,13 @@ namespace FerrySim.UI
 			name = "depth";
 			AddToClassList("fs-depth");
 			AddToClassList("fs-alert");
+			var header = new VisualElement { pickingMode = PickingMode.Ignore };
+			header.AddToClassList("fs-depth-header");
 			_caption = PaletteRoles.Label("DEPTH UNDER KEEL", null, "fs-caption");
-			Add(_caption);
+			header.Add(_caption);
+			Grid = new CoverageTag("OFF DEPTH GRID") { name = "depth-grid" };
+			header.Add(Grid);
+			Add(header);
 			var row = new VisualElement { pickingMode = PickingMode.Ignore };
 			row.AddToClassList("fs-value-row");
 			Value = PaletteRoles.Label(InstrumentFormat.NoValue, null, "fs-value-m");
@@ -49,6 +55,9 @@ namespace FerrySim.UI
 
 		public Label Unit { get; }
 
+		/// <summary>The outside-the-depth-grid warning, from the environment's depth misses.</summary>
+		public CoverageTag Grid { get; }
+
 		public string ThresholdText => _threshold.text;
 
 		/// <summary>Whether the alarm fill is showing this frame.</summary>
@@ -65,6 +74,8 @@ namespace FerrySim.UI
 			PaletteRoles.SetText(Value, value);
 			PaletteRoles.SetText(Unit, DisplayUnits.Symbol(unit));
 		}
+
+		public void ShowGrid(CoverageIndication indication) => Grid.Show(indication);
 
 		/// <summary>The alarm setting line; rebuilt only when the threshold or unit changes, so it costs nothing per frame.</summary>
 		public void ShowSetting(double thresholdMetres, DistanceUnit unit)

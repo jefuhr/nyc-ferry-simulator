@@ -128,6 +128,106 @@
 	margin-right: 8px;
 }
 
+.fs-date {
+	margin-right: 10px;
+}
+
+.fs-day-data {
+	margin-left: 0;
+	margin-right: 10px;
+}
+
+/* ---------- water and air (panel strip and HUD row) ---------- */
+
+.fs-env {
+	flex-direction: row;
+	align-items: center;
+}
+
+/* Fixed group widths, so nothing in the strip depends on how wide a value's text happens to be. */
+.fs-env-group {
+	flex-direction: row;
+	align-items: center;
+	flex-shrink: 0;
+}
+
+.fs-env-group--tide {
+	width: 230px;
+}
+
+.fs-env-group--current {
+	width: 186px;
+	margin-left: 16px;
+}
+
+.fs-env-group--wind {
+	width: 180px;
+	margin-left: 16px;
+}
+
+.fs-env-source {
+	margin-left: 10px;
+}
+
+.fs-env-caption {
+	margin-right: 5px;
+}
+
+.fs-env-caption--inner {
+	margin-left: 12px;
+}
+
+/* Values sit in fixed right-aligned boxes so the row does not shift as digits change. */
+.fs-env-value {
+	-unity-text-align: middle-right;
+}
+
+.fs-env-value--tide {
+	min-width: 40px;
+}
+
+.fs-env-value--bearing {
+	min-width: 32px;
+}
+
+.fs-env-value--speed {
+	min-width: 34px;
+}
+
+.fs-env-value--wind {
+	min-width: 22px;
+}
+
+.fs-env-value--inner {
+	margin-left: 8px;
+}
+
+.fs-env-value--message {
+	font-size: 13px;
+	-unity-text-align: middle-left;
+}
+
+.fs-trend-arrow {
+	width: 10px;
+	height: 10px;
+	margin: 0 4px 0 8px;
+}
+
+.fs-env-trend {
+	width: 64px;
+}
+
+.fs-env-datum {
+	margin-left: 4px;
+}
+
+.fs-coverage-tag {
+	margin-left: 12px;
+	padding: 1px 6px;
+	border-width: 1px;
+	border-radius: 3px;
+}
+
 .fs-console {
 	flex-direction: row;
 	flex-grow: 1;
@@ -304,6 +404,17 @@
 	overflow: hidden;
 }
 
+.fs-depth-header {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.fs-depth-header .fs-coverage-tag {
+	margin-left: 8px;
+	padding: 0 5px;
+}
+
 .fs-alert-hint {
 	font-size: 10px;
 	margin-top: 2px;
@@ -356,11 +467,44 @@
 	bottom: 24px;
 	left: 50%;
 	translate: -50% 0;
-	flex-direction: row;
-	align-items: flex-start;
+	flex-direction: column;
 	padding: 8px 14px;
 	border-width: 1px;
 	border-radius: 8px;
+}
+
+.fs-hud-main {
+	flex-direction: row;
+	align-items: flex-start;
+}
+
+.fs-hud-env {
+	flex-direction: row;
+	align-items: flex-start;
+	margin-top: 6px;
+}
+
+/* The HUD stacks the water and the air in two fixed rows: tide with the current, then the wind. */
+.fs-hud-env .fs-env {
+	flex-wrap: wrap;
+	width: 432px;
+}
+
+.fs-hud-env .fs-env-group--wind {
+	margin-left: 0;
+	margin-top: 2px;
+}
+
+.fs-hud-clock {
+	margin-left: 16px;
+}
+
+.fs-hud-warnings {
+	flex-direction: row;
+}
+
+.fs-hud-warnings .fs-coverage-tag {
+	margin: 6px 10px 0 0;
 }
 
 .fs-hud--above-panel {
@@ -403,6 +547,172 @@
 .fs-hud-rudder-bar {
 	width: 150px;
 	height: 30px;
+}
+
+/* ---------- scenario picker ---------- */
+
+/* Over the 3D view: below the dev toolbar, clear of the 300 px panel at the 1280x720 design. */
+.fs-picker {
+	position: absolute;
+	top: 72px;
+	left: 50%;
+	translate: -50% 0;
+	flex-direction: column;
+	padding: 8px 12px 10px 12px;
+	border-width: 1px;
+	border-radius: 8px;
+}
+
+.fs-picker-header {
+	flex-direction: row;
+	align-items: center;
+	height: 26px;
+}
+
+.fs-picker-hint {
+	margin-left: 14px;
+}
+
+.fs-picker-body {
+	flex-direction: row;
+	margin-top: 4px;
+}
+
+.fs-picker-field-box {
+	flex-direction: column;
+	margin-right: 14px;
+}
+
+.fs-picker-side {
+	flex-direction: column;
+}
+
+.fs-picker-caption {
+	margin-bottom: 3px;
+}
+
+.fs-picker-field {
+	border-width: 2px;
+	border-radius: 5px;
+	padding: 3px;
+}
+
+.fs-picker-landings .fs-options {
+	width: 214px;
+	height: 214px;
+}
+
+.fs-picker-vessels .fs-options {
+	width: 164px;
+	height: 66px;
+}
+
+.fs-options-scroll {
+	flex-grow: 1;
+}
+
+.fs-option {
+	height: 24px;
+	margin: 1px 0;
+	padding: 0 8px;
+	font-size: 13px;
+	-unity-font-style: bold;
+	-unity-text-align: middle-left;
+	border-width: 1px;
+	border-radius: 3px;
+}
+
+.fs-calendar-body {
+	flex-direction: row;
+}
+
+.fs-calendar-weekdays {
+	flex-direction: column;
+	width: 34px;
+}
+
+.fs-calendar-weekday {
+	height: 24px;
+	margin: 1px 0;
+}
+
+.fs-calendar-title {
+	height: 16px;
+	-unity-text-align: middle-center;
+}
+
+.fs-calendar-scroll {
+	max-width: 296px;
+}
+
+.fs-calendar-columns {
+	flex-direction: row;
+}
+
+.fs-calendar-column {
+	flex-direction: column;
+	width: 70px;
+	margin: 0 2px;
+}
+
+.fs-calendar-cell {
+	height: 24px;
+	margin: 1px 0;
+	padding: 0;
+	font-size: 13px;
+	-unity-font-style: bold;
+	-unity-text-align: middle-center;
+	border-width: 1px;
+	border-radius: 3px;
+}
+
+.fs-calendar-legend {
+	margin-top: 4px;
+}
+
+.fs-time-row {
+	flex-direction: row;
+	align-items: flex-end;
+	padding: 0 4px;
+}
+
+.fs-time-steps {
+	flex-direction: row;
+	margin-top: 4px;
+}
+
+.fs-time-step {
+	margin: 0 2px 0 0;
+	padding: 2px 6px;
+}
+
+.fs-picker-vessels {
+	margin-top: 10px;
+}
+
+.fs-picker-footer {
+	flex-direction: row;
+	align-items: center;
+	margin-top: 8px;
+}
+
+.fs-picker-summary {
+	flex-grow: 1;
+	flex-shrink: 1;
+	white-space: normal;
+}
+
+.fs-picker-start {
+	font-size: 16px;
+	-unity-font-style: bold;
+	padding: 4px 22px;
+	margin-left: 12px;
+}
+
+.fs-picker-problem {
+	margin-top: 6px;
+	white-space: normal;
+	max-width: 760px;
 }
 
 /* ---------- development toolbar ---------- */

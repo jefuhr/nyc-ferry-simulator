@@ -18,7 +18,8 @@ namespace FerrySim.UI
 	/// <item><see cref="Contact"/> latches every row with contact up to the one shown, so rows skipped between frames
 	/// still count. A row at time t is the state after physics step round(100 t) - 1, numbered as the bridge numbers them.</item>
 	/// <item>The scenario start comes from the CSV's <c>scenario_start_utc</c> header (Unity runs). CLI runs carry none,
-	/// so the inspector setting applies and <see cref="ScenarioStartIsFallback"/> says so.</item>
+	/// so the inspector setting applies and <see cref="ScenarioStartIsFallback"/> says so. A start chosen through
+	/// <see cref="StartScenario"/> (the dev scene's scenario picker) takes precedence until the next load.</item>
 	/// </list>
 	/// Parameters come from <c>vessels/&lt;id&gt;.json</c> for the vessel in the CSV header.
 	/// </summary>
@@ -46,6 +47,7 @@ namespace FerrySim.UI
 		private float playbackSpeed = 1f;
 
 		private DateTimeOffset _fallbackStart = new DateTimeOffset(2026, 6, 15, 13, 0, 0, TimeSpan.Zero);
+		private DateTimeOffset? _chosenStart;
 		private ContactLatch[] _latches;
 		private int _index = -1;
 		private bool _inside;
@@ -150,9 +152,26 @@ namespace FerrySim.UI
 			ParametersProblem = null;
 			LoadError = null;
 			_latches = Latches(recording);
+			_chosenStart = null;
 			ApplyScenarioStart();
 			StartRun();
 			Seek(recording.StartTime);
+		}
+
+		/// <summary>
+		/// Plays the recording again from its first row as a new run, with the clock starting at
+		/// <paramref name="scenarioStartUtc"/>: a start someone chose, so the panel does not mark it ASSUMED START.
+		/// </summary>
+		public void StartScenario(DateTimeOffset scenarioStartUtc)
+		{
+			_chosenStart = scenarioStartUtc.ToUniversalTime();
+			ApplyScenarioStart();
+			if (Recording != null)
+			{
+				StartRun();
+				Seek(Recording.StartTime);
+				IsPlaying = true;
+			}
 		}
 
 		/// <summary>Sets the fallback scenario start used while the recording carries none. False, and no change, if it does not parse.</summary>
@@ -231,8 +250,8 @@ namespace FerrySim.UI
 		private void ApplyScenarioStart()
 		{
 			var recorded = Recording?.ScenarioStartUtc;
-			ScenarioStartIsFallback = recorded == null;
-			ScenarioStartUtc = recorded ?? _fallbackStart;
+			ScenarioStartIsFallback = _chosenStart == null && recorded == null;
+			ScenarioStartUtc = _chosenStart ?? recorded ?? _fallbackStart;
 		}
 
 		/// <summary>The contact latch at each row: every row with a positive force counts, as the bridge counts steps.</summary>

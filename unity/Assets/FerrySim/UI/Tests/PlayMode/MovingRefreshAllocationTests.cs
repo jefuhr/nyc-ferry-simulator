@@ -12,8 +12,11 @@ namespace FerrySim.UI.Tests.PlayMode
 {
 	/// <summary>
 	/// Guards changing readouts, rather than only paused samples: engine/shaft rpm, levers, unequal
-	/// rudders, heading/course/speed, depth, clock/elapsed, flashing/acknowledged alarms and live/recent contact.
-	/// Warm-up covers two complete alarm/contact cycles. Only the synchronous UI refresh is measured; the test runner, telemetry producer and rendering are outside it.
+	/// rudders, heading/course/speed, depth, clock/elapsed, flashing/acknowledged alarms and live/recent contact,
+	/// and the water and the air on the panel and the HUD (tide and trend, set and drift, wind, a day without wind,
+	/// and both coverage warnings live, earlier and gone). The pack-day clock is shared by the panel and the HUD,
+	/// so it still allocates once per displayed second, not twice. Warm-up covers two complete alarm/contact cycles.
+	/// Only the synchronous UI refresh is measured; the test runner, telemetry producer and rendering are outside it.
 	/// </summary>
 	public sealed class MovingRefreshAllocationTests
 	{
@@ -34,11 +37,15 @@ namespace FerrySim.UI.Tests.PlayMode
 					source.HasTelemetry = true;
 					source.RunId = 1;
 					source.ScenarioStartUtc = UITestRig.ScenarioStart;
+					var environment = host.AddComponent<StubEnvironmentRunner>();
+					environment.HasEnvironment = true;
 					rig.UI.Source = source;
+					rig.UI.ConnectScenario(environment, null, null);
 					rig.View.HudVisible = true;
 					for (var frame = 0; frame < 240; frame++)
 					{
 						Move(source, frame, stoppedClock);
+						MoveEnvironment(environment, frame);
 						if (frame % 120 == 90) rig.View.AcknowledgeAlarms();
 						rig.View.Refresh(source, frame * 0.1);
 						yield return null;
@@ -62,9 +69,14 @@ namespace FerrySim.UI.Tests.PlayMode
 					var nonzero = 0;
 					var states = 0;
 					var indications = 0;
+					var dayData = 0;
+					var depthGrid = 0;
+					var trends = 0;
+					var windMissing = 0;
 					for (var frame = 240; frame < 840; frame++)
 					{
 						Move(source, frame, stoppedClock);
+						MoveEnvironment(environment, frame);
 						if (frame % 120 == 90) rig.View.AcknowledgeAlarms();
 						recorder.enabled = true;
 						rig.View.Refresh(source, frame * 0.1);
@@ -83,10 +95,14 @@ namespace FerrySim.UI.Tests.PlayMode
 						if (allocations != 0) nonzero++;
 						states |= 1 << (int)rig.View.Panel.Alarm.State;
 						indications |= 1 << (int)rig.View.Panel.Contact.Indication;
+						dayData |= 1 << (int)rig.View.Panel.DayData.Indication;
+						depthGrid |= 1 << (int)rig.View.Panel.Depth.Grid.Indication;
+						trends |= 1 << (int)rig.View.Panel.EnvironmentReadouts.TideArrow.Trend;
+						windMissing |= rig.View.Hud.EnvironmentReadouts.WindFrom.text == EnvironmentFormat.NoWindData ? 2 : 1;
 						yield return null;
 					}
 
-					var report = $"frames=600 total_allocations={total} mean_allocations={total / 600.0:F3} max_allocations={maximum} over_budget_frames={overBudgetFrames} first_over_budget_frame={firstOverBudgetFrame} nonzero_frames={nonzero} clock_changes={clockChanges} stopped_clock={stoppedClock} alarm_mask={states} contact_mask={indications}\n";
+					var report = $"frames=600 total_allocations={total} mean_allocations={total / 600.0:F3} max_allocations={maximum} over_budget_frames={overBudgetFrames} first_over_budget_frame={firstOverBudgetFrame} nonzero_frames={nonzero} clock_changes={clockChanges} stopped_clock={stoppedClock} alarm_mask={states} contact_mask={indications} environment=pack day_data_mask={dayData} depth_grid_mask={depthGrid} tide_trend_mask={trends} wind_missing_mask={windMissing}\n";
 					var path = Path.Combine(UITestRig.RepoRoot, stoppedClock ? "artifacts/health/moving-refresh-stopped.txt" : "artifacts/health/moving-refresh.txt");
 					Directory.CreateDirectory(Path.GetDirectoryName(path));
 					File.WriteAllText(path, report);
@@ -94,6 +110,10 @@ namespace FerrySim.UI.Tests.PlayMode
 					recorder.CollectFromAllThreads();
 					Assert.That(states & 7, Is.EqualTo(7), "normal, active and acknowledged alarms exercised");
 					Assert.That(indications & 7, Is.EqualTo(7), "none, live and recent contacts exercised");
+					Assert.That(dayData & 3, Is.EqualTo(3), "no warning and outside the day's data exercised");
+					Assert.That(depthGrid & 7, Is.EqualTo(7), "no warning, off the depth grid now and earlier exercised");
+					Assert.That(trends & 14, Is.EqualTo(14), "rising, falling and steady tides exercised");
+					Assert.That(windMissing, Is.EqualTo(3), "wind and no wind data exercised");
 					Assert.That(total, Is.LessThanOrEqualTo(clockChanges), report);
 					Assert.That(overBudgetFrames, Is.Zero, report);
 				}
@@ -102,6 +122,25 @@ namespace FerrySim.UI.Tests.PlayMode
 					UnityEngine.Object.Destroy(host);
 				}
 			}
+		}
+
+		/// <summary>
+		/// The water and the air move every frame: the tide through rising, steady and falling, the stream turning, the
+		/// wind veering, the day's data running out for part of each cycle, and depth misses that come and stop.
+		/// </summary>
+		private static void MoveEnvironment(StubEnvironmentRunner environment, int frame)
+		{
+			var phase = frame % 120;
+			environment.Environment = TestReadouts.Pack(
+				-0.6 + phase * 0.012,
+				phase < 40 ? 0.3 : phase < 80 ? 0.0 : -0.3,
+				0.1 + phase * 0.03,
+				frame * 3.1,
+				4.0 + phase * 0.1,
+				200.0 + frame * 0.7,
+				windMissing: phase >= 100,
+				timeHolds: phase >= 60 ? (phase - 59) * 10 : 0,
+				depthMisses: phase < 30 ? phase : 30);
 		}
 
 		private static void Move(StubRunner source, int frame, bool stoppedClock)

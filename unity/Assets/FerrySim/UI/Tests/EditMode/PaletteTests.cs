@@ -64,6 +64,45 @@ namespace FerrySim.UI.Tests.EditMode
 			}
 		}
 
+		/// <summary>
+		/// The colors the scenario picker and the readouts of the water and the air draw with, named for where they
+		/// are used. They reuse existing roles, so this guards the pairings rather than new colors.
+		/// </summary>
+		[Test]
+		public void Day_PickerAndEnvironmentPairsMeetWcagAA()
+		{
+			var pairs = new (string, Color, Color)[]
+			{
+				("tide, set, drift and wind values in the top strip", Day.Text, Day.Console),
+				("their captions, units, trend and NAVD88", Day.TextDim, Day.Console),
+				("coverage warning while live (filled)", Day.CautionText, Day.Caution),
+				("coverage warning once earlier (outlined, on its own face)", Day.Text, Day.Face),
+				("picker refusal under Start, on the picker", Day.Caution, Day.Console),
+				("picker options, days and step buttons", Day.Text, Day.Face),
+				("the selected option, day and Start", Day.EngagedText, Day.Engaged),
+				("picker captions, weekdays, legend and zone", Day.TextDim, Day.Console),
+			};
+			foreach (var (what, text, background) in pairs)
+			{
+				AssertContrast(text, background, 4.5, what);
+			}
+
+			AssertContrast(Day.Text, Day.Console, 3.0, "a focused field's ring (WCAG 1.4.11)");
+			AssertContrastOverAnyScene(Day.Text, Day.HudBacking, 4.5, "HUD water and air values and clock");
+			AssertContrastOverAnyScene(Day.TextDim, Day.HudBacking, 4.5, "HUD water and air captions and units");
+		}
+
+		[Test]
+		public void Night_PickerAndEnvironmentStayLegible()
+		{
+			AssertContrast(Night.CautionText, Night.Caution, 3.0, "night coverage warning while live");
+			AssertContrast(Night.Text, Night.Face, 3.0, "night coverage warning once earlier");
+			AssertContrast(Night.Caution, Night.Console, 2.0, "night picker refusal");
+			AssertContrast(Night.EngagedText, Night.Engaged, 3.0, "night selected option and Start");
+			AssertContrast(Night.Text, Night.Console, 3.0, "night readout values and a focused field's ring");
+			AssertContrast(Night.TextDim, Night.Console, 2.0, "night captions");
+		}
+
 		[Test]
 		public void Night_HudTextStaysLegibleOverAnyScene()
 		{

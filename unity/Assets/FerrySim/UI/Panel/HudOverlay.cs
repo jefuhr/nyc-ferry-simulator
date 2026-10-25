@@ -7,12 +7,15 @@ namespace FerrySim.UI
 {
 	/// <summary>
 	/// Minimal overlay for external camera views: speed over ground, heading, both levers with the gear
-	/// each clutch is in, and both rudders. It sits small at the bottom centre, on an opaque backing so its
-	/// text keeps its contrast over bright sky or water. Like the panel it shows "---" whenever the source
-	/// has no telemetry.
+	/// each clutch is in, and both rudders; under them the water and the air (tide, set and drift, wind), the
+	/// coverage warnings and the clock, as the panel shows them. It sits small at the bottom centre, on an opaque
+	/// backing so its text keeps its contrast over bright sky or water. Like the panel it shows "---" whenever
+	/// the source has no telemetry.
 	/// </summary>
 	public sealed class HudOverlay : VisualElement, IPaletteAware
 	{
+		private static readonly EnvironmentDisplay NoEnvironment = new EnvironmentDisplay();
+
 		private readonly ReadoutText _speedText = new ReadoutText();
 		private readonly ReadoutText _portText = new ReadoutText();
 		private readonly ReadoutText _starboardText = new ReadoutText();
@@ -38,8 +41,10 @@ namespace FerrySim.UI
 			AddToClassList(PaletteRoles.HudBackground);
 			pickingMode = PickingMode.Ignore;
 
-			Speed = AddReadout("SOG", "hud-sog", "kn");
-			Heading = AddReadout("HDG", "hud-heading", "°T");
+			var main = Block("fs-hud-main");
+			Add(main);
+			Speed = AddReadout(main, "SOG", "hud-sog", "kn");
+			Heading = AddReadout(main, "HDG", "hud-heading", "°T");
 
 			var levers = Block("fs-hud-levers");
 			levers.Add(PaletteRoles.Label("LEVERS", PaletteRoles.Dim, "fs-caption"));
@@ -53,7 +58,7 @@ namespace FerrySim.UI
 			pair.Add(LeverWithGear("P", PortLever, PortGear));
 			pair.Add(LeverWithGear("S", StarboardLever, StarboardGear));
 			levers.Add(pair);
-			Add(levers);
+			main.Add(levers);
 
 			var rudder = Block("fs-hud-rudder");
 			rudder.Add(PaletteRoles.Label("RUDDER", PaletteRoles.Dim, "fs-caption"));
@@ -62,7 +67,26 @@ namespace FerrySim.UI
 			RudderText = PaletteRoles.Label(InstrumentFormat.NoValue, PaletteRoles.Text, "fs-value-s");
 			RudderText.name = "hud-rudder-text";
 			rudder.Add(RudderText);
-			Add(rudder);
+			main.Add(rudder);
+
+			// The water and the air in two fixed-width rows, the clock beside them, and the warnings on their own line.
+			var environment = Block("fs-hud-env");
+			EnvironmentReadouts = new EnvironmentReadouts("hud-env");
+			environment.Add(EnvironmentReadouts);
+			environment.Add(Block("fs-spacer"));
+			Clock = PaletteRoles.Label(InstrumentFormat.NoValue, PaletteRoles.Text, "fs-value-s", "fs-hud-clock");
+			Clock.name = "hud-clock";
+			environment.Add(Clock);
+			ClockZone = PaletteRoles.Label(EnvironmentDisplay.ZoneUnknown, PaletteRoles.Dim, "fs-unit");
+			ClockZone.name = "hud-clock-zone";
+			environment.Add(ClockZone);
+			Add(environment);
+			var warnings = Block("fs-hud-warnings");
+			DayData = new CoverageTag("OUTSIDE DAY'S DATA") { name = "hud-day-data" };
+			warnings.Add(DayData);
+			DepthGrid = new CoverageTag("OFF DEPTH GRID") { name = "hud-depth-grid" };
+			warnings.Add(DepthGrid);
+			Add(warnings);
 		}
 
 		public Label Speed { get; }
@@ -81,6 +105,19 @@ namespace FerrySim.UI
 
 		public Label RudderText { get; }
 
+		/// <summary>Tide, set and drift, and wind, under the main readouts.</summary>
+		public EnvironmentReadouts EnvironmentReadouts { get; }
+
+		/// <summary>The outside-the-day's-data warning, on its own line under the water and the air.</summary>
+		public CoverageTag DayData { get; }
+
+		/// <summary>The outside-the-depth-grid warning; the HUD has no depth readout, so it stands with the other warning.</summary>
+		public CoverageTag DepthGrid { get; }
+
+		public Label Clock { get; }
+
+		public Label ClockZone { get; }
+
 		public void ApplyPalette(InstrumentPalette palette)
 		{
 			_palette = palette ?? InstrumentPalette.Day;
@@ -88,8 +125,22 @@ namespace FerrySim.UI
 			ColorGear(StarboardGear, _starboardTone);
 		}
 
-		public void Refresh(IVesselTelemetrySource source)
+		/// <summary>Refreshes without the water and the air: they read "---" and the clock "---".</summary>
+		public void Refresh(IVesselTelemetrySource source) => Refresh(source, null);
+
+		/// <param name="source">May be null.</param>
+		/// <param name="environment">
+		/// What the panel worked out this frame (<see cref="WheelhousePanel.EnvironmentDisplay"/>), so both show the
+		/// same strings and the clock is built once; null shows no environment and no clock.
+		/// </param>
+		public void Refresh(IVesselTelemetrySource source, EnvironmentDisplay environment)
 		{
+			var display = environment ?? NoEnvironment;
+			EnvironmentReadouts.Show(display);
+			DayData.Show(display.DayDataIndication);
+			DepthGrid.Show(display.DepthGridIndication);
+			PaletteRoles.SetText(Clock, display.Clock);
+			PaletteRoles.SetText(ClockZone, display.Zone);
 			if (source == null || !source.HasTelemetry)
 			{
 				ShowNoData();
@@ -178,7 +229,7 @@ namespace FerrySim.UI
 			a.Starboard.Gear == b.Starboard.Gear && a.PortRudderAngle.Equals(b.PortRudderAngle) &&
 			a.StarboardRudderAngle.Equals(b.StarboardRudderAngle) && a.SpeedOverGround.Equals(b.SpeedOverGround);
 
-		private Label AddReadout(string caption, string valueName, string unit)
+		private static Label AddReadout(VisualElement parent, string caption, string valueName, string unit)
 		{
 			var block = Block("fs-hud-readout");
 			block.Add(PaletteRoles.Label(caption, PaletteRoles.Dim, "fs-caption"));
@@ -188,7 +239,7 @@ namespace FerrySim.UI
 			row.Add(value);
 			row.Add(PaletteRoles.Label(unit, PaletteRoles.Dim, "fs-unit", unit.StartsWith("°") ? "fs-unit--tight" : "fs-unit--spaced"));
 			block.Add(row);
-			Add(block);
+			parent.Add(block);
 			return value;
 		}
 
