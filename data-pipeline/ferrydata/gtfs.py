@@ -42,6 +42,13 @@ def read_feed(path):
 	return feed
 
 
+def ferry_stop_ids(feed):
+	"""Stops actually served by ferry routes (GTFS route_type 4), excluding bus shuttles."""
+	routes = set(feed["routes"].loc[feed["routes"].route_type == "4", "route_id"])
+	trips = set(feed["trips"].loc[feed["trips"].route_id.isin(routes), "trip_id"])
+	return set(feed["stop_times"].loc[feed["stop_times"].trip_id.isin(trips), "stop_id"])
+
+
 def _routes_by_stop(feed):
 	joined = feed["stop_times"][["trip_id", "stop_id"]].merge(feed["trips"][["trip_id", "route_id"]], on="trip_id")
 	return {stop: sorted(set(group.route_id)) for stop, group in joined.groupby("stop_id")}
@@ -50,8 +57,9 @@ def _routes_by_stop(feed):
 def landings(feed, slice_):
 	routes_by_stop = _routes_by_stop(feed)
 	rows = []
+	contains = getattr(slice_, "owns", slice_.contains)
 	for stop in feed["stops"].itertuples():
-		if not slice_.contains(stop.stop_lon, stop.stop_lat):
+		if not contains(stop.stop_lon, stop.stop_lat):
 			continue
 		rows.append(
 			{

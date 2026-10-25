@@ -1,0 +1,149 @@
+{
+	"source": "noaa-enc-harbor",
+	"description": "Additive harbor ENC catalogue and cells; original slice manifest remains unchanged",
+	"homepage": "https://nauticalcharts.noaa.gov/enconline/enconline.html",
+	"license": "NOAA ENCs may be downloaded, used and redistributed without restriction or payment (NOAA ENC User Agreement). Not for navigation.",
+	"terms_url": "https://www.charts.noaa.gov/ENCs/ENCs.shtml",
+	"terms_text": "NOAA ENC User Agreement (USERAGREEMENT.TXT in every cell download): NOAA ENCs are an official product of NOAA. 'You may download, use, and redistribute them without restriction, and without payment to NOAA, except as noted herein.' Redistributed NOAA ENCs are not official NOAA ENCs and do not meet chart carriage regulations unless redistributed by a certified distributor. Not for navigation.",
+	"notes": [
+		"Cells were chosen from NOAA's ENC product catalogue (https://www.charts.noaa.gov/ENCs/ENCProdCat_19115.xml) as the largest-scale cells (usage band 5, 1:12000) intersecting the slice bounding box.",
+		"Each zip holds a base cell (.000) and its update files (.001...), which GDAL's S-57 driver applies on read. The sha256 pins the weekly edition used.",
+		"Soundings are in the cell's sounding datum (MLLW); heights and bridge clearances are above MHW (DSPM_VDAT 16)."
+	],
+	"harbor_note": "Additive harbor records sharing the original raw directory; original slice pins remain unchanged.",
+	"files": [
+		{
+			"name": "ENCProdCat_19115.xml",
+			"url": "https://www.charts.noaa.gov/ENCs/ENCProdCat_19115.xml",
+			"retrieved_utc": "2026-10-25T03:05:58Z",
+			"sha256": "cde71946c261f89c81716966e8b6bb3691c1929ebd15ba508c85d2a3de83cef7",
+			"size_bytes": 52327726
+		},
+		{
+			"name": "US5NY1BE.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NY1BE.zip",
+			"retrieved_utc": "2026-10-25T03:08:04Z",
+			"sha256": "a9dad9c76a06cd0ad5db3230a6dd152c4669cd2fe0f020e27d6f84fd7d040e97",
+			"size_bytes": 210699
+		},
+		{
+			"name": "US5NY1BF.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NY1BF.zip",
+			"retrieved_utc": "2026-10-25T03:08:07Z",
+			"sha256": "dea80b1ec44eb4a325f43896048944101f085c53c9c21ba1714baa314360595a",
+			"size_bytes": 355074
+		},
+		{
+			"name": "US5NY1CE.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NY1CE.zip",
+			"retrieved_utc": "2026-10-25T03:08:07Z",
+			"sha256": "73c4e7ed486acbbc61355efd860470a49243b5d8f21e9e6271d8b1fe79a108ae",
+			"size_bytes": 36185
+		},
+		{
+			"name": "US5NY1CF.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NY1CF.zip",
+			"retrieved_utc": "2026-10-25T03:08:08Z",
+			"sha256": "36e94816ef0c19fc3d41781958a640e86f4b7a1a465d7771faa4b1c75f8982a6",
+			"size_bytes": 41108
+		},
+		{
+			"name": "US5NY1DE.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NY1DE.zip",
+			"retrieved_utc": "2026-10-25T03:08:08Z",
+			"sha256": "fb989b07f4af6f3b3d0118d4026a5cde1879527cacbcf9164c29896b54f18913",
+			"size_bytes": 256149
+		},
+		{
+			"name": "US5NY1DF.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NY1DF.zip",
+			"retrieved_utc": "2026-10-25T03:08:08Z",
+			"sha256": "267de61b7d88378dd78b66b471896e0da98e46586e9aa4b811f7cc7d11401984",
+			"size_bytes": 153584
+		},
+		{
+			"name": "US5NYCCE.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NYCCE.zip",
+			"retrieved_utc": "2026-10-25T03:08:09Z",
+			"sha256": "f0f8130af58d202981aa2a5261b3365778ca48bf32c53b6cd5aafeaaa2313bb3",
+			"size_bytes": 108067
+		},
+		{
+			"name": "US5NYCCF.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NYCCF.zip",
+			"retrieved_utc": "2026-10-25T03:08:09Z",
+			"sha256": "051bc017e1f722dc621ccb7aa7d84a6af7d1e0c2ec3834426eee182a76b9c829",
+			"size_bytes": 230237
+		},
+		{
+			"name": "US5NYCCG.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NYCCG.zip",
+			"retrieved_utc": "2026-10-25T03:08:09Z",
+			"sha256": "024c96d7dca422b77dd18bfbb4aedf053e46c2c9f402b52a60417550d60453e1",
+			"size_bytes": 84072
+		},
+		{
+			"name": "US5NYCDE.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NYCDE.zip",
+			"retrieved_utc": "2026-10-25T03:08:09Z",
+			"sha256": "257a41dd606310f75322dfef00891174abb2aa8e97403833ce65e901bca69283",
+			"size_bytes": 140658
+		},
+		{
+			"name": "US5NYCDF.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NYCDF.zip",
+			"retrieved_utc": "2026-10-25T03:08:10Z",
+			"sha256": "6d5c01f9b0310a69d24dd333c78afcd972194b618b214c1696e2ed2bd0f013ad",
+			"size_bytes": 265245
+		},
+		{
+			"name": "US5NYCEE.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NYCEE.zip",
+			"retrieved_utc": "2026-10-25T03:08:11Z",
+			"sha256": "8a98d8b05d11d4f1bc2f13f1610486b63fcca401c9332535208888e5f1bf237a",
+			"size_bytes": 98184
+		},
+		{
+			"name": "US5NYCEF.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NYCEF.zip",
+			"retrieved_utc": "2026-10-25T03:08:11Z",
+			"sha256": "7b2aae4d8795a044c70a9f13fbecd0f1f6c6bbac9c31eeb5a04d4888f720b4dc",
+			"size_bytes": 118290
+		},
+		{
+			"name": "US5NYCFE.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NYCFE.zip",
+			"retrieved_utc": "2026-10-25T03:08:11Z",
+			"sha256": "0bdf6597cc978e6901c4d480e8b5d31ea10c7ba00e98b4e8af4558d3647e504d",
+			"size_bytes": 45993
+		},
+		{
+			"name": "US5NYCFF.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NYCFF.zip",
+			"retrieved_utc": "2026-10-25T03:08:11Z",
+			"sha256": "4dab29c6f1897c24e7fd15225436f900d843877d1aad9dc10fc850f7aa7ef6b0",
+			"size_bytes": 70724
+		},
+		{
+			"name": "US5NYCFG.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NYCFG.zip",
+			"retrieved_utc": "2026-10-25T03:08:12Z",
+			"sha256": "d8893c247fda0a58345c16d557dd746581fb11f0e4fca52da1e120f6325f5b25",
+			"size_bytes": 133313
+		},
+		{
+			"name": "US5NYCFH.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NYCFH.zip",
+			"retrieved_utc": "2026-10-25T03:08:12Z",
+			"sha256": "a87a5ed2af03872c11b3834991b97b0bf93d0b72206a3548fe59556eae072179",
+			"size_bytes": 294101
+		},
+		{
+			"name": "US5NYCFI.zip",
+			"url": "https://www.charts.noaa.gov/ENCs/US5NYCFI.zip",
+			"retrieved_utc": "2026-10-25T03:08:12Z",
+			"sha256": "9f1da8fc40ee3432ed404e9a23f170a9f81ce5b4a286d441676f51c3e6a195c4",
+			"size_bytes": 163005
+		}
+	]
+}

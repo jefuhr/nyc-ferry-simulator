@@ -4,7 +4,7 @@ import argparse
 import sys
 import time
 
-from ferrydata import ais, coops, cudem, enc, geoid, gtfs, landings, navdepth, slices
+from ferrydata import ais, coops, cudem, enc, geoid, gtfs, landings, navdepth, slices, tiles
 
 # Order matters for build: ais needs the GTFS landings, validate needs everything.
 SOURCES = {
@@ -56,13 +56,25 @@ def main(argv=None) -> int:
 	sub = parser.add_subparsers(dest="command", required=True)
 	for verb, help_text in (("export-unity", "export merged depth as a deterministic Unity float grid"), ("fetch", "download raw data into the cache (idempotent, checksum-verified)"), ("build", "process from the cache into data/processed/<slice>/"), ("validate", "check the processed outputs and write validation_report.md")):
 		p = sub.add_parser(verb, help=help_text)
-		p.add_argument("--slice", required=True, help="slice name, e.g. lower-east-river")
+		scope = p.add_mutually_exclusive_group(required=True)
+		scope.add_argument("--slice", help="slice name, e.g. lower-east-river")
+		if verb != "export-unity":
+			scope.add_argument("--harbor", action="store_true", help="the 4 km harbor tile grid")
+		if verb == "build":
+			p.add_argument("--tiles", help="comma-separated harbor tile ids (requires --harbor)")
 		if verb not in ("validate", "export-unity"):
 			p.add_argument("--only", help="comma-separated sources to run: " + ",".join(SOURCES))
 			p.add_argument("--skip", help="comma-separated sources to skip")
 		if verb == "fetch":
 			p.add_argument("--force", action="store_true", help="re-download and accept changed upstream data (updates the manifest)")
 	args = parser.parse_args(argv)
+	if getattr(args, "tiles", None) and not getattr(args, "harbor", False):
+		parser.error("--tiles requires --harbor")
+	if getattr(args, "harbor", False):
+		if getattr(args, "only", None) or getattr(args, "skip", None) or getattr(args, "force", False):
+			parser.error("harbor commands build all v1 sources and never replace pinned downloads")
+		kwargs = {"tile_ids": args.tiles.split(",")} if getattr(args, "tiles", None) else {}
+		return getattr(tiles, args.command)(**kwargs)
 	if args.command == "export-unity":
 		from ferrydata import export_unity
 		return export_unity.run(slices.get_slice(args.slice))

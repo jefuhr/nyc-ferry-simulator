@@ -20,6 +20,27 @@ class RequestRejected(ValueError):
 	"""The server answered with a 4xx status; retrying will not help."""
 
 
+def restore_pinned_file(manifest, name, dest):
+	"""Restore missing bytes using an existing pin without rewriting its provenance."""
+	dest = Path(dest)
+	entry = manifest.files[name]
+	if dest.exists():
+		if manifest.verify(name, dest):
+			return "cached"
+		raise ChecksumError(f"refusing to replace existing {dest}")
+	dest.parent.mkdir(parents=True, exist_ok=True)
+	part = dest.with_name(dest.name + ".part")
+	try:
+		size = _download(entry["url"], part)
+		if size != entry["size_bytes"] or manifest_module.sha256_file(part) != entry["sha256"]:
+			raise ChecksumError(f"'{name}' changed upstream; original pin is unchanged")
+		os.replace(part, dest)
+	finally:
+		if part.exists():
+			part.unlink()
+	return "downloaded"
+
+
 def http_get(url, timeout=120, retries=3):
 	"""Return the body of a URL as bytes (for small API responses)."""
 	last = None
