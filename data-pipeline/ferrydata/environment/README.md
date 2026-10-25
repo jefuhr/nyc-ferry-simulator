@@ -55,6 +55,7 @@ The slice's seven subordinate stations (`ACT3406`, `ACT3411`, `ACT3416`, `ACT342
 - The corrections are the station's MDAPI `currentpredictionoffsets` (`sbfTimeAdjMin`, `mfcTimeAdjMin`, `sbeTimeAdjMin`, `mecTimeAdjMin`, `mfcAmpAdj`, `mecAmpAdj`, `meanFloodDir`, `meanEbbDir`), with the reference station and bin they name (`NYH1924` bin 6 for the East River stations, `n03020` bin 7 for `ACT3646`).
 - The reference's own MAX_SLACK events are shifted by their phase's time offset; maxima are scaled by their phase's ratio and slack stays zero. A slack takes the phase of the maximum that follows it.
 - CO-OPS publishes only those events for a subordinate station: its 6-minute interval is for harmonic stations only, and its [FAQ](https://tidesandcurrents.noaa.gov/noaacurrents/faq.html) calls the curve between events "a mathematical interpolation between the known maximum and slack values". Here the curve keeps the reference's own shape: between two consecutive shifted events the reference's 6-minute prediction is read at the linearly corresponding time between its two events, times the flood ratio where it floods and the ebb ratio where it ebbs. Flood points toward `meanFloodDir`, ebb toward `meanEbbDir`.
+- The reference's events are checked before anything is made of them (`subordinate.check_events`): finite times that increase strictly; only the phases `slack`, `flood` and `ebb`; at least two events; slack and maxima alternating, and floods and ebbs alternating, so a missing or repeated interior event is refused rather than read as another phase. A window may open and close anywhere in a cycle, as the padded weekly windows do. A refusal names the subordinate station, its reference, the source file and the events. Every reference and published event file for the 28 days passes.
 - Raw inputs, all in `raw/coops-environment/` and `data/manifests/coops-environment.json`: `offsets_<station>.json`, `currents_<reference>_bin<n>_<week>.csv` (6-minute) and `events_<reference>_bin<n>_<week>.csv` (MAX_SLACK) for each scenario week with 12 hours either side, and `events_<station>_bin1_<week>.csv`, what CO-OPS publishes for the subordinate station itself, kept to check the series against.
 - Check on all 28 days (`artifacts/current-field/subordinates.md`): every shifted event falls on the published minute, published speeds agree to the 0.1 cm/s the reference speeds are rounded to, and the 6-minute series crosses zero within about a minute of each published slack.
 
@@ -100,7 +101,7 @@ data/processed/<region>/env/
 - `sources`: the depth set's DIGEST, the ENC catalogue and cells, and the CUDEM tiles, each with its SHA-256.
 - `notes`.
 
-A cell's values are: the axis's north and east components (a unit vector, flood-oriented), the along and cross factors in [0, 1], then one weight per slot. A dry cell has every slot empty and all values zero. Grids follow the depth grids' conventions: cell centres, rows growing north, and no overlap.
+A cell's values are: the axis's north and east components (a unit vector, flood-oriented), the along and cross factors in [0, 1], then one weight per slot. A cell is water when any of its slots names a station, wherever its empty slots sit; both readers, `field.evaluate` and `ChannelCurrentField` follow that rule. A dry cell has every slot empty and all values zero. Grids follow the depth grids' conventions: cell centres, rows growing north, and no overlap.
 
 The day manifest's optional `field_digest` names the field. When it is present, the day's current stations must include every field station, each within 0.01 m of where the field solved it.
 
@@ -123,7 +124,7 @@ Both readers refuse:
 - unknown or missing keys, and a format, method or region other than these;
 - any per-file SHA-256, DIGEST or `field_digest` mismatch;
 - station ids that are empty, repeated, more than 254 or contain a comma or quote, and a frame shorter than 1e-3;
-- grid ids that are not plain names, files not named `<id>.f32` and `<id>.u8`, grids under 2 × 2 cells, and grids that overlap;
+- a field with no grids, grid ids that are not plain names, files not named `<id>.f32` and `<id>.u8`, grids under 2 × 2 cells, and grids that overlap;
 - sizes that do not fit the grid shape, and slots outside 1 to 8;
 - non-finite values;
 - factors or weights outside [0, 1];
@@ -141,14 +142,15 @@ The pipeline (`field.evaluate`) and the core (`ChannelCurrentField`) implement t
 3. A point's value blends the four cells around it bilinearly (the depth grids' cell lookup, with the last row and column of centres inside), over the water cells only. The sum is divided by the water cells' share of the bilinear weight, or by ½ when their share is smaller. So the flow keeps its full strength up to a shoreline halfway between a water centre and a land centre, and fades to zero over land.
 4. Outside every grid, the value is the station blend (inverse distance squared over all the day's current stations, as `StationBlendCurrentField`).
 
-**Golden vectors.** `core/dotnet/FerrySim.Core.Tests/Environment/python_field_pack.py` is an independent implementation. It writes a small pack with a field and samples it at 13 points:
+**Golden vectors.** `core/dotnet/FerrySim.Core.Tests/Environment/python_field_pack.py` is an independent implementation. It writes a small pack with a field and samples it at 15 points:
 
 - mid-channel;
 - at station A, next to it, and at station B, where two corners have no across part;
 - near a shore, with a water share of 0.65 and of 0.4 (either side of the ½ floor);
 - on a land centre;
 - either side of a cell boundary and on it;
-- just past the grid's north edge, far outside it, and at a station outside it.
+- just past the grid's north edge, far outside it, and at a station outside it;
+- on a cell whose first two slots are empty, and on one with an empty slot between two stations. Several other cells also keep their stations behind or between empty slots.
 
 The C# reader, `ChannelCurrentField`, the pipeline's `pack.verify` and `field.evaluate` all reproduce its digests and samples within 1e-12 m/s (`CurrentFieldPackTests`, `test_environment_golden.py`).
 

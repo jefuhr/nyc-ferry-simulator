@@ -4,7 +4,8 @@ guarded:
 - a pack without a field whose digest changes (existing packs must keep theirs), or a day digest that ignores the field;
 - a changed byte in any field file accepted, or refused without naming the file;
 - cells outside the format (non-unit axis on water, weights not summing to 1, a slot naming no station, weight in an
-  empty slot, factors outside [0, 1], non-finite values, a dry cell with values), slots outside 1 to 8, unknown keys;
+  empty slot, factors outside [0, 1], non-finite values, a dry cell with values), slots outside 1 to 8, unknown keys, or a
+  field with no grids;
 - a day whose field_digest is not the field's, that lacks a field station, or places one beyond the tolerance;
 - a derivation that is not NOAA's subordinate method for a subordinate station, with non-positive ratios, directions
   outside [0, 360) or unknown keys.
@@ -157,6 +158,15 @@ def test_slots_outside_one_to_eight_are_refused(field_pack, slots):
 	reseal(root, args)
 	with pytest.raises(ValueError, match='slots'):
 		pack.verify(root)
+
+
+def test_a_field_with_no_grids_is_refused(tmp_path):
+	# The core refuses it ("grids: must list at least one grid"), so a pipeline that passed it would ship an unloadable pack.
+	directory = tmp_path / 'field'
+	stations = [dict(id='A', north_m=5., east_m=5., frame_north=1., frame_east=0.)]
+	pack.write_field(directory, 'lower-east-river', stations, [], PARAMETERS, [], [])
+	with pytest.raises(ValueError, match='at least one grid'):
+		pack.verify_field(directory, 'lower-east-river')
 
 
 @pytest.mark.parametrize('where,key', [('manifest', 'extra'), ('parameters', 'extra'), ('stations', 'extra')])

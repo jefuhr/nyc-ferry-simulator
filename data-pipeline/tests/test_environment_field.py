@@ -10,8 +10,12 @@
 - the field not reproducing a station's velocity at the station, or not following a bend between stations;
 - order dependence or nondeterminism (two builds differ, or station order changes the result);
 - truncation to a few stations per cell that does not renormalise, or ties broken by accident;
+- a cell whose stations sit behind or between empty slots taken as dry, in sampling or in a station's frame (the
+  format makes it water);
 - stations off the water, or so close that their disks overlap, and reaches or tapers that break the factors.
 """
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 
@@ -268,6 +272,34 @@ def test_flow_along_a_bank_keeps_its_strength_up_to_the_shoreline_and_fades_over
 	assert u[2, 1] == pytest.approx(u[0, 1] * 0.25 / field.WET_FLOOR), 'over land it fades'
 	assert u[3, 1] == pytest.approx(0., abs=1e-3), 'and is continuous down to the dry centre'
 	assert np.all(u[4] == 0.)
+
+
+def stored(slots, weights):
+	"""A 2 x 2 stored grid, axis north and both factors 1, with these slots and weights in every cell, and two stations
+	whose frames point north."""
+	values = np.zeros((2, 2, 4 + len(slots)))
+	values[..., 0], values[..., 2:4], values[..., 4:] = 1., 1., weights
+	return SimpleNamespace(lattice=field.Lattice(0., 0., 10., 2, 2), stations=[station('A', 5., 5.), station('B', 5., 5.)],
+		frames=np.array([[1., 0.], [1., 0.]]), axis_north=values[..., 0], axis_east=values[..., 1], along=values[..., 2],
+		cross=values[..., 3], slots=np.broadcast_to(np.array(slots, dtype=np.uint8), (2, 2, len(slots))).copy(),
+		slot_weights=values[..., 4:])
+
+
+@pytest.mark.parametrize('slots,weights,expected', [
+	([field.EMPTY, 0], [0., 1.], [1., 0.25]),                      # the review's probe: a leading empty slot
+	([0, field.EMPTY, 1], [0.5, 0., 0.5], [0.75, 0.125]),          # an empty slot between two stations
+	([field.EMPTY, field.EMPTY, 1], [0., 0., 1.], [0.5, 0.]),      # two leading empty slots
+	([field.EMPTY, field.EMPTY], [0., 0.], [0., 0.]),              # dry
+])
+def test_a_cell_is_water_when_any_of_its_slots_names_a_station(slots, weights, expected):
+	basis = stored(slots, weights)
+	velocities = {'A': np.array([[1., 0.25]]), 'B': np.array([[0.5, 0.]])}
+	assert field.evaluate(basis, velocities, np.array([5.]), np.array([5.]))[0] == pytest.approx(expected)
+	if expected != [0., 0.]:
+		assert field.frame(basis, 5., 5.) == pytest.approx([1., 0.])
+	else:
+		with pytest.raises(ValueError, match='no flow axis'):
+			field.frame(basis, 5., 5.)
 
 
 def staircase():

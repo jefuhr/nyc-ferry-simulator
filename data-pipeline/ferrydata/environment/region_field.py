@@ -200,7 +200,7 @@ def build(region, root, stations, log=print):
 	frames = []
 	for s, f in zip(basis.stations, basis.frames):
 		if 0 <= (s.north - stored.origin_north) / stored.cell <= rows - 1 and 0 <= (s.east - stored.origin_east) / stored.cell <= cols - 1:
-			f = field.frame_on(stored, grid['values'][..., 0], grid['values'][..., 1], grid['slots'][..., 0] != field.EMPTY, s.north, s.east)
+			f = field.frame_on(stored, grid['values'][..., 0], grid['values'][..., 1], field.wet_cells(grid['slots']), s.north, s.east)
 		frames.append(dict(id=s.id, north_m=s.north, east_m=s.east, frame_north=float(f[0]), frame_east=float(f[1])))
 	dropped = 1. - np.sort(basis.weights, axis=0)[::-1][:parameters_.slots].sum(axis=0)
 	r0, r1, c0, c1 = extent

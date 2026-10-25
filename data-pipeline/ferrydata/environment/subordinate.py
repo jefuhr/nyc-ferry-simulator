@@ -21,6 +21,7 @@ from dataclasses import dataclass
 import numpy as np
 
 MAXIMA = ('flood', 'ebb')
+PHASES = ('slack',) + MAXIMA
 
 
 @dataclass(frozen=True)
@@ -66,6 +67,41 @@ def offsets(station):
 		flood_dir=numbers['meanFloodDir'], ebb_dir=numbers['meanEbbDir'])
 
 
+def describe(event):
+	return f'{event.kind} at {event.t:g} s'
+
+
+def check_events(events, o, source):
+	"""Reference events as a MAX_SLACK file gives them, checked before anything is made of them: finite times that
+	increase strictly, only the phases slack, flood and ebb, at least two events, slack and maxima alternating, and
+	floods and ebbs alternating, so no interior event is missing or repeated. A window may open and close anywhere in a
+	cycle. Anything else is refused, naming the station, its reference, the source and the events. Returns the events."""
+	events = list(events)
+	where = f'{o.station}: reference {o.reference} bin {o.reference_bin} events in {source}'
+	if len(events) < 2:
+		raise ValueError(f'{where}: {len(events)} event{"" if len(events) == 1 else "s"} cannot bracket anything')
+	for e in events:
+		if e.kind not in PHASES:
+			raise ValueError(f'{where}: unrecognised phase {e.kind!r} at {e.t:g} s')
+		if not (math.isfinite(e.t) and math.isfinite(e.velocity)):
+			raise ValueError(f'{where}: a time or speed is not finite: {describe(e)}, {e.velocity:g} m/s')
+	for a, b in zip(events, events[1:]):
+		if not b.t > a.t:
+			raise ValueError(f'{where}: times must increase strictly: {describe(a)}, then {describe(b)}')
+	for a, b in zip(events, events[1:]):
+		if a.kind == 'slack' and b.kind == 'slack':
+			raise ValueError(f'{where}: {describe(a)}, then {describe(b)}: the maximum between them is missing, or a slack is repeated')
+		if a.kind != 'slack' and b.kind != 'slack':
+			raise ValueError(f'{where}: {describe(a)}, then {describe(b)}: the slack between them is missing, or a maximum is repeated')
+	maxima = [e for e in events if e.kind in MAXIMA]
+	for a, b in zip(maxima, maxima[1:]):
+		if a.kind == b.kind:
+			other = 'ebb' if a.kind == 'flood' else 'flood'
+			raise ValueError(f'{where}: {describe(a)}, then {describe(b)} with one slack between: the {other} between them and its '
+				'slack are missing')
+	return events
+
+
 def classify(events):
 	"""Names each slack by the maximum that follows it (or, for a last slack, the one that precedes it)."""
 	events = sorted(events, key=lambda e: e.t)
@@ -84,10 +120,11 @@ def classify(events):
 	return result
 
 
-def shift(reference_events, o):
-	"""The subordinate events: each reference event moved by its phase's time offset; maxima scaled, slack zero."""
+def shift(reference_events, o, source='its reference events'):
+	"""The subordinate events: each reference event moved by its phase's time offset; maxima scaled, slack zero. The
+	reference events are checked first (check_events); source names where they came from."""
 	shifted = []
-	for e in classify(reference_events):
+	for e in classify(check_events(reference_events, o, source)):
 		if e.kind == 'flood':
 			shifted.append(Event(e.t + o.max_flood_s, e.kind, e.velocity * o.flood_ratio))
 		elif e.kind == 'ebb':
@@ -96,25 +133,27 @@ def shift(reference_events, o):
 			shifted.append(Event(e.t + o.slack_before_flood_s, e.kind, 0.0))
 		else:
 			shifted.append(Event(e.t + o.slack_before_ebb_s, e.kind, 0.0))
-	if any(b.t <= a.t for a, b in zip(shifted, shifted[1:])):
-		raise ValueError(f'{o.station}: offsets move the reference events out of order')
+	for a, b in zip(shifted, shifted[1:]):
+		if b.t <= a.t:
+			raise ValueError(f'{o.station}: offsets move the reference events in {source} out of order: {describe(a)}, then {describe(b)}')
 	return shifted
 
 
-def series(times, reference_t, reference_v, reference_events, o):
-	"""Signed major-axis velocity (m/s) of the subordinate station at `times`."""
+def series(times, reference_t, reference_v, reference_events, o, source='its reference events'):
+	"""Signed major-axis velocity (m/s) of the subordinate station at `times`. The reference events are checked as
+	given, before anything sorts them (check_events); source names where they came from."""
 	times = np.asarray(times, dtype=float)
 	reference_t = np.asarray(reference_t, dtype=float)
 	reference_v = np.asarray(reference_v, dtype=float)
 	if reference_t.size < 2 or np.any(np.diff(reference_t) <= 0) or not np.all(np.isfinite(reference_v)):
 		raise ValueError(f'{o.reference}: reference series must be finite with increasing times')
-	ref = sorted(reference_events, key=lambda e: e.t)
-	sub = shift(ref, o)
+	ref = check_events(reference_events, o, source)
+	sub = shift(ref, o, source)
 	sub_t = np.array([e.t for e in sub])
 	ref_t = np.array([e.t for e in ref])
 	if times.size and (times.min() < sub_t[0] or times.max() > sub_t[-1]):
 		raise ValueError(f'{o.station}: times {times.min():g} to {times.max():g} s are not bracketed by shifted events '
-			f'{sub_t[0]:g} to {sub_t[-1]:g} s')
+			f'{sub_t[0]:g} to {sub_t[-1]:g} s from {source}')
 	k = np.clip(np.searchsorted(sub_t, times, side='right') - 1, 0, len(sub_t) - 2)
 	fraction = (times - sub_t[k]) / (sub_t[k + 1] - sub_t[k])
 	tau = ref_t[k] + fraction * (ref_t[k + 1] - ref_t[k])

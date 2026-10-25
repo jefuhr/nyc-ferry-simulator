@@ -16,7 +16,8 @@ namespace FerrySim.Core.Tests.Env
 	/// sampling rule drifting between the pipeline and the core).</item>
 	/// <item>A flipped byte anywhere in a field pack accepted, or refused without naming the file.</item>
 	/// <item>A day naming another field, lacking a field station, or placing one beyond the tolerance, accepted.</item>
-	/// <item>A field manifest with another format or method, an unknown key or slots outside 1 to 8, accepted.</item>
+	/// <item>A field manifest with another format or method, an unknown key, no grids or slots outside 1 to 8, accepted.</item>
+	/// <item>A cell whose stations sit behind or between empty slots taken as dry (golden samples on such cells).</item>
 	/// <item>Writing and loading losing a field value or a derivation; a pack without a field not falling back to the station
 	/// blend.</item>
 	/// </list>
@@ -55,8 +56,11 @@ namespace FerrySim.Core.Tests.Env
 			Assert.That(pack.CurrentField.Digest, Is.EqualTo(PythonFieldPackFixture.FieldDigest));
 			Assert.That(new[] { pack.CurrentField.Stations[0].Id, pack.CurrentField.Stations[1].Id, pack.CurrentField.Stations[2].Id }, Is.EqualTo(new[] { "A", "B", "C" }));
 			var grid = pack.CurrentField.Grids[0];
-			Assert.That((grid.Rows, grid.Columns, grid.Slots, grid.CellSize), Is.EqualTo((4, 5, 2, 20.0)));
+			Assert.That((grid.Rows, grid.Columns, grid.Slots, grid.CellSize), Is.EqualTo((4, 5, 3, 20.0)));
 			Assert.That(grid.IsWet(3, 4), Is.False);
+			// Water wherever any slot names a station: behind two empty slots, and around an empty one.
+			Assert.That((grid.Slot(2, 3, 0), grid.Slot(2, 3, 1), grid.Slot(2, 3, 2), grid.IsWet(2, 3)), Is.EqualTo((CurrentFieldGrid.EmptySlot, CurrentFieldGrid.EmptySlot, (byte)1, true)));
+			Assert.That((grid.Slot(2, 0, 0), grid.Slot(2, 0, 1), grid.Slot(2, 0, 2), grid.IsWet(2, 0)), Is.EqualTo(((byte)1, CurrentFieldGrid.EmptySlot, (byte)2, true)));
 			Assert.That(pack.CurrentField.Parameters.ShelterThreshold, Is.EqualTo(0.85));
 			Assert.That(pack.CurrentField.Parameters.AcrossReach, Is.EqualTo(500.0));
 			Assert.That(pack.CurrentField.Sources[0].Sha256, Is.EqualTo(PythonFieldPackFixture.DepthDigest));
@@ -175,6 +179,7 @@ namespace FerrySim.Core.Tests.Env
 		[TestCase("method", "\"channel-blend/2\"", "method")]
 		[TestCase("format", "\"ferrysim-env-field/2\"", "format")]
 		[TestCase("extra", "1", "not part of the format")]
+		[TestCase("grids", "[]", "at least one grid")]
 		public void AMalformedFieldManifest_IsRefused(string key, string json, string expected)
 		{
 			var day = PythonFieldPackFixture.Write(_root);

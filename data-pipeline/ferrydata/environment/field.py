@@ -501,10 +501,15 @@ def corners(lattice, north, east):
 	return [(r0, c0, (1 - fr) * (1 - fc)), (r0, c0 + 1, (1 - fr) * fc), (r0 + 1, c0, fr * (1 - fc)), (r0 + 1, c0 + 1, fr * fc)]
 
 
+def wet_cells(slots):
+	"""The format's water: a cell is water when any of its slots names a station, wherever the empty ones sit."""
+	return (np.asarray(slots) != EMPTY).any(axis=-1)
+
+
 def frame(basis, north, east):
 	"""A station's frame: the cell axes around its position blended by the sampling rule (not renormalised to unit
 	length, so the field there rebuilds the station's velocity exactly when its four cells are its own)."""
-	return frame_on(basis.lattice, basis.axis_north, basis.axis_east, basis.slots[..., 0] != EMPTY, north, east)
+	return frame_on(basis.lattice, basis.axis_north, basis.axis_east, wet_cells(basis.slots), north, east)
 
 
 def frame_on(lattice, axis_north, axis_east, wet, north, east):
@@ -551,7 +556,7 @@ def evaluate(basis, velocities, north, east, axis_north=None, axis_east=None, al
 	result = np.zeros((len(points), 2))
 	total = np.zeros(len(points))
 	for r, c, w in corners(basis.lattice, north, east):
-		wet = slots[r, c, 0] != EMPTY
+		wet = wet_cells(slots[r, c])
 		index = np.where(slots[r, c] == EMPTY, len(basis.stations), slots[r, c])
 		a = np.sum(slot_weights[r, c] * s_along[index, points[:, None]], axis=-1)
 		x = np.sum(slot_weights[r, c] * s_across[index, points[:, None]], axis=-1)

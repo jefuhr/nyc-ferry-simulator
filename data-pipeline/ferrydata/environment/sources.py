@@ -223,7 +223,7 @@ class Inputs:
 		published, published_name = self.prediction_events(station_id, int(station['currbin']), week)
 		day_offset = (series.epoch(day) - series.epoch(week)).total_seconds()
 		times = np.arange(series.COVERAGE[0], series.COVERAGE[1] + 1, series.CADENCE, dtype=float)
-		velocity = subordinate.series(times + day_offset, ref_t, ref_v, ref_events, o)
+		velocity = subordinate.series(times + day_offset, ref_t, ref_v, ref_events, o, source=events_name)
 		north, east = subordinate.components(velocity, o)
 		metadata = dict(**location(station), kind='subordinate-prediction', bin_depth_m=None,
 			**self.reference(ref_name))
@@ -234,7 +234,7 @@ class Inputs:
 			sources=[dict(name=name, sha256=self.manifest.files[name]['sha256']) for name in (offsets_name, ref_name, events_name)])
 		rows = [(station_id, float(t), float(n), float(e)) for t, n, e in zip(times, north, east)]
 		inputs = dict(offsets=o, reference_t=ref_t - day_offset, reference_v=ref_v,
-			reference_events=[subordinate.Event(e.t - day_offset, e.kind, e.velocity) for e in ref_events],
+			reference_events=[subordinate.Event(e.t - day_offset, e.kind, e.velocity) for e in ref_events], reference_source=events_name,
 			published=[subordinate.Event(e.t - day_offset, e.kind, e.velocity) for e in published], published_source=published_name)
 		return metadata, derivation, rows, velocity, inputs
 

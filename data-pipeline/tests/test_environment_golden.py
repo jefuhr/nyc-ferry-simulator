@@ -1,6 +1,9 @@
 """The pipeline against the independent golden field pack the C# tests use (core/dotnet/FerrySim.Core.Tests/Environment/
 python_field_pack.py). Failure modes guarded: the pipeline's reader refusing a pack written to the spec by someone else,
-or its sampling rule (field.evaluate, and the station blend outside the grid) drifting from the one the core implements.
+or its sampling rule (field.evaluate, and the station blend outside the grid) drifting from the one the core implements;
+a cell whose stations sit behind or between empty slots taken as dry (the format makes it water, and so does the core),
+in sampling or in rebuilding a station's frame; a malformed field manifest the core refuses (CurrentFieldPackTests,
+AMalformedFieldManifest_IsRefused) accepted here.
 """
 import json
 import subprocess
@@ -72,3 +75,47 @@ def test_the_pipeline_samples_the_golden_points_like_the_core(golden):
 			stations = [field.Station(s['id'], s['north_m'], s['east_m']) for s in day['current_stations']]
 			u = validation.blend(stations, {sid: v[0] for sid, v in at.items()}, north, east)
 		assert u == pytest.approx([vn, ve], abs=TOLERANCE), label
+
+
+def test_the_golden_pack_keeps_stations_behind_and_between_empty_slots(golden):
+	slots = stored_basis(golden[0]).slots
+	occupied = slots != pack.EMPTY_SLOT
+	assert (occupied.any(axis=-1) & ~occupied[..., 0]).any(), 'a water cell with an empty first slot'
+	assert (occupied[..., 0] & ~occupied[..., 1] & occupied[..., 2]).any(), 'an empty slot between two stations'
+
+
+def test_the_pipeline_rebuilds_the_golden_frames_over_cells_with_empty_leading_slots(golden):
+	env, _ = golden
+	basis = stored_basis(env)
+	for k, s in enumerate(basis.stations[:2]):
+		assert field.frame(basis, s.north, s.east) == pytest.approx(basis.frames[k], abs=TOLERANCE), s.id
+
+
+def reseal(env, edit):
+	"""Edits the golden field manifest, then reseals the field and the day over it, as the C# tests' ResealField and
+	EditDay do."""
+	directory = env / 'field'
+	manifest = json.loads((directory / 'manifest.json').read_text())
+	edit(manifest)
+	(directory / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
+	pack.write_digest(directory, pack.field_digest(directory))
+	day = env / 'days' / '2025-07-14'
+	metadata = json.loads((day / 'manifest.json').read_text())
+	metadata['field_digest'] = pack.read_digest(directory)
+	(day / 'manifest.json').write_text(json.dumps(metadata, indent=2) + '\n')
+	pack.write_digest(day, pack.day_digest(day, pack.read_digest(env / 'depth'), pack.read_digest(directory)))
+
+
+@pytest.mark.parametrize('key,value,expected', [
+	('method', 'channel-blend/2', 'method'),
+	('format', 'ferrysim-env-field/2', 'format'),
+	('extra', 1, 'unknown keys'),
+	('grids', [], 'at least one grid'),
+])
+def test_the_field_manifests_the_core_refuses_are_refused_here(tmp_path, key, value, expected):
+	root = tmp_path / 'golden'
+	subprocess.run([sys.executable, '-I', str(SCRIPT), str(root)], check=True, capture_output=True, text=True)
+	env = root / 'lower-east-river' / 'env'
+	reseal(env, lambda manifest: manifest.__setitem__(key, value))
+	with pytest.raises(ValueError, match=expected):
+		pack.verify(env)

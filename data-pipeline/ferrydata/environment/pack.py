@@ -272,6 +272,8 @@ def verify_field(directory, region):
 	parameters = metadata['parameters']
 	if len(parameters['computation_north_m']) != 2 or len(parameters['computation_east_m']) != 2:
 		raise ValueError(f'{path}: computation bounds must be [low, high]')
+	if not metadata['grids']:
+		raise ValueError(f'{path}: grids must list at least one grid')
 	bounds, grid_ids = [], set()
 	for grid in metadata['grids']:
 		if grid['id'] in grid_ids or not _plain_id(grid['id']) or grid['values_file'] != grid['id'] + '.f32' or grid['stations_file'] != grid['id'] + '.u8':

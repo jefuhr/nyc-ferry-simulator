@@ -69,10 +69,11 @@ SERIES = {
 	"C": [(-3600, -0.2, 0.1), (0, 0.6, -0.2), (360, 0.7, 0.1), (720, 0.1, 0.4), (90000, 0.0, 0.0)],
 }
 
-# The field: a 4 x 5 grid of 20 m cells from (-20, -20), 2 slots; column 4 above row 0 is land. A owns rows 0-1, columns
+# The field: a 4 x 5 grid of 20 m cells from (-20, -20), 3 slots; column 4 above row 0 is land. A owns rows 0-1, columns
 # 0-2; B owns rows 2-3, columns 2-3; the rest blend. The axis turns across the grid; the cells next to the land have no
-# cross factor; two cells are sheltered.
-ROWS, COLS, SLOTS, CELL, N0, E0 = 4, 5, 2, 20.0, -20.0, -20.0
+# cross factor; two cells are sheltered. Several cells keep their stations behind or between empty slots (None): the
+# format allows it, and a cell is water when any of its slots names a station.
+ROWS, COLS, SLOTS, CELL, N0, E0 = 4, 5, 3, 20.0, -20.0, -20.0
 STATIONS = ["A", "B", "C"]
 DRY = {(1, 4), (2, 4), (3, 4)}
 
@@ -83,15 +84,15 @@ def cell(r, c):
 	along = {(0, 3): 0.5, (1, 3): 0.75}.get((r, c), 1.0)
 	cross = 0.0 if c == 3 and r >= 1 else along
 	if r <= 1 and c <= 2:
-		slots = [(0, 1.0)]
+		slots = [None, (0, 1.0)] if (r, c) in ((0, 1), (1, 2)) else [(0, 1.0)]
 	elif r >= 2 and 2 <= c <= 3:
-		slots = [(1, 1.0)]
+		slots = [None, None, (1, 1.0)] if (r, c) == (2, 3) else [(1, 1.0)]
 	elif r <= 1 and c == 3:
-		slots = [(0, 0.6), (1, 0.4)]
+		slots = [(0, 0.6), None, (1, 0.4)]
 	elif c == 4:
-		slots = [(0, 0.5), (2, 0.5)]
+		slots = [None, (0, 0.5), (2, 0.5)]
 	else:
-		slots = [(1, 0.7), (2, 0.3)]
+		slots = [(1, 0.7), None, (2, 0.3)]
 	return (math.cos(angle), math.sin(angle), along, cross, slots)
 
 values, indices, cells = b"", b"", {}
@@ -101,9 +102,9 @@ for r in range(ROWS):
 		if x is None:
 			numbers, slot_bytes = [0.0] * (4 + SLOTS), [255] * SLOTS
 		else:
-			weights = [w for _, w in x[4]] + [0.0] * (SLOTS - len(x[4]))
+			weights = [0.0 if s is None else s[1] for s in x[4]] + [0.0] * (SLOTS - len(x[4]))
 			numbers = list(x[:4]) + weights
-			slot_bytes = [k for k, _ in x[4]] + [255] * (SLOTS - len(x[4]))
+			slot_bytes = [255 if s is None else s[0] for s in x[4]] + [255] * (SLOTS - len(x[4]))
 		values += b"".join(struct.pack("<f", v) for v in numbers)
 		indices += bytes(slot_bytes)
 		# What a reader has: float32 values widened to double.
@@ -249,6 +250,8 @@ points = [
 	("outside the grid, north", 40.001, 10.0, 540.0),
 	("outside the grid, far", 100.0, 150.0, 360.0),
 	("at station C, outside the grid", LOCAL["C"][0], LOCAL["C"][1], 720.0),
+	("on a cell whose first two slots are empty", 20.0, 40.0, 180.0),
+	("on a cell with an empty slot between two stations", 20.0, -20.0, 540.0),
 ]
 print(json.dumps({"depth": depth_digest, "field": field_digest, "day": day_digest,
 	"samples": [[label, n, e, t] + list(sample(n, e, t)) for label, n, e, t in points]}, indent=1))

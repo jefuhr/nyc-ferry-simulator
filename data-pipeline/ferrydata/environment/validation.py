@@ -239,7 +239,7 @@ def subordinate_check(inputs, station_ids, days, destination):
 		flood_dv, ebb_dv = [], []
 		for day in days:
 			_, derivation, _, velocity, x = inputs.subordinate_current(sid, day)
-			mine = [e for e in subordinate.shift(x['reference_events'], x['offsets']) if low <= e.t <= high]
+			mine = [e for e in subordinate.shift(x['reference_events'], x['offsets'], source=x['reference_source']) if low <= e.t <= high]
 			published = [e for e in x['published'] if low <= e.t <= high]
 			if len(mine) != len(published) or any(a.kind.split()[0] != b.kind for a, b in zip(mine, published)):
 				raise ValueError(f'{sid} {day}: shifted events do not pair with the published ones')
@@ -248,7 +248,8 @@ def subordinate_check(inputs, station_ids, days, destination):
 			dv += [a.velocity - b.velocity for a, b in zip(mine, published)]
 			flood_dv += [a.velocity - b.velocity for a, b in zip(mine, published) if b.kind == 'flood']
 			ebb_dv += [a.velocity - b.velocity for a, b in zip(mine, published) if b.kind == 'ebb']
-			values = subordinate.series(np.array([e.t for e in published]), x['reference_t'], x['reference_v'], x['reference_events'], x['offsets'])
+			values = subordinate.series(np.array([e.t for e in published]), x['reference_t'], x['reference_v'], x['reference_events'], x['offsets'],
+				source=x['reference_source'])
 			for v, e in zip(values, published):
 				(at_slack if e.kind == 'slack' else at_max).append(v - e.velocity)
 			slacks = np.array([e.t for e in published if e.kind == 'slack'])

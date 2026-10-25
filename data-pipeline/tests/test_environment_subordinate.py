@@ -7,7 +7,10 @@
 - slack classified by the previous phase instead of the next;
 - a series that misses the shifted events: not the scaled maximum at a maximum, not zero at slack;
 - extrapolation beyond the bracketing events or the reference series, or shifted events that fall out of order;
-- directions: flood and ebb swapped, or "from" instead of "toward".
+- directions: flood and ebb swapped, or "from" instead of "toward";
+- reference events used silently when they cannot describe the tide: repeated or unordered or non-finite times, unknown
+  phases, too few events, or a missing or repeated interior event (each refused naming the station, the source file and
+  the events), while partial first and last cycles at the window's edges stay valid.
 """
 from datetime import datetime, timezone
 
@@ -151,6 +154,79 @@ def test_series_never_extrapolates():
 		subordinate.series(np.array([shifted[0].t - 1.]), t, v, ref_events, o)
 	with pytest.raises(ValueError, match='reference series'):
 		subordinate.series(np.array([shifted[1].t]), t[t > ref_events[2].t], v[t > ref_events[2].t], ref_events, o)
+
+
+# Reference events as a raw MAX_SLACK file gives them, with offsets of 0, 100, 200 and 300 s by phase (the review's probes).
+PROBE = subordinate.Offsets('ACTX', 'REF', 6, slack_before_flood_s=0., max_flood_s=100., slack_before_ebb_s=200., max_ebb_s=300.,
+	flood_ratio=1., ebb_ratio=1., flood_dir=0., ebb_dir=180.)
+SOURCE = 'events_REF_bin6_2025-07-14.csv'
+CYCLE = [subordinate.Event(0., 'slack', 0.), subordinate.Event(1000., 'flood', 1.), subordinate.Event(2000., 'slack', 0.),
+	subordinate.Event(3000., 'ebb', -1.), subordinate.Event(4000., 'slack', 0.)]
+CYCLE_T, CYCLE_V = [0., 1000., 2000., 3000., 4000.], [0., 1., 0., -1., 0.]
+
+
+def refused(reference_events, *offending):
+	"""The error both shift() and series() give for these reference events: it names the station, the reference, the
+	source file and each offending event."""
+	messages = []
+	for call in (lambda: subordinate.shift(reference_events, PROBE, source=SOURCE),
+			lambda: subordinate.series([1100.], CYCLE_T, CYCLE_V, reference_events, PROBE, source=SOURCE)):
+		with pytest.raises(ValueError) as error:
+			call()
+		message = str(error.value)
+		for part in ('ACTX', 'REF', SOURCE) + offending:
+			assert part in message, (part, message)
+		messages.append(message)
+	return messages
+
+
+def test_a_full_cycle_and_partial_cycles_at_the_window_edges_are_accepted():
+	assert subordinate.series([1100.], CYCLE_T, CYCLE_V, CYCLE, PROBE, source=SOURCE).tolist() == [1.0]
+	# A window may open on a maximum and close on one: the padded weekly windows do.
+	partial = CYCLE[1:4]
+	shifted = subordinate.shift(partial, PROBE, source=SOURCE)
+	assert [(e.t, e.kind) for e in shifted] == [(1100., 'flood'), (2200., 'slack before ebb'), (3300., 'ebb')]
+	assert subordinate.series([1100., 2200., 3300.], CYCLE_T, CYCLE_V, partial, PROBE, source=SOURCE).tolist() == [1.0, 0.0, -1.0]
+
+
+def test_a_missing_interior_maximum_is_refused():
+	# Without the flood, the first slack became a slack before ebb and the shifted flood read 0.9 m/s instead of 1.0.
+	refused([e for e in CYCLE if e.kind != 'flood'], 'slack at 0 s', 'slack at 2000 s')
+
+
+def test_a_missing_slack_or_a_repeated_maximum_is_refused():
+	refused(CYCLE[:2] + [subordinate.Event(1500., 'flood', 0.9)] + CYCLE[2:], 'flood at 1000 s', 'flood at 1500 s')
+
+
+def test_floods_and_ebbs_must_alternate():
+	# A slack between two floods: the ebb and its slack between them are missing.
+	refused(CYCLE[:3] + [subordinate.Event(3000., 'flood', 1.), subordinate.Event(4000., 'slack', 0.)], 'flood at 1000 s', 'flood at 3000 s')
+
+
+def test_repeated_reference_times_are_refused_before_the_offsets_pull_them_apart():
+	# Shifted by 0 and 100 s these would become distinct times and pass the order check after shifting.
+	duplicate = [subordinate.Event(0., 'slack', 0.), subordinate.Event(0., 'flood', 1.), subordinate.Event(1000., 'slack', 0.),
+		subordinate.Event(2000., 'ebb', -1.)]
+	refused(duplicate, 'slack at 0 s', 'flood at 0 s')
+
+
+@pytest.mark.parametrize('events,offending', [
+	([CYCLE[0], CYCLE[2], CYCLE[1], CYCLE[3], CYCLE[4]], ('slack at 2000 s', 'flood at 1000 s')),
+	([subordinate.Event(float('nan'), 'slack', 0.)] + CYCLE[1:], ('slack at nan s',)),
+	(CYCLE[:1] + [subordinate.Event(1000., 'flood', float('inf'))] + CYCLE[2:], ('flood at 1000 s',)),
+])
+def test_unordered_or_non_finite_reference_events_are_refused(events, offending):
+	refused(events, *offending)
+
+
+@pytest.mark.parametrize('kind', ['max flood', 'Slack', 'slack before flood', ''])
+def test_an_unrecognised_phase_is_refused(kind):
+	refused(CYCLE[:1] + [subordinate.Event(1000., kind, 1.)] + CYCLE[2:], repr(kind))
+
+
+@pytest.mark.parametrize('count', [0, 1])
+def test_too_few_events_to_bracket_anything_are_refused(count):
+	refused(CYCLE[1:1 + count], f'{count} event')
 
 
 def test_flood_points_along_the_flood_direction_and_ebb_along_the_ebb_direction():
