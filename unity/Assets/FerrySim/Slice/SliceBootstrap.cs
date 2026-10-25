@@ -22,7 +22,9 @@ namespace FerrySim.Slice
 	/// run starts clear of the faces, switches the wheelhouse panel and the HUD with the camera view, and lets the helm's
 	/// camera button swap the wheelhouse and chase views. It is the slice's hook point for a scenario picker: it is the
 	/// catalog and the launcher (<see cref="IScenarioCatalog"/> and <see cref="IScenarioLauncher"/>, through
-	/// <see cref="SliceScenarios"/>), and <see cref="EnvironmentSource"/> is the runner's environment readout. It fails
+	/// <see cref="SliceScenarios"/>), and <see cref="EnvironmentSource"/> is the runner's environment readout. It connects
+	/// all three to the wheelhouse UI, and the helm's new-run key opens the UI's scenario picker; while the picker is open
+	/// the run is paused and the helm is held, so browsing never moves the boat. It fails
 	/// closed: if the landing files are missing or malformed the runner is stopped with an error naming the file and the
 	/// reason, and any run that starts anyway, or starts less than <see cref="FaceClearance.MinimumMetres"/> from a face, is
 	/// ended before its first physics step with the reason kept in <see cref="StartRefusal"/>; the vessel never runs through
@@ -113,6 +115,9 @@ namespace FerrySim.Slice
 		private HelmInputMapper _mapper;
 		private WheelhouseView _switchedView;
 		private CameraRig.Mode _switchedMode;
+		private WheelhouseView _pickerView;
+		private bool _pausedForPicker;
+		private HelmInputMapper _heldMapper;
 
 		public VesselSimulationRunner Runner => runner;
 
@@ -218,6 +223,13 @@ namespace FerrySim.Slice
 			{
 				_tide = new TideFollower(runner, water);
 			}
+
+			// The panel and the HUD read the run's water and air, and the picker chooses from this catalog and starts runs
+			// through this launcher, never a scene search's guess.
+			if (wheelhouseUI != null)
+			{
+				wheelhouseUI.ConnectScenario(runner, this, this);
+			}
 		}
 
 		/// <summary>
@@ -280,6 +292,7 @@ namespace FerrySim.Slice
 				runner.RunStarted -= OnRunStarted;
 			}
 
+			FollowPicker(null);
 			Subscribe(null);
 		}
 
@@ -300,8 +313,17 @@ namespace FerrySim.Slice
 
 		private void Update()
 		{
-			// The helm builds its mapper when it is enabled; follow whichever one is current.
+			// The helm builds its mapper when it is enabled, and the UI its view; follow whichever ones are current.
 			Subscribe(helm != null && helm.isActiveAndEnabled ? helm.Mapper : null);
+			FollowPicker(wheelhouseUI != null ? wheelhouseUI.View : null);
+		}
+
+		/// <summary>Opens the wheelhouse UI's scenario picker, or closes it: what the helm's new-run key does.</summary>
+		public void ToggleScenarioPicker()
+		{
+			var view = wheelhouseUI != null ? wheelhouseUI.View : null;
+			FollowPicker(view);
+			view?.TogglePicker();
 		}
 
 		private void LateUpdate()
@@ -498,12 +520,95 @@ namespace FerrySim.Slice
 			if (_mapper != null)
 			{
 				_mapper.CameraCycleRequested -= CycleCamera;
+				_mapper.NewRunRequested -= ToggleScenarioPicker;
 			}
 
 			_mapper = mapper;
 			if (_mapper != null)
 			{
 				_mapper.CameraCycleRequested += CycleCamera;
+				_mapper.NewRunRequested += ToggleScenarioPicker;
+				// A helm enabled again behind an open picker builds a new mapper, which starts enabled: hold it too.
+				if (_pickerView != null && _pickerView.PickerVisible)
+				{
+					HoldHelm();
+				}
+			}
+		}
+
+		private void FollowPicker(WheelhouseView view)
+		{
+			if (ReferenceEquals(view, _pickerView))
+			{
+				return;
+			}
+
+			if (_pickerView != null)
+			{
+				_pickerView.PickerVisibilityChanged -= OnPickerVisibilityChanged;
+				ReleasePickerHolds();
+			}
+
+			_pickerView = view;
+			if (_pickerView != null)
+			{
+				_pickerView.PickerVisibilityChanged += OnPickerVisibilityChanged;
+				if (_pickerView.PickerVisible)
+				{
+					OnPickerVisibilityChanged(true);
+				}
+			}
+		}
+
+		// While the picker is open the run stands still and the helm is held (its keys and axes do nothing), so browsing
+		// never moves the boat. Closing the picker, or starting a run from it, gives both back; a run the captain had
+		// paused before opening it stays paused. Escape and the picker's Close button close it, since the held helm's
+		// new-run key cannot.
+		private void OnPickerVisibilityChanged(bool visible)
+		{
+			if (!visible)
+			{
+				ReleasePickerHolds();
+				return;
+			}
+
+			if (runner != null && !runner.IsPaused)
+			{
+				runner.Pause();
+				_pausedForPicker = true;
+			}
+
+			HoldHelm();
+		}
+
+		private void HoldHelm()
+		{
+			if (_mapper != null && !ReferenceEquals(_heldMapper, _mapper))
+			{
+				_mapper.Disable();
+				_heldMapper = _mapper;
+			}
+		}
+
+		private void ReleasePickerHolds()
+		{
+			if (_pausedForPicker)
+			{
+				_pausedForPicker = false;
+				if (runner != null)
+				{
+					runner.Resume();
+				}
+			}
+
+			if (_heldMapper != null)
+			{
+				var held = _heldMapper;
+				_heldMapper = null;
+				if (ReferenceEquals(held, _mapper) && helm != null && helm.isActiveAndEnabled)
+				{
+					_mapper.Enable();
+				}
 			}
 		}
 
