@@ -111,6 +111,12 @@ namespace FerrySim.Core.Dynamics
 		/// <summary>Depth of the hull's lateral force below the waterline, m.</summary>
 		public double LateralForceDepth { get; }
 
+		/// <summary>Number of strips the cross-flow drag integrates over.</summary>
+		public int StripCount => Strips;
+
+		/// <summary>Longitudinal position of strip <paramref name="index"/>'s centre from midships, m.</summary>
+		public double StripPosition(int index) => _stripPositions[index];
+
 		/// <summary>
 		/// Calm-water resistance magnitude at a speed through the water (either direction), N, including
 		/// the shallow-water multipliers. Positive; the force opposes the motion.
@@ -159,7 +165,16 @@ namespace FerrySim.Core.Dynamics
 		}
 
 		/// <summary>Hull surge force, sway force and yaw moment at the reference point.</summary>
-		public void Forces(double u, double v, double r, in ShallowWaterFactors shallow, out double x, out double y, out double n)
+		public void Forces(double u, double v, double r, in ShallowWaterFactors shallow, out double x, out double y, out double n) =>
+			Forces(u, v, r, shallow, null, out x, out y, out n);
+
+		/// <summary>
+		/// Hull forces when the current changes along the hull. <paramref name="u"/>, <paramref name="v"/> and
+		/// <paramref name="r"/> are the motion relative to the current's straight-line fit along the hull; each cross-flow
+		/// strip also feels <paramref name="stripCurrent"/>[i], the current across the hull at that strip that the fit
+		/// leaves out (m/s, toward starboard). Null means the fit is exact, as in a uniform current.
+		/// </summary>
+		public void Forces(double u, double v, double r, in ShallowWaterFactors shallow, double[] stripCurrent, out double x, out double y, out double n)
 		{
 			var lengthDraft = 0.5 * _rho * Length * Draft;
 			var resistance = Resistance(u, shallow);
@@ -178,7 +193,7 @@ namespace FerrySim.Core.Dynamics
 			for (var i = 0; i < Strips; i++)
 			{
 				var position = _stripPositions[i];
-				var local = v + position * r;
+				var local = stripCurrent == null ? v + position * r : v + position * r - stripCurrent[i];
 				var load = local * Math.Abs(local);
 				sideForce += load;
 				yawMoment += position * load;

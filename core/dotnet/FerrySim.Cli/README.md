@@ -34,7 +34,7 @@ The default test speed is the vessel's `performance.serviceSpeed`. All metrics a
 
 ## CSV
 
-`#` header comments hold the vessel id, maneuver and its parameters, the environment spec, the model type name returned by the factory, the factory type name, the physics and sample rates, and the settle result. They contain no timestamps or paths, so the same run gives the same bytes. The columns are fixed (`TelemetryColumns.Names`): SI with unit suffixes plus `kn` and `deg` convenience columns. Each row holds the state at `time_s` and the controls that start applying at that instant (`port_lever`, `starboard_lever`, `helm`). Rows are written every 1/`--sample-hz` s (default 10 Hz; it must divide the 100 Hz physics rate).
+`#` header comments hold the vessel id, maneuver and its parameters, the environment spec (and, for a pack, the lines above), the model type name returned by the factory, the factory type name, the physics and sample rates, and the settle result. They contain no timestamps or paths, so the same run gives the same bytes. The columns are fixed (`TelemetryColumns.Names`): SI with unit suffixes plus `kn` and `deg` convenience columns. Each row holds the state at `time_s` and the controls that start applying at that instant (`port_lever`, `starboard_lever`, `helm`). Rows are written every 1/`--sample-hz` s (default 10 Hz; it must divide the 100 Hz physics rate).
 
 ## Control traces
 
@@ -49,6 +49,22 @@ The default test speed is the vessel's `performance.serviceSpeed`. All metrics a
 - `depth=<n>m` or `ft`.
 
 Speeds take `kn`, `kt`, `m/s` or `mps`. Missing items stay calm (no current, no wind, 50 m deep). The environment is uniform in space and time.
+
+## A real day: environment packs
+
+`--env-pack <day folder> --start-utc <time>` runs on one day of an environment pack (ferrysim-env/1) instead of `--env`, with that day's tide, current, wind and depths:
+
+```
+dotnet run --project core/dotnet/FerrySim.Cli -- maneuver turning-circle --vessel vessels/t-class.json --out turn.csv \
+  --env-pack data/processed/lower-east-river/env/days/2025-07-14 --start-utc 2025-07-14T16:30:00Z
+```
+
+- The day folder is `…/<region>/env/days/<date>`; the depth set is read from `…/<region>/env/depth`. Both are verified (file hashes and DIGEST files) before anything runs, and a pack that does not match fails with exit code 1 naming the file.
+- `--start-utc` is the scenario's start, simulation time zero, as ISO 8601 (`Z`, an offset, or neither for UTC, as Unity's `scenario_start_utc` reads it). It must lie inside the pack's time coverage. `--env-pack` needs it, it needs `--env-pack`, and `--env-pack` cannot be combined with `--env` (exit code 2 otherwise).
+- Runs start at the world origin (north 0, east 0, near The Battery) at `--heading-deg`, as calm runs do.
+- The CSV header's `environment` line says `pack`, followed by `environment_pack` (region/date), `environment_digest` (the day digest), `environment_epoch_utc` (the pack's local midnight), `scenario_start_utc`, `environment_wind_station` (or `none (still air)`), and `environment_depth_misses` and `environment_time_holds`: how many depth samples fell off the depth grids and how many samples fell outside the pack's time window during the recorded run. The console says so too when either is not zero.
+
+Calm runs, and runs with `--env`, write exactly the same bytes as before.
 
 ## Deviations from IMO MSC.137(76) and MSC/Circ.1053
 

@@ -8,6 +8,11 @@ namespace FerrySim.Cli
 	public sealed class RunSetup
 	{
 		public RunSetup(ISimulationFactory factory, VesselParameters vessel, EnvironmentSpec environment, int sampleHz, double headingDegrees)
+			: this(factory, vessel, RunEnvironment.Uniform(environment), sampleHz, headingDegrees)
+		{
+		}
+
+		public RunSetup(ISimulationFactory factory, VesselParameters vessel, RunEnvironment environment, int sampleHz, double headingDegrees)
 		{
 			Factory = factory;
 			Vessel = vessel;
@@ -20,7 +25,7 @@ namespace FerrySim.Cli
 
 		public VesselParameters Vessel { get; }
 
-		public EnvironmentSpec Environment { get; }
+		public RunEnvironment Environment { get; }
 
 		/// <summary>CSV rows per simulated second; divides the physics rate.</summary>
 		public int SampleHz { get; }
@@ -43,6 +48,9 @@ namespace FerrySim.Cli
 		public List<KeyValuePair<string, string>> Header { get; }
 
 		public string SettleSummary { get; set; }
+
+		/// <summary>What the environment had to make up during the recorded run, or null.</summary>
+		public string CoverageWarning { get; set; }
 	}
 
 	/// <summary>Drives a simulation with a controller: settling at a test speed, running maneuvers and replaying traces.</summary>
@@ -54,7 +62,7 @@ namespace FerrySim.Cli
 
 		public static RunResult RunManeuver(RunSetup setup, ManeuverSpec spec, ManeuverPlan plan, double? testSpeedMps, double? fixedDuration, double leadInSeconds)
 		{
-			var environment = setup.Environment.CreateEnvironment();
+			var environment = setup.Environment.Create();
 			var recorder = new CsvRecorder();
 			string settleNote = null;
 			var extra = new List<KeyValuePair<string, string>>();
@@ -69,6 +77,7 @@ namespace FerrySim.Cli
 			{
 				var speed = testSpeedMps.Value;
 				lever = FindLever(setup, environment, speed, out var achieved);
+				RunEnvironment.ResetCounters(environment);
 				sim = CreateSimulation(setup, environment, speed);
 				Drive(sim, new SettleController(lever), recorder, setup.StepsPerSample, recordFinalRow: false);
 				recorder.TrimBefore(sim.State.Time - leadInSeconds - 1e-9);
@@ -81,7 +90,7 @@ namespace FerrySim.Cli
 			var start = sim.State.Time;
 			Drive(sim, plan.Create(lever), recorder, setup.StepsPerSample, recordFinalRow: true);
 
-			var header = BaseHeader(setup, sim, spec.Name, start);
+			var header = BaseHeader(setup, sim, environment, spec.Name, start);
 			if (!spec.StartsAtRest)
 			{
 				header.Add(Maneuvers.Pair("param.speed_kn", Maneuvers.Number(Math.Round(Units.MetresPerSecondToKnots(testSpeedMps.Value), 4))));
@@ -91,7 +100,7 @@ namespace FerrySim.Cli
 			header.Add(Maneuvers.Pair("duration_s", fixedDuration.HasValue ? Maneuvers.Number(fixedDuration.Value) : "auto"));
 			header.Add(Maneuvers.Pair("lead_in_s", spec.StartsAtRest ? "0" : Maneuvers.Number(leadInSeconds)));
 			header.AddRange(extra);
-			return new RunResult(recorder, header) { SettleSummary = settleNote };
+			return new RunResult(recorder, header) { SettleSummary = settleNote, CoverageWarning = RunEnvironment.CoverageWarning(environment) };
 
 			static IEnumerable<KeyValuePair<string, string>> Prefixed(List<KeyValuePair<string, string>> parameters)
 			{
@@ -104,18 +113,18 @@ namespace FerrySim.Cli
 
 		public static RunResult RunTrace(RunSetup setup, TraceInputs trace, string traceName, double? fixedDuration)
 		{
-			var environment = setup.Environment.CreateEnvironment();
+			var environment = setup.Environment.Create();
 			var recorder = new CsvRecorder();
 			var sim = CreateSimulation(setup, environment, 0.0);
 			var duration = fixedDuration ?? trace.EndTime;
 			Drive(sim, new TraceController(trace, duration), recorder, setup.StepsPerSample, recordFinalRow: true);
 
-			var header = BaseHeader(setup, sim, "trace-replay", 0.0);
+			var header = BaseHeader(setup, sim, environment, "trace-replay", 0.0);
 			header.Add(Maneuvers.Pair("param.inputs", traceName));
 			header.Add(Maneuvers.Pair("param.rows", trace.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
 			header.Add(Maneuvers.Pair("duration_s", Maneuvers.Number(duration)));
 			header.Add(Maneuvers.Pair("lead_in_s", "0"));
-			return new RunResult(recorder, header);
+			return new RunResult(recorder, header) { CoverageWarning = RunEnvironment.CoverageWarning(environment) };
 		}
 
 		/// <summary>
@@ -219,19 +228,25 @@ namespace FerrySim.Cli
 			return setup.Factory.Create(setup.Vessel, environment, initial);
 		}
 
-		private static List<KeyValuePair<string, string>> BaseHeader(RunSetup setup, ISimulation sim, string maneuver, double startTime) =>
-			new List<KeyValuePair<string, string>>
+		private static List<KeyValuePair<string, string>> BaseHeader(RunSetup setup, ISimulation sim, IEnvironment environment, string maneuver, double startTime)
+		{
+			var header = new List<KeyValuePair<string, string>>
 			{
 				Maneuvers.Pair("vessel", setup.Vessel.Id),
 				Maneuvers.Pair("maneuver", maneuver),
 				Maneuvers.Pair("maneuver_start_s", Maneuvers.Number(startTime)),
 				Maneuvers.Pair("environment", setup.Environment.Text),
-				Maneuvers.Pair("model", sim.GetType().FullName),
-				Maneuvers.Pair("factory", setup.Factory.GetType().FullName),
-				Maneuvers.Pair("physics_hz", SimulationClock.StepsPerSecond.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-				Maneuvers.Pair("sample_hz", setup.SampleHz.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-				Maneuvers.Pair("initial_heading_deg", Maneuvers.Number(setup.HeadingDegrees)),
 			};
+
+			// A pack names the day, its digest and the start; a uniform environment adds nothing.
+			header.AddRange(setup.Environment.Header(environment));
+			header.Add(Maneuvers.Pair("model", sim.GetType().FullName));
+			header.Add(Maneuvers.Pair("factory", setup.Factory.GetType().FullName));
+			header.Add(Maneuvers.Pair("physics_hz", SimulationClock.StepsPerSecond.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+			header.Add(Maneuvers.Pair("sample_hz", setup.SampleHz.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+			header.Add(Maneuvers.Pair("initial_heading_deg", Maneuvers.Number(setup.HeadingDegrees)));
+			return header;
+		}
 
 		private static long StepOf(double time) => (long)Math.Round(time * SimulationClock.StepsPerSecond);
 	}

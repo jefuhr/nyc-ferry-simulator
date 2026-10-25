@@ -1,6 +1,6 @@
 # Vessel dynamics
 
-`VesselDynamicsFactory.Create` returns `VesselDynamicsSimulation`: a deterministic three-degree-of-freedom (surge, sway, yaw) manoeuvring model of a twin-screw, twin-rudder catamaran in MMG-style modular form, with engines, gears, a ZF-style control model, wind, current and shallow-water effects, fender contact with fixed structures, and a light heave/roll/pitch layer for feel and visuals. It covers the NYC Ferry T-class (Incat Crowther IC16019, 26 m) and K-class (IC16112, 29.6 m) from `vessels/*.json`.
+`VesselDynamicsFactory.Create` returns `VesselDynamicsSimulation`: a deterministic three-degree-of-freedom (surge, sway, yaw) manoeuvring model of a twin-screw, twin-rudder catamaran in MMG-style modular form, with engines, gears, a ZF-style control model, wind, current (including current that changes along the hull) and shallow-water effects, fender contact with fixed structures, grounding on the bed, and a light heave/roll/pitch layer for feel and visuals. It covers the NYC Ferry T-class (Incat Crowther IC16019, 26 m) and K-class (IC16112, 29.6 m) from `vessels/*.json`.
 
 Every model coefficient is a parameter with provenance in the vessel file. Nearly all are engineering estimates today. Calibration against AIS tracks and crew figures should change only parameters, never code.
 
@@ -10,6 +10,7 @@ Conventions (units, frames, signs) follow [docs/conventions.md](../../../docs/co
 
 - [Structure](#structure)
 - [States, current and integration](#states-current-and-integration)
+- [Current along the hull](#current-along-the-hull)
 - [Equations of motion](#equations-of-motion)
 - [Hull](#hull)
 - [Propellers](#propellers)
@@ -41,9 +42,11 @@ Conventions (units, frames, signs) follow [docs/conventions.md](../../../docs/co
 | `WindageModel.cs` | Wind loads |
 | `ShallowWaterModel.cs` | Finite-depth correction factors |
 | `ContactModel.cs` | Hull outline, fender law and contact forces against `IWorldGeometry` segments |
+| `CurrentAlongHull.cs` | The current sampled along the hull and its straight-line fit |
+| `GroundingModel.cs` | Bed friction on a grounded hull (`GroundingState` for telemetry) |
 | `PlanarRungeKutta.cs` | The classical Runge-Kutta step of the planar rigid body |
 | `MotionResponse.cs` | Heave, roll and pitch layer |
-| `PhysicalConstants.cs` | Water and air properties; required-parameter checks |
+| `PhysicalConstants.cs` | Water, air and bed properties; required-parameter checks |
 
 Each module is a public class constructed from `VesselParameters`, so it can be tested on its own. Tests live in `core/dotnet/FerrySim.Core.Tests/Dynamics/`.
 
@@ -51,7 +54,7 @@ Each module is a public class constructed from `VesselParameters`, so it can be 
 
 The hydrodynamic state is the velocity of the reference point relative to the water, in body axes: ν_r = (u, v, r). The reference point is the contract's: centreline, midships of the waterline length, design waterline.
 
-The current V_c comes from `IEnvironment.SampleCurrent` at the vessel position. For a uniform current, the relative-velocity equations of motion are exactly the calm-water ones (Fossen 2011, §10.3; the Froude-Krylov force of an accelerating current cancels the rigid-body term). So:
+The current V_c comes from `IEnvironment.SampleCurrent` at the vessel position (and along the hull, next section). For a uniform current, the relative-velocity equations of motion are exactly the calm-water ones (Fossen 2011, §10.3; the Froude-Krylov force of an accelerating current cancels the rigid-body term). So:
 
 - every hydrodynamic force uses ν_r;
 - the velocity over the ground is ν = ν_r + Rᵀ(ψ)V_c, which is what `VesselState` reports;
@@ -64,9 +67,9 @@ Each 10 ms step (`SimulationClock.FixedTimeStep`) runs in this order:
 1. Shallow-water factors from the depth sampled at the end of the previous step.
 2. Steering gear and both engine controls advance one step.
 3. Both drivelines (engine, clutch, shaft) advance in four 2.5 ms substeps, with the propeller inflow held at the start-of-step hull velocity.
-4. The rigid body (N, E, ψ, u, v, r) advances with classical fourth-order Runge-Kutta (`PlanarRungeKutta`), with shaft speeds, rudder angle and environment held for the step. Thrust and rudder forces are re-evaluated at every stage, and each stage's heading advances with that stage's yaw rate. When the hull is in contact with a structure or may touch one this step, the rigid body instead advances in ten 1 ms substeps with contact forces (see [Contact](#contact)).
+4. The rigid body (N, E, ψ, u, v, r) advances with classical fourth-order Runge-Kutta (`PlanarRungeKutta`), with shaft speeds, rudder angle and environment held for the step. Thrust and rudder forces are re-evaluated at every stage, and each stage's heading advances with that stage's yaw rate. When the hull is in contact with a structure or may touch one this step, or the step starts with the bed above the keel, the rigid body instead advances in ten 1 ms substeps with contact forces and bed friction (see [Contact](#contact) and [Shallow water and grounding](#shallow-water-and-grounding)).
 5. The heave/roll/pitch layer advances (semi-implicit Euler).
-6. Time becomes `SimulationClock.TimeAtStep(stepCount)`. The environment is sampled once (current, wind, depth) at the new position, and that sample is reused by the next step.
+6. Time becomes `SimulationClock.TimeAtStep(stepCount)`. The environment is sampled once at the new position: current, wind and depth at the reference point, and the current at the 20 strip centres along the hull unless the environment is a `UniformEnvironment`. That sample is reused by the next step.
 
 Determinism:
 
@@ -75,6 +78,24 @@ Determinism:
 - every iteration count is fixed, including the propeller-curve fit done once at construction.
 
 `Reset` starts with both engines running at idle, both clutches in neutral, shafts stopped and rudders amidships.
+
+## Current along the hull
+
+A current that changes over the length of the hull turns the boat: a bow poking out of a slip into the stream is set downstream while the stern is still in slack water. `CurrentAlongHull` samples the current once per step at the centre of each of the hull's 20 cross-flow strips, along the centreline, and keeps each sample as its difference from the current at the reference point (world north and east). In a uniform current every difference is exactly zero, so the step is exactly the reference-point model. `UseCurrentAlongHull = false` keeps the reference-point model in any field, and the tests check the two agree in every bit in a uniform current.
+
+At each Runge-Kutta stage the differences are resolved in body axes at that stage's heading and fitted with a least-squares straight line along the hull, Δc(x) ≈ Δc₀ + x ∂Δc/∂x:
+
+| Module | Sees |
+|---|---|
+| Hull resistance and linear derivatives | u − Δu₀, v − Δv₀, and r − ∂Δv/∂x: a transverse current growing toward the bow is, to the hull, the hull turning the other way through still water |
+| Cross-flow drag, strip i at x_i | its own flow, v + x_i r − Δv(x_i) |
+| Propellers | the surge through the water at the propellers, u − (Δu₀ + x_P ∂Δu/∂x), with the body's own yaw rate across the beam |
+| Rudders | the fitted line's sway and yaw rate, so their cross flow is the line's at the rudder |
+| Wind's still-air term | the hull's u − Δu₀ and v − Δv₀ |
+
+The state stays the motion relative to the water at the reference point, and position still integrates the velocity over the ground there.
+
+A current stronger toward starboard at the bow turns the bow to starboard, a cross current over part of the hull pushes the boat sideways and turns it downstream, and a current that changes only along the hull's axis neither yaws nor pushes it (`CurrentAlongHullTests`). In a shear whose starboard current grows 0.02 m/s per metre forward, a boat drifting in neutral turns 4.4° (T-class) and 4.7° (K-class) to starboard in 20 s.
 
 ## Equations of motion
 
@@ -302,8 +323,25 @@ Resistance is not monotonic in depth at high speed: water around Fn_h ≈ 1 cost
 Grounding:
 
 - depth under keel is `depth − maxDraft`, or the hull draft when `maxDraft` is missing (flagged by `KeelDraftIsHullDraft`);
-- below zero, `IsAground` is true;
-- there is no bottom contact force, so the boat keeps moving over the shoal. Contact covers fixed structures only (next section).
+- below zero, `IsAground` is true, and the bed holds the hull (`GroundingModel`).
+
+When the bed is above the keel by a penetration p, at the reference point, it lifts the boat and carries the buoyancy it loses. For wall-sided demihulls of hull draft T that is W = m g min(p/T, 1): all of the boat once p reaches T. The load rests evenly on both keel lines (at ±s/2, sampled at the 20 strip centres), and each point resists its own sliding over the bed with Coulomb friction, regularised through zero slip like the fender friction:
+
+```
+f_i = −μ (W/40) v_i / √(|v_i|² + s₀²)
+```
+
+v_i is the keel point's velocity over the ground. μ is `PhysicalConstants.BedFrictionCoefficient`, 0.4, an estimate: sand and silt against a steel or aluminium hull are quoted at about 0.3 to 0.6 in ship grounding studies, and the depth data does not carry the bed type yet. The friction grows stiffly with penetration and only ever resists motion: it stops a boat and holds it, never throws it back, and the tests check its power is never positive. Near zero slip it acts like a damper μW/s₀, so s₀ is raised from the fender friction's 1 mm/s floor until that damper stays within half the explicit stability limit of a 1 ms substep (s₀ ≥ μ W h / (0.5 m_eff), with m_eff a conservative effective mass at the farthest keel point). A step that starts aground therefore takes the ten 1 ms substeps a step in fender contact takes, about ten times the cost of an open-water step. Bed friction acts at the keel, below the centre of gravity, so it stays in the pitch layer's surge acceleration and a boat running aground trims bow down a little.
+
+Typical results (`GroundingTests`, `artifacts/core/environment-report.md`), on a bed rising 1 in 29:
+
+| Run at 5 kn | T-class | K-class |
+|---|---|---|
+| Ahead idle: stopped in, peak bed force, peak penetration | 8.7 m, 66 kN, 0.30 m | 9.0 m, 98 kN, 0.31 m |
+| Neutral: stopped in, peak bed force, peak penetration | 6.6 m, 50 kN, 0.23 m | 6.6 m, 72 kN, 0.23 m |
+| Full power on dry land for 120 s: moved | 0.18 m | 0.19 m |
+
+A rising tide lifts the bed load off and the boat floats free.
 
 ## Contact
 
@@ -391,15 +429,17 @@ Damped oscillators at the natural periods, driven toward quasi-static targets. T
 | Speed through water | u_r, negative going astern |
 | SOG, COG | Ground velocity; COG is the heading when stopped |
 | Depth under keel | depth − keel draft (`maxDraft` when present) |
-| Contact force | Magnitude of the resultant contact force at the end of the step (see [Contact](#contact)) |
+| Contact force | Magnitude of the resultant of every contact load at the end of the step, fenders and bed together: the vector sum, not the sum of magnitudes (see [Contact](#contact) and [Shallow water and grounding](#shallow-water-and-grounding)) |
 
 `VesselDynamicsSimulation` also exposes:
 
 - `IsAground`, `KeelDraft`, `KeelDraftIsHullDraft`;
+- `Grounding`, the bed under the hull at the end of the step: grounded flag, penetration, bed load, and the friction load with its magnitude (`Force`); a grounding is its own event, apart from a landing touch;
+- `CurrentAlongHull`, the last samples along the hull, and `UseCurrentAlongHull`;
 - `PortShiftPhase` and `StarboardShiftPhase`;
 - `RudderOrder`;
-- `LastForces`, the per-module force breakdown, for debug overlays;
-- `ContactLoad`, `ContactCount` and `GetContact(i)`, the contact at the end of the step;
+- `LastForces`, the per-module force breakdown, for debug overlays, with the bed friction as `GroundingX`, `GroundingY` and `GroundingN`;
+- `ContactLoad`, `ContactCount` and `GetContact(i)`, the fender contact at the end of the step (the bed is not in them);
 - `SegmentQuerySaturated` and `SaturatedSegmentQueries`, when nearby structures exceeded `MaximumSegments`.
 
 ## Parameters and calibration
@@ -494,10 +534,17 @@ The IMO limits are widened where small fast craft differ: at 25 kn the 5 s hard-
   - Each 0.1 m cell of the outline touches one face at a time. In a corner, a cell that crosses two faces at once takes the one more of it crossed, so up to one cell's worth of contact is approximate there.
   - At most 4096 segments within the query radius are used; past that some are left out, flagged by `SegmentQuerySaturated`.
   - Hysteresis lumps the hull and landing rubber together; landing faces carry no surface values from the data pipeline yet.
-  - No hull-to-hull contact, and grounding is only reported.
+  - No hull-to-hull contact.
+- **Grounding.**
+  - The bed is sampled at the reference point only: a shoal under the bow or the stern alone does not ground the boat, and the keel is taken as flat at `maxDraft` over its whole length.
+  - The bed's slope does not push the boat back down it, the bed does not heave, heel or trim it (beyond the pitch from deceleration), and the soil does not give: the bed is rigid with one friction coefficient.
+  - Held hard aground under power, the boat creeps at up to about 1 cm/s, the price of the regularised friction at a 1 ms substep.
 - **Out of scope.** No waves, vessel wakes, other vessels, bank or channel effects.
 - **Cavitation.** No cavitation or ventilation: the open-water curves hold at any blade loading, so thrust breakdown at high loading (full power at low speed, crash stops) is not represented.
-- **Current.** The current is sampled at the reference point only: no yaw moment from current shear across the hull (eddies at slips), and no added-mass force from spatial gradients.
+- **Current.**
+  - It is sampled along the centreline only: a current that differs across the beam (between the demihulls) has no effect of its own.
+  - No added-mass force from spatial gradients: when the reference point moves through the water across a current gradient, its velocity over the ground follows the new current at once instead of through the hull's inertia. The fields the packs give change over hundreds of metres, so this is small; a sharp eddy line would show it.
+  - The current and its differences along the hull are held for the step, as the rest of the environment is.
 - **Coefficients are estimates.**
   - Hull: from monohull regressions with an interaction factor; no captive or CFD data for these hulls.
   - Propellers: the B-series stands in for the actual Michigan Wheel designs.

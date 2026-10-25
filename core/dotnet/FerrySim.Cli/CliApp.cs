@@ -13,7 +13,8 @@ namespace FerrySim.Cli
 	/// </summary>
 	public sealed class CliApp
 	{
-		private static readonly string[] CommonManeuverOptions = { "vessel", "out", "speed-kn", "env", "duration-s", "sample-hz", "heading-deg", "lead-in-s" };
+		private static readonly string[] CommonManeuverOptions =
+			{ "vessel", "out", "speed-kn", "env", RunEnvironment.PackOption, RunEnvironment.StartOption, "duration-s", "sample-hz", "heading-deg", "lead-in-s" };
 
 		private readonly ISimulationFactory _factory;
 
@@ -73,6 +74,11 @@ namespace FerrySim.Cli
 				stderr.WriteLine("ferrysim: error: " + exception.Message);
 				return 1;
 			}
+			catch (EnvironmentPackException exception)
+			{
+				stderr.WriteLine("ferrysim: error: " + exception.Message);
+				return 1;
+			}
 			catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
 			{
 				stderr.WriteLine("ferrysim: error: " + exception.Message);
@@ -106,7 +112,7 @@ namespace FerrySim.Cli
 
 			var vesselPath = parsed.Require("vessel");
 			var outPath = parsed.Require("out");
-			var environment = EnvironmentSpec.Parse(parsed.GetString("env", "calm"));
+			var environment = RunEnvironment.Parse(parsed);
 			var duration = parsed.GetOptionalDouble("duration-s", 1.0, 86400.0);
 			var sampleHz = ParseSampleHz(parsed);
 			var heading = parsed.GetDouble("heading-deg", 0.0, 0.0, 360.0);
@@ -115,6 +121,7 @@ namespace FerrySim.Cli
 			var plan = spec.Build(parsed, duration);
 
 			var vessel = VesselParametersJson.Load(vesselPath);
+			environment.Load();
 			double? speed = null;
 			if (!spec.StartsAtRest)
 			{
@@ -143,12 +150,14 @@ namespace FerrySim.Cli
 				stdout.WriteLine("settled: " + result.SettleSummary);
 			}
 
+			WriteCoverage(result, stdout);
 			return 0;
 		}
 
 		private int RunTrace(string[] args, TextWriter stdout)
 		{
-			var parsed = ParsedArguments.Parse(args, new[] { "vessel", "inputs", "env", "out", "duration-s", "sample-hz", "heading-deg" }, Array.Empty<string>());
+			var parsed = ParsedArguments.Parse(args,
+				new[] { "vessel", "inputs", "env", RunEnvironment.PackOption, RunEnvironment.StartOption, "out", "duration-s", "sample-hz", "heading-deg" }, Array.Empty<string>());
 			if (parsed.Positionals.Count > 0)
 			{
 				throw new UsageException($"Unexpected argument '{parsed.Positionals[0]}'.");
@@ -157,18 +166,28 @@ namespace FerrySim.Cli
 			var vesselPath = parsed.Require("vessel");
 			var inputsPath = parsed.Require("inputs");
 			var outPath = parsed.Require("out");
-			var environment = EnvironmentSpec.Parse(parsed.GetString("env", "calm"));
+			var environment = RunEnvironment.Parse(parsed);
 			var duration = parsed.GetOptionalDouble("duration-s", 0.01, 86400.0);
 			var sampleHz = ParseSampleHz(parsed);
 			var heading = parsed.GetDouble("heading-deg", 0.0, 0.0, 360.0);
 
 			var vessel = VesselParametersJson.Load(vesselPath);
 			var trace = TraceInputs.Load(inputsPath);
+			environment.Load();
 			var setup = new RunSetup(_factory, vessel, environment, sampleHz, heading);
 			var result = ManeuverRunner.RunTrace(setup, trace, Path.GetFileName(inputsPath), duration);
 			result.Recorder.Write(outPath, result.Header);
 			stdout.WriteLine($"{vessel.Id} trace-replay: wrote {result.Recorder.Count} rows to {outPath}");
+			WriteCoverage(result, stdout);
 			return 0;
+		}
+
+		private static void WriteCoverage(RunResult result, TextWriter stdout)
+		{
+			if (result.CoverageWarning != null)
+			{
+				stdout.WriteLine(result.CoverageWarning);
+			}
 		}
 
 		private int Summarize(string[] args, TextWriter stdout)
@@ -210,6 +229,9 @@ namespace FerrySim.Cli
 				"Options for maneuver and run:",
 				"  --env <spec>          calm (default) or items such as current=1.5kn@200,wind=15kn@from300,depth=8m",
 				"                        current: direction it flows toward; wind: direction it blows from (prefix to/from to override)",
+				"  --env-pack <folder>   a real day instead of --env: an environment pack's day folder (.../<region>/env/days/<date>)",
+				"  --start-utc <time>    with --env-pack: the scenario's start, ISO 8601 UTC such as 2025-07-14T16:00:00Z;",
+				"                        runs start at the world origin (north 0, east 0)",
 				"  --duration-s <n>      fixed length of the maneuver (default: run until it is complete)",
 				"  --sample-hz <n>       CSV rows per second, a divisor of 100 (default 10)",
 				"  --heading-deg <n>     initial heading, degrees true (default 0)",

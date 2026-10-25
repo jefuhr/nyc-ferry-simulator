@@ -23,6 +23,13 @@ namespace FerrySim.Core.Dynamics
 
 		/// <summary>Air density at sea level, 15 °C (ISA), kg/m³.</summary>
 		public const double AirDensity = 1.225;
+
+		/// <summary>
+		/// Coulomb friction of a hull sliding on the harbour bed. An ESTIMATE: sand and silt against steel or aluminium are
+		/// quoted at about 0.3 to 0.6 in ship grounding studies (sand higher, soft mud lower), and 0.4 sits in that range.
+		/// The bed type is not in the depth data yet.
+		/// </summary>
+		public const double BedFrictionCoefficient = 0.4;
 	}
 
 	/// <summary>Reads required parameters and rejects missing or non-physical values with the JSON path.</summary>
