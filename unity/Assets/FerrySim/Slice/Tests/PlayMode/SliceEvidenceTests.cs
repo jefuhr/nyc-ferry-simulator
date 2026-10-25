@@ -69,6 +69,13 @@ namespace FerrySim.Slice.PlayModeTests
 			yield return SliceScene.Unload();
 		}
 
+		/// <summary>
+		/// The scene's scenario as it was before the scene ran on a real day: the same approach, bow 40 m
+		/// (SliceSceneBuilder.ApproachBowClearance) off South Williamsburg's primary face, in calm water at noon on 15 June
+		/// 2026, so this evidence stays comparable with earlier runs.
+		/// </summary>
+		private ScenarioSettings CalmApproach() => _scene.Approach(40.0, "slice evidence, calm approach");
+
 		[UnityTest]
 		public IEnumerator Screenshots_WheelhouseUnderwayAndChaseAtTheLanding()
 		{
@@ -82,7 +89,7 @@ namespace FerrySim.Slice.PlayModeTests
 
 			var controls = new LandingApproachControls(_scene.Runner, 1.0);
 			_scene.StepsPerFrame(10);
-			_scene.Restart(_scene.Runner.Scenario, controls);
+			_scene.Restart(CalmApproach(), controls);
 			_scene.Rig.CurrentMode = CameraRig.Mode.Wheelhouse;
 			yield return _scene.FramesUntil(() => _scene.Runner.Driver.SimulationTime >= 12.0, 400, "12 s under way");
 			Assert.That(_scene.View.PanelVisible, Is.True, "the wheelhouse view shows the panel");
@@ -128,7 +135,7 @@ namespace FerrySim.Slice.PlayModeTests
 			{
 				SliceScene.ResetTime();
 				var controls = new LandingApproachControls(_scene.Runner, 1.0);
-				_scene.Restart(_scene.Runner.Scenario, controls);
+				_scene.Restart(CalmApproach(), controls);
 				var loopRenders = 0;
 				Action<ScriptableRenderContext, Camera> counter = (context, camera) => loopRenders += camera == _scene.Camera ? 1 : 0;
 				RenderPipelineManager.endCameraRendering += counter;
@@ -179,7 +186,7 @@ namespace FerrySim.Slice.PlayModeTests
 			var view = _scene.View;
 			var probe = Measure(() => _sink = new byte[1024], 16);
 			Assert.That(probe.Allocations, Is.GreaterThanOrEqualTo(1.0), "the allocation counter sees the 1 KiB array of every call");
-			_scene.Restart(runner.Scenario, new ConstantControls(new ControlInputs(0.15, 0.15, 0.0)));
+			_scene.Restart(CalmApproach(), new ConstantControls(new ControlInputs(0.15, 0.15, 0.0)));
 			var steppingOpenWater = Measure(() => { runner.AdvanceFrame(1.0 / 60.0); runner.ApplyRenderPose(); }, 120);
 			Assert.That(() => { runner.AdvanceFrame(1.0 / 60.0); runner.ApplyRenderPose(); }, Is.Not.AllocatingGCMemory(), "runner, open water");
 

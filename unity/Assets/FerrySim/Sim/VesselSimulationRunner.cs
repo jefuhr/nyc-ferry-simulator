@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using FerrySim.Core.Contracts;
 using FerrySim.Core.Dynamics;
+using FerrySim.Core.Env;
 using FerrySim.Core.Serialization;
 using UnityEngine;
 
@@ -12,15 +13,20 @@ namespace FerrySim.Sim
 	/// The fixed-step bridge. Owns one <see cref="ISimulation"/> from <see cref="VesselDynamicsFactory"/> and
 	/// advances it in exact <see cref="SimulationClock.FixedTimeStep"/> steps from a time accumulator in
 	/// <c>Update</c> (not Unity's 0.02 s <c>FixedUpdate</c>), then draws the vessel interpolated between the
-	/// last two physics states. Every run is recorded for replay and debrief. UI and cameras read it through
-	/// <see cref="IVesselTelemetrySource"/>.
+	/// last two physics states. Every run is recorded for replay and debrief. The water and air come from the scenario
+	/// (<see cref="RunEnvironment"/>: calm, uniform or an environment pack's day). UI and cameras read it through
+	/// <see cref="IVesselTelemetrySource"/> and <see cref="IEnvironmentReadoutSource"/>.
 	/// </summary>
 	[DefaultExecutionOrder(-100)]
 	[DisallowMultipleComponent]
-	public sealed class VesselSimulationRunner : MonoBehaviour, IVesselTelemetrySource
+	public sealed class VesselSimulationRunner : MonoBehaviour, IVesselTelemetrySource, IEnvironmentReadoutSource
 	{
 		private const double DropReportIntervalSeconds = 5.0;
 		private static long _nextRunId;
+
+		/// <summary>The readout before any run: no pack, no tide, still water and air.</summary>
+		private static readonly EnvironmentReadout NoEnvironment =
+			new EnvironmentReadout(EnvironmentKind.Calm, string.Empty, string.Empty, TimeSpan.Zero, double.NaN, double.NaN, HorizontalVector.Zero, HorizontalVector.Zero, false, 0, 0);
 
 		[Tooltip("Scenario to start from. Ignored when a scenario JSON file is set.")]
 		[SerializeField]
@@ -71,7 +77,11 @@ namespace FerrySim.Sim
 		private IWorldGeometry _worldGeometry = EmptyWorldGeometry.Instance;
 		private IVesselPlacement _placement;
 		private TangentPlanePlacement _flatPlacement;
-		private UniformEnvironment _environment;
+		private RunEnvironment _environment;
+		private EnvironmentPacks _packs;
+		private EnvironmentReadout _readout = NoEnvironment;
+		private long _readoutRun = -1;
+		private long _readoutStep = -1;
 		private VesselState _initialState;
 		private RunRecorder _recorder;
 		private RecordedRun _replay;
@@ -93,6 +103,12 @@ namespace FerrySim.Sim
 		/// <summary>Raised for every frame that hit the per-frame step guard.</summary>
 		public event Action<FrameAdvance> FrameDropped;
 
+		/// <summary>
+		/// Raised just before the vessel is placed at its render pose: every frame after its physics steps (also while paused)
+		/// and at every run start. Whatever the placement reads that follows the run, such as the drawn tide, updates here.
+		/// </summary>
+		public event Action BeforePlacement;
+
 		public VesselParameters Parameters { get; private set; }
 
 		public VesselState State => _driver != null ? _driver.CurrentState : default;
@@ -108,6 +124,43 @@ namespace FerrySim.Sim
 		public long RunId { get; private set; }
 
 		public ContactLatch Contact => _contactObserver.Contact;
+
+		public bool HasEnvironment => HasTelemetry && _environment != null;
+
+		/// <summary>
+		/// The water and air at the vessel's reference point at the most recent physics step (at the start before the first),
+		/// worked out once per step from <see cref="RunEnvironment"/>. Read it only while <see cref="HasEnvironment"/>.
+		/// </summary>
+		public EnvironmentReadout Environment
+		{
+			get
+			{
+				if (_environment == null || _driver == null)
+				{
+					return NoEnvironment;
+				}
+
+				if (_readoutRun != RunId || _readoutStep != _driver.StepCount)
+				{
+					var state = _driver.CurrentState;
+					_readout = _environment.Readout(state.North, state.East, _driver.SimulationTime);
+					_readoutRun = RunId;
+					_readoutStep = _driver.StepCount;
+				}
+
+				return _readout;
+			}
+		}
+
+		/// <summary>The current run's water and air: what its simulation samples, and the readout and tide built on it. Null before the first run.</summary>
+		public RunEnvironment RunEnvironment => _environment;
+
+		/// <summary>Where scenarios and replays find environment packs: StreamingAssets, then the repository, unless replaced.</summary>
+		public EnvironmentPacks EnvironmentPacks
+		{
+			get => _packs ?? EnvironmentPacks.Default;
+			set => _packs = value;
+		}
 
 		public bool IsInitialized => _driver != null;
 
@@ -198,7 +251,9 @@ namespace FerrySim.Sim
 
 		/// <summary>
 		/// Starts a run from <paramref name="settings"/>. Controls come from <paramref name="controls"/>, else the
-		/// inspector's control source, else the first <see cref="IControlInputSource"/> on this GameObject.
+		/// inspector's control source, else the first <see cref="IControlInputSource"/> on this GameObject. The scenario is
+		/// checked and its vessel and environment loaded before the current run ends, so a scenario that cannot start (an
+		/// unknown pack, a start outside its day, a missing vessel file) throws and leaves the current run going.
 		/// </summary>
 		public void Initialize(ScenarioSettings settings, IControlInputSource controls = null, VesselParameters parameters = null)
 		{
@@ -207,20 +262,27 @@ namespace FerrySim.Sim
 				throw new ArgumentNullException(nameof(settings));
 			}
 
-			settings.Validate();
+			settings.Validate(EnvironmentPacks);
+			var vessel = parameters ?? LoadVessel(settings.vesselFile);
+			var environment = settings.CreateEnvironment(EnvironmentPacks);
 			EndRun();
 			_replay = null;
 			_replayVerifier = null;
 			Scenario = settings;
-			Parameters = parameters ?? LoadVessel(settings.vesselFile);
+			Parameters = vessel;
 			ScenarioStartUtc = settings.StartUtc;
-			_environment = settings.environment.Create();
-			_initialState = settings.InitialState(_environment);
+			_environment = environment;
+			_initialState = settings.InitialState(_environment.Observer);
 			StartRun(controls ?? FindControlSource());
 		}
 
-		/// <summary>Plays back <paramref name="run"/> from its recorded start, checking every row as it goes. Not re-recorded.</summary>
-		public void InitializeReplay(RecordedRun run, VesselParameters parameters = null)
+		/// <summary>
+		/// Plays back <paramref name="run"/> from its recorded start, checking every row as it goes. Not re-recorded. A pack
+		/// run plays against <paramref name="pack"/>, or the pack its header names from <see cref="EnvironmentPacks"/>; a pack
+		/// with another day digest is refused, naming both, before the current run ends, as are other world geometry and a
+		/// calm or uniform run given a pack.
+		/// </summary>
+		public void InitializeReplay(RecordedRun run, VesselParameters parameters = null, EnvironmentPack pack = null)
 		{
 			if (run == null)
 			{
@@ -235,11 +297,13 @@ namespace FerrySim.Sim
 					$"{WorldGeometryDigest.Of(_worldGeometry) ?? _worldGeometry.GetType().FullName}; set the same WorldGeometry before replaying.");
 			}
 
+			var environment = RunEnvironment.ForRecording(run, pack, EnvironmentPacks);
+			var vessel = parameters ?? LoadVessel(run.VesselFile);
 			EndRun();
 			Scenario = null;
-			Parameters = parameters ?? LoadVessel(run.VesselFile);
+			Parameters = vessel;
 			ScenarioStartUtc = run.ScenarioStartUtc;
-			_environment = run.Environment;
+			_environment = environment;
 			_initialState = run.InitialState;
 			_replay = run;
 			StartRun(run.Inputs);
@@ -418,6 +482,7 @@ namespace FerrySim.Sim
 			}
 
 			RenderPose = VesselPose.Interpolate(_driver.PreviousState, _driver.CurrentState, _driver.InterpolationFactor);
+			BeforePlacement?.Invoke();
 			_placement.Place(renderTarget != null ? renderTarget : transform, RenderPose, _driver.SimulationTime);
 		}
 
@@ -426,7 +491,7 @@ namespace FerrySim.Sim
 			_lastReplayResult = null;
 			ReplayCompleted = false;
 			RecordingError = null;
-			var simulation = Factory.Create(Parameters, _environment, _worldGeometry, _initialState);
+			var simulation = Factory.Create(Parameters, _environment.StartRun(), _worldGeometry, _initialState);
 			RunId = System.Threading.Interlocked.Increment(ref _nextRunId);
 			_contactObserver.Reset();
 			if (_driver == null)

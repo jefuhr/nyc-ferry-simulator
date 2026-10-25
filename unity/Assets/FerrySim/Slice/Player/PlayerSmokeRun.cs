@@ -20,7 +20,8 @@ namespace FerrySim.Slice
 	/// clear of the faces and reached its simulated seconds; the vessel moved at least <see cref="MinimumDisplacementMetres"/>
 	/// with a finite state; the drive's recording was written; both views were captured, each with more than
 	/// <see cref="MinimumScreenshotColours"/> colours (a check against blank frames, not of what they show); and nothing
-	/// logged an error, exception or assert while the run watched.
+	/// logged an error, exception or assert while the run watched. On a pack scenario it also checks that a player read the
+	/// pack from StreamingAssets and that the drawn water stood at the pack's water level at the vessel.
 	/// </summary>
 	[DisallowMultipleComponent]
 	public sealed class PlayerSmokeRun : MonoBehaviour
@@ -244,6 +245,7 @@ namespace FerrySim.Slice
 
 			var reached = _waitMet && runner.IsRunActive;
 			var end = runner.State;
+			CheckEnvironment(bootstrap, runner);
 			_report.drive_simulated_s = runner.Driver != null ? runner.Driver.SimulationTime : 0.0;
 			_report.max_speed_over_ground_mps = maxSpeed;
 			_report.state_finite = end.IsFinite();
@@ -355,6 +357,41 @@ namespace FerrySim.Slice
 			if (bootstrap.CameraRig == null)
 			{
 				Fail("the slice has no camera rig, so its views cannot be captured");
+			}
+		}
+
+		private void CheckEnvironment(SliceBootstrap bootstrap, VesselSimulationRunner runner)
+		{
+			var environment = runner.RunEnvironment;
+			if (environment == null)
+			{
+				return;
+			}
+
+			_report.environment = environment.Kind.ToString().ToLowerInvariant();
+			var water = bootstrap.Tide != null ? FindFirstObjectByType<WaterSurface>() : null;
+			_report.drawn_water_level_navd88_m = water != null ? water.WaterLevelNavd88 : 0.0;
+			if (!environment.HasTide)
+			{
+				return;
+			}
+
+			var readout = runner.Environment;
+			_report.environment_pack = environment.Pack.Name;
+			_report.environment_digest = environment.Pack.Digest;
+			_report.environment_folder = environment.PackFolder;
+			_report.water_level_navd88_m = readout.WaterLevelNavd88;
+			var streaming = Path.GetFullPath(Application.streamingAssetsPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+			_report.environment_packaged = !string.IsNullOrEmpty(environment.PackFolder)
+				&& Path.GetFullPath(environment.PackFolder).StartsWith(streaming, StringComparison.OrdinalIgnoreCase);
+			if (_requirePackagedData && !_report.environment_packaged)
+			{
+				Fail($"the environment pack {environment.Pack.Name} was not read from StreamingAssets ({environment.PackFolder})");
+			}
+
+			if (water != null && !(Math.Abs(_report.drawn_water_level_navd88_m - readout.WaterLevelNavd88) <= 1e-6))
+			{
+				Fail($"the drawn water stands at {_report.drawn_water_level_navd88_m:0.000} m NAVD88, not at the pack's {readout.WaterLevelNavd88:0.000} m at the vessel");
 			}
 		}
 

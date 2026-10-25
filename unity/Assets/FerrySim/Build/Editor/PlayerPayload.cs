@@ -17,11 +17,13 @@ namespace FerrySim.Build
 	/// The repository files a player reads at run time, and how a build packages them. They are named, as
 	/// repository-relative paths with forward slashes that <c>SimPaths.Resolve</c> looks up in StreamingAssets first, in
 	/// serialized string fields, or arrays of them, whose names end in <c>File</c> or <c>Files</c> (<c>vesselFile</c>,
-	/// <c>geoidOffsetFile</c>): on the components of the built scenes, and on the project assets they reference under
-	/// Assets/ (ScriptableObjects such as the runner's scenario, prefabs, and prefabs behind component references). A build
-	/// copies each into the player's StreamingAssets at the same relative path and records it, with its SHA-256, in
-	/// <see cref="PlayerBuildInfo"/>. Not covered, so a build fails or the file must travel as a TextAsset: a scenario
-	/// JSON file or a replay (each names further files), and files a script finds by a name it builds in code.
+	/// <c>geoidOffsetFile</c>), or name folders in fields ending in <c>Folder</c> or <c>Folders</c>
+	/// (<c>environmentFolder</c>: every file in the folder and its subfolders, whatever they are, so an environment pack
+	/// travels whole, with any file a later pipeline adds): on the components of the built scenes, and on the project assets
+	/// they reference under Assets/ (ScriptableObjects such as the runner's scenario, prefabs, and prefabs behind component
+	/// references). A build copies each file into the player's StreamingAssets at the same relative path and records it, with
+	/// its SHA-256, in <see cref="PlayerBuildInfo"/>. Not covered, so a build fails or the file must travel as a TextAsset: a
+	/// scenario JSON file or a replay (each names further files), and files a script finds by a name it builds in code.
 	/// </summary>
 	public static class PlayerPayload
 	{
@@ -44,10 +46,22 @@ namespace FerrySim.Build
 		}
 
 		/// <summary>
-		/// The repository-relative data files the fields name, each once, in ordinal order. Empty fields are skipped.
-		/// Throws <see cref="InvalidOperationException"/> naming every field a player could not use: a scenario file or a
-		/// replay; a path that is absolute, climbs out of the repository or passes through a symbolic link; one written
-		/// with backslashes or surrounding spaces (a player reads the path as written); or a file the repository lacks.
+		/// True for a field that names a data folder, every file of which a player reads: its name ends in Folder or Folders.
+		/// An array element goes by its array's name.
+		/// </summary>
+		public static bool IsFolderField(string propertyPath)
+		{
+			var name = FieldName(propertyPath);
+			return name.EndsWith("Folder", StringComparison.Ordinal) || name.EndsWith("Folders", StringComparison.Ordinal);
+		}
+
+		/// <summary>
+		/// The repository-relative data files the fields name, each once, in ordinal order: the files of file fields and every
+		/// file under the folders of folder fields (names starting with a dot, such as .DS_Store, are not data and are left
+		/// out). Empty fields are skipped. Throws <see cref="InvalidOperationException"/> naming every field a player could not
+		/// use: a scenario file or a replay; a path that is absolute, climbs out of the repository or passes through a symbolic
+		/// link (a link inside a folder included); one written with backslashes or surrounding spaces (a player reads the path
+		/// as written); or a file or folder the repository lacks, or a folder with no files.
 		/// </summary>
 		public static IReadOnlyList<string> DataFiles(IEnumerable<PathField> fields, string repoRoot)
 		{
@@ -56,8 +70,22 @@ namespace FerrySim.Build
 			var problems = new List<string>();
 			foreach (var field in fields)
 			{
-				if (!IsDataField(field.Property) || string.IsNullOrWhiteSpace(field.Value))
+				var folder = IsFolderField(field.Property);
+				if ((!folder && !IsDataField(field.Property)) || string.IsNullOrWhiteSpace(field.Value))
 				{
+					continue;
+				}
+
+				if (folder)
+				{
+					var contents = FolderFiles(field.Value, root, out var folderProblem);
+					if (folderProblem != null)
+					{
+						problems.Add($"{field}: {folderProblem}");
+						continue;
+					}
+
+					files.UnionWith(contents);
 					continue;
 				}
 
@@ -210,8 +238,49 @@ namespace FerrySim.Build
 			return path.Substring(path.LastIndexOf('.') + 1);
 		}
 
+		// Every file under a repository-relative folder, as repository-relative paths, each checked as a file field is; or the
+		// first reason a player could not use the folder.
+		private static List<string> FolderFiles(string folder, string root, out string problem)
+		{
+			var files = new List<string>();
+			problem = PathProblem(folder, root, expectFolder: true);
+			if (problem != null)
+			{
+				return files;
+			}
+
+			var full = Path.Combine(root, folder);
+			foreach (var path in Directory.GetFiles(full, "*", SearchOption.AllDirectories))
+			{
+				var relative = folder.TrimEnd('/') + "/" + path.Substring(full.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+					.Replace(Path.DirectorySeparatorChar, '/');
+				if (relative.Split('/').Any(part => part.StartsWith(".", StringComparison.Ordinal)))
+				{
+					continue;
+				}
+
+				var fileProblem = Problem(relative, root);
+				if (fileProblem != null)
+				{
+					problem = $"{relative}: {fileProblem}";
+					return files;
+				}
+
+				files.Add(relative);
+			}
+
+			if (files.Count == 0)
+			{
+				problem = $"the folder {Path.Combine(root, folder)} has no files";
+			}
+
+			return files;
+		}
+
 		// Why a player could not read this path from its StreamingAssets copy through SimPaths.Resolve, or null.
-		private static string Problem(string path, string root)
+		private static string Problem(string path, string root) => PathProblem(path, root, expectFolder: false);
+
+		private static string PathProblem(string path, string root, bool expectFolder)
 		{
 			if (path.IndexOf('\\') >= 0 || path != path.Trim())
 			{
@@ -238,6 +307,11 @@ namespace FerrySim.Build
 				{
 					return $"{current} is a symbolic link; a player carries files that are in the repository only";
 				}
+			}
+
+			if (expectFolder)
+			{
+				return Directory.Exists(current) ? null : $"no such folder in the repository ({current})";
 			}
 
 			return File.Exists(current) ? null : $"no such file in the repository ({current})";

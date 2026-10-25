@@ -21,6 +21,9 @@ namespace FerrySim.Build.Tests
 	/// the repository, or a symbolic link out of it, copied into a player; a path the build would tidy up but a player
 	/// reads as written (backslashes, surrounding spaces); files landing anywhere but StreamingAssets at the same
 	/// relative path for each platform's layout; and a build record whose hashes or sizes do not match the copied bytes.
+	/// For data folders (<c>*Folder</c> fields, such as the slice's environment packs): a file the pipeline adds, in any
+	/// subfolder, left out because the build packaged a fixed list; a missing or empty folder passing; a symbolic link inside
+	/// one followed out of the repository; and editor clutter such as .DS_Store shipped as data.
 	/// </summary>
 	public class PlayerPayloadTests
 	{
@@ -41,22 +44,110 @@ namespace FerrySim.Build.Tests
 		public void TearDown() => Directory.Delete(_temp, true);
 
 		[Test]
-		public void TheSliceScene_NamesTheVesselAndGeoidFiles()
+		public void TheSliceScene_NamesTheVesselFiles_TheGeoidFile_AndEveryFileOfItsEnvironmentPacks()
 		{
+			const string packs = "data/processed/lower-east-river/env";
+			if (!Directory.Exists(Path.Combine(RepoRoot, packs)))
+			{
+				Assert.Ignore("The environment packs are not built (" + packs + ").");
+			}
+
 			var scene = EditorSceneManager.OpenScene(SliceScenePath, OpenSceneMode.Additive);
 			try
 			{
 				var fields = PlayerPayload.FieldsIn(scene);
-				var listing = string.Join("\n", fields.Where(field => PlayerPayload.IsDataField(field.Property)).Select(field => field.ToString()));
+				var listing = string.Join("\n", fields.Where(field => PlayerPayload.IsDataField(field.Property) || PlayerPayload.IsFolderField(field.Property)).Select(field => field.ToString()));
+				var packFiles = Directory.GetFiles(Path.Combine(RepoRoot, packs), "*", SearchOption.AllDirectories)
+					.Select(path => packs + "/" + path.Substring(Path.Combine(RepoRoot, packs).Length + 1).Replace(Path.DirectorySeparatorChar, '/'))
+					.Where(path => !path.Split('/').Any(part => part.StartsWith(".", StringComparison.Ordinal)));
+				var expected = new[] { "data/processed/lower-east-river/geoid_offset.json", "vessels/k-class.json", "vessels/t-class.json" }.Concat(packFiles)
+					.OrderBy(path => path, StringComparer.Ordinal).ToArray();
 
-				Assert.That(PlayerPayload.DataFiles(fields, RepoRoot), Is.EqualTo(new[] { "data/processed/lower-east-river/geoid_offset.json", "vessels/t-class.json" }), listing);
+				var files = PlayerPayload.DataFiles(fields, RepoRoot);
+
+				Assert.That(files, Is.EqualTo(expected), listing);
+				Assert.That(files.Count(path => path.StartsWith(packs + "/days/", StringComparison.Ordinal) && path.EndsWith("/DIGEST", StringComparison.Ordinal)), Is.EqualTo(28),
+					"every scenario day's pack");
+				Assert.That(files, Does.Contain(packs + "/depth/slice.f32"));
 				Assert.That(fields.Any(field => field.Property == "settings.vesselFile" && field.Value == "vessels/t-class.json"), Is.True,
 					"the scenario asset's vessel file is found through the runner's reference to it:\n" + listing);
+				Assert.That(fields.Any(field => field.Property == "environmentFolder" && field.Value == packs), Is.True, listing);
 			}
 			finally
 			{
 				EditorSceneManager.CloseScene(scene, true);
 			}
+		}
+
+		[Test]
+		public void AFolderField_PackagesEveryFileUnderIt_WhateverItIs_ButNotDotFiles()
+		{
+			var env = Path.Combine(_temp, "data", "env");
+			Directory.CreateDirectory(Path.Combine(env, "days", "2025-07-14"));
+			Directory.CreateDirectory(Path.Combine(env, "depth"));
+			Directory.CreateDirectory(Path.Combine(env, "currents", "fields"));
+			File.WriteAllText(Path.Combine(env, "days", "2025-07-14", "manifest.json"), "{}");
+			File.WriteAllText(Path.Combine(env, "days", "2025-07-14", "DIGEST"), "x");
+			File.WriteAllText(Path.Combine(env, "depth", "slice.f32"), "x");
+			File.WriteAllText(Path.Combine(env, "currents", "fields", "new-file-a-later-pipeline-adds.bin"), "x");
+			File.WriteAllText(Path.Combine(env, ".DS_Store"), "x");
+			File.WriteAllText(Path.Combine(env, "depth", ".hidden"), "x");
+
+			var files = PlayerPayload.DataFiles(new[] { new PlayerPayload.PathField("owner", "environmentFolder", "data/env") }, _temp);
+
+			Assert.That(files, Is.EqualTo(new[]
+			{
+				"data/env/currents/fields/new-file-a-later-pipeline-adds.bin",
+				"data/env/days/2025-07-14/DIGEST",
+				"data/env/days/2025-07-14/manifest.json",
+				"data/env/depth/slice.f32",
+			}));
+			Assert.That(PlayerPayload.IsFolderField("environmentFolder"), Is.True);
+			Assert.That(PlayerPayload.IsFolderField("settings.packFolders.Array.data[2]"), Is.True);
+			Assert.That(PlayerPayload.IsFolderField("vesselFile"), Is.False);
+			Assert.That(PlayerPayload.IsDataField("environmentFolder"), Is.False, "a folder field is not a file field");
+		}
+
+		[Test]
+		public void AMissingOrEmptyFolder_OrOneWrittenOutsideTheRepository_FailsTheBuild()
+		{
+			Directory.CreateDirectory(Path.Combine(_temp, "empty", "sub"));
+			File.WriteAllText(Path.Combine(_temp, "a-file.json"), "{}");
+
+			foreach (var (path, reason) in new[]
+			{
+				("missing", "no such file"),
+				("empty", "has no files"),
+				("a-file.json", "no such folder"),
+				("../outside", "repository-relative"),
+				("data\\env", "forward slashes"),
+			})
+			{
+				var error = Assert.Throws<InvalidOperationException>(() => PlayerPayload.DataFiles(new[] { new PlayerPayload.PathField("owner", "environmentFolder", path) }, _temp), path);
+				Assert.That(error.Message, Does.Contain(reason), path);
+				Assert.That(error.Message, Does.Contain("environmentFolder"), path);
+			}
+		}
+
+		[Test]
+		public void ASymbolicLinkInsideAFolder_FailsTheBuild()
+		{
+			if (Application.platform == RuntimePlatform.WindowsEditor)
+			{
+				Assert.Ignore("Makes its links with ln -s.");
+			}
+
+			var outside = Path.Combine(_temp, "outside");
+			Directory.CreateDirectory(outside);
+			File.WriteAllText(Path.Combine(outside, "secret.json"), "{}");
+			var repo = Path.Combine(_temp, "repo");
+			Directory.CreateDirectory(Path.Combine(repo, "env"));
+			File.WriteAllText(Path.Combine(repo, "env", "manifest.json"), "{}");
+			Symlink(Path.Combine(outside, "secret.json"), Path.Combine(repo, "env", "linked.json"));
+
+			var error = Assert.Throws<InvalidOperationException>(() => PlayerPayload.DataFiles(new[] { new PlayerPayload.PathField("owner", "environmentFolder", "env") }, repo));
+
+			Assert.That(error.Message, Does.Contain("symbolic link"));
 		}
 
 		[Test]

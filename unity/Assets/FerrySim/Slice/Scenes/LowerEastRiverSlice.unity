@@ -15,14 +15,14 @@ RenderSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 10
   m_Fog: 1
-  m_FogColor: {r: 0.7, g: 0.8, b: 0.9, a: 1}
+  m_FogColor: {r: 0.7, g: 0.7750805, b: 0.850161, a: 1}
   m_FogMode: 3
   m_FogDensity: 0.00007
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 0.25, g: 0.48, b: 0.84, a: 1}
-  m_AmbientEquatorColor: {r: 0.7, g: 0.8, b: 0.9, a: 1}
-  m_AmbientGroundColor: {r: 0.27, g: 0.26, b: 0.24, a: 1}
+  m_AmbientSkyColor: {r: 0.27491948, g: 0.48, b: 0.790161, a: 1}
+  m_AmbientEquatorColor: {r: 0.7, g: 0.7750805, b: 0.850161, a: 1}
+  m_AmbientGroundColor: {r: 0.23677403, g: 0.22677402, b: 0.20677403, a: 1}
   m_AmbientIntensity: 1
   m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
@@ -466,10 +466,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FerrySim.Unity.World::FerrySim.World.SunController
   sun: {fileID: 408543966}
   worldFrame: {fileID: 1925740711}
-  year: 2026
-  month: 6
-  day: 15
-  timeOfDayHours: 12
+  year: 2025
+  month: 7
+  day: 20
+  timeOfDayHours: 18.8
   latitude: 40.7
   longitude: -74.015
   noonIntensity: 1.5
@@ -486,8 +486,8 @@ Light:
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 1
-  m_Color: {r: 1, g: 0.96, b: 0.92, a: 1}
-  m_Intensity: 1.5
+  m_Color: {r: 1, g: 0.8935481, b: 0.77878964, a: 1}
+  m_Intensity: 1.2508053
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -549,7 +549,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 408543964}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.53410995, y: -0.27305746, z: 0.187501, w: 0.7778236}
+  m_LocalRotation: {x: 0.08548919, y: 0.7783979, z: -0.108669914, w: 0.6123555}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -1548,6 +1548,11 @@ MonoBehaviour:
   importManifest: {fileID: 4900000, guid: 14ba87daeede6469e8fef667d97f728a, type: 3}
   matchTerrainToWater: 1
   vesselFile: vessels/t-class.json
+  environmentPack: lower-east-river/2025-07-20
+  vesselFiles:
+  - vessels/t-class.json
+  - vessels/k-class.json
+  environmentFolder: data/processed/lower-east-river/env
   worldFrame: {fileID: 1925740711}
   water: {fileID: 694526496}
   cameraRig: {fileID: 244328176}

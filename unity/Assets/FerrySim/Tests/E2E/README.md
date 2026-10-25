@@ -56,6 +56,7 @@ Build the processed slice from the shared read-only raw cache first:
 ```sh
 uv run --project data-pipeline python data-pipeline/ferrydata build --slice lower-east-river
 uv run --project data-pipeline python data-pipeline/ferrydata export-unity --slice lower-east-river
+PYTHONPATH=data-pipeline uv run --project data-pipeline python -m ferrydata.environment build --region lower-east-river --all
 mkdir -p artifacts/e2e
 ```
 
@@ -83,8 +84,24 @@ For complete suites, omit `-assemblyNames`; use `-testPlatform EditMode -nograph
 | `dumbo-south-williamsburg/under-brooklyn-bridge.png`, `dumbo-south-williamsburg/under-manhattan-bridge.png`, `dumbo-south-williamsburg/held.png` | Both true bridge passages and held at South Williamsburg with real UI |
 | `handoff.md` | Exact commands/results, both legs' numbers and individual visual screenshot review |
 
+## M3: Real Days
+
+`EnvironmentTripTests` runs the integrated scene on environment packs (format `ferrysim-env/1`). Every scenario is made by the scene's `IScenarioCatalog.TryCreate` and started by its `IScenarioLauncher.TryStart` (`SliceBootstrap.ScenarioCatalog`, `ScenarioLauncher`); every run is recorded at 100 Hz, and its trace (`*.csv`, `*.inputs.csv`), `summary.json` and screenshots are kept under `artifacts/e2e/environment/<test>/`. Build the packs before running (Run and Evidence).
+
+| Test | Scenario | Checks |
+|---|---|---|
+| `Drift_InNeutralByACurrentStation_IsTheStationsPredictedCurrent` | Corlears Hook's day and time on 2025-07-20 at 14:48 EDT (strong steady flood, 0.5 m/s wind), started at current station NYH1921 in open water, engines in neutral, 130 s | From 10 s on, the mean ground velocity is the station's predicted current within 0.05 m/s and 2°, and every step within 0.08 m/s; nothing touched. `drift.csv` has the track, the prediction and the field at the hull |
+| `Tide_TheWaterABargeAndTheDepthStandAtThePacksLevel_NearHighAndNearLowWater` | Pier 11 on 2025-07-14 at the daylight high and low water, found from the pack | The drawn water, the readout, every floating landing and the mesh at the pack's level at the vessel (read independently), the placement reading the same surface, depth under the keel = level − bed − `maxDraft`; the range over 1 m. `tide-high.png`, `tide-low.png` |
+| `Pier11_OnTheFlood_...`, `Pier11_OnTheEbb_...` | Pier 11 on the flood (2025-07-20 14:48 EDT, about 1 m/s onto the face) and on the ebb (2025-04-14 15:12 EDT, about 1 m/s off it), T-class | The scripted landing (`PackLandingControls`) backs 15 m clear without touching, comes back bow-in and holds 60 s: first contact at most 1.5 kn, peak force under the 2 kn reference landing's, no fender bottoming, never aground, only the primary face touched, the final 10 s at rest in contact at every step, square to the face within 5°; the recording replays bit for bit. `held.png` |
+| `SouthWilliamsburg_AtTheScenesDayAndTime_LandsSoftWithoutGrounding` | South Williamsburg at the scene's own 2025-07-20 18:48 EDT (slack, about 0.78 m of tide) | The same landing checks at the landing where the depth grid is shallowest, with about 0.1 m under the keel |
+| `Replay_APackRunReplaysBitForBit_AndAnotherDaysPackIsRefused` | 60 s of the Pier 11 ebb run | The recording's pack, day digest, epoch and geometry digest; bit-for-bit replay through `ReplayPlayer.Verify` and in the scene; the same recording against 2025-04-15's pack refused by both, naming both digests |
+
+**The scripted landing.** `PackLandingControls` uses `TraceAuthoring.Navigate`'s helm, twist and speed laws and the trips' command rate (every 0.1 s, rounded to hundredths), but runs in the loop rather than from a committed trace: an open-loop trace authored on today's current field would miss the face once the current field changes (the current-field task replaces the provisional station blend). Its applied controls are recorded and replayed bit for bit. On the face it holds with ahead idle, more when the current pulls the hull off, and a twist that keeps the bow square: a following current turns a bow pinned on a face away from square. The back-off is 15 m because Pier 11's berth in the depth grid ends 35 m off the face (Slice/README.md, Known limits). Gains are authoring estimates, not operating guidance.
+
+**Drift tolerance.** At rest in the water the core's relative-velocity model carries the hull with the water at the hull exactly (a run without wind gives no difference at all). What separates the drift from the station's prediction is the field between stations as the hull moves about 220 m from the station (up to 0.03 m/s with the station blend) and the day's 0.5 m/s wind (leeway up to 0.05 m/s). 0.05 m/s on the mean is about 3% of the current and 0.1 kn. A future current field that does not reproduce the station's prediction at the station would fail this test, which is intended.
+
 ## Limits
 
-This is deterministic software acceptance in a **calm uniform environment**, 50 m deep, without wind or current. Faces and fenders remain estimates; crew-confirmed orientation does not survey their positions or material properties. **Pier 11 is modelled as a single berth** even though real operations use multiple positions. The two traces are independently initialized legs; they do not verify a continuous turnaround or passenger stop.
+The M2 trips are deterministic software acceptance in a **calm uniform environment**, 50 m deep, without wind or current; the M3 tests above use real days, with the provisional current field and uniform wind. Faces and fenders remain estimates; crew-confirmed orientation does not survey their positions or material properties. **Pier 11 is modelled as a single berth** even though real operations use multiple positions. The two traces are independently initialized legs; they do not verify a continuous turnaround or passenger stop.
 
 Only loaded contact faces obstruct the vessel. Shoreline, bridge-pier, overhead and the charted mooring point's collision/clearance are unverified. Many vessel parameters remain estimates. Same-runtime bit-for-bit parity includes a headless **in-process** core simulation and replay; it does not establish CoreCLR/IL2CPP equality or player-build behavior. The integrated slice is editor-only. Screenshots are rendered evidence, not physical-device, manual-helm or real-world safety acceptance.

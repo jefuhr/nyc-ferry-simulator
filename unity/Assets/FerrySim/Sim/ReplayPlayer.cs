@@ -26,7 +26,20 @@ namespace FerrySim.Sim
 
 		public VesselState InitialState { get; private set; }
 
+		/// <summary>The recorded uniform environment (calm included); null for a pack run, whose pack a replay loads.</summary>
 		public UniformEnvironment Environment { get; private set; }
+
+		/// <summary>Calm, uniform, or a pack's day (the header's <c>environment</c> is <c>pack</c>).</summary>
+		public EnvironmentKind EnvironmentKind { get; private set; }
+
+		/// <summary>The pack as region/date (<c>environment_pack</c>); null unless a pack run.</summary>
+		public string EnvironmentPack { get; private set; }
+
+		/// <summary>The pack's day digest (<c>environment_digest</c>); null unless a pack run.</summary>
+		public string EnvironmentDigest { get; private set; }
+
+		/// <summary>The pack's local-midnight epoch (<c>environment_epoch_utc</c>); default unless a pack run.</summary>
+		public DateTimeOffset EnvironmentEpochUtc { get; private set; }
 
 		public int SampleHz { get; private set; }
 
@@ -67,10 +80,35 @@ namespace FerrySim.Sim
 				Number(header, "initial.surge_mps", telemetryPath),
 				Number(header, "initial.sway_mps", telemetryPath),
 				Number(header, "initial.yaw_rate_radps", telemetryPath));
-			var environment = new UniformEnvironment(
-				new HorizontalVector(Number(header, "env.current_north_mps", telemetryPath), Number(header, "env.current_east_mps", telemetryPath)),
-				new HorizontalVector(Number(header, "env.wind_north_mps", telemetryPath), Number(header, "env.wind_east_mps", telemetryPath)),
-				Number(header, "env.depth_m", telemetryPath));
+			var spec = Required(header, "environment", telemetryPath);
+			var kind = spec == RunEnvironment.PackText ? EnvironmentKind.Pack : spec == "calm" ? EnvironmentKind.Calm : EnvironmentKind.Uniform;
+			UniformEnvironment environment = null;
+			string pack = null;
+			string packDigest = null;
+			var epoch = default(DateTimeOffset);
+			if (kind == EnvironmentKind.Pack)
+			{
+				pack = Required(header, RunEnvironment.PackKey, telemetryPath);
+				packDigest = Required(header, RunEnvironment.DigestKey, telemetryPath);
+				if (!FerrySim.Core.Serialization.EnvironmentPackDigests.IsHexDigest(packDigest))
+				{
+					throw new FormatException($"{telemetryPath}: header '{RunEnvironment.DigestKey}' is not 64 lower-case hex characters: '{packDigest}'.");
+				}
+
+				var epochText = Required(header, RunEnvironment.EpochKey, telemetryPath);
+				if (!DateTimeOffset.TryParse(epochText, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out epoch))
+				{
+					throw new FormatException($"{telemetryPath}: header '{RunEnvironment.EpochKey}' is not an ISO 8601 time: '{epochText}'.");
+				}
+			}
+			else
+			{
+				environment = new UniformEnvironment(
+					new HorizontalVector(Number(header, "env.current_north_mps", telemetryPath), Number(header, "env.current_east_mps", telemetryPath)),
+					new HorizontalVector(Number(header, "env.wind_north_mps", telemetryPath), Number(header, "env.wind_east_mps", telemetryPath)),
+					Number(header, "env.depth_m", telemetryPath));
+			}
+
 			var sampleHz = (int)Number(header, "sample_hz", telemetryPath);
 			if (sampleHz < 1 || SimulationClock.StepsPerSecond % sampleHz != 0)
 			{
@@ -88,6 +126,10 @@ namespace FerrySim.Sim
 				VesselFile = Required(header, "vessel_file", telemetryPath),
 				InitialState = initial,
 				Environment = environment,
+				EnvironmentKind = kind,
+				EnvironmentPack = pack,
+				EnvironmentDigest = packDigest,
+				EnvironmentEpochUtc = epoch,
 				SampleHz = sampleHz,
 				ScenarioStartUtc = start,
 				StateDigest = digest,
@@ -263,9 +305,13 @@ namespace FerrySim.Sim
 		/// Replays <paramref name="run"/> on a fresh simulation from <paramref name="factory"/> and compares every row.
 		/// Pass the <paramref name="geometry"/> the run was recorded with (its <c>world_geometry</c> header names the
 		/// type); open water when omitted. When the recording carries a <see cref="WorldGeometryDigest"/> and
-		/// <paramref name="geometry"/> has another, nothing is replayed and the result says so.
+		/// <paramref name="geometry"/> has another, nothing is replayed and the result says so. A pack run is replayed
+		/// against <paramref name="pack"/>, or the pack its header names, found in <paramref name="packs"/> (StreamingAssets,
+		/// then the repository, when null); when that pack's day digest is not the recorded one, or it cannot be loaded, nothing
+		/// is replayed and the result names both digests. A calm or uniform run given a pack is refused the same way.
 		/// </summary>
-		public static ReplayResult Verify(RecordedRun run, VesselParameters parameters, ISimulationFactory factory, IStepObserver observer = null, IWorldGeometry geometry = null)
+		public static ReplayResult Verify(RecordedRun run, VesselParameters parameters, ISimulationFactory factory, IStepObserver observer = null, IWorldGeometry geometry = null,
+			FerrySim.Core.Env.EnvironmentPack pack = null, EnvironmentPacks packs = null)
 		{
 			geometry ??= EmptyWorldGeometry.Instance;
 			if (run.Header.TryGetValue(WorldGeometryDigest.HeaderKey, out var recordedGeometry))
@@ -277,7 +323,12 @@ namespace FerrySim.Sim
 				}
 			}
 
-			var simulation = factory.Create(parameters, run.Environment, geometry, run.InitialState);
+			if (!RunEnvironment.TryForRecording(run, pack, packs, out var environment, out var recordedEnvironment, out var replayedEnvironment))
+			{
+				return new ReplayResult(0, run.Rows.Count, 0, recordedEnvironment, replayedEnvironment);
+			}
+
+			var simulation = factory.Create(parameters, environment.StartRun(), geometry, run.InitialState);
 			var driver = new FixedStepDriver(simulation, run.Inputs);
 			var verifier = new ReplayVerifier(run);
 			driver.AddObserver(verifier);

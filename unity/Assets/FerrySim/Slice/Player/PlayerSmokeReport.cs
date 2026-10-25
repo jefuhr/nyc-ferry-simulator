@@ -30,6 +30,26 @@ namespace FerrySim.Slice
 		public string vessel_file;
 
 		public bool vessel_file_packaged;
+
+		/// <summary>The drive's water and air: calm, uniform or pack.</summary>
+		public string environment;
+
+		/// <summary>The environment pack the drive ran on (region/date) and its day digest; empty unless a pack run.</summary>
+		public string environment_pack;
+
+		public string environment_digest;
+
+		/// <summary>The pack's day folder, and whether that is inside StreamingAssets.</summary>
+		public string environment_folder;
+
+		public bool environment_packaged;
+
+		/// <summary>The pack's water level above NAVD88 at the vessel when the drive ended, m; 0 unless a pack run.</summary>
+		public double water_level_navd88_m;
+
+		/// <summary>The drawn water's level when the drive ended, m above NAVD88; 0 when the scene has no drawn water.</summary>
+		public double drawn_water_level_navd88_m;
+
 		public string player_error;
 		public string landing_error;
 		public int landing_segments;

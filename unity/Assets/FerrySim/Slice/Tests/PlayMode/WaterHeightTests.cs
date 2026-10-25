@@ -15,10 +15,11 @@ namespace FerrySim.Slice.PlayModeTests
 {
 	/// <summary>
 	/// (e) The hull sits on the water that is drawn: at positions across the slice the placed hull's WGS84 ellipsoidal
-	/// height equals the drawn water mesh's under it, within 1 cm. Failure modes guarded: the placement left on its
-	/// constant fallback (the slice-centre geoid offset from geoid_offset.json, centimetres off away from the centre),
-	/// the adapter not wired, and heights compared in the wrong frame (the mesh is measured through Cesium, the same
-	/// way the hull is placed).
+	/// height equals the drawn water mesh's under it, within 1 cm, in calm water and on a pack day's tide. Failure modes
+	/// guarded: the placement left on its constant fallback (the slice-centre geoid offset from geoid_offset.json,
+	/// centimetres off away from the centre), the adapter not wired, heights compared in the wrong frame (the mesh is
+	/// measured through Cesium, the same way the hull is placed), and the hull placed at another level than the drawn
+	/// tide (the drawn water moved after the placement read it).
 	/// </summary>
 	public class WaterHeightTests
 	{
@@ -43,7 +44,6 @@ namespace FerrySim.Slice.PlayModeTests
 		public IEnumerator ThePlacedHull_SitsOnTheDrawnWater_WithinACentimetre_AcrossTheSlice()
 		{
 			Assert.That(_scene.Placement.WaterSurface, Is.InstanceOf<WorldWaterHeight>(), "the placement reads the world's water");
-			Assert.That(_scene.Water.WaterLevelNavd88, Is.EqualTo(0.0), "the scene keeps the world scene's constant NAVD88 0.0 m level");
 			Assert.That(ConstantWaterSurface.TryReadGeoidOffset(SimPaths.Resolve(ConstantWaterSurface.DefaultGeoidOffsetFile), out var centreOffset, out var problem), Is.True, problem);
 			_scene.StepsPerFrame(2);
 
@@ -69,6 +69,7 @@ namespace FerrySim.Slice.PlayModeTests
 				_scene.Restart(scenario, new ConstantControls(ControlInputs.Neutral));
 				// Let the cameras follow and Cesium shift its origin to the new place.
 				yield return SliceScene.Frames(6);
+				Assert.That(_scene.Water.WaterLevelNavd88, Is.EqualTo(0.0), "calm water keeps the world scene's constant NAVD88 0.0 m level");
 
 				var pose = _scene.Runner.RenderPose;
 				var hull = _scene.Placement.Anchor.longitudeLatitudeHeight;
@@ -86,6 +87,30 @@ namespace FerrySim.Slice.PlayModeTests
 			}
 
 			Assert.That(worstFallbackError, Is.GreaterThan(Tolerance), "control: the constant fallback would miss the drawn water by more than the tolerance somewhere");
+		}
+
+		/// <summary>
+		/// On a pack day the drawn water stands at the tide, and the hull sits on it: near high water at Pier 11 on 2025-07-14,
+		/// the drawn level is the pack's level at the vessel and the placed hull is on the mesh within 1 cm.
+		/// </summary>
+		[UnityTest]
+		public IEnumerator OnAPackDay_TheHullSitsOnTheDrawnTide()
+		{
+			Assert.That(_scene.Bootstrap.ScenarioCatalog.TryCreate(new ScenarioChoice("87", "2025-07-14", 700, "t-class"), out var scenario, out var problem), Is.True, problem);
+			_scene.Restart(scenario, new ConstantControls(ControlInputs.Neutral));
+			_scene.StepsPerFrame(2);
+			yield return SliceScene.Frames(6);
+
+			var pose = _scene.Runner.RenderPose;
+			var level = _scene.Water.WaterLevelNavd88;
+			var hull = _scene.Placement.Anchor.longitudeLatitudeHeight;
+			var drawn = DrawnSurfaceHeight(_scene.Runner.transform.position, _scene.Runner.transform.up);
+			Debug.Log($"Water height on the tide at Pier 11: level {level:F4} m NAVD88, hull {hull.z:F4} m, drawn water {drawn:F4} m, difference {(hull.z - drawn) * 100.0:F2} cm.");
+
+			Assert.That(level, Is.EqualTo(_scene.Runner.Environment.WaterLevelNavd88), "the drawn level is the pack's at the vessel");
+			Assert.That(level, Is.GreaterThan(0.7), "11:40 EDT is high water at The Battery that day");
+			Assert.That(hull.z, Is.EqualTo(drawn).Within(Tolerance), "the hull sits on the drawn tide");
+			Assert.That(hull.z, Is.EqualTo(_scene.Water.EllipsoidalHeight(pose.North, pose.East) - pose.Down).Within(1e-6));
 		}
 
 		/// <summary>

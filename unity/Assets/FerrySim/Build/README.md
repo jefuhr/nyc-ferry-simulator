@@ -20,11 +20,13 @@ Owner: **release-build**. This folder holds the editor-only assembly `FerrySim.U
 
 ## Packaged files
 
-`PlayerPayload` reads serialized string fields, or arrays of them, whose names end in `File` or `Files`. It reads them on the components of the built scenes and on the project assets those components reference under `Assets/`: ScriptableObjects, prefabs, and prefabs behind component references. Each field is a repository-relative path with forward slashes, as `SimPaths.Resolve` reads it. Every file is copied to the same relative path under StreamingAssets.
+`PlayerPayload` reads serialized string fields, or arrays of them, whose names end in `File` or `Files` (a file each) or `Folder` or `Folders` (every file in the folder and its subfolders). It reads them on the components of the built scenes and on the project assets those components reference under `Assets/`: ScriptableObjects, prefabs, and prefabs behind component references. Each field is a repository-relative path with forward slashes, as `SimPaths.Resolve` reads it. Every file is copied to the same relative path under StreamingAssets.
+
+A folder travels whole, whatever is in it, so an environment pack keeps every file a later pipeline adds: the slice's `SliceBootstrap.environmentFolder` is `data/processed/lower-east-river/env`, the region's depth set and all its days (about 8.3 MB). Names starting with a dot (`.DS_Store`) are not data and are left out.
 
 These fail the build:
-- a path that is absolute, climbs out of the repository, passes through a symbolic link, or is written with backslashes or surrounding spaces
-- a missing file
+- a path that is absolute, climbs out of the repository, passes through a symbolic link (one inside a folder included), or is written with backslashes or surrounding spaces
+- a missing file, a missing folder, or a folder with no files
 - a scenario JSON file or a replay in a built scene, because each names further files the build would not package
 
 Scenes the build did not process are opened from the build settings and read too.
@@ -33,6 +35,6 @@ Scenes the build did not process are opened from the build settings and read too
 
 | Test | What |
 |---|---|
-| `PlayerPayloadTests` | The slice scene names exactly the vessel and geoid files. Also covered: field names and arrays, prefabs behind component references, unprocessed scenes, and every rejected path (missing, absolute, `..`, symbolic links, backslashes, padding, scenario files and replays). Each platform's StreamingAssets layout, and the copies and their hashes, are checked as well |
+| `PlayerPayloadTests` | The slice scene names exactly the geoid file, both vessel files and every file of its environment packs (all 28 days and the depth set). Also covered: field names and arrays, folder fields (every file at any depth, dot files left out), prefabs behind component references, unprocessed scenes, and every rejected path (missing, empty folder, a file named as a folder, absolute, `..`, symbolic links including one inside a folder, backslashes, padding, scenario files and replays). Each platform's StreamingAssets layout, and the copies and their hashes, are checked as well |
 | `PlayerBuildTests` | The command line, the player layout and the exit codes |
 | `ReleaseSettingsTests` | The version is major.minor.patch, and the bundle identifier, build scenes and product name are the release's |
