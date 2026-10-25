@@ -147,13 +147,16 @@ namespace FerrySim.E2E
 		}
 
 		[UnityTest]
-		public IEnumerator Drift_InNeutralByACurrentStation_IsTheStationsPredictedCurrent()
+		public IEnumerator Drift_InNeutral_IsTheCurrentAtTheHull_AndAtTheStationTheStationsPrediction()
 		{
 			// Corlears Hook's station NYH1921 on 2025-07-20 at 14:48 EDT: a strong steady flood (1.7 m/s) in almost no wind
-			// (0.5 m/s), the day's best case for seeing the current alone.
+			// (0.5 m/s), the day's best case for seeing the current alone. The pack's current is its channel field, which is
+			// the station's prediction at the station and follows the shore away from it, so the hull is compared with the
+			// field where the hull is at each step, and the field at the station with the station's prediction.
 			yield return LoadScene();
 			var folder = Artifacts("drift");
 			var pack = Pack("2025-07-20");
+			Assert.That(pack.CurrentField, Is.Not.Null, "the day's pack has a channel field");
 			var station = pack.CurrentStations.Single(s => s.Id == "NYH1921");
 			var settings = Start(new ScenarioChoice("115", "2025-07-20", 14 * 60 + 48, "t-class"), new ConstantControls(ControlInputs.Neutral), folder, scenario =>
 			{
@@ -165,7 +168,8 @@ namespace FerrySim.E2E
 			Assert.That(Math.Sqrt(Math.Pow(start.North - station.North, 2) + Math.Pow(start.East - station.East, 2)), Is.LessThan(0.01), "at the station");
 			var independent = new DataEnvironment(pack, settings.StartUtc);
 			var rows = new List<string> { "time_s,north_m,east_m,ground_north_mps,ground_east_mps,station_north_mps,station_east_mps,field_at_hull_north_mps,field_at_hull_east_mps" };
-			double sumNorth = 0, sumEast = 0, sumStationNorth = 0, sumStationEast = 0, worst = 0, worstField = 0;
+			double sumNorth = 0, sumEast = 0, sumFieldNorth = 0, sumFieldEast = 0, sumStationNorth = 0, sumStationEast = 0;
+			double worst = 0, worstAtStation = 0, worstFieldVsStation = 0;
 			var samples = 0;
 			var observer = new StepWatch((step, state, telemetry) =>
 			{
@@ -176,14 +180,18 @@ namespace FerrySim.E2E
 				}
 
 				var ground = state.GroundVelocity;
-				var predicted = station.Velocity.Sample(independent.PackTime(state.Time));
 				var field = independent.SampleCurrent(state.North, state.East, state.Time);
+				var predicted = station.Velocity.Sample(independent.PackTime(state.Time));
+				var atStation = independent.SampleCurrent(station.North, station.East, state.Time);
 				sumNorth += ground.North;
 				sumEast += ground.East;
+				sumFieldNorth += field.North;
+				sumFieldEast += field.East;
 				sumStationNorth += predicted.North;
 				sumStationEast += predicted.East;
-				worst = Math.Max(worst, (ground - predicted).Magnitude);
-				worstField = Math.Max(worstField, (field - predicted).Magnitude);
+				worst = Math.Max(worst, (ground - field).Magnitude);
+				worstAtStation = Math.Max(worstAtStation, (atStation - predicted).Magnitude);
+				worstFieldVsStation = Math.Max(worstFieldVsStation, (field - predicted).Magnitude);
 				samples++;
 				if (step % 100 == 0)
 				{
@@ -205,29 +213,39 @@ namespace FerrySim.E2E
 			yield return Capture(Path.Combine(folder, "drift.png"), 60f, 30f);
 			var run = EndAndLoad();
 			var mean = new HorizontalVector(sumNorth / samples, sumEast / samples);
+			var fieldMean = new HorizontalVector(sumFieldNorth / samples, sumFieldEast / samples);
 			var predictedMean = new HorizontalVector(sumStationNorth / samples, sumStationEast / samples);
-			var turn = Angles.ToDegrees(Angles.WrapPi(mean.Direction - predictedMean.Direction));
+			var turn = Angles.ToDegrees(Angles.WrapPi(mean.Direction - fieldMean.Direction));
 			File.WriteAllText(Path.Combine(folder, "drift.csv"), string.Join("\n", rows) + "\n");
 			var summary = new JObject
 			{
-				["pack"] = pack.Name, ["pack_digest"] = pack.Digest, ["station"] = station.Id, ["station_name"] = station.Name, ["start_utc"] = settings.scenarioStartUtc,
-				["seconds_compared"] = samples / 100.0, ["drift_speed_mps"] = mean.Magnitude, ["drift_toward_deg"] = Angles.ToDegrees(mean.Direction),
-				["predicted_speed_mps"] = predictedMean.Magnitude, ["predicted_toward_deg"] = Angles.ToDegrees(predictedMean.Direction),
-				["mean_difference_mps"] = (mean - predictedMean).Magnitude, ["direction_difference_deg"] = turn, ["worst_step_difference_mps"] = worst,
-				["worst_field_at_hull_vs_station_mps"] = worstField, ["wind_mps"] = _runner.RunEnvironment.Observer.SampleWind(start.North, start.East, 0.0).Magnitude,
+				["pack"] = pack.Name, ["pack_digest"] = pack.Digest, ["current_field"] = CurrentFieldBasis.Method, ["current_field_digest"] = pack.CurrentField.Digest,
+				["station"] = station.Id, ["station_name"] = station.Name,
+				["start_utc"] = settings.scenarioStartUtc, ["seconds_compared"] = samples / 100.0,
+				["drift_speed_mps"] = mean.Magnitude, ["drift_toward_deg"] = Angles.ToDegrees(mean.Direction),
+				["field_at_hull_speed_mps"] = fieldMean.Magnitude, ["field_at_hull_toward_deg"] = Angles.ToDegrees(fieldMean.Direction),
+				["mean_difference_mps"] = (mean - fieldMean).Magnitude, ["direction_difference_deg"] = turn, ["worst_step_difference_mps"] = worst,
+				["worst_field_at_station_vs_prediction_mps"] = worstAtStation,
+				["information_only"] = new JObject
+				{
+					["predicted_speed_mps"] = predictedMean.Magnitude, ["predicted_toward_deg"] = Angles.ToDegrees(predictedMean.Direction),
+					["drift_vs_station_mean_difference_mps"] = (mean - predictedMean).Magnitude, ["worst_field_at_hull_vs_station_mps"] = worstFieldVsStation,
+				},
+				["wind_mps"] = _runner.RunEnvironment.Observer.SampleWind(start.North, start.East, 0.0).Magnitude,
 				["moved_m"] = Math.Sqrt(Math.Pow(_runner.State.North - start.North, 2) + Math.Pow(_runner.State.East - start.East, 2)),
 				["tolerance_mean_mps"] = DriftMeanTolerance, ["tolerance_step_mps"] = DriftSampleTolerance,
-				["tolerance_reason"] = "At rest in the water the core's relative-velocity model carries the hull with the water at the hull exactly. What separates the drift from the station's prediction is the field between stations as the hull leaves the station (the hull moves about 220 m; the station blend changes by up to about 0.03 m/s) and the day's 0.5 m/s wind (leeway up to about 0.05 m/s). 0.05 m/s on the mean is about 3% of the current and 0.1 kn.",
+				["tolerance_reason"] = "At rest in the water the core's relative-velocity model carries the hull with the water: with the wind left out, the drift and the field at the hull agree to 3e-4 m/s at every step (the hull feels the current along its length, not only at its reference point). The day's 0.5 m/s wind adds leeway, about 0.03 m/s on the mean and 0.04 m/s at worst. 0.05 m/s on the mean is about 3% of the current and 0.1 kn; the tolerances are the ones the station comparison used.",
 				["recording"] = Path.GetFileName(_runner.LastRecordingPath),
 			};
 			File.WriteAllText(Path.Combine(folder, "summary.json"), summary + "\n");
 			TestContext.WriteLine(summary.ToString());
 
 			Assert.That(samples, Is.EqualTo(12000), "120 s compared at 100 Hz");
-			Assert.That((mean - predictedMean).Magnitude, Is.LessThanOrEqualTo(DriftMeanTolerance), "the hull drifts at the station's predicted current");
-			Assert.That(Math.Abs(turn), Is.LessThan(2.0), "toward the predicted direction");
+			Assert.That((mean - fieldMean).Magnitude, Is.LessThanOrEqualTo(DriftMeanTolerance), "the hull drifts with the current where it is");
+			Assert.That(Math.Abs(turn), Is.LessThan(2.0), "toward its direction");
 			Assert.That(worst, Is.LessThanOrEqualTo(DriftSampleTolerance), "at every step");
-			Assert.That(predictedMean.Magnitude, Is.GreaterThan(1.5), "a strong current, so the check means something");
+			Assert.That(fieldMean.Magnitude, Is.GreaterThan(1.5), "a strong current, so the check means something");
+			Assert.That(worstAtStation, Is.LessThanOrEqualTo(1e-9), "at the station the field is the station's prediction, at every step");
 			Assert.That(run.Header["environment_digest"], Is.EqualTo(pack.Digest));
 		}
 
@@ -296,42 +314,96 @@ namespace FerrySim.E2E
 			Assert.That(levels["high"] - levels["low"], Is.GreaterThan(1.0), "the day's range shows");
 		}
 
-		[UnityTest]
-		public IEnumerator Pier11_OnTheFlood_LandsSoftOnThePrimaryFace_AndHolds() => Landing("pier11-flood", "87", "2025-07-20", 14 * 60 + 48, towardTheFace: true);
+		/// <summary>
+		/// Pier 11's landings on a strong tide (the days and times of M3's first run, Tests/E2E/README.md). The channel field
+		/// carries no water through the pier and its barge, so in the slip off the primary face the tide runs weak and along
+		/// the face, 0.2 to 0.3 m/s; its strength is out in the stream off the pier's outer end, 0.8 to 0.9 m/s. The landing
+		/// starts there, at rest in the water 43 m off the face's line and 89 m down it (south-east), comes up a line 30 m off
+		/// the face, which keeps it in the charted berth's depth or deeper and clear of the shoal further off the face, turns
+		/// square 3 m short of the face's middle and comes in.
+		/// </summary>
+		private static readonly FacePoint[] Pier11FromTheStream = { new FacePoint(43.0, -89.0), new FacePoint(30.0, -40.0), new FacePoint(30.0, -3.0) };
 
 		[UnityTest]
-		public IEnumerator Pier11_OnTheEbb_LandsSoftOnThePrimaryFace_AndHolds() => Landing("pier11-ebb", "87", "2025-04-14", 15 * 60 + 12, towardTheFace: false);
+		public IEnumerator Pier11_OnTheFlood_LandsSoftOnThePrimaryFace_AndHolds() => Landing("pier11-flood", "87", "2025-07-20", 14 * 60 + 48, true, Pier11FromTheStream);
+
+		[UnityTest]
+		public IEnumerator Pier11_OnTheEbb_LandsSoftOnThePrimaryFace_AndHolds() => Landing("pier11-ebb", "87", "2025-04-14", 15 * 60 + 12, false, Pier11FromTheStream);
 
 		/// <summary>
 		/// The scene's own day and time (Slice/README.md, The scene): at slack water, under two hours after high water, a
 		/// T-class can land at South Williamsburg, where the depth grid is shallowest, without grounding.
 		/// </summary>
 		[UnityTest]
-		public IEnumerator SouthWilliamsburg_AtTheScenesDayAndTime_LandsSoftWithoutGrounding() => Landing("south-williamsburg-slack", "8", "2025-07-20", 18 * 60 + 48, towardTheFace: null);
+		public IEnumerator SouthWilliamsburg_AtTheScenesDayAndTime_LandsSoftWithoutGrounding() => Landing("south-williamsburg-slack", "8", "2025-07-20", 18 * 60 + 48, null);
 
-		/// <param name="towardTheFace">True for a current setting onto the face at more than 0.8 m/s, false for one setting off it, null for no expectation.</param>
-		private IEnumerator Landing(string leg, string stop, string date, int minutes, bool? towardTheFace)
+		/// <param name="towardTheFace">
+		/// True for a landing whose approach crosses current setting onto the face at more than 0.8 m/s, false for current
+		/// setting off it, null for no expectation. The current is sampled every metre along the approach's path at the start
+		/// time, and again at the hull as it comes in.
+		/// </param>
+		/// <param name="approach">
+		/// Null to start from the catalog's pose and back clear; otherwise the start, at rest in the water heading for the next
+		/// point, then the waypoints the landing runs before it turns square to the face.
+		/// </param>
+		private IEnumerator Landing(string leg, string stop, string date, int minutes, bool? towardTheFace, FacePoint[] approach = null)
 		{
 			yield return LoadScene();
 			var folder = Artifacts(leg);
 			var bootstrap = Bootstrap;
 			var face = bootstrap.Landings.PrimaryFace(stop);
 			var arrival = new HashSet<int>(face.Segments.Select(s => s.Id));
-			var controls = new PackLandingControls(_runner, face);
-			var settings = Start(new ScenarioChoice(stop, date, minutes, "t-class"), controls, folder);
+			var plan = approach?.Select(p => p.On(face)).ToArray();
+			var controls = plan == null ? new PackLandingControls(_runner, face) : new PackLandingControls(_runner, face, plan.Skip(1).ToArray());
+			var settings = Start(new ScenarioChoice(stop, date, minutes, "t-class"), controls, folder, plan == null ? (Action<ScenarioSettings>)null : scenario =>
+			{
+				// The catalog's day, time, vessel and pack; the start moved to the plan's first point, heading for its next.
+				var at = LocalTangentPlane.World.ToGeodetic(plan[0].North, plan[0].East);
+				scenario.startLatitude = at.LatitudeDegrees;
+				scenario.startLongitude = at.LongitudeDegrees;
+				scenario.startHeadingDegrees = Angles.ToDegrees(Angles.WrapTwoPi(Math.Atan2(plan[1].East - plan[0].East, plan[1].North - plan[0].North)));
+			});
 			var vessel = _runner.Parameters;
 			var start = _runner.State;
 			var normal = face.Segments[0].Segment.WaterNormal;
 			var inward = new HorizontalVector(-normal.North, -normal.East);
-			var current = _runner.RunEnvironment.Observer.SampleCurrent(start.North, start.East, 0.0);
+			var water = _runner.RunEnvironment.Observer;
+			var current = water.SampleCurrent(start.North, start.East, 0.0);
 			var along = current.North * inward.North + current.East * inward.East;
+			var middle = (face.Start + face.End) * 0.5;
+			var bow = FaceClearance.BodyOutline(vessel).Max(p => p.North);
+			var path = new List<HorizontalVector> { new HorizontalVector(start.North, start.East) };
+			path.AddRange(plan?.Skip(1) ?? Enumerable.Empty<HorizontalVector>());
+			path.Add(middle + normal * bow);
+			var planned = new PathCurrent(inward);
+			for (var i = 1; i < path.Count; i++)
+			{
+				var length = (path[i] - path[i - 1]).Magnitude;
+				var samples = (int)Math.Ceiling(length);
+				for (var k = i == 1 ? 0 : 1; k <= samples; k++)
+				{
+					var at = path[i - 1] + (path[i] - path[i - 1]) * (k / (double)samples);
+					planned.Add(at, water.SampleCurrent(at.North, at.East, 0.0));
+				}
+			}
+
 			if (towardTheFace.HasValue)
 			{
-				Assert.That(towardTheFace.Value ? along : -along, Is.GreaterThan(0.8), $"{leg}: the current runs along the landing, {(towardTheFace.Value ? "onto" : "off")} the face");
+				Assert.That(towardTheFace.Value ? planned.MostOnto : planned.MostOff, Is.GreaterThan(0.8),
+					$"{leg}: the approach crosses current setting {(towardTheFace.Value ? "onto" : "off")} the face, sampled along its path");
 			}
 
 			var watch = new LandingWatch(_runner, arrival);
+			var atHull = new PathCurrent(inward);
+			var crossing = new StepWatch((step, hull, telemetry) =>
+			{
+				if (watch.FirstContact < 0 && step % 10 == 0)
+				{
+					atHull.Add(new HorizontalVector(hull.North, hull.East), water.SampleCurrent(hull.North, hull.East, hull.Time));
+				}
+			});
 			_runner.Driver.AddObserver(watch);
+			_runner.Driver.AddObserver(crossing);
 			var departure = false;
 			try
 			{
@@ -346,6 +418,7 @@ namespace FerrySim.E2E
 			}
 			finally
 			{
+				_runner.Driver.RemoveObserver(crossing);
 				_runner.Driver.RemoveObserver(watch);
 			}
 
@@ -361,11 +434,27 @@ namespace FerrySim.E2E
 			var reference = ContactScenarios.BowOnLanding(vessel, ContactScenarios.EstimatedBargeFender, Units.KnotsToMetresPerSecond((double)thresholds["peakForceReference"]["speed"]));
 			var headingError = Angles.ToDegrees(Angles.WrapPi(state.Heading - Math.Atan2(inward.East, inward.North)));
 			var replay = ReplayPlayer.Verify(run, vessel, new VesselDynamicsFactory(), geometry: TripData.Landings().Geometry);
+			JObject FieldOff(double metres)
+			{
+				var at = middle + normal * metres;
+				var c = water.SampleCurrent(at.North, at.East, 0.0);
+				return new JObject { ["speed_mps"] = c.Magnitude, ["toward_deg"] = Angles.ToDegrees(Angles.WrapTwoPi(c.Direction)), ["onto_face_mps"] = c.North * inward.North + c.East * inward.East };
+			}
+
+			var catalogStart = middle + normal * (bow + SliceScenarioCatalog.StartBowClearance);
+			var atCatalogStart = water.SampleCurrent(catalogStart.North, catalogStart.East, 0.0);
 			var summary = new JObject
 			{
 				["leg"] = leg, ["landing"] = stop + " " + face.StopName, ["pack"] = readout.PackName, ["pack_digest"] = readout.PackDigest, ["start_utc"] = settings.scenarioStartUtc,
 				["local_start"] = $"{minutes / 60:D2}:{minutes % 60:D2} " + (readout.LocalUtcOffset.TotalHours == -4.0 ? "EDT" : "EST"),
-				["current_along_landing_at_start_mps"] = along, ["water_level_navd88_m_at_end"] = readout.WaterLevelNavd88, ["wind_mps_at_end"] = readout.Wind.Magnitude,
+				["start"] = plan == null ? "the catalog's pose: bow 4 m off the middle of the face, heading in" : "moved into the stream, heading for the first waypoint",
+				["start_north_east_m"] = new JArray(start.North, start.East), ["start_heading_deg"] = Angles.ToDegrees(start.Heading),
+				["approach_waypoints_north_east_m"] = new JArray((plan?.Skip(1) ?? Enumerable.Empty<HorizontalVector>()).Select(p => new JArray(p.North, p.East))),
+				["current_along_landing_at_start_mps"] = along, ["approach_path_current"] = planned.ToJson(), ["current_at_hull_before_contact"] = atHull.ToJson(),
+				["field_at_face"] = FieldOff(0.0), ["field_15m_off_face"] = FieldOff(15.0), ["field_60m_off_face"] = FieldOff(60.0),
+				["current_along_landing_at_catalog_start_mps"] = atCatalogStart.North * inward.North + atCatalogStart.East * inward.East,
+				["water_level_navd88_m_at_end"] = readout.WaterLevelNavd88, ["wind_mps_at_end"] = readout.Wind.Magnitude,
+				["approach_from_step"] = controls.ApproachFromStep,
 				["first_contact_step"] = controls.HoldFromStep, ["first_contact_speed_kn"] = Units.MetresPerSecondToKnots(watch.FirstContactSpeed),
 				["peak_contact_force_n"] = watch.PeakForce, ["peak_compression_m"] = watch.Compression, ["bottomed_out"] = watch.BottomedOut,
 				["final_hold_force_n"] = watch.FinalForce, ["last_10s_max_speed_kn"] = Units.MetresPerSecondToKnots(watch.HoldMaxSpeed),
@@ -378,7 +467,12 @@ namespace FerrySim.E2E
 			File.WriteAllText(Path.Combine(folder, "summary.json"), summary + "\n");
 			TestContext.WriteLine(summary.ToString());
 
-			Assert.That(departure, Is.False, "backed clear without touching the face");
+			Assert.That(departure, Is.False, plan == null ? "backed clear without touching the face" : "touched nothing on the way in");
+			if (towardTheFace.HasValue)
+			{
+				Assert.That(towardTheFace.Value ? atHull.MostOnto : atHull.MostOff, Is.GreaterThan(0.8), "and the hull crossed it");
+			}
+
 			Assert.That(controls.HoldFromStep, Is.GreaterThan(0), "landed");
 			Assert.That(watch.Touched, Is.Not.Empty);
 			Assert.That(watch.Touched.IsSubsetOf(arrival), Is.True, $"only {face.StopName}'s primary face touched");
@@ -520,6 +614,80 @@ namespace FerrySim.E2E
 			texture.ReadPixels(new Rect(0, 0, target.width, target.height), 0, 0);
 			texture.Apply();
 			return texture;
+		}
+
+		/// <summary>A point by its distance off a landing face's line (along its water normal) and along the line from the face's middle (toward its end), m.</summary>
+		private readonly struct FacePoint
+		{
+			public FacePoint(double off, double along)
+			{
+				Off = off;
+				Along = along;
+			}
+
+			public double Off { get; }
+
+			public double Along { get; }
+
+			public HorizontalVector On(LandingFace face)
+			{
+				var along = face.End - face.Start;
+				along = along * (1.0 / along.Magnitude);
+				var normal = new HorizontalVector(along.East, -along.North);
+				return (face.Start + face.End) * 0.5 + normal * Off + along * Along;
+			}
+		}
+
+		/// <summary>The current at points on a landing's way in: the most onto the face, the most off it and the strongest.</summary>
+		private sealed class PathCurrent
+		{
+			private readonly HorizontalVector _inward;
+
+			public PathCurrent(HorizontalVector inward) => _inward = inward;
+
+			private HorizontalVector _last;
+
+			/// <summary>Length of the way through the points, m.</summary>
+			public double Length;
+			public int Samples;
+			public double MostOnto = double.NegativeInfinity;
+			public double MostOff = double.NegativeInfinity;
+			public double Strongest;
+			public HorizontalVector MostOntoAt, MostOffAt, StrongestAt;
+
+			public void Add(HorizontalVector at, HorizontalVector current)
+			{
+				var onto = current.North * _inward.North + current.East * _inward.East;
+				if (onto > MostOnto)
+				{
+					MostOnto = onto;
+					MostOntoAt = at;
+				}
+
+				if (-onto > MostOff)
+				{
+					MostOff = -onto;
+					MostOffAt = at;
+				}
+
+				if (current.Magnitude > Strongest)
+				{
+					Strongest = current.Magnitude;
+					StrongestAt = at;
+				}
+
+				Length += Samples > 0 ? (at - _last).Magnitude : 0.0;
+				_last = at;
+				Samples++;
+			}
+
+			public JObject ToJson() => new JObject
+			{
+				["samples"] = Samples, ["length_m"] = Length,
+				["most_onto_face_mps"] = MostOnto, ["most_onto_face_at_north_east_m"] = new JArray(MostOntoAt.North, MostOntoAt.East),
+				["most_off_face_mps"] = MostOff, ["most_off_face_at_north_east_m"] = new JArray(MostOffAt.North, MostOffAt.East),
+				["strongest_mps"] = Strongest, ["strongest_at_north_east_m"] = new JArray(StrongestAt.North, StrongestAt.East),
+			};
 		}
 
 		/// <summary>Calls back after every physics step with the step index, the state and the telemetry after it.</summary>

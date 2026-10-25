@@ -14,8 +14,9 @@ namespace FerrySim.Slice.Tests
 	/// guarded: landings, days or vessels in an order a picker cannot rely on (stop ids sorted as text put 114 before 4);
 	/// a landing without a usable primary face offered anyway; a start that is not the trips' (bow-on, 4 m off the middle of
 	/// the primary face, at rest), not the pack's local midnight plus the minutes, or not on the pack; a start for either
-	/// vessel within a metre of any face, which the bootstrap would refuse; choices that cannot run accepted, or refused
-	/// without a reason a picker can show; and days whose local offset or wind does not come from their own pack.
+	/// vessel within a metre of any kept contact segment (a face, barge, pier, bulkhead or shoreline), which the bootstrap
+	/// would refuse; choices that cannot run accepted, or refused without a reason a picker can show; and days whose local
+	/// offset or wind does not come from their own pack.
 	/// </summary>
 	public class ScenarioCatalogTests
 	{
@@ -128,26 +129,62 @@ namespace FerrySim.Slice.Tests
 			Assert.That(winter.vesselFile, Is.EqualTo("vessels/k-class.json"));
 		}
 
+		/// <summary>
+		/// Every landing with a primary face, for both vessel files: the catalog's start against every kept contact segment
+		/// (contacts.json v2's berth faces, barge sides and ends, piers, bulkheads and shorelines), one by one. A start that
+		/// overlaps any of them, or lies within <see cref="FaceClearance.MinimumMetres"/> of one, is listed and fails; the
+		/// report gives the nearest segment of each kind for every start.
+		/// </summary>
 		[Test]
-		public void EveryLandingAndVessel_StartsClearOfEveryFace()
+		public void EveryLandingAndVessel_StartsClearOfEveryKeptContactSegment()
 		{
 			RequirePacks();
 			var catalog = Catalog();
 			var landings = LandingGeometry.Load(SliceTestData.ContactsPath, SliceTestData.SurfacesPath);
-			var report = new List<string>();
-			foreach (var landing in catalog.Landings)
+			var stops = landings.Segments.Where(s => s.IsPrimary).Select(s => s.StopId).Distinct().OrderBy(stop => long.Parse(stop)).ToList();
+			Assert.That(catalog.Landings.Select(l => l.StopId), Is.EqualTo(stops), "every landing with a primary face is offered");
+			Assert.That(catalog.Vessels.Select(v => v.Id), Is.EqualTo(new[] { "t-class", "k-class" }));
+			Assert.That(landings.Segments.Select(s => s.Id), Is.EqualTo(landings.Geometry.Segments.Select(s => s.Id)), "every kept segment is checked: the runtime's geometry");
+			var report = new List<string>
 			{
-				foreach (var vessel in catalog.Vessels)
+				$"Catalog starts (bow {SliceScenarioCatalog.StartBowClearance:F1} m off the middle of the primary face, heading in) against each of the {landings.Segments.Count} kept contact segments; nearest of each kind, m (segment id).",
+			};
+			var refused = new List<string>();
+			foreach (var stop in stops)
+			{
+				foreach (var vesselId in new[] { "t-class", "k-class" })
 				{
-					Assert.That(catalog.TryCreate(new ScenarioChoice(landing.StopId, "2025-07-14", 720, vessel.Id), out var settings, out var problem), Is.True, $"{landing.StopId} {vessel.Id}: {problem}");
+					Assert.That(catalog.TryCreate(new ScenarioChoice(stop, "2025-07-14", 720, vesselId), out var settings, out var problem), Is.True, $"{stop} {vesselId}: {problem}");
+					var vessel = catalog.Vessel(vesselId);
 					var start = settings.StartPosition;
-					var clearance = FaceClearance.Check(catalog.Vessel(vessel.Id), start.North, start.East, settings.StartHeading, landings.Geometry.Segments);
-					Assert.That(clearance.IsClear(), Is.True, $"{landing.StopId} {vessel.Id}");
-					report.Add($"{landing.StopId} {landing.Name} {vessel.Id}: {clearance.Distance:F2} m from face {clearance.NearestSegmentId}");
+					var nearest = new SortedDictionary<string, KeyValuePair<double, int>>(StringComparer.Ordinal);
+					foreach (var segment in landings.Segments)
+					{
+						var clearance = FaceClearance.Check(vessel, start.North, start.East, settings.StartHeading, new[] { segment.Segment });
+						var distance = clearance.Overlaps ? 0.0 : clearance.Distance;
+						if (!nearest.TryGetValue(segment.Kind, out var best) || distance < best.Key)
+						{
+							nearest[segment.Kind] = new KeyValuePair<double, int>(distance, segment.Id);
+						}
+
+						if (!clearance.IsClear())
+						{
+							refused.Add($"{stop} {segment.StopName} {vesselId}: {(clearance.Overlaps ? "overlaps" : $"{clearance.Distance:F2} m from")} {segment.Kind} {segment.Id} (stop {segment.StopId})");
+						}
+					}
+
+					var all = FaceClearance.Check(vessel, start.North, start.East, settings.StartHeading, landings.Geometry.Segments);
+					Assert.That(all.IsClear(), Is.EqualTo(nearest.Values.All(v => v.Key >= FaceClearance.MinimumMetres)), $"{stop} {vesselId}: the start check over the whole geometry agrees");
+					var name = catalog.Landings.Single(l => l.StopId == stop).Name;
+					report.Add($"{stop} {name} {vesselId}: " + string.Join(", ", nearest.Select(n => $"{n.Key} {n.Value.Key:F2} ({n.Value.Value})")));
 				}
 			}
 
+			report.Add(refused.Count == 0
+				? $"No start overlaps a barge side or end, a pier, a bulkhead or a shoreline, or lies within {FaceClearance.MinimumMetres:F1} m of any kept segment."
+				: "Starts inside the clearance:\n" + string.Join("\n", refused));
 			File.WriteAllText(Path.Combine(SliceTestData.ArtifactFolder("scenario-catalog"), "start-clearances.txt"), string.Join("\n", report) + "\n");
+			Assert.That(refused, Is.Empty, string.Join("\n", refused));
 		}
 
 		[TestCase("999", "2025-07-14", 600, "t-class", "no landing '999'")]

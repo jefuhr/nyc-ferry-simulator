@@ -3,7 +3,7 @@
   "raster_stride": 4,
   "tile_cells": 64,
   "terrain_tiles": 56,
-  "structure_features": 502,
+  "structure_features": 493,
   "aid_count": 18,
   "landing_count": 11,
   "land_area_count": 20,
@@ -57,6 +57,7 @@
   },
   "warnings": [
     "59 point-only chart structures have no extent and are omitted from colliders.",
+    "9 floating chart structures are landing barges or berths the greybox draws on the tide and are omitted: 0226015B0512B198, 02260848030BB198, 02260960FDFF1C82, 0226111D16AAB198, 02261ACE4C291C82, 02261FA117EFB198, 02264AC31B5B764B, 022679C2F5BA764B, 0226C9D1DA71764B.",
     "02260220D42B0032: nominal pulse widths (no chart SIGSEQ): Fl W 2s",
     "02260220D6B50032: no supported period/rhythm: Fl W",
     "02260220EB920032: no supported period/rhythm: Fl W",

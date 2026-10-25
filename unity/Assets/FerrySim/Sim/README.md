@@ -85,6 +85,8 @@ A `ScenarioAsset` (Create > FerrySim > Scenario), or JSON with the same fields t
 
 A scenario with `environment.pack` runs on one real day (format `ferrysim-env/1`, `core/FerrySim.Core/Environment/README.md`): the core's `DataEnvironment` from the scenario start, with that day's tide, current, wind and depth.
 
+- **The current** is the pack's channel field (`ChannelCurrentField`, method `channel-harmonic/1`, from the region's `env/field/` set) when the day names one, as the slice's days do: at a current station it is the station's prediction, and away from one it follows the shore and carries no water through land, so in a sheltered slip it runs weak and along the face. Outside the field's grids, and for a day without a field, it is the blend of the day's stations (`StationBlendCurrentField`). The hull feels it along its length, not only at its reference point.
+
 - **Where packs are.** `EnvironmentPacks` finds a pack by name in `<root>/<region>/env/days/<date>`, its depth set in `<root>/<region>/env/depth`. The default roots are StreamingAssets' `data/processed`, where every player build copies the slice's packs, then the repository's. The runner's `EnvironmentPacks` property replaces them (tests do).
 - **Checks.** `ScenarioSettings.Validate` refuses, naming the scenario: a name that is not region/date (lower-case region of letters, digits and hyphens, a real date), a pack that is not found (naming every place looked), and a start outside the day's coverage (naming the window). It reads only the day's manifest. Loading (`CreateEnvironment`, at every `Initialize`) verifies every byte through `EnvironmentPackJson` and refuses a changed file, naming it.
 - **Time.** Simulation time t reads the pack at t + (scenario start − the pack's local-midnight epoch). Local time comes from the epoch, never from a time-zone database: the offset is the date's midnight as UTC minus the epoch, −4 h in daylight time and −5 h in standard time.
@@ -102,7 +104,7 @@ A scenario with `environment.pack` runs on one real day (format `ferrysim-env/1`
 | `LocalUtcOffset` | From the pack's epoch | Zero (show UTC) |
 | `WaterLevelNavd88` | The pack's level at the vessel, m | NaN |
 | `WaterLevelRate` | The level's change over the minute centred on the step, m/s, positive rising | NaN |
-| `Current`, `Wind` | The pack's at the reference point, m/s toward | The uniform values |
+| `Current`, `Wind` | The pack's at the reference point (the current from its channel field), m/s toward | The uniform values |
 | `WindMissing` | The day has no wind station (still air) | False |
 | `TimeHolds`, `DepthMisses` | The run's own counts (`DataEnvironment.Coverage`) | Zero |
 

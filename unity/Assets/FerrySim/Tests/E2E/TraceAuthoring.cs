@@ -37,8 +37,10 @@ namespace FerrySim.E2E
 			var normal = TripData.Normal(arrival);
 			var middle = TripData.Middle(arrival);
 			// Estimated calm-water authoring speeds: 7 m/s (~13.6 kn) for transit, 1.5 m/s backing.
-			// Leg 1 crosses directly. Leg 2 follows the river through the two World's span centres.
-			var points = leg.RequiredBridges.Length == 0 ? new[] { middle + normal * 70 } : new[]
+			// Leg 1 leaves Pier 11's slip round the pier's outer end (its charted structure is contact geometry), through a
+			// point 31 m south of the end's south-west corner, then crosses directly. Leg 2 follows the river through the two
+			// World's span centres.
+			var points = leg.RequiredBridges.Length == 0 ? new[] { new HorizontalVector(240, 800), middle + normal * 70 } : new[]
 			{
 				new HorizontalVector(650, 1560),
 				new HorizontalVector(820, 2050),
@@ -111,7 +113,7 @@ namespace FerrySim.E2E
 						trace.Append(step + 1, controls);
 						using (var writer = new StreamWriter(leg.TracePath))
 							trace.Write(writer, new[] { "Offline TraceAuthoring.Generate, calm 50 m depth, T-class, 100 Hz.",
-								$"{leg.Key}: bow-on 4 m clear of stop {leg.DepartureStop} primary face; astern departure, {(leg.RequiredBridges.Length == 0 ? "direct crossing without bridges" : "Brooklyn Bridge then Manhattan Bridge main spans")}, bow-in approach to stop {leg.ArrivalStop} primary face and 60 s engine hold." });
+								$"{leg.Key}: bow-on 4 m clear of stop {leg.DepartureStop} primary face; astern departure, {(leg.RequiredBridges.Length == 0 ? "round the pier's outer end, direct crossing without bridges" : "Brooklyn Bridge then Manhattan Bridge main spans")}, bow-in approach to stop {leg.ArrivalStop} primary face and 60 s engine hold." });
 						Debug.Log($"{leg.Key}: authored {trace.Count} control changes, {trace.EndTime:F2}s, final contact {simulation.Telemetry.ContactForce:F1}N, speed {simulation.Telemetry.SpeedOverGround:F6}m/s");
 						return;
 					}

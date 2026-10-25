@@ -153,9 +153,17 @@ namespace FerrySim.World.Import
 		}
 		private static int BuildStructures(GameObject parent, double geoid, Material material)
 		{
-			var count = 0; var points = 0;
+			// A landing's barges and berths float: the greybox draws them on the tide. Fixed here, from NAVD88 -60 m to +1 m, their chart outline
+			// would stand above the deck at low water, so a structure that contacts.json gives as a barge kind's is left out.
+			var contactsFile = Path.Combine(Inputs, "unity/contacts.json");
+			var afloat = new HashSet<string>(StringComparer.Ordinal);
+			if (File.Exists(contactsFile))
+				foreach (var record in JArray.Parse(File.ReadAllText(contactsFile)).OfType<JObject>())
+					if (Array.IndexOf(BargeKinds, (string)record["kind"]) >= 0 && record["lnam"]?.Type == JTokenType.String) afloat.Add((string)record["lnam"]);
+			var count = 0; var points = 0; var floating = new List<string>();
 			foreach (var feature in ReadFeatures("shoreline_constructions.geojson"))
 			{
+				if (afloat.Contains(FeatureName(feature))) { floating.Add(FeatureName(feature)); continue; }
 				var vertices = new List<Vector3>(); var triangles = new List<int>();
 				foreach (var line in Lines((JObject)feature["geometry"]))
 				for (var i = 1; i < line.Count; i++)
@@ -173,7 +181,8 @@ namespace FerrySim.World.Import
 				mesh.SetVertices(vertices); mesh.SetTriangles(triangles, 0); mesh.RecalculateNormals(); mesh.RecalculateBounds();
 				MeshObject(parent, name, Save(mesh, name + ".asset"), material, true); count++;
 			}
-			Warnings.Add($"{points} point-only chart structures have no extent and are omitted from colliders."); return count;
+			Warnings.Add($"{points} point-only chart structures have no extent and are omitted from colliders.");
+			Warnings.Add($"{floating.Count} floating chart structures are landing barges or berths the greybox draws on the tide and are omitted: {string.Join(", ", floating)}."); return count;
 		}
 
 		private static void BuildAids(GameObject parent, double geoid, Material grey, LightHeightDatum datum)
@@ -323,13 +332,15 @@ namespace FerrySim.World.Import
 					var record = ContactRecord(stopRecords[i]);
 					var segmentId = (int)record["id"];
 					if (!contactIds.Add(segmentId)) throw new InvalidDataException("Duplicate contact segment ID: " + segmentId);
+					contacts.Add(record);
+					// A barge floats: the greybox draws its sides on the tide. A strip here would stay at NAVD88 +0.18 m and stand above the deck at low water.
+					if (Array.IndexOf(BargeKinds, (string)record["kind"]) >= 0) continue;
 					var start = (JArray)record["start_ne_m"]; var end = (JArray)record["end_ne_m"];
 					var a = new Vector3((float)(double)start[1], (float)geoid + .18f, (float)(double)start[0]); var b = new Vector3((float)(double)end[1], a.y, (float)(double)end[0]);
 					var strip = GameObject.CreatePrimitive(PrimitiveType.Cube); strip.name = id + "-Contact-" + i; strip.transform.SetParent(marker.transform, false); strip.transform.position = (a + b) * .5f;
 					strip.transform.rotation = Quaternion.LookRotation(b - a); strip.transform.localScale = new Vector3(.65f, .35f, Vector3.Distance(a, b));
-					strip.GetComponent<Renderer>().sharedMaterial = Array.IndexOf(BargeKinds, (string)record["kind"]) >= 0 ? landingMaterial : structureMaterial;
+					strip.GetComponent<Renderer>().sharedMaterial = structureMaterial;
 					strip.layer = 8;
-					contacts.Add(record);
 				}
 			}
 			if (contacts.Count != records.Count) throw new InvalidDataException($"contacts.json has {records.Count - contacts.Count} segments for stops that are not GTFS landings of the slice");
