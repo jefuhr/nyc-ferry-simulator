@@ -31,7 +31,10 @@ namespace FerrySim.Slice
 			Confidence = confidence;
 		}
 
-		/// <summary><see cref="LandingSurfaceTable.DefaultKey"/>, or the GTFS stop_id of a landing with its own entry.</summary>
+		/// <summary>
+		/// <see cref="LandingSurfaceTable.DefaultKey"/>, the GTFS stop_id of a landing with its own entry, or <c>kind:</c> and
+		/// the contact kind for a per-kind entry (for example <c>kind:bulkhead</c>).
+		/// </summary>
 		public string Key { get; }
 
 		public ContactSurface Surface { get; }
@@ -56,9 +59,10 @@ namespace FerrySim.Slice
 
 	/// <summary>
 	/// The slice's landing fender parameters (<c>Slice/Data/landing-contact-surfaces.json</c>): a default
-	/// <see cref="ContactSurface"/> and optional per-landing entries keyed by GTFS stop_id. Every value is a
-	/// <see cref="ParameterValue"/> (value, unit, source, confidence) in the unit the contract defines. Unknown
-	/// properties are errors, as in vessel files, so a typo never falls back to a default silently.
+	/// <see cref="ContactSurface"/>, optional per-landing entries keyed by GTFS stop_id, and optional per-kind entries
+	/// keyed by the contacts.json version 2 kind. Every value is a <see cref="ParameterValue"/> (value, unit, source,
+	/// confidence) in the unit the contract defines. Unknown properties and kinds are errors, as in vessel files, so a
+	/// typo never falls back to a default silently.
 	/// </summary>
 	public sealed class LandingSurfaceTable
 	{
@@ -66,6 +70,12 @@ namespace FerrySim.Slice
 
 		/// <summary>The entry every landing without its own uses.</summary>
 		public const string DefaultKey = "default";
+
+		/// <summary>The contact kinds of contacts.json version 2, and the keys a <c>kinds</c> entry may use.</summary>
+		public static readonly string[] ContactKinds = { "berth-face", "barge-side", "barge-end", "pier", "bulkhead", "shoreline" };
+
+		/// <summary>Kinds that belong to a landing's own barges, where a landing's own entry applies.</summary>
+		public static readonly string[] BargeKinds = { "berth-face", "barge-side", "barge-end" };
 
 		/// <summary>The shipped file, relative to the Unity project.</summary>
 		public const string DefaultAssetPath = "Assets/FerrySim/Slice/Data/landing-contact-surfaces.json";
@@ -75,7 +85,7 @@ namespace FerrySim.Slice
 		public const string FrictionUnit = "1";
 		public const string MaxCompressionUnit = "m";
 
-		private static readonly string[] TopLevel = { "schemaVersion", "description", "sources", DefaultKey, "landings" };
+		private static readonly string[] TopLevel = { "schemaVersion", "description", "sources", DefaultKey, "landings", "kinds" };
 		private static readonly string[] EntryFields = { "stiffness", "damping", "friction", "maxCompression", "note" };
 		private static readonly string[] ValueFields = { "value", "unit", "source", "confidence", "asPublished", "note" };
 
@@ -91,12 +101,35 @@ namespace FerrySim.Slice
 		/// <summary>Entries for single landings, by GTFS stop_id.</summary>
 		public IReadOnlyDictionary<string, LandingSurface> Landings { get; private set; }
 
+		/// <summary>Entries for contact kinds, by kind (optional <c>kinds</c> section).</summary>
+		public IReadOnlyDictionary<string, LandingSurface> Kinds { get; private set; }
+
 		/// <summary>Citations that non-estimated values refer to.</summary>
 		public IReadOnlyDictionary<string, string> Sources { get; private set; }
 
 		/// <summary>The landing's own entry, else the default.</summary>
 		public LandingSurface For(string stopId) =>
 			stopId != null && Landings.TryGetValue(stopId, out var own) ? own : Default;
+
+		/// <summary>
+		/// A segment's fender: the landing's own entry on its barges (<see cref="BargeKinds"/>), else the kind's entry,
+		/// else the default. A landing's own fender never reaches the piers and bulkheads beside it; a null kind (a
+		/// version 1 file) is <see cref="For(string)"/>.
+		/// </summary>
+		public LandingSurface For(string stopId, string kind)
+		{
+			if (kind == null)
+			{
+				return For(stopId);
+			}
+
+			if (stopId != null && Array.IndexOf(BargeKinds, kind) >= 0 && Landings.TryGetValue(stopId, out var own))
+			{
+				return own;
+			}
+
+			return Kinds.TryGetValue(kind, out var entry) ? entry : Default;
+		}
 
 		/// <summary>Parses and validates the file's text; <paramref name="file"/> names it in errors.</summary>
 		public static LandingSurfaceTable Parse(string json, string file)
@@ -139,12 +172,36 @@ namespace FerrySim.Slice
 				}
 			}
 
+			var kinds = new Dictionary<string, LandingSurface>(StringComparer.Ordinal);
+			var kindsToken = root["kinds"];
+			if (kindsToken != null && kindsToken.Type != JTokenType.Object)
+			{
+				problems.Add("kinds: must be an object keyed by contact kind");
+			}
+			else if (kindsToken != null)
+			{
+				foreach (var property in ((JObject)kindsToken).Properties())
+				{
+					if (Array.IndexOf(ContactKinds, property.Name) < 0)
+					{
+						problems.Add($"kinds.{property.Name}: unknown kind (expected one of {string.Join(", ", ContactKinds)})");
+						continue;
+					}
+
+					var entry = ReadEntry("kind:" + property.Name, property.Value, "kinds." + property.Name, sources, problems);
+					if (entry != null)
+					{
+						kinds[property.Name] = entry;
+					}
+				}
+			}
+
 			if (problems.Count > 0)
 			{
 				throw new LandingDataException(file, problems);
 			}
 
-			return new LandingSurfaceTable { File = file, Default = fallback, Landings = landings, Sources = sources };
+			return new LandingSurfaceTable { File = file, Default = fallback, Landings = landings, Kinds = kinds, Sources = sources };
 		}
 
 		public static LandingSurfaceTable Load(string path) => Parse(Json.ReadFile(path), path);

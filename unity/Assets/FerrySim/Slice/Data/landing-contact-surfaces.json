@@ -1,6 +1,6 @@
 {
 	"schemaVersion": 1,
-	"description": "Fender material of every landing face in World/Generated/LowerEastRiver/contacts.json, as the core's ContactSurface: values per metre of contact length (docs/conventions.md, contact geometry). No landing has been surveyed, so every value is an estimate. A landing without its own entry under 'landings' (keyed by GTFS stop_id) uses 'default'.",
+	"description": "Fender material of every landing structure segment in World/Generated/LowerEastRiver/contacts.json, as the core's ContactSurface: values per metre of contact length (docs/conventions.md, contact geometry). No landing or structure has been surveyed, so every value is an estimate. A segment uses its landing's own entry under 'landings' (keyed by GTFS stop_id) when it is part of that landing's barges, else the entry for its contacts.json version 2 kind under 'kinds', else 'default'.",
 	"sources": {},
 	"default": {
 		"stiffness": {
@@ -31,5 +31,181 @@
 		},
 		"note": "One estimate for every landing until crew or a survey give fender type, size and condition per landing (docs/reference-capture-kit.md)."
 	},
-	"landings": {}
+	"landings": {},
+	"kinds": {
+		"berth-face": {
+			"stiffness": {
+				"value": 1000000.0,
+				"unit": "N/m2",
+				"source": "Estimated elastomeric barge fender, 1.0e6 N/m per metre of contact length: the landing face the core's contact report uses (core/FerrySim.Core/Dynamics/README.md, Contact; ContactReportTests). Not a landing survey.",
+				"confidence": "estimated",
+				"asPublished": "1.0e6 N/m per m"
+			},
+			"damping": {
+				"value": 50000.0,
+				"unit": "N*s/m2",
+				"source": "Estimated elastomeric barge fender, 5e4 N·s/m per metre of contact length, as in the core's contact report. Not a landing survey.",
+				"confidence": "estimated",
+				"asPublished": "5e4 N·s/m per m"
+			},
+			"friction": {
+				"value": 0.3,
+				"unit": "1",
+				"source": "Estimated Coulomb friction of hull fendering on a rubber barge fender, 0.3, as in the core's contact report. Not a landing survey.",
+				"confidence": "estimated"
+			},
+			"maxCompression": {
+				"value": 0.25,
+				"unit": "m",
+				"source": "Estimated travel of an elastomeric barge fender before it bottoms out, 0.25 m, as in the core's contact report. Not a landing survey.",
+				"confidence": "estimated"
+			},
+			"note": "The berthing face: the default estimated elastomeric barge fender, as the core's contact report uses."
+		},
+		"barge-side": {
+			"stiffness": {
+				"value": 1000000.0,
+				"unit": "N/m2",
+				"source": "Estimated elastomeric barge fender, 1.0e6 N/m per metre of contact length: the landing face the core's contact report uses (core/FerrySim.Core/Dynamics/README.md, Contact; ContactReportTests). Not a landing survey.",
+				"confidence": "estimated",
+				"asPublished": "1.0e6 N/m per m"
+			},
+			"damping": {
+				"value": 50000.0,
+				"unit": "N*s/m2",
+				"source": "Estimated elastomeric barge fender, 5e4 N·s/m per metre of contact length, as in the core's contact report. Not a landing survey.",
+				"confidence": "estimated",
+				"asPublished": "5e4 N·s/m per m"
+			},
+			"friction": {
+				"value": 0.3,
+				"unit": "1",
+				"source": "Estimated Coulomb friction of hull fendering on a rubber barge fender, 0.3, as in the core's contact report. Not a landing survey.",
+				"confidence": "estimated"
+			},
+			"maxCompression": {
+				"value": 0.25,
+				"unit": "m",
+				"source": "Estimated travel of an elastomeric barge fender before it bottoms out, 0.25 m, as in the core's contact report. Not a landing survey.",
+				"confidence": "estimated"
+			},
+			"note": "A landing barge's other long side: assumed fendered like its berthing face; no data on side fendering."
+		},
+		"barge-end": {
+			"stiffness": {
+				"value": 1000000.0,
+				"unit": "N/m2",
+				"source": "Estimated elastomeric barge fender, 1.0e6 N/m per metre of contact length: the landing face the core's contact report uses (core/FerrySim.Core/Dynamics/README.md, Contact; ContactReportTests). Not a landing survey.",
+				"confidence": "estimated",
+				"asPublished": "1.0e6 N/m per m"
+			},
+			"damping": {
+				"value": 50000.0,
+				"unit": "N*s/m2",
+				"source": "Estimated elastomeric barge fender, 5e4 N·s/m per metre of contact length, as in the core's contact report. Not a landing survey.",
+				"confidence": "estimated",
+				"asPublished": "5e4 N·s/m per m"
+			},
+			"friction": {
+				"value": 0.3,
+				"unit": "1",
+				"source": "Estimated Coulomb friction of hull fendering on a rubber barge fender, 0.3, as in the core's contact report. Not a landing survey.",
+				"confidence": "estimated"
+			},
+			"maxCompression": {
+				"value": 0.25,
+				"unit": "m",
+				"source": "Estimated travel of an elastomeric barge fender before it bottoms out, 0.25 m, as in the core's contact report. Not a landing survey.",
+				"confidence": "estimated"
+			},
+			"note": "A landing barge's short end: assumed fendered like its berthing face; no data on end fendering."
+		},
+		"pier": {
+			"stiffness": {
+				"value": 2000000.0,
+				"unit": "N/m2",
+				"source": "Estimated stiffness of a pile pier with timber fender piles, 2.0e6 N/m per metre of contact length. Not a landing survey.",
+				"confidence": "estimated",
+				"asPublished": "2.0e6 N/m per m"
+			},
+			"damping": {
+				"value": 70711,
+				"unit": "N*s/m2",
+				"source": "Estimated damping of a pile pier with timber fender piles, 7.1e4 N·s/m per metre of contact length: the barge fender's 5e4 scaled by the square root of the stiffness ratio, so the damping ratio stays the same. Not a landing survey.",
+				"confidence": "estimated",
+				"asPublished": "7.1e4 N·s/m per m"
+			},
+			"friction": {
+				"value": 0.4,
+				"unit": "1",
+				"source": "Estimated Coulomb friction of hull fendering on a pile pier with timber fender piles, 0.4. Not a landing survey.",
+				"confidence": "estimated"
+			},
+			"maxCompression": {
+				"value": 0.15,
+				"unit": "m",
+				"source": "Estimated travel of a pile pier with timber fender piles before it bottoms out, 0.15 m. Not a landing survey.",
+				"confidence": "estimated"
+			},
+			"note": "Stiffer and shorter travel than a barge fender: timber fender piles bend less than an elastomeric fender. An estimate until crew or a survey give the fender system per pier."
+		},
+		"bulkhead": {
+			"stiffness": {
+				"value": 10000000.0,
+				"unit": "N/m2",
+				"source": "Estimated stiffness of an unfendered bulkhead or wharf wall, 1.0e7 N/m per metre of contact length. Not a landing survey.",
+				"confidence": "estimated",
+				"asPublished": "1.0e7 N/m per m"
+			},
+			"damping": {
+				"value": 158114,
+				"unit": "N*s/m2",
+				"source": "Estimated damping of an unfendered bulkhead or wharf wall, 1.6e5 N·s/m per metre of contact length: the barge fender's 5e4 scaled by the square root of the stiffness ratio, so the damping ratio stays the same. Not a landing survey.",
+				"confidence": "estimated",
+				"asPublished": "1.6e5 N·s/m per m"
+			},
+			"friction": {
+				"value": 0.5,
+				"unit": "1",
+				"source": "Estimated Coulomb friction of hull fendering on an unfendered bulkhead or wharf wall, 0.5. Not a landing survey.",
+				"confidence": "estimated"
+			},
+			"maxCompression": {
+				"value": 0.05,
+				"unit": "m",
+				"source": "Estimated travel of an unfendered bulkhead or wharf wall before it bottoms out, 0.05 m. Not a landing survey.",
+				"confidence": "estimated"
+			},
+			"note": "Nearly rigid: the hull's own fendering takes most of the compression. An estimate until crew or a survey give the wall and any fender system."
+		},
+		"shoreline": {
+			"stiffness": {
+				"value": 10000000.0,
+				"unit": "N/m2",
+				"source": "Estimated stiffness of a rip-rap or natural shoreline, 1.0e7 N/m per metre of contact length. Not a landing survey.",
+				"confidence": "estimated",
+				"asPublished": "1.0e7 N/m per m"
+			},
+			"damping": {
+				"value": 158114,
+				"unit": "N*s/m2",
+				"source": "Estimated damping of a rip-rap or natural shoreline, 1.6e5 N·s/m per metre of contact length: the barge fender's 5e4 scaled by the square root of the stiffness ratio, so the damping ratio stays the same. Not a landing survey.",
+				"confidence": "estimated",
+				"asPublished": "1.6e5 N·s/m per m"
+			},
+			"friction": {
+				"value": 0.6,
+				"unit": "1",
+				"source": "Estimated Coulomb friction of hull fendering on a rip-rap or natural shoreline, 0.6. Not a landing survey.",
+				"confidence": "estimated"
+			},
+			"maxCompression": {
+				"value": 0.05,
+				"unit": "m",
+				"source": "Estimated travel of a rip-rap or natural shoreline before it bottoms out, 0.05 m. Not a landing survey.",
+				"confidence": "estimated"
+			},
+			"note": "Nearly rigid and rough; contact here is a collision, not a landing. An estimate, not a survey of the shore."
+		}
+	}
 }

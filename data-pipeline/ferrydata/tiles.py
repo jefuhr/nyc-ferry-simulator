@@ -324,7 +324,7 @@ def _raw_sources(tile, stations):
 
 def _build_tile(tile, log=print):
 	import resource
-	from ferrydata import cudem, enc, geoid, gtfs, navdepth, paths
+	from ferrydata import cudem, enc, geoid, gtfs, landings, navdepth, paths
 	started = time.perf_counter()
 	out = paths.processed_dir(tile.name)
 	gtfs.build(tile, log)
@@ -334,6 +334,7 @@ def _build_tile(tile, log=print):
 	_write(out / "coops_stations.json", stations)
 	geoid.build(tile, log)
 	navdepth.build_harbor(tile, log)
+	landings.build_tile(tile, log)
 	_write(out / "raw_sources.json", {"files": _raw_sources(tile, stations)})
 	peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 	_write(out / "build_metrics.json", {"elapsed_seconds": time.perf_counter() - started,

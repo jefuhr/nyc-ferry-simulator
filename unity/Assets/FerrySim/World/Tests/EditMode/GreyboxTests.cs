@@ -212,6 +212,89 @@ namespace FerrySim.World.Tests.EditMode
 			}
 		}
 
+		// Whole landing structures. Failure modes: a contact segment without a visual, a pier or bulkhead floating
+		// with the tide, a berth left fixed, a strip in another kind's colour, a wall facing the land, a segment
+		// the runtime does not use drawn like contact, and one barge per stop broken by the extra berths.
+		[Test]
+		public void EverySegmentOfTheWholeStructures_HasAStripOfItsKind()
+		{
+			var data = LoadPipelineOrIgnore();
+			var landings = _prefab.transform.Find("Landings");
+			var structures = _prefab.transform.Find("Structures");
+			Assert.That(structures, Is.Not.Null);
+			Assert.That(structures.GetComponent<FloatOnWater>(), Is.Null, "piers and bulkheads do not ride the tide");
+			foreach (var stop in data.Structures.GroupBy(p => p.StopId))
+			{
+				var barge = Barges.Single(b => b.StopId == stop.Key);
+				var own = stop.Where(p => p.Role == "landing").SelectMany(p => p.Segments).ToList();
+				AssertStrips(barge.transform.Find("Fenders"), own, 6, stop.Key + " barge");
+				foreach (var floating in stop.Where(p => p.Role == "berth" || p.Role == "floating-structure"))
+				{
+					var identity = floating.StructureId.Replace("enc:", string.Empty).Replace('#', '-');
+					var objectName = $"{barge.name} {(floating.Role == "berth" ? "berth" : "pontoon")} {identity}";
+					var found = landings.Find(objectName);
+					Assert.That(found, Is.Not.Null, objectName + " floats with the landings");
+					Assert.That(found.Find("Hull").GetComponent<MeshFilter>().sharedMesh.triangles.Length, Is.GreaterThan(0), objectName);
+					AssertStrips(found.Find("Fenders"), floating.Segments, 6, objectName);
+				}
+
+				var fixedSegments = stop.Where(p => p.Role == "fixed-structure").SelectMany(p => p.Segments).ToList();
+				var walls = structures.Find(barge.name + "/Walls");
+				if (fixedSegments.Count == 0)
+				{
+					Assert.That(walls, Is.Null, stop.Key);
+					continue;
+				}
+
+				AssertStrips(walls, fixedSegments, 12, stop.Key + " walls");
+			}
+
+			Assert.That(Barges.Select(b => b.StopId).Distinct().Count(), Is.EqualTo(Barges.Length), "berths are not extra LandingBarge components");
+		}
+
+		[Test]
+		public void FixedWalls_FaceTheWater()
+		{
+			var data = LoadPipelineOrIgnore();
+			var structures = _prefab.transform.Find("Structures");
+			foreach (var stop in data.Structures.Where(p => p.Role == "fixed-structure").GroupBy(p => p.StopId))
+			{
+				// The first contact segment of its kind, in build order, owns the first triangle of that kind's submesh.
+				var first = stop.SelectMany(p => p.Segments.Select((segment, i) => (Polyline: p, Segment: segment, Index: i))).First(x => x.Segment.Contact);
+				var barge = Barges.Single(b => b.StopId == stop.Key);
+				var mesh = structures.Find(barge.name + "/Walls").GetComponent<MeshFilter>().sharedMesh;
+				var vertex = mesh.GetTriangles(Array.IndexOf(GreyboxBuilder.StripGroups, first.Segment.Kind))[0];
+				var a = LocalTangentPlane.World.ToLocal(new GeodeticPosition(first.Polyline.LonLat[first.Index][1], first.Polyline.LonLat[first.Index][0]));
+				var b = LocalTangentPlane.World.ToLocal(new GeodeticPosition(first.Polyline.LonLat[first.Index + 1][1], first.Polyline.LonLat[first.Index + 1][0]));
+				var left = new Vector3((float)-(b.North - a.North), 0f, (float)(b.East - a.East)).normalized;
+				Assert.That(Vector3.Dot(mesh.normals[vertex], left), Is.GreaterThan(0.99f), $"{first.Polyline.PolylineId} segment {first.Segment.Index}: the wall faces the water side");
+			}
+		}
+
+		[Test]
+		public void StripMaterials_FollowTheKinds()
+		{
+			var expected = new[] { "BerthingFace", "Fender_BargeSide", "Fender_BargeEnd", "Wall_Pier", "Wall_Bulkhead", "Wall_Shoreline", "Structure_NotContact" };
+			Assert.That(GreyboxBuilder.StripGroups.Length, Is.EqualTo(expected.Length));
+			foreach (var renderer in _prefab.GetComponentsInChildren<MeshRenderer>(true).Where(r => r.name == "Fenders" || r.name == "Walls"))
+			{
+				Assert.That(renderer.sharedMaterials.Select(m => m.name), Is.EqualTo(expected), renderer.transform.parent.name);
+			}
+		}
+
+		private static void AssertStrips(Transform strips, IReadOnlyList<StructureSegment> segments, int indicesPerSegment, string what)
+		{
+			Assert.That(strips, Is.Not.Null, what);
+			var mesh = strips.GetComponent<MeshFilter>().sharedMesh;
+			Assert.That(mesh.subMeshCount, Is.EqualTo(GreyboxBuilder.StripGroups.Length), what);
+			for (var g = 0; g < GreyboxBuilder.StripGroups.Length; g++)
+			{
+				var group = GreyboxBuilder.StripGroups[g];
+				var count = segments.Count(s => group == "not-contact" ? !s.Contact : s.Contact && s.Kind == group);
+				Assert.That(mesh.GetTriangles(g).Length, Is.EqualTo(count * indicesPerSegment), $"{what}: {group}");
+			}
+		}
+
 		private static PipelineData LoadPipelineOrIgnore()
 		{
 			if (!PipelineData.Exists())

@@ -293,3 +293,56 @@ def write(slice_, approaches, baseline, low, required, target=None):
 	(target / 'diagnosis.json').write_text(json.dumps(records, indent='\t') + '\n')
 	(target / 'diagnosis.md').write_text('# Landing face and approach evidence\n\nSources: built cached NOAA ENC, CUDEM, GTFS, CO-OPS and historical AIS. No new source, manual digitisation, depth edit or lowered threshold. Gold lines are topological exterior contact outlines, not fender surveys.\n' + '\n'.join(notes) + '\n')
 	return notes
+
+
+STRUCTURE_COLOURS = {'berth-face': 'cyan', 'barge-side': 'gold', 'barge-end': 'orange', 'pier': 'saddlebrown', 'bulkhead': 'dimgray', 'shoreline': 'olivedrab'}
+
+
+def structure_figures(slice_, target=None):
+	"""One figure per landing of its whole structure: kinds, which segments are contact, and what was left out."""
+	import matplotlib
+	matplotlib.use('Agg')
+	import matplotlib.pyplot as plt
+	from matplotlib.lines import Line2D
+
+	out = paths.processed_dir(slice_.name)
+	target = target or paths.REPO_ROOT / 'artifacts' / 'landing-faces'
+	target.mkdir(parents=True, exist_ok=True)
+	structures = json.loads((out / 'landing_structures.geojson').read_text())
+	stops = {f['properties']['stop_id']: f['properties'] for f in _load(out, 'landings.geojson')}
+	_, land = landings.chart_masks(out)
+	written = []
+	for stop_id, stop in sorted(stops.items()):
+		centre = Point(stop['east_m'], stop['north_m'])
+		half = landings.STRUCTURE_RADIUS_M + 20.
+		fig, ax = plt.subplots(figsize=(9, 9))
+		for g in _parts(land.intersection(centre.buffer(half * 1.5))):
+			if g.geom_type == 'Polygon':
+				ax.fill(*g.exterior.xy, color='.85')
+		for feature in structures['features']:
+			p = feature['properties']
+			if p['stop_id'] != stop_id:
+				continue
+			points = [(e, n) for n, e in feature['local_coordinates']]
+			for segment, a, b in zip(p['segments'], points, points[1:]):
+				contact = landings.runtime_contact(segment)
+				ax.plot([a[0], b[0]], [a[1], b[1]], color=STRUCTURE_COLOURS[segment['kind']], lw=3.5 if contact else 1.2, ls='-' if contact else ':')
+		for item in structures['left_out']:
+			if item['stop_id'] == stop_id:
+				north, east = item['position_ne_m']
+				ax.plot(east, north, 'x' if item['reason'].startswith('point') else 'o' if item['reason'].startswith('open') else 's', color='crimson', ms=6, mfc='none')
+		ax.plot(centre.x, centre.y, 'r*', ms=14)
+		ax.plot(*centre.buffer(landings.STRUCTURE_RADIUS_M).exterior.xy, 'k--', lw=.6)
+		ax.set(xlim=(centre.x - half, centre.x + half), ylim=(centre.y - half, centre.y + half), xlabel='east (m), shared NED origin', ylabel='north (m)',
+			title=f"{stop['stop_name']} · stop {stop_id}: whole structure within {landings.STRUCTURE_RADIUS_M:g} m")
+		ax.set_aspect('equal')
+		handles = [Line2D([], [], color=c, lw=3, label=k) for k, c in STRUCTURE_COLOURS.items()]
+		handles += [Line2D([], [], color='k', lw=3, label='contact'), Line2D([], [], color='k', lw=1.2, ls=':', label='not contact'),
+			Line2D([], [], color='crimson', marker='x', ls='', label='point object (left out)'), Line2D([], [], color='crimson', marker='o', mfc='none', ls='', label='open line in water (left out)'),
+			Line2D([], [], color='crimson', marker='s', mfc='none', ls='', label='always submerged (left out)')]
+		ax.legend(handles=handles, loc='upper left', fontsize=7)
+		path = target / f'{stop_id}-structures.png'
+		fig.savefig(path, dpi=90, bbox_inches='tight')
+		plt.close(fig)
+		written.append(path)
+	return written

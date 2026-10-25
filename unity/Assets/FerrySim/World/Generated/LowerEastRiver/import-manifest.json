@@ -30,6 +30,16 @@
   "terrain_note": "Merged raster sampled every fourth cell (~12 m); last row/column retained; nodata triangles omitted; no fabricated land elevations",
   "structure_note": "Chart geometry extruded as greybox collider strips from NAVD88 -60 m to +1 m; not surveyed structure heights; point-only objects omitted",
   "contact_note": "Oriented geometry only; bridge must choose reviewed ContactSurface parameters; pipeline provenance retained per segment",
+  "contacts_version": 2,
+  "contact_segments": 446,
+  "contact_kinds": {
+    "barge-end": 44,
+    "barge-side": 35,
+    "berth-face": 21,
+    "bulkhead": 188,
+    "pier": 117,
+    "shoreline": 41
+  },
   "source_sha256": {
     "depth_merged_navd88.tif": "d72ffac8ab3e2415f9d832e77c20ed828678ee018f9f46db4f119e83af67e86d",
     "depth_merged_navd88.json": "7907e6b66f94ed3e6af662c8754232b41212c68dc3a396ba3f46ffe2110c57a1",
@@ -37,11 +47,13 @@
     "land_areas.geojson": "73ae26ef40d850cf448daca55642569df09a50c963cbd44001ae044aacb2c897",
     "depth_areas.geojson": "d63408e079de116bb0cb2bcf9a54924b69d66343277fc29aeb172d2519ee7e9a",
     "aids.geojson": "6525a10abaf5d19ce756b036426c19171a2dce44f5a0b6f551f1b3262102f850",
-    "landing_faces.geojson": "afc79dcb4539997820bf638e60e6bf48d93f2fbd67e01a63523d8d0f308a628b",
+    "landing_faces.geojson": "04d5983dbc9b8d5d6dc67474d88a189d71883a8cd68b67b534d357e33868f815",
+    "landing_structures.geojson": "5ccfbcfedcde0008e72830bc047a1fa4989fadfb48a24bf74d20f37b0a3c5d34",
     "landings.geojson": "fd0c780e38d17c2ecc8bb6d69e5e5d7c9375db583a0be7917234a47982d8b862",
     "geoid_offset.json": "f2075fb1b4cc31f09356445e6b626fd82268b0c22267e71f4be34c77351cdd48",
     "unity/depth.f32": "7ef8bf61152b3ec371a09fdeb8af9bac2de3a92d8e1615f37d27daabc992eec3",
-    "unity/depth.json": "e7fd42758fd5b75ef33d25457349a88b08e2cae2d46fe47aedc02aef3a03e96e"
+    "unity/depth.json": "e7fd42758fd5b75ef33d25457349a88b08e2cae2d46fe47aedc02aef3a03e96e",
+    "unity/contacts.json": "ba94a168ce75451d13fcc0f12129f211e58504430395c39f6c2ccea5e850ab70"
   },
   "warnings": [
     "59 point-only chart structures have no extent and are omitted from colliders.",

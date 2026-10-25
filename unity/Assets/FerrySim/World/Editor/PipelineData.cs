@@ -29,6 +29,9 @@ namespace FerrySim.World.EditorTools
 
 		public List<LandingFace> Faces { get; } = new List<LandingFace>();
 
+		/// <summary>Whole landing structures: every contact polyline of landing_structures.geojson, in file order.</summary>
+		public List<StructurePolyline> Structures { get; } = new List<StructurePolyline>();
+
 		public List<BridgeFeature> Bridges { get; } = new List<BridgeFeature>();
 
 		public string BridgeCells { get; private set; }
@@ -68,6 +71,7 @@ namespace FerrySim.World.EditorTools
 		{
 			"landings.geojson",
 			"landing_faces.geojson",
+			"landing_structures.geojson",
 			"bridges.geojson",
 			"geoid_offset.json",
 			"depth_merged_navd88.json",
@@ -89,6 +93,7 @@ namespace FerrySim.World.EditorTools
 			var data = new PipelineData { SliceDirectory = directory };
 			data.ReadLandings(ReadJson(Path.Combine(directory, "landings.geojson")));
 			data.ReadFaces(ReadJson(Path.Combine(directory, "landing_faces.geojson")));
+			data.ReadStructures(ReadJson(Path.Combine(directory, "landing_structures.geojson")));
 			data.ReadBridges(ReadJson(Path.Combine(directory, "bridges.geojson")));
 			data.Geoid = GeoidOffsets.Read(ReadJson(Path.Combine(directory, "geoid_offset.json")));
 			data.Datums = TidalDatums.Read(ReadJson(Path.Combine(directory, "depth_merged_navd88.json")), RawCacheRoot);
@@ -144,6 +149,55 @@ namespace FerrySim.World.EditorTools
 					OutwardNormalNorth = (double)normal[0],
 					OutwardNormalEast = (double)normal[1],
 				});
+			}
+		}
+
+		private void ReadStructures(JObject collection)
+		{
+			foreach (var feature in Features(collection))
+			{
+				var properties = (JObject)feature["properties"];
+				var geometry = (JObject)feature["geometry"];
+				if ((string)geometry["type"] != "LineString")
+				{
+					throw new InvalidDataException($"landing_structures.geojson: {properties["polyline_id"]} is {geometry["type"]}, expected LineString.");
+				}
+
+				var polyline = new StructurePolyline
+				{
+					StopId = (string)properties["stop_id"],
+					StopName = (string)properties["stop_name"],
+					PolylineId = (string)properties["polyline_id"],
+					Role = (string)properties["role"],
+					StructureId = (string)properties["structure_id"],
+					BerthId = (string)properties["berth_id"],
+					Closed = (bool)properties["closed"],
+					LonLat = LonLatRing((JArray)geometry["coordinates"]),
+					NorthEast = PairRing((JArray)feature["local_coordinates"]),
+				};
+				foreach (JObject segment in (JArray)properties["segments"])
+				{
+					var primary = (bool?)segment["primary_face"] == true;
+					var chart = (bool)segment["water_side_verified_by_pipeline"];
+					var crew = (bool?)segment["water_side_crew_reported"] == true;
+					var solid = (bool?)segment["solid_side_evidence"]?["verified"] == true;
+					polyline.Segments.Add(new StructureSegment
+					{
+						Id = (int)segment["id"],
+						Index = (int)segment["index"],
+						Kind = (string)segment["kind"],
+						Confidence = (string)segment["confidence"],
+						Primary = primary,
+						Contact = chart || crew || (!primary && solid),
+					});
+				}
+
+				if (polyline.Segments.Count != polyline.LonLat.Count - 1)
+				{
+					throw new InvalidDataException($"landing_structures.geojson: {polyline.PolylineId} has {polyline.Segments.Count} segments for {polyline.LonLat.Count} vertices.");
+				}
+
+				Structures.Add(polyline);
 			}
 		}
 
@@ -228,6 +282,36 @@ namespace FerrySim.World.EditorTools
 		public double FaceHeadingDegrees;
 		public double OutwardNormalNorth;
 		public double OutwardNormalEast;
+	}
+
+	/// <summary>One contact polyline of landing_structures.geojson: solid on the right, water on the left.</summary>
+	public sealed class StructurePolyline
+	{
+		public string StopId;
+		public string StopName;
+		public string PolylineId;
+
+		/// <summary><c>landing</c> (the stop's barge, exposed run and back), <c>berth</c>, <c>floating-structure</c> or <c>fixed-structure</c>.</summary>
+		public string Role;
+		public string StructureId;
+		public string BerthId;
+		public bool Closed;
+		public List<double[]> LonLat;
+		public List<double[]> NorthEast;
+		public List<StructureSegment> Segments = new List<StructureSegment>();
+	}
+
+	/// <summary>One segment of a <see cref="StructurePolyline"/>: its contact id, kind and whether the runtime uses it for contact.</summary>
+	public sealed class StructureSegment
+	{
+		public int Id;
+		public int Index;
+		public string Kind;
+		public string Confidence;
+		public bool Primary;
+
+		/// <summary>Chart-verified or crew-reported water side, or off the primary face a verified charted solid side.</summary>
+		public bool Contact;
 	}
 
 	/// <summary>One feature of bridges.geojson (NOAA ENC BRIDGE).</summary>

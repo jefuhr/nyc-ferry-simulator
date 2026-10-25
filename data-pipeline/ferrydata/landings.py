@@ -3,6 +3,7 @@
 Shapely coordinates here are (east, north) metres. Vectors are (north, east).
 A GTFS stop identifies a passenger landing, not an assigned berth or surveyed face.
 """
+import itertools
 import math
 
 import numpy as np
@@ -10,7 +11,7 @@ import pandas as pd
 from shapely.geometry import LineString, Point, Polygon, shape
 from shapely.geometry.polygon import orient
 from shapely.ops import nearest_points, unary_union
-from shapely import transform
+from shapely import STRtree, transform
 
 from ferrydata import approach, crew_notes, geodesy, geojsonio, paths
 
@@ -23,6 +24,16 @@ MATCH_MAX_M = 50.
 # candidates, then require a supported water side. Other assignments stay put
 # until their separate candidate evidence has had crew review.
 AIS_PRIORITY_STOP_IDS = {'87'}
+# Whole landing structures: everything charted within this distance of the GTFS stop, the same
+# radius as the AIS slow-report search. It covers the final approach and departure (about six
+# T-class lengths), every berth of a multi-berth stop and the piers beside it.
+STRUCTURE_RADIUS_M = 150.
+SOLID_PROBE_M = .5  # charted water and no land or structure this far out on the water (left) side
+WINDING_PROBE_M = .05
+FLOATING_CLASSES = ('PONTON', 'FLODOC', 'HULKES')
+PIER_CATEGORIES = {4, 5, 14, 16}  # pier (jetty), promenade pier, fender, open face wharf
+BULKHEAD_CATEGORIES = {6, 7, 10, 15, 18}  # wharf (quay), training wall, sea wall, solid face wharf, lock wall
+KIND_PRIORITY = ('pier', 'bulkhead', 'shoreline')
 
 
 def to_local(geometry):
@@ -363,23 +374,502 @@ def choose_candidate_for_stop(stop_id, records, initial_enc_id):
 	return next(r for r in records if r['enc_id'] == initial_enc_id)
 
 
-def build(slice_, log=print):
+# ---- whole landing structures (contacts.json version 2) ---------------------------------------------------
+
+
+def contact_id(key):
+	"""World/Import's StableId: FNV-1a over the key's UTF-16 code units, masked to a positive Int32."""
+	value = 2166136261
+	for char in key:
+		code = ord(char)
+		if code > 0xFFFF:
+			raise ValueError(f'contact identity outside the UTF-16 basic plane: {key!r}')
+		value = ((value ^ code) * 16777619) & 0xFFFFFFFF
+	return value & 0x7FFFFFFF
+
+
+def legacy_edge_key(stop_id, outline_id, ring, a, b):
+	"""World/Import's physical edge identity: the outline as written, clockwise from its smallest
+	[lon, lat] vertex, and the edge's ordinal. Primary/end role and direction never enter it."""
+	points = [[float(v) for v in p[:2]] for p in ring]
+	vertices = [points[0]] + list(itertools.takewhile(lambda p: p != points[0], points[1:]))
+	if len(vertices) < 3:
+		raise ValueError(f'landing source outline has fewer than three vertices: {stop_id}')
+	x0, y0 = vertices[0]
+	area = 0.
+	for i, (x, y) in enumerate(vertices):
+		nx, ny = vertices[(i + 1) % len(vertices)]
+		area += (x - x0) * (ny - y0) - (nx - x0) * (y - y0)
+	if area > 0:
+		vertices.reverse()
+	first = min(range(len(vertices)), key=lambda i: (vertices[i][0], vertices[i][1]))
+	a, b = [float(v) for v in a[:2]], [float(v) for v in b[:2]]
+	for ordinal in range(len(vertices)):
+		start, end = vertices[(first + ordinal) % len(vertices)], vertices[(first + ordinal + 1) % len(vertices)]
+		if (start == a and end == b) or (start == b and end == a):
+			return f'{stop_id}:{outline_id}:edge:{ordinal}'
+	raise ValueError(f'contact segment is not an edge of the landing source outline: {stop_id}')
+
+
+def fixed_edge_key(layer, lnam, a, b):
+	"""Endpoint identity of a fixed charted boundary edge, independent of direction, ring start and clipping."""
+	first, second = sorted([tuple(float(v) for v in a[:2]), tuple(float(v) for v in b[:2])])
+	return f'{layer}:{lnam}:{first[0]!r},{first[1]!r}:{second[0]!r},{second[1]!r}'
+
+
+def segment_verification(record, note):
+	"""Coordinator-approved label rule: crew-reported on primary-face subsegments whose water side a
+	face-orientation crew note reports; every other segment still needs crew verification."""
+	if record.get('on_primary_face') and record.get('water_side_crew_reported') and note and note.get('kind') == 'face-orientation':
+		return 'crew-reported'
+	return 'needs-crew-verification'
+
+
+def structure_kind(props):
+	"""pier, bulkhead or shoreline from a charted construction's category; uncategorised is shoreline."""
+	if props is None or props.get('feature_class') != 'SLCONS':
+		return 'shoreline'
+	category = props.get('category_code')
+	return 'pier' if category in PIER_CATEGORIES else 'bulkhead' if category in BULKHEAD_CATEGORIES else 'shoreline'
+
+
+def outline_side_kinds(outline):
+	"""barge-side for each source edge running along the outline's long axis, barge-end across it.
+
+	The axis is the long side of the minimum rotated rectangle, so a charted long side with a slight
+	bend (South Williamsburg's SE side turns 2.6 degrees) stays a side.
+	"""
+	rectangle = list(outline.minimum_rotated_rectangle.exterior.coords)
+	a, b, c = rectangle[0], rectangle[1], rectangle[2]
+	axis = (b[0] - a[0], b[1] - a[1]) if math.dist(a, b) >= math.dist(b, c) else (c[0] - b[0], c[1] - b[1])
+	axis = math.atan2(axis[1], axis[0])
+	kinds = {}
+	for group in _straight_edges(orient(outline, sign=-1)):
+		start, end = group.coords[0], group.coords[-1]
+		turn = abs((math.atan2(end[1] - start[1], end[0] - start[0]) - axis + math.pi / 2) % math.pi - math.pi / 2)
+		kind = 'barge-side' if turn <= math.pi / 4 else 'barge-end'
+		for p, q in zip(group.coords, list(group.coords)[1:]):
+			kinds[frozenset((p, q))] = kind
+	return kinds
+
+
+def _clockwise_ring(outline):
+	"""Unique outline vertices, clockwise, as the straight-side groups keep them (sub-centimetre edges merged)."""
+	groups = _straight_edges(orient(outline, sign=-1))
+	ring = list(groups[0].coords)
+	for group in groups[1:]:
+		if ring[-1] != group.coords[0]:
+			raise ValueError('ENC outline has disconnected edges')
+		ring.extend(list(group.coords)[1:])
+	if ring[-1] != ring[0]:
+		raise ValueError('ENC outline does not close')
+	return ring[:-1]
+
+
+def outline_closure(barge, exposed):
+	"""The rest of the clockwise outline after the exposed contact run: together they close the barge."""
+	ring = _clockwise_ring(barge)
+	start, end = tuple(exposed.coords[-1]), tuple(exposed.coords[0])
+	index = ring.index(start)
+	points = [ring[index]]
+	while points[-1] != end or len(points) == 1:
+		index = (index + 1) % len(ring)
+		points.append(ring[index])
+	return LineString(points)
+
+
+def closed_outline(outline):
+	"""The whole clockwise outline as one closed polyline, from its smallest (east, north) vertex."""
+	ring = _clockwise_ring(outline)
+	first = min(range(len(ring)), key=lambda i: ring[i])
+	ring = ring[first:] + ring[:first]
+	return LineString(ring + [ring[0]])
+
+
+class ChartedWater:
+	"""Where the solid-side probe may stand: a charted depth area (DEPARE or DRGARE with a non-negative lower
+	bound) or, coordinator-approved for this probe only, ENC UNSARE, water of unknown depth. It never gives
+	a depth: approach depth and the merged depth ignore UNSARE."""
+
+	ORDER = ('DEPARE', 'DRGARE', 'UNSARE')
+
+	def __init__(self, areas, unsurveyed=()):
+		self._items = [(g, p.get('feature_class') or 'DEPARE', p.get('id')) for g, p in areas]
+		self._items += [(g, 'UNSARE', p.get('id')) for g, p in unsurveyed]
+		self._tree = STRtree([g for g, _, _ in self._items])
+
+	def at(self, point):
+		"""(layer, LNAM) of the charted water covering the point, depth areas before UNSARE; (None, None) if none."""
+		hits = sorted((self.ORDER.index(layer) if layer in self.ORDER else len(self.ORDER), lnam or '', layer)
+			for g, layer, lnam in (self._items[i] for i in self._tree.query(point)) if g.covers(point))
+		return (hits[0][2], hits[0][1] or None) if hits else (None, None)
+
+
+def runtime_contact(segment):
+	"""The Slice loader's gate: a primary face on the chart test or crew report; any other segment also on its solid side."""
+	if segment['water_side_verified_by_pipeline'] or segment.get('water_side_crew_reported'):
+		return True
+	return not segment.get('primary_face') and bool(segment['solid_side_evidence']['verified'])
+
+
+def solid_side_evidence(a, b, interior, layer, lnam, water, land, others, method='enc-closed-outline'):
+	"""Coordinator-approved collision eligibility for non-primary segments.
+
+	The edge of a closed outline is solid on its right by winding (checked just inside and outside the
+	edge), and the point 0.5 m out on its left is charted water (a depth area, or UNSARE: see
+	ChartedWater) with no land or other structure. This proves which side is solid, not depth,
+	approach room or a berth.
+	"""
+	length = math.dist(a, b)
+	left = ((a[1] - b[1]) / length, (b[0] - a[0]) / length)
+	mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+	# A charted chamfer can be centimetres long: keep the winding probes off the neighbouring edges.
+	offset = min(WINDING_PROBE_M, length / 4)
+	inside = Point(mid[0] - left[0] * offset, mid[1] - left[1] * offset)
+	outside = Point(mid[0] + left[0] * offset, mid[1] + left[1] * offset)
+	probe = Point(mid[0] + left[0] * SOLID_PROBE_M, mid[1] + left[1] * SOLID_PROBE_M)
+	winding = bool(interior.covers(inside) and not interior.covers(outside))
+	if not isinstance(water, ChartedWater):
+		water = ChartedWater([(water, {'feature_class': 'DEPARE', 'id': None})])
+	water_layer, water_lnam = water.at(probe)
+	charted = water_layer is not None
+	in_land = bool(land.covers(probe))
+	other = bool(others is not None and not others.is_empty and others.covers(probe))
+	lat, lon = geodesy.from_local(probe.y, probe.x)
+	return {'verified': winding and charted and not in_land and not other, 'method': method, 'layer': layer, 'lnam': lnam,
+		'winding': 'clockwise: outline interior on the right, start to end', 'winding_check': winding,
+		'probe_offset_m': SOLID_PROBE_M, 'probe_ne_m': [round(probe.y, 3), round(probe.x, 3)],
+		'probe_lonlat': [round(float(lon), geojsonio.LONLAT_DIGITS), round(float(lat), geojsonio.LONLAT_DIGITS)],
+		'probe_in_charted_water': charted, 'probe_water_layer': water_layer, 'probe_water_lnam': water_lnam,
+		'probe_in_lndare': in_land, 'probe_in_other_structure': other}
+
+
+def _polygons(geometry):
+	if geometry.is_empty:
+		return []
+	return [g for g in getattr(geometry, 'geoms', [geometry]) if g.geom_type == 'Polygon']
+
+
+def _on_clip(a, b, clip):
+	"""Both ends and the middle of the edge on the output clip boundary (WGS84 within 2e-7 degrees)."""
+	if clip is None:
+		return False
+	edge = to_wgs84(LineString([a, b]))
+	return all(clip.exterior.distance(Point(p)) < 2e-7 for p in (edge.coords[0], edge.coords[-1], edge.interpolate(.5, normalized=True).coords[0]))
+
+
+def _left_out(stop_id, stop_point, geometry, props, reason):
+	_, nearest = nearest_points(stop_point, geometry)
+	lat, lon = geodesy.from_local(nearest.y, nearest.x)
+	return {'stop_id': stop_id, 'lnam': props['id'], 'layer': props['feature_class'], 'category_code': props.get('category_code'),
+		'water_level_effect_code': props.get('water_level_effect_code'), 'reason': reason,
+		'position_ne_m': [round(nearest.y, 3), round(nearest.x, 3)],
+		'position_lonlat': [round(float(lon), geojsonio.LONLAT_DIGITS), round(float(lat), geojsonio.LONLAT_DIGITS)],
+		'distance_m': round(float(stop_point.distance(geometry)), 3)}
+
+
+def fixed_structure_runs(stop_id, stop_point, sources, lines, listed, water, land, floating, radius=STRUCTURE_RADIUS_M, clip=None):
+	"""Charted fixed boundaries within the radius of a stop, as land-right contact polylines.
+
+	sources are the closed solid outlines [(polygon, props)]: ENC LNDARE and dry SLCONS areas, merged
+	so a pier drawn on land has no internal walls. lines [(line, props)] classify the boundary by the
+	charted construction lying on it; a line off the boundary is an open line in water and is only
+	listed, as are listed [(geometry, props)] points and always-submerged structures. floating are the
+	floating outlines, which a fixed edge's water probe must not fall inside. Edges on the output clip
+	boundary are cuts, not shoreline. Returns (runs, left_out).
+	"""
+	solid = unary_union([g for g, _ in sources]) if sources else Polygon()
+	floating_union = unary_union(floating) if floating else None
+	near = stop_point.buffer(radius + 1.)
+	carriers = [(g.boundary.buffer(.01), p) for g, p in sources if g.intersects(near)]
+	classifiers = [(g.buffer(.05), p) for g, p in lines if p.get('water_level_effect_code') != 3 and g.intersects(near)]
+	runs = []
+	for polygon in _polygons(solid):
+		polygon = orient(polygon, sign=-1)
+		for ring in [polygon.exterior, *polygon.interiors]:
+			coords = list(ring.coords)[:-1]
+			count = len(coords)
+			keep = [math.dist(coords[i], coords[(i + 1) % count]) >= .001
+				and LineString([coords[i], coords[(i + 1) % count]]).distance(stop_point) <= radius
+				and not _on_clip(coords[i], coords[(i + 1) % count], clip) for i in range(count)]
+			if not any(keep):
+				continue
+			if all(keep):
+				first = min(range(count), key=lambda i: coords[i])
+				pieces = [[(first + k) % count for k in range(count)]]
+			else:
+				first = next(i for i in range(count) if not keep[i]) + 1
+				pieces, current = [], []
+				for k in range(count):
+					i = (first + k) % count
+					if keep[i]:
+						current.append(i)
+					elif current:
+						pieces.append(current)
+						current = []
+				if current:
+					pieces.append(current)
+			for piece in pieces:
+				points = [coords[i] for i in piece] + [coords[(piece[-1] + 1) % count]]
+				segments = []
+				for a, b in zip(points, points[1:]):
+					edge = LineString([a, b])
+					carrier = next((p for g, p in carriers if g.covers(edge)), {'id': None, 'feature_class': 'LNDARE'})
+					found = {structure_kind(p) for g, p in classifiers if g.covers(edge)}
+					kind = next((k for k in KIND_PRIORITY if k in found), 'shoreline')
+					record = {'kind': kind, 'layer': carrier['feature_class'], 'lnam': carrier['id'],
+						'classified_by': sorted(p['id'] for g, p in classifiers if g.covers(edge)),
+						'solid_side_evidence': solid_side_evidence(a, b, solid, carrier['feature_class'], carrier['id'], water, land, floating_union)}
+					segments.append(record)
+				runs.append({'stop_id': stop_id, 'coords': points, 'closed': points[0] == points[-1], 'segments': segments})
+	runs.sort(key=lambda run: run['coords'][0])
+	boundary = solid.boundary.buffer(.05) if not solid.is_empty else Polygon()
+	left_out = []
+	for g, p in lines:
+		if g.is_empty or p.get('water_level_effect_code') == 3 or g.distance(stop_point) > radius:
+			continue
+		off = g.difference(boundary).intersection(near)
+		if not off.is_empty and off.length > .01:
+			left_out.append(_left_out(stop_id, stop_point, off, p, 'open line in water: no charted solid side, not contact geometry'))
+	for g, p in listed:
+		if g.is_empty or g.distance(stop_point) > radius:
+			continue
+		if p.get('water_level_effect_code') == 3:
+			left_out.append(_left_out(stop_id, stop_point, g, p, 'always submerged (WATLEV 3): a depth hazard, not a wall'))
+		elif g.geom_type in ('Point', 'MultiPoint'):
+			left_out.append(_left_out(stop_id, stop_point, g, p, 'point object: no charted extent, not contact geometry'))
+	left_out.sort(key=lambda item: (item['distance_m'], item['lnam']))
+	return runs, left_out
+
+
+def _unsurveyed(slice_):
+	"""ENC UNSARE (unsurveyed water) in local metres, read from the cached cells as landing_audit reads SLCONS."""
+	if not getattr(slice_, 'enc_cells', None):
+		return []
+	from ferrydata import enc
+	layers, _ = enc.read_layers(slice_, ('UNSARE',))
+	if 'UNSARE' not in layers:
+		return []
+	frame = layers['UNSARE']
+	return [(to_local(g), {'id': lnam, 'feature_class': 'UNSARE'}) for g, lnam in sorted(zip(frame.geometry, frame.LNAM), key=lambda x: (str(x[1]), x[0].wkb))
+		if g is not None and not g.is_empty and g.geom_type in ('Polygon', 'MultiPolygon')]
+
+
+def _slow_reports():
+	"""Cached candidate-fleet AIS reports under 0.5 kn, or None when the AIS extract is not built."""
+	ais_file = paths.ais_processed_dir() / 'nycferry_tracks.parquet'
+	if not ais_file.exists():
+		return None
+	slow = pd.read_parquet(ais_file)
+	return slow[slow.sog_kn < .5]
+
+
+def _shore_anchor(polygon, bulkheads):
+	"""The fixed-shore anchor the candidate evaluation uses: nearest LNDARE boundary not under the outline."""
+	fixed = [(line, props) for line, props in bulkheads if not line.intersects(polygon.buffer(-.2))]
+	line, props = min(fixed, key=lambda x: x[0].distance(polygon.centroid))
+	anchor, tangent = approach.face_geometry((polygon.centroid.x, polygon.centroid.y), [line])
+	return anchor, tangent, props
+
+
+def _chart_side(a, b, anchor, water, land, structures, barge):
+	"""The existing per-side chart test (direct 12 m, or the corridor for a charted floating outline)."""
+	length = math.dist(a, b)
+	normal = ((b[0] - a[0]) / length, (a[1] - b[1]) / length)
+	return water_side_evidence(LineString([a, b]), normal, anchor, water, land, structures, barge)
+
+
+def _lonlat(points):
+	return geojsonio._round_coords(list(to_wgs84(LineString(points)).coords))
+
+
+def _floating_outlines(shore):
+	return [(g, p) for g, p in shore if g.geom_type == 'Polygon' and (p['feature_class'] in FLOATING_CLASSES or p.get('water_level_effect_code') == 7)]
+
+
+def stop_structures(context, shore, lands, bulkheads, water, land, clip=None, radius=STRUCTURE_RADIUS_M, charted=None):
+	"""Every contact polyline of one stop: the landing barge whole, every berth, floating and fixed structures.
+
+	Returns (polylines, left_out). Polylines keep the stop's existing exposed contact run first and
+	unchanged, so its ids, indices and primary flags survive; the rest of the barge closes it.
+	"""
+	stop_id, point = context['stop_id'], context['point']
+	barge, derived, outline_id = context['barge'], context['derived'], context['outline_id']
+	charted = charted if charted is not None else ChartedWater([(water, {'feature_class': 'DEPARE', 'id': None})])
+	floating = _floating_outlines(shore)
+	floating_geometries = [g for g, _ in floating]
+	solid_sources = list(lands)
+	solid_sources += [(g, p) for g, p in shore if p['feature_class'] == 'SLCONS' and g.geom_type == 'Polygon' and p.get('water_level_effect_code') not in (3, 7)]
+	solid = unary_union([g for g, _ in solid_sources]) if solid_sources else Polygon()
+
+	def others(outline):
+		rest = [g for g in floating_geometries if not g.equals(outline)]
+		return unary_union(rest + [solid])
+
+	note = context['note']
+	layer = 'derived-from-gtfs' if derived else context['match']['feature_class']
+	lnam = None if derived else context['match']['id']
+	kinds = outline_side_kinds(barge)
+	landing_others = others(barge)
+	polylines = []
+	# The exposed run, exactly as landing_faces.geojson's contact_geometry and its per-side evidence.
+	# Identities hash the coordinates as written there, the outline's ring included.
+	contact = list(context['contact'].coords)
+	points = context['contact_lonlat']
+	ring = context['ring_lonlat']
+	written = dict(zip(barge.exterior.coords, ring))
+	segments = []
+	for record, a, b, la, lb in zip(context['records'], contact, contact[1:], points, points[1:]):
+		on_primary = record['on_primary_face']
+		segment = {'index': record['index'], 'kind': 'berth-face' if on_primary else kinds[frozenset((a, b))],
+			'id_key': legacy_edge_key(stop_id, outline_id, ring, la, lb),
+			'source': context['source'], 'confidence': context['confidence'] if on_primary else context['contact_confidence'],
+			'verification': record['verification'], 'berth_id': outline_id, 'layer': layer, 'lnam': lnam,
+			'water_side_verified_by_pipeline': record['water_side_verified_by_pipeline'], 'water_side_evidence': record['water_side_evidence'],
+			'solid_side_evidence': solid_side_evidence(a, b, barge, layer, lnam, charted, land, landing_others, 'derived-outline' if derived else 'enc-closed-outline')}
+		if on_primary:
+			segment['primary_face'] = True
+		if record.get('water_side_crew_reported'):
+			segment['water_side_crew_reported'] = True
+		if note and (on_primary or note.get('kind') == 'berth-use-policy'):
+			segment['crew_evidence'] = {'note_id': note['id'], 'kind': note['kind']}
+		if derived and not on_primary:
+			segment['geometry_estimated'] = True
+		segments.append(segment)
+	base = {'stop_id': stop_id, 'stop_name': context['stop_name'], 'structure_id': outline_id, 'berth_id': outline_id, 'source': context['source']}
+	polylines.append({**base, 'polyline_id': f'landing-{stop_id}', 'role': 'landing', 'coords': contact, 'lonlat': points, 'segments': segments})
+	back = list(outline_closure(barge, context['contact']).coords)
+	back_points = [written[p] for p in back]
+	segments = []
+	for index, (a, b, la, lb) in enumerate(zip(back, back[1:], back_points, back_points[1:])):
+		proof = _chart_side(a, b, context['anchor'], water, land, context['structures'], None if derived else barge)
+		segment = {'index': index, 'kind': kinds[frozenset((a, b))], 'id_key': legacy_edge_key(stop_id, outline_id, ring, la, lb),
+			'source': context['source'], 'confidence': context['contact_confidence'], 'verification': 'needs-crew-verification',
+			'berth_id': outline_id, 'layer': layer, 'lnam': lnam,
+			'water_side_verified_by_pipeline': proof.get('chart_verified', proof['verified']), 'water_side_evidence': proof,
+			'solid_side_evidence': solid_side_evidence(a, b, barge, layer, lnam, charted, land, landing_others, 'derived-outline' if derived else 'enc-closed-outline')}
+		if note and note.get('kind') == 'berth-use-policy':
+			segment['crew_evidence'] = {'note_id': note['id'], 'kind': note['kind']}
+		if derived:
+			segment['geometry_estimated'] = True
+		segments.append(segment)
+	polylines.append({**base, 'polyline_id': f'landing-{stop_id}-back', 'role': 'landing', 'coords': back, 'lonlat': back_points, 'segments': segments})
+	# Other berths: every other charted floating outline the stop's candidate evaluation considered.
+	used = {lnam} if lnam else set()
+	for berth in context['berths']:
+		polygon, props = berth['polygon'], berth['props']
+		used.add(props['id'])
+		berth_id = f"enc:{props['id']}"
+		coords = list(closed_outline(polygon).coords)
+		ring_points = _lonlat(coords)
+		face_edges = {frozenset(e) for e in zip(berth['face'].coords, list(berth['face'].coords)[1:])}
+		berth_kinds = outline_side_kinds(polygon)
+		berth_others = others(polygon)
+		segments = []
+		for index, (a, b, la, lb) in enumerate(zip(coords, coords[1:], ring_points, ring_points[1:])):
+			on_face = frozenset((a, b)) in face_edges
+			proof = berth['proof'] if on_face else _chart_side(a, b, berth['anchor'], water, land, berth['obstacles'], polygon)
+			segments.append({'index': index, 'kind': 'berth-face' if on_face else berth_kinds[frozenset((a, b))],
+				'id_key': legacy_edge_key(stop_id, berth_id, ring_points, la, lb),
+				'source': 'enc-feature', 'confidence': berth['confidence'], 'verification': 'needs-crew-verification',
+				'berth_id': berth_id, 'layer': props['feature_class'], 'lnam': props['id'],
+				'water_side_verified_by_pipeline': proof.get('chart_verified', proof['verified']), 'water_side_evidence': proof,
+				'solid_side_evidence': solid_side_evidence(a, b, polygon, props['feature_class'], props['id'], charted, land, berth_others)})
+		polylines.append({'stop_id': stop_id, 'stop_name': context['stop_name'], 'structure_id': berth_id, 'berth_id': berth_id,
+			'source': 'enc-feature', 'polyline_id': f"berth-{stop_id}-{props['id']}", 'role': 'berth', 'coords': coords, 'lonlat': ring_points, 'segments': segments})
+	# Other floating outlines within the radius: pontoons and hulks that are not this stop's berths.
+	pieces = {}
+	for g, props in sorted(floating, key=lambda item: (item[1]['id'], item[0].bounds)):
+		if props['id'] in used or g.distance(point) > radius:
+			continue
+		pieces.setdefault(props['id'], []).append(g)
+	for identifier, outlines in sorted(pieces.items()):
+		for piece, polygon in enumerate(outlines):
+			structure_id = f'enc:{identifier}' + (f'#{piece}' if len(outlines) > 1 else '')
+			anchor, _, _ = _shore_anchor(polygon, bulkheads)
+			props = next(p for g, p in floating if p['id'] == identifier)
+			obstacles = surface_structures(shore, identifier)
+			coords = list(closed_outline(polygon).coords)
+			ring_points = _lonlat(coords)
+			outline_kinds = outline_side_kinds(polygon)
+			outline_others = others(polygon)
+			segments = []
+			for index, (a, b, la, lb) in enumerate(zip(coords, coords[1:], ring_points, ring_points[1:])):
+				proof = _chart_side(a, b, anchor, water, land, obstacles, polygon)
+				segments.append({'index': index, 'kind': outline_kinds[frozenset((a, b))], 'id_key': legacy_edge_key(stop_id, structure_id, ring_points, la, lb),
+					'source': 'enc-feature', 'confidence': 'medium', 'verification': 'needs-crew-verification',
+					'layer': props['feature_class'], 'lnam': identifier,
+					'water_side_verified_by_pipeline': proof.get('chart_verified', proof['verified']), 'water_side_evidence': proof,
+					'solid_side_evidence': solid_side_evidence(a, b, polygon, props['feature_class'], identifier, charted, land, outline_others)})
+			polylines.append({'stop_id': stop_id, 'stop_name': context['stop_name'], 'structure_id': structure_id, 'berth_id': None,
+				'source': 'enc-feature', 'polyline_id': f'floating-{stop_id}-{identifier}' + (f'-{piece}' if len(outlines) > 1 else ''),
+				'role': 'floating-structure', 'coords': coords, 'lonlat': ring_points, 'segments': segments})
+	# Fixed charted boundaries: land, piers drawn on land, and dry construction areas, solid on the right.
+	lines = [(g, p) for g, p in shore if g.geom_type in ('LineString', 'MultiLineString')]
+	lines += [(g.boundary, p) for g, p in solid_sources if p['feature_class'] == 'SLCONS']
+	listed = [(g, p) for g, p in shore if g.geom_type in ('Point', 'MultiPoint') or p.get('water_level_effect_code') == 3]
+	runs, left_out = fixed_structure_runs(stop_id, point, solid_sources, lines, listed, charted, land, floating_geometries, radius, clip)
+	blockers = surface_structures(shore)
+	for number, run in enumerate(runs):
+		coords = run['coords']
+		run_points = _lonlat(coords)
+		segments = []
+		for index, (a, b, la, lb, record) in enumerate(zip(coords, coords[1:], run_points, run_points[1:], run['segments'])):
+			length = math.dist(a, b)
+			left = ((a[1] - b[1]) / length, (b[0] - a[0]) / length)
+			inside = ((a[0] + b[0]) / 2 - left[0] * WINDING_PROBE_M, (a[1] + b[1]) / 2 - left[1] * WINDING_PROBE_M)
+			proof = _chart_side(a, b, inside, water, land, blockers, None)
+			segments.append({'index': index, 'kind': record['kind'], 'id_key': fixed_edge_key(record['layer'], record['lnam'], la, lb),
+				'source': 'enc-feature', 'confidence': 'medium', 'verification': 'needs-crew-verification',
+				'layer': record['layer'], 'lnam': record['lnam'], 'classified_by': record['classified_by'],
+				'water_side_verified_by_pipeline': proof['verified'], 'water_side_evidence': proof,
+				'solid_side_evidence': record['solid_side_evidence']})
+		polylines.append({'stop_id': stop_id, 'stop_name': context['stop_name'], 'structure_id': None, 'berth_id': None,
+			'source': 'enc-feature', 'polyline_id': f'fixed-{stop_id}-{number}', 'role': 'fixed-structure', 'coords': coords, 'lonlat': run_points, 'segments': segments})
+	for polyline in polylines:
+		polyline['closed'] = polyline['coords'][0] == polyline['coords'][-1]
+	return polylines, left_out
+
+
+def assign_contact_ids(polylines):
+	"""Hash every segment's physical identity; the existing exposed runs must keep their ids exactly.
+
+	A new identity that collides with an earlier one (or hashes to zero) is rehashed with '+'
+	suffixes, in file order, as World/EditorTools.WorldFileIds does for object ids.
+	"""
+	used = {}
+	ordered = sorted(((polyline['role'] != 'landing' or polyline['polyline_id'].endswith('-back'), n, segment)
+		for n, polyline in enumerate(polylines) for segment in polyline['segments']), key=lambda item: (item[0], item[1]))
+	for legacy_last, _, segment in ordered:
+		key = segment['id_key']
+		identifier = contact_id(key)
+		if not legacy_last and (identifier == 0 or identifier in used):
+			raise ValueError(f'existing contact id {identifier} collides ({key} and {used.get(identifier)})')
+		while identifier == 0 or identifier in used:
+			key += '+'
+			identifier = contact_id(key)
+		used[identifier] = key
+		segment['id_key'], segment['id'] = key, identifier
+
+
+def build(slice_, log=print, reference_stops=None):
 	out = paths.processed_dir(slice_.name)
 	stops = _features(out, 'landings.geojson')
 	shore = [(to_local(shape(f['geometry'])), f['properties']) for f in _features(out, 'shoreline_constructions.geojson')]
 	candidates = [(g, p) for g, p in shore if p['feature_class'] in ('PONTON', 'FLODOC') or p.get('water_level_effect_code') == 7]
 	# LNDARE gives the fixed land/water boundary; detailed SLCONS can include
 	# gangways/fenders at a barge and falsely rotate its normal along the berth.
-	bulkheads = [(to_local(shape(f['geometry'])).boundary, f['properties'])
-		for f in _features(out, 'land_areas.geojson')]
+	lands = [(to_local(shape(f['geometry'])), {**f['properties'], 'feature_class': 'LNDARE'}) for f in _features(out, 'land_areas.geojson')]
+	# Harbor cells also chart islets and narrow land as LNDARE points and lines: they have no
+	# shoreline to anchor a barge to and no solid side, so they are only listed beside a landing.
+	land_marks = [(g, p) for g, p in lands if g.geom_type not in ('Polygon', 'MultiPolygon')]
+	lands = [(g, p) for g, p in lands if g.geom_type in ('Polygon', 'MultiPolygon')]
+	bulkheads = [(g.boundary, props) for g, props in lands]
 	water, land = chart_masks(out)
 	routes = _features(out, 'routes.geojson')
 	notes, notes_sha256 = crew_notes.load()
-	ais_file = paths.ais_processed_dir() / 'nycferry_tracks.parquet'
-	slow = pd.read_parquet(ais_file) if ais_file.exists() else None
-	if slow is not None:
-		slow = slow[slow.sog_kn < .5]
-	features = []
+	slow = _slow_reports()
+	features, contexts_by_stop = [], []
 	for stop in stops:
 		p = stop['properties']
 		point = Point(p['east_m'], p['north_m'])
@@ -391,7 +881,7 @@ def build(slice_, log=print):
 		anchor, tangent = approach.face_geometry((reference.x, reference.y), [nearest])
 		parts = [to_local(shape(f['geometry'])) for f in routes if set(f['properties']['route_ids']) & set(p.get('route_ids', []))]
 		route = unary_union(parts) if parts else None
-		candidate_records, contexts = [], {}
+		candidate_records, contexts, berth_faces = [], {}, {}
 		near = slow[((slow.east_m - point.x) ** 2 + (slow.north_m - point.y) ** 2) < 150 ** 2] if slow is not None else None
 		for g, cp in candidates:
 			if g.geom_type != 'Polygon' or g.distance(point) > MATCH_MAX_M:
@@ -420,6 +910,7 @@ def build(slice_, log=print):
 				record['sides'].append({'length_m': edge.length, 'outward_normal_ne': normal_edge,
 					'water_side_evidence': water_side_evidence(edge, normal_edge, ca, water, land, obstacles, g)})
 			candidate_records.append(record); contexts[cp['id']] = (g, cp, ca, ct, bp)
+			berth_faces[cp['id']] = {'polygon': g, 'props': cp, 'face': cf, 'normal': normal, 'proof': proof, 'anchor': ca, 'obstacles': obstacles}
 		if candidate_records:
 			chosen = choose_candidate_for_stop(p['stop_id'], candidate_records, match['id'])
 			if notes.get(p['stop_id'], {}).get('modelled_enc_id'):
@@ -453,7 +944,9 @@ def build(slice_, log=print):
 		crew_orientation = None
 		if note and note.get('face_toward_fixed_land_near_stop_id'):
 			reference_id = note['face_toward_fixed_land_near_stop_id']
-			reference_stop = next(f['properties'] for f in stops if f['properties']['stop_id'] == reference_id)
+			reference_stop = next((f['properties'] for f in stops if f['properties']['stop_id'] == reference_id), None) or (reference_stops or {}).get(reference_id)
+			if reference_stop is None:
+				raise ValueError(f"{p['stop_name']}: crew note reference stop {reference_id} is not available")
 			reference_point = Point(reference_stop['east_m'], reference_stop['north_m'])
 			manhattan = min(bulkheads, key=lambda x: x[0].distance(reference_point))
 			_, opposite_shore = nearest_points(barge.centroid, manhattan[0])
@@ -477,6 +970,10 @@ def build(slice_, log=print):
 		contact_geo = geojsonio.make_feature(to_wgs84(contact), {})
 		mid = face.interpolate(.5, normalized=True)
 		face_lat, face_lon = geodesy.from_local(mid.y, mid.x)
+		records = contact_segment_evidence(contact, face, proof, anchor, water, land, structures,
+			None if derived else barge, bool(note and note.get('water_side_crew_reported')))
+		for record in records:
+			record['verification'] = segment_verification(record, note)
 		props = {
 			'stop_id': p['stop_id'], 'stop_name': p['stop_name'], 'route_ids': p.get('route_ids', []),
 			'source': 'derived-from-gtfs' if derived else 'enc-feature',
@@ -497,9 +994,8 @@ def build(slice_, log=print):
 			'contact_geometry': contact_geo['geometry'], 'contact_local_coordinates': contact_geo['local_coordinates'],
 			'contact_confidence': 'low' if derived or ambiguous else 'medium',
 			'contact_geometry_estimated': derived,
-			'contact_segment_evidence': contact_segment_evidence(contact, face, proof, anchor, water, land, structures,
-				None if derived else barge, bool(note and note.get('water_side_crew_reported'))),
-			'contact_note': 'Connected clockwise outline, excluding landward long side; water left, structure right. Derived barge ends use published ASCE dimensions and estimated placement.',
+			'contact_segment_evidence': records,
+			'contact_note': 'Connected clockwise outline, excluding landward long side; water left, structure right. Derived barge ends use published ASCE dimensions and estimated placement. The whole structure, including the landward side, is in landing_structures.geojson.',
 			'water_side_evidence': proof,
 			'face_midpoint': {'lat': float(face_lat), 'lon': float(face_lon), 'north_m': mid.y, 'east_m': mid.x},
 			'gtfs_to_face_m': face.distance(point),
@@ -510,7 +1006,62 @@ def build(slice_, log=print):
 				'note': 'Estimated horizontal 85 ft gangway (published range 70–100 ft), barge parallel to nearest ENC LNDARE shoreline boundary. GTFS offshore offset retained if larger; not a survey.'} if derived else None,
 		}
 		features.append(geojsonio.make_feature(to_wgs84(barge), props))
+		# Every other candidate is its own berth, ranked by the same historical AIS usage.
+		ring_lonlat = features[-1]['geometry']['coordinates'][0]
+		ranking = sorted(candidate_records, key=lambda r: (-r['ais_slow_reports_within_10m'], r['distance_to_gtfs_m'], r['enc_id']))
+		berths = []
+		for rank, record in enumerate(ranking, 1):
+			if not derived and record['enc_id'] == match['id']:
+				continue
+			berth = dict(berth_faces[record['enc_id']], rank=rank, ais_slow_reports_within_10m=record['ais_slow_reports_within_10m'],
+				distance_to_gtfs_m=record['distance_to_gtfs_m'])
+			berth['confidence'] = face_confidence(False, False, berth['proof'], None)
+			berths.append(berth)
+		own_rank = next((rank for rank, record in enumerate(ranking, 1) if not derived and record['enc_id'] == match['id']), 1)
+		contexts_by_stop.append({'stop_id': p['stop_id'], 'stop_name': p['stop_name'], 'point': point, 'barge': barge, 'derived': derived,
+			'outline_id': props['outline_id'], 'match': match, 'face': face, 'contact': contact, 'records': records, 'note': note,
+			'ring_lonlat': ring_lonlat, 'contact_lonlat': contact_geo['geometry']['coordinates'],
+			'source': props['source'], 'confidence': props['confidence'], 'contact_confidence': props['contact_confidence'],
+			'anchor': anchor, 'structures': structures, 'berths': berths, 'rank': own_rank})
 	geojsonio.write_collection(out / 'landing_faces.geojson', features, 'landing_faces', {
 		'note': 'Geometry is barge outline; properties.face_geometry is the berthing line in WGS84, face_local_coordinates is [north,east]. Outward normal heading is clockwise from true north. All assigned faces require crew verification; ENC outlines do not identify the operational berth.',
 		'derived_size_source': ASCE_URL})
 	log(f'  landing_faces.geojson: {len(features)} landings ({sum(f["properties"]["source"] == "enc-feature" for f in features)} ENC outlines)')
+	areas = [(to_local(shape(f['geometry'])), f['properties']) for f in _features(out, 'depth_areas.geojson')
+		if f['properties'].get('min_depth_m') is not None and f['properties']['min_depth_m'] >= 0]
+	charted = ChartedWater(areas, _unsurveyed(slice_))
+	write_structures(out, contexts_by_stop, shore + land_marks, lands, bulkheads, water, land, getattr(slice_, 'polygon', None), log, charted)
+
+
+def write_structures(out, contexts, shore, lands, bulkheads, water, land, clip, log=print, charted=None):
+	polylines, left_out = [], []
+	for context in contexts:
+		stop_polylines, stop_left_out = stop_structures(context, shore, lands, bulkheads, water, land, clip, charted=charted)
+		for polyline in stop_polylines:
+			polyline['berth_rank'] = (context['rank'] if polyline['polyline_id'].startswith('landing-') else
+				next((b['rank'] for b in context['berths'] if f"enc:{b['props']['id']}" == polyline['berth_id']), None))
+		polylines += stop_polylines
+		left_out += stop_left_out
+	keys = [segment['id_key'] for polyline in polylines for segment in polyline['segments']]
+	if len(keys) != len(set(keys)):
+		raise ValueError('a physical structure edge is within the radius of two stops; landing structures need an ownership rule')
+	assign_contact_ids(polylines)
+	features = []
+	for polyline in polylines:
+		props = {key: polyline[key] for key in ('stop_id', 'stop_name', 'polyline_id', 'role', 'structure_id', 'berth_id', 'berth_rank', 'source', 'closed')}
+		props['segments'] = [{'index': s['index'], 'id': s['id'], **{k: v for k, v in s.items() if k not in ('index', 'id')}} for s in polyline['segments']]
+		features.append(geojsonio.make_feature(LineString(polyline['lonlat']), props))
+	kinds = sorted({s['kind'] for polyline in polylines for s in polyline['segments']})
+	geojsonio.write_collection(out / 'landing_structures.geojson', features, 'landing_structures', {
+		'radius_m': STRUCTURE_RADIUS_M, 'reference': 'GTFS stop point; an edge is included when any part of it lies within the radius',
+		'kinds': kinds, 'left_out': left_out,
+		'eligibility': 'Runtime contact: a primary-face segment when water_side_verified_by_pipeline or water_side_crew_reported (unchanged); any other segment also when solid_side_evidence.verified (closed charted outline solid on the right by winding; 0.5 m out on the left charted water, a depth area or ENC UNSARE, with no land or other structure). UNSARE proves the water side only, never depth. Open lines in water, points and always-submerged structures are never contact geometry; they are listed in left_out.',
+		'note': 'One feature per contact polyline, solid on the right and water on the left. landing-<stop> is the existing exposed run with unchanged ids; landing-<stop>-back closes the barge. Confidence is ordinal geometry confidence; every segment except crew-reported primary faces still needs crew verification.'})
+	log(f'  landing_structures.geojson: {len(features)} polylines, {sum(len(f["properties"]["segments"]) for f in features)} segments, {len(left_out)} charted objects left out of contact')
+
+
+def build_tile(tile, log=print):
+	"""Harbor tiles (wave 2): landing faces and whole structures for the GTFS stops this tile owns."""
+	from ferrydata import tiles
+	stops, _ = tiles._stop_inventory(tiles._feed())
+	build(tile, log, reference_stops={s['stop_id']: s for s in stops})

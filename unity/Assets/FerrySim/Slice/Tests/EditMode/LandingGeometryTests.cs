@@ -407,14 +407,20 @@ namespace FerrySim.Slice.Tests
 				var id = (int)segment["id"];
 				var verified = segment["water_side_verified_by_pipeline"]?.Type == JTokenType.Boolean && (bool)segment["water_side_verified_by_pipeline"];
 				var crew = segment["water_side_crew_reported"]?.Type == JTokenType.Boolean && (bool)segment["water_side_crew_reported"];
-				if (!verified && !crew)
+				var primary = segment["primary_face"]?.Type == JTokenType.Boolean && (bool)segment["primary_face"];
+				var solid = segment["solid_side_evidence"]?["verified"]?.Type == JTokenType.Boolean && (bool)segment["solid_side_evidence"]["verified"];
+				if (!verified && !crew && (primary || !solid))
 				{
-					Assert.That(geometry.Excluded.Any(e => e.Id == id), Is.True, $"segment {id}, verified neither by the pipeline nor by crew, must be listed as excluded");
+					Assert.That(geometry.Excluded.Any(e => e.Id == id), Is.True, $"segment {id}, verified neither by the pipeline, by crew nor (off the primary face) by its charted solid side, must be listed as excluded");
 					Assert.That(geometry.Find(id), Is.Null);
+				}
+				else if (!verified && crew)
+				{
+					Assert.That(geometry.CrewReportedOnly.Any(s => s.Id == id) || geometry.Excluded.Any(e => e.Id == id), Is.True, $"crew-only segment {id} is listed");
 				}
 				else if (!verified)
 				{
-					Assert.That(geometry.CrewReportedOnly.Any(s => s.Id == id) || geometry.Excluded.Any(e => e.Id == id), Is.True, $"crew-only segment {id} is listed");
+					Assert.That(geometry.SolidSideOnly.Any(s => s.Id == id), Is.True, $"solid-side segment {id} is listed");
 				}
 			}
 
@@ -424,7 +430,7 @@ namespace FerrySim.Slice.Tests
 				var normal = kept.Segment.WaterNormal;
 				var cos = normal.North * (double)rawSegment["water_normal_ne"][0] + normal.East * (double)rawSegment["water_normal_ne"][1];
 				Assert.That(cos, Is.GreaterThan(Math.Cos(LandingGeometry.NormalToleranceDegrees * Math.PI / 180.0)), $"segment {kept.Id}");
-				Assert.That(kept.Segment.Surface.Stiffness, Is.EqualTo(geometry.Surfaces.For(kept.StopId).Surface.Stiffness));
+				Assert.That(kept.Segment.Surface.Stiffness, Is.EqualTo(geometry.Surfaces.For(kept.StopId, kept.Kind).Surface.Stiffness));
 			}
 
 			Assert.That(geometry.ForStop(ContactTestStopId), Is.Not.Empty, "South Williamsburg needs a valid face for the contact tests");
