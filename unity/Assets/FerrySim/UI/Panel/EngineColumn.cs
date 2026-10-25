@@ -11,6 +11,8 @@ namespace FerrySim.UI
 	/// </summary>
 	public sealed class EngineColumn : VisualElement
 	{
+		private readonly ReadoutText _shaftText = new ReadoutText();
+		private readonly ReadoutText _leverText = new ReadoutText();
 		private readonly string _prefix;
 
 		public EngineColumn(EngineSide side)
@@ -85,12 +87,12 @@ namespace FerrySim.UI
 		public void Show(EngineTelemetry engine, double lever)
 		{
 			Tachometer.SetEngineSpeed(engine.EngineSpeed);
-			var gear = GearReadout.From(engine);
+			var gear = GearReadout.From(engine, false);
 			Gear.Show(gear);
 			ShaftArrow.Show(gear.Shaft);
-			PaletteRoles.SetText(ShaftRpm, gear.ShaftRpm);
+			PaletteRoles.SetText(ShaftRpm, _shaftText.Rpm(engine.ShaftSpeed));
 			Lever.SetLever(lever);
-			PaletteRoles.SetText(LeverPercent, InstrumentFormat.LeverPercent(lever));
+			PaletteRoles.SetText(LeverPercent, _leverText.Lever(lever));
 			PaletteRoles.SetText(LeverDirection, InstrumentFormat.LeverDirection(lever));
 		}
 

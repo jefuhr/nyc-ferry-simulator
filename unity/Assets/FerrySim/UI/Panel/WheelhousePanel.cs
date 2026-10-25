@@ -19,6 +19,11 @@ namespace FerrySim.UI
 	/// </summary>
 	public sealed class WheelhousePanel : VisualElement, IPaletteAware
 	{
+		private readonly ReadoutText _sogText = new ReadoutText();
+		private readonly ReadoutText _stwText = new ReadoutText();
+		private readonly ReadoutText _depthText = new ReadoutText();
+		private readonly ReadoutText _elapsedText = new ReadoutText();
+		private long _clockSecond = long.MinValue;
 		private const string ZoneUnknown = "NEW YORK";
 
 		private readonly Label _vessel;
@@ -239,12 +244,12 @@ namespace FerrySim.UI
 			Compass.SetHeading(state.Heading, course == InstrumentFormat.NoValue ? double.NaN : telemetry.CourseOverGround);
 			PaletteRoles.SetText(Heading, InstrumentFormat.Compass(state.Heading));
 			PaletteRoles.SetText(CourseOverGround, course);
-			PaletteRoles.SetText(SpeedOverGround, InstrumentFormat.Speed(telemetry.SpeedOverGround));
-			PaletteRoles.SetText(SpeedThroughWater, InstrumentFormat.Speed(telemetry.SpeedThroughWater));
+			PaletteRoles.SetText(SpeedOverGround, _sogText.Speed(telemetry.SpeedOverGround));
+			PaletteRoles.SetText(SpeedThroughWater, _stwText.Speed(telemetry.SpeedThroughWater));
 			Rudder.SetAngles(telemetry.PortRudderAngle, telemetry.StarboardRudderAngle);
 
 			Alarm.Update(telemetry.DepthUnderKeel, realTime);
-			Depth.ShowValue(InstrumentFormat.Distance(telemetry.DepthUnderKeel, _unit), _unit);
+			Depth.ShowValue(_depthText.Distance(telemetry.DepthUnderKeel, _unit), _unit);
 			Depth.ShowSetting(Alarm.ThresholdMetres, _unit);
 			// Contact comes from the latch; the reading at this step only says whether contact is measurable at all.
 			ContactMonitor.Update(sample.Contact, state.Time,
@@ -253,7 +258,12 @@ namespace FerrySim.UI
 
 			if (NewYorkTime.TryToLocal(sample.ScenarioStartUtc, state.Time, out var local, out var daylight))
 			{
-				PaletteRoles.SetText(_clock, InstrumentFormat.Clock(local));
+				var second = local.Hour * 3600 + local.Minute * 60 + local.Second;
+				if (second != _clockSecond || _clock.text == InstrumentFormat.NoValue)
+				{
+					_clockSecond = second;
+					PaletteRoles.SetText(_clock, InstrumentFormat.Clock(local));
+				}
 				PaletteRoles.SetText(_zone, NewYorkTime.Abbreviation(daylight));
 				// CSV playback without a recorded start uses a setting; say so rather than present it as the scenario's.
 				ShowClockNote(source is FakeTelemetrySource fake && fake.ScenarioStartIsFallback ? "ASSUMED START" : string.Empty);
@@ -263,7 +273,7 @@ namespace FerrySim.UI
 				ShowNoClock();
 			}
 
-			PaletteRoles.SetText(_elapsed, InstrumentFormat.Elapsed(state.Time));
+			PaletteRoles.SetText(_elapsed, _elapsedText.Elapsed(state.Time));
 			_shown = sample;
 			_sampleShown = true;
 		}

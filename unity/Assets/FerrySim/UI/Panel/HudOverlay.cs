@@ -13,6 +13,12 @@ namespace FerrySim.UI
 	/// </summary>
 	public sealed class HudOverlay : VisualElement, IPaletteAware
 	{
+		private readonly ReadoutText _speedText = new ReadoutText();
+		private readonly ReadoutText _portText = new ReadoutText();
+		private readonly ReadoutText _starboardText = new ReadoutText();
+		private string _lastPortText;
+		private string _lastStarboardText;
+		private string _rudderText;
 		private InstrumentPalette _palette = InstrumentPalette.Day;
 		private InstrumentScales _scales = InstrumentScales.Generic;
 		private VesselParameters _parameters;
@@ -113,20 +119,27 @@ namespace FerrySim.UI
 				Rudder.SetScale(_scales.RudderScaleDegrees);
 			}
 
-			PaletteRoles.SetText(Speed, InstrumentFormat.Speed(telemetry.SpeedOverGround));
+			PaletteRoles.SetText(Speed, _speedText.Speed(telemetry.SpeedOverGround));
 			PaletteRoles.SetText(Heading, InstrumentFormat.Compass(state.Heading));
 			PortLever.SetLever(controls.PortLever);
 			StarboardLever.SetLever(controls.StarboardLever);
-			var port = GearReadout.From(telemetry.Port);
-			var starboard = GearReadout.From(telemetry.Starboard);
+			var port = GearReadout.From(telemetry.Port, false);
+			var starboard = GearReadout.From(telemetry.Starboard, false);
 			_portTone = ShowGear(PortGear, port.ShortLabel, port.Tone);
 			_starboardTone = ShowGear(StarboardGear, starboard.ShortLabel, starboard.Tone);
 			Rudder.SetAngles(
 				InstrumentFormat.IsFinite(telemetry.PortRudderAngle) ? DisplayUnits.Degrees(telemetry.PortRudderAngle) : double.NaN,
 				InstrumentFormat.IsFinite(telemetry.StarboardRudderAngle) ? DisplayUnits.Degrees(telemetry.StarboardRudderAngle) : double.NaN);
-			var portText = InstrumentFormat.Rudder(telemetry.PortRudderAngle);
-			var starboardText = InstrumentFormat.Rudder(telemetry.StarboardRudderAngle);
-			PaletteRoles.SetText(RudderText, portText == starboardText ? portText : portText + " / " + starboardText);
+			var portText = _portText.Rudder(telemetry.PortRudderAngle);
+			var starboardText = _starboardText.Rudder(telemetry.StarboardRudderAngle);
+			if (portText != _lastPortText || starboardText != _lastStarboardText)
+			{
+				_lastPortText = portText;
+				_lastStarboardText = starboardText;
+				_rudderText = ReadoutStrings.RudderPair(telemetry.PortRudderAngle, telemetry.StarboardRudderAngle) ??
+					(portText == starboardText ? portText : portText + " / " + starboardText);
+			}
+			PaletteRoles.SetText(RudderText, _rudderText);
 		}
 
 		private void ShowNoData()

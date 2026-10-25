@@ -38,7 +38,7 @@ namespace FerrySim.UI
 				degrees -= 360.0;
 			}
 
-			return degrees.ToString("000", CultureInfo.InvariantCulture);
+			return ReadoutStrings.Compass((int)degrees);
 		}
 
 		/// <summary>Course over ground, or <see cref="NoValue"/> when the speed over ground is too low for it to mean anything.</summary>
@@ -69,13 +69,15 @@ namespace FerrySim.UI
 				return "0°";
 			}
 
+			var cached = ReadoutStrings.Rudder(degrees);
+			if (cached != null) return cached;
 			var magnitude = Math.Abs(degrees).ToString("0", CultureInfo.InvariantCulture);
 			return (degrees > 0.0 ? "S " : "P ") + magnitude + "°";
 		}
 
 		/// <summary>Lever travel from neutral as a whole percentage, "96%"; the direction is <see cref="LeverDirection"/>.</summary>
 		public static string LeverPercent(double lever) =>
-			IsFinite(lever) ? Fixed(Math.Abs(lever) * 100.0, 0) + "%" : NoValue;
+			IsFinite(lever) ? ReadoutStrings.Lever(Math.Round(Math.Abs(lever) * 100.0, MidpointRounding.AwayFromZero)) ?? Fixed(Math.Abs(lever) * 100.0, 0) + "%" : NoValue;
 
 		/// <summary>"AHEAD", "ASTERN", or "NEUTRAL" when the lever reads 0%.</summary>
 		public static string LeverDirection(double lever)
@@ -114,7 +116,19 @@ namespace FerrySim.UI
 		}
 
 		/// <summary>Wall-clock time of day, "14:05:09".</summary>
-		public static string Clock(DateTime local) => local.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+		public static string Clock(DateTime local)
+		{
+			Span<char> text = stackalloc char[8];
+			text[0] = (char)('0' + local.Hour / 10);
+			text[1] = (char)('0' + local.Hour % 10);
+			text[2] = ':';
+			text[3] = (char)('0' + local.Minute / 10);
+			text[4] = (char)('0' + local.Minute % 10);
+			text[5] = ':';
+			text[6] = (char)('0' + local.Second / 10);
+			text[7] = (char)('0' + local.Second % 10);
+			return new string(text);
+		}
 
 		/// <summary>Scenario elapsed time: "T+0:45", "T+12:05", "T+1:02:03".</summary>
 		public static string Elapsed(double seconds)
@@ -126,6 +140,8 @@ namespace FerrySim.UI
 
 			var sign = seconds < 0.0 ? "T-" : "T+";
 			var total = (long)Math.Floor(Math.Abs(seconds));
+			var cached = seconds >= 0 ? ReadoutStrings.Elapsed(total) : null;
+			if (cached != null) return cached;
 			var hours = total / 3600;
 			var minutes = total / 60 % 60;
 			var secs = total % 60;
@@ -149,7 +165,7 @@ namespace FerrySim.UI
 				rounded = 0.0;
 			}
 
-			return rounded.ToString("F" + decimals.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+			return ReadoutStrings.Fixed(rounded, decimals) ?? rounded.ToString(decimals == 0 ? "F0" : decimals == 1 ? "F1" : "F" + decimals.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
 		}
 
 		public static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);

@@ -157,8 +157,8 @@ namespace FerrySim.UI
 
 			_shownKilonewtons = kilonewtons;
 			PaletteRoles.SetText(Value,
-				indication == ContactIndication.Live ? InstrumentFormat.Force(newtons) + " kN" :
-				indication == ContactIndication.Recent ? "PEAK " + InstrumentFormat.Force(newtons) + " kN" :
+				indication == ContactIndication.Live ? (ReadoutStrings.Contact(kilonewtons, DisplayUnits.Kilonewtons(Math.Abs(newtons)) < 9.95, false) ?? InstrumentFormat.Force(newtons) + " kN") :
+				indication == ContactIndication.Recent ? (ReadoutStrings.Contact(kilonewtons, DisplayUnits.Kilonewtons(Math.Abs(newtons)) < 9.95, true) ?? "PEAK " + InstrumentFormat.Force(newtons) + " kN") :
 				indication == ContactIndication.Unknown ? InstrumentFormat.NoValue :
 				"NONE");
 			if (indication != Indication)

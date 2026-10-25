@@ -99,8 +99,66 @@ namespace FerrySim.UI.Tests.PlayMode
 			var path = Path.Combine(RepoRoot, "artifacts", "unity", fileName);
 			Directory.CreateDirectory(Path.GetDirectoryName(path));
 			File.WriteAllBytes(path, texture.EncodeToPNG());
+			WriteLabelSnapshot(fileName);
 			Assert.That(DistinctColours(texture), Is.GreaterThan(16), fileName + " looks blank");
 			return texture;
+		}
+
+
+		/// <summary>Companion evidence for comparing original and optimized UI content/layout independently
+		/// of dynamic font-atlas glyph-edge rasterization. Captures every Label, including hidden labels.</summary>
+		private void WriteLabelSnapshot(string fileName)
+		{
+			var labels = new List<LabelSnapshot>();
+			SnapshotLabels(View, "view", true, labels);
+			var path = Path.Combine(RepoRoot, "artifacts", "health", "ui-labels", Path.GetFileNameWithoutExtension(fileName) + ".json");
+			Directory.CreateDirectory(Path.GetDirectoryName(path));
+			File.WriteAllText(path, JsonUtility.ToJson(new LabelSnapshotFile { labels = labels.ToArray() }, true));
+		}
+
+		private static void SnapshotLabels(VisualElement element, string path, bool parentDisplayed, List<LabelSnapshot> labels)
+		{
+			var resolved = element.resolvedStyle;
+			var displayed = parentDisplayed && resolved.display != DisplayStyle.None;
+			if (element is Label label)
+			{
+				labels.Add(new LabelSnapshot
+				{
+					path = path,
+					text = label.text,
+					display = resolved.display.ToString(),
+					visibility = resolved.visibility.ToString(),
+					visible = displayed && resolved.visibility == Visibility.Visible,
+					layout = RectText(element.layout),
+					worldBounds = RectText(element.worldBound),
+				});
+			}
+			for (var i = 0; i < element.hierarchy.childCount; i++)
+			{
+				var child = element.hierarchy[i];
+				SnapshotLabels(child, path + "/" + child.GetType().Name + "[" + i.ToString(CultureInfo.InvariantCulture) + "]:" + child.name, displayed, labels);
+			}
+		}
+
+		private static string RectText(Rect rect) => string.Format(CultureInfo.InvariantCulture,
+			"{0:R},{1:R},{2:R},{3:R}", rect.x, rect.y, rect.width, rect.height);
+
+		[Serializable]
+		private sealed class LabelSnapshotFile
+		{
+			public LabelSnapshot[] labels;
+		}
+
+		[Serializable]
+		private sealed class LabelSnapshot
+		{
+			public string path;
+			public string text;
+			public string display;
+			public string visibility;
+			public bool visible;
+			public string layout;
+			public string worldBounds;
 		}
 
 		/// <summary>Destroys everything the rig made, including captures a failed assertion left behind; written screenshots stay.</summary>

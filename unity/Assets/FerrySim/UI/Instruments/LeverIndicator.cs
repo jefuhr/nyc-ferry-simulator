@@ -75,9 +75,9 @@ namespace FerrySim.UI
 
 			if (InstrumentFormat.IsFinite(ClutchInLever))
 			{
-				foreach (var detent in new[] { ClutchInLever, -ClutchInLever })
+				for (var side = 1; side >= -1; side -= 2)
 				{
-					var y = Y(rect, detent);
+					var y = Y(rect, side * ClutchInLever);
 					VectorDraw.Line(painter, new Vector2(track.xMin - 3f, y), new Vector2(track.xMax + 3f, y), Palette.TextDim, 1.5f);
 				}
 			}

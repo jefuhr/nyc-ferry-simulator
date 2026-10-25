@@ -18,6 +18,7 @@ namespace FerrySim.UI
 		public const float SweepStart = -120f;
 		public const float SweepEnd = 120f;
 
+		private readonly ReadoutText _rpmText = new ReadoutText();
 		private readonly Face _face;
 		private readonly Needle _needle;
 		private readonly Label _readout;
@@ -96,7 +97,7 @@ namespace FerrySim.UI
 		/// <summary>Shows an engine speed in rad/s (converted to rpm here); NaN shows "---" and hides the needle.</summary>
 		public void SetEngineSpeed(double radiansPerSecond)
 		{
-			PaletteRoles.SetText(_readout, InstrumentFormat.Rpm(radiansPerSecond));
+			PaletteRoles.SetText(_readout, _rpmText.Rpm(radiansPerSecond));
 			if (!InstrumentFormat.IsFinite(radiansPerSecond))
 			{
 				Rpm = double.NaN;

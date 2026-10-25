@@ -44,16 +44,20 @@ namespace FerrySim.World.EditorTools
 		public static readonly string[] BridgeNames = { "Brooklyn Bridge", "Manhattan Bridge", "Williamsburg Bridge" };
 
 		/// <summary>Builds every greybox asset; throws if the data cannot produce a complete greybox.</summary>
-		public static GreyboxReport Build(PipelineData data)
+		public static GreyboxReport Build(PipelineData data, string worldFolder = WorldFolder)
 		{
-			EnsureFolder(GreyboxFolder);
-			EnsureFolder(MeshFolder);
-			EnsureFolder(MaterialFolder);
-			EnsureFolder(DataFolder);
+			var meshFolder = WorldBuildPaths.At(worldFolder, MeshFolder);
+			var materialFolder = WorldBuildPaths.At(worldFolder, MaterialFolder);
+			var prefabPath = WorldBuildPaths.At(worldFolder, PrefabPath);
+			var previous = WorldFileIds.Read(prefabPath);
+			EnsureFolder(WorldBuildPaths.At(worldFolder, GreyboxFolder));
+			EnsureFolder(meshFolder);
+			EnsureFolder(materialFolder);
+			EnsureFolder(WorldBuildPaths.At(worldFolder, DataFolder));
 
 			var report = new GreyboxReport();
-			var datum = WriteDatum(data);
-			var materials = new GreyboxMaterials();
+			var datum = WriteDatum(data, WorldBuildPaths.At(worldFolder, DatumPath));
+			var materials = new GreyboxMaterials(materialFolder);
 			var root = new GameObject("LowerEastRiverGreybox");
 			try
 			{
@@ -61,7 +65,7 @@ namespace FerrySim.World.EditorTools
 				landings.AddComponent<FloatOnWater>();
 				foreach (var face in data.Faces.OrderBy(f => f.StopId, StringComparer.Ordinal))
 				{
-					BuildBarge(face, data, datum, materials, landings.transform, report);
+					BuildBarge(face, data, datum, materials, landings.transform, report, meshFolder);
 				}
 
 				var bridges = Child(root.transform, "Bridges", WorldLayers.Structure);
@@ -75,10 +79,10 @@ namespace FerrySim.World.EditorTools
 					throw new InvalidOperationException("Greybox build failed:\n" + string.Join("\n", report.Errors));
 				}
 
-				PrefabUtility.SaveAsPrefabAsset(root, PrefabPath, out var saved);
+				PrefabUtility.SaveAsPrefabAsset(root, prefabPath, out var saved);
 				if (!saved)
 				{
-					throw new InvalidOperationException("Could not save " + PrefabPath);
+					throw new InvalidOperationException("Could not save " + prefabPath);
 				}
 			}
 			finally
@@ -87,11 +91,12 @@ namespace FerrySim.World.EditorTools
 			}
 
 			AssetDatabase.SaveAssets();
+			WorldFileIds.Stabilize(prefabPath, previous);
 			return report;
 		}
 
 		/// <summary>Writes (or updates) the slice datum asset from geoid_offset.json and the datum station.</summary>
-		public static SliceDatum WriteDatum(PipelineData data)
+		public static SliceDatum WriteDatum(PipelineData data, string path = DatumPath)
 		{
 			var geoid = data.Geoid;
 			var datums = data.Datums;
@@ -121,12 +126,12 @@ namespace FerrySim.World.EditorTools
 				Provenance = provenance,
 			};
 
-			var datum = AssetDatabase.LoadAssetAtPath<SliceDatum>(DatumPath);
+			var datum = AssetDatabase.LoadAssetAtPath<SliceDatum>(path);
 			if (datum == null)
 			{
 				datum = ScriptableObject.CreateInstance<SliceDatum>();
 				datum.Assign(values);
-				AssetDatabase.CreateAsset(datum, DatumPath);
+				AssetDatabase.CreateAsset(datum, path);
 			}
 			else
 			{
@@ -137,7 +142,7 @@ namespace FerrySim.World.EditorTools
 			return datum;
 		}
 
-		private static void BuildBarge(LandingFace face, PipelineData data, SliceDatum datum, GreyboxMaterials materials, Transform parent, GreyboxReport report)
+		private static void BuildBarge(LandingFace face, PipelineData data, SliceDatum datum, GreyboxMaterials materials, Transform parent, GreyboxReport report, string meshFolder)
 		{
 			var plane = LocalTangentPlane.World;
 			var outline = new List<PlanePoint>();
@@ -172,7 +177,7 @@ namespace FerrySim.World.EditorTools
 
 			// Hull: the outline extruded from the draft to the freeboard, in coordinates relative to the centroid.
 			var relative = ring.Select(p => p - centroid).ToList();
-			var mesh = UpsertMesh($"{MeshFolder}/Barge_{face.StopId}.asset", ExtrudedPrism(relative, BargeFreeboard, -BargeDraft, $"Barge {face.StopId}"));
+			var mesh = UpsertMesh($"{meshFolder}/Barge_{face.StopId}.asset", ExtrudedPrism(relative, BargeFreeboard, -BargeDraft, $"Barge {face.StopId}"));
 			var hull = Child(barge.transform, "Hull", WorldLayers.Structure);
 			hull.AddComponent<MeshFilter>().sharedMesh = mesh;
 			hull.AddComponent<MeshRenderer>().sharedMaterial = materials.Barge(face.Confidence);
@@ -426,6 +431,8 @@ namespace FerrySim.World.EditorTools
 
 		private static Mesh UpsertMesh(string path, Mesh mesh)
 		{
+			// Unity normalizes new main-object names to their filenames on import. Match it on updates too.
+			mesh.name = System.IO.Path.GetFileNameWithoutExtension(path);
 			var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
 			if (existing == null)
 			{
@@ -454,8 +461,11 @@ namespace FerrySim.World.EditorTools
 		/// <summary>Greybox materials (URP Lit), written once and updated in place.</summary>
 		private sealed class GreyboxMaterials
 		{
-			public GreyboxMaterials()
+			private readonly string _folder;
+
+			public GreyboxMaterials(string folder)
 			{
+				_folder = folder;
 				Low = Upsert("Barge_LowConfidence", new Color(0.93f, 0.45f, 0.20f), 0f);
 				Medium = Upsert("Barge_MediumConfidence", new Color(0.95f, 0.76f, 0.22f), 0f);
 				High = Upsert("Barge_HighConfidence", new Color(0.30f, 0.72f, 0.36f), 0f);
@@ -488,7 +498,7 @@ namespace FerrySim.World.EditorTools
 			public Color LabelColor(string confidence) =>
 				confidence == "high" ? new Color(0.55f, 1f, 0.6f) : confidence == "medium" ? new Color(1f, 0.9f, 0.45f) : new Color(1f, 0.65f, 0.45f);
 
-			private static Material UpsertLabelBacking()
+			private Material UpsertLabelBacking()
 			{
 				var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? throw new InvalidOperationException("URP Unlit shader not found.");
 				var material = new Material(shader) { name = "LabelBacking" };
@@ -508,9 +518,10 @@ namespace FerrySim.World.EditorTools
 				return Store(material);
 			}
 
-			private static Material Store(Material material)
+			private Material Store(Material material)
 			{
-				var path = $"{MaterialFolder}/{material.name}.mat";
+				Validate(material);
+				var path = $"{_folder}/{material.name}.mat";
 				var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
 				if (existing == null)
 				{
@@ -523,13 +534,30 @@ namespace FerrySim.World.EditorTools
 				existing.shaderKeywords = material.shaderKeywords;
 				existing.globalIlluminationFlags = material.globalIlluminationFlags;
 				existing.SetOverrideTag("RenderType", material.GetTag("RenderType", false));
-				existing.renderQueue = material.renderQueue;
+				existing.renderQueue = material.rawRenderQueue;
+				Validate(existing);
 				EditorUtility.SetDirty(existing);
 				Object.DestroyImmediate(material);
 				return existing;
 			}
 
-			private static Material Upsert(string name, Color color, float emission)
+
+			/// <summary>Run the same shader validation on new and updated assets, including URP's derived
+			/// tags, pass flags and legacy color aliases. The import postprocessor only initializes new assets.</summary>
+			private static void Validate(Material material)
+			{
+				var editor = UnityEditor.Editor.CreateEditor(material) as MaterialEditor;
+				try
+				{
+					editor?.customShaderGUI?.ValidateMaterial(material);
+				}
+				finally
+				{
+					Object.DestroyImmediate(editor);
+				}
+			}
+
+			private Material Upsert(string name, Color color, float emission)
 			{
 				var shader = Shader.Find("Universal Render Pipeline/Lit");
 				if (shader == null)
