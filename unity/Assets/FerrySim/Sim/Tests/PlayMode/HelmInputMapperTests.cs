@@ -53,7 +53,7 @@ namespace FerrySim.Sim.PlayModeTests
 				Assert.That(action.bindings.Count, Is.GreaterThan(0), axis);
 			}
 
-			foreach (var button in new[] { "Horn", "Pause", "Reset", "CameraCycle" })
+			foreach (var button in new[] { "Horn", "Pause", "Reset", "CameraCycle", "NewRun" })
 			{
 				var action = map.FindAction(button, throwIfNotFound: true);
 				Assert.That(action.type, Is.EqualTo(InputActionType.Button), button);
@@ -289,18 +289,21 @@ namespace FerrySim.Sim.PlayModeTests
 		public void Buttons_FireOncePerPress_AndResetNeedsAHold()
 		{
 			var keyboard = InputSystem.AddDevice<Keyboard>();
-			int pauses = 0, resets = 0, cameras = 0;
+			int pauses = 0, resets = 0, cameras = 0, newRuns = 0;
 			var horn = 0;
 			_mapper.PauseRequested += () => pauses++;
 			_mapper.ResetRequested += () => resets++;
 			_mapper.CameraCycleRequested += () => cameras++;
+			_mapper.NewRunRequested += () => newRuns++;
 			_mapper.HornChanged += active => horn += active ? 1 : -1;
 
 			Tap(keyboard.pKey);
 			Tap(keyboard.cKey);
 			Tap(keyboard.cKey);
+			Tap(keyboard.nKey);
 			Assert.That(pauses, Is.EqualTo(1));
 			Assert.That(cameras, Is.EqualTo(2));
+			Assert.That(newRuns, Is.EqualTo(1), "N asks for the scenario picker");
 
 			Press(keyboard.hKey);
 			Assert.That(_mapper.HornActive, Is.True);

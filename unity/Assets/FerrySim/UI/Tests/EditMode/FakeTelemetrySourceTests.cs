@@ -233,5 +233,30 @@ namespace FerrySim.UI.Tests.EditMode
 			Assert.That(_source.SetScenarioStart("next tuesday"), Is.False);
 			Assert.That(_source.ScenarioStartUtc, Is.EqualTo(new DateTimeOffset(2026, 6, 15, 13, 0, 0, TimeSpan.Zero)));
 		}
+
+		[Test]
+		public void StartScenario_ReplaysFromTheStartAsANewRun_WithTheChosenClock_UntilTheNextLoad()
+		{
+			// The dev scene's picker starts runs this way. Guards against a chosen start still marked ASSUMED START, a
+			// restart that keeps the old run id or position, and a chosen start that outlives a different recording.
+			Assert.That(_source.TryLoadCsv(SamplePath), Is.True, _source.LoadError);
+			Assert.That(_source.ScenarioStartIsFallback, Is.True, "a CLI recording has no start of its own");
+			_source.Seek(50.0);
+			var runId = _source.RunId;
+			var chosen = new DateTimeOffset(2025, 7, 16, 11, 5, 0, TimeSpan.FromHours(-4));
+
+			_source.StartScenario(chosen);
+
+			Assert.That(_source.ScenarioStartUtc, Is.EqualTo(chosen));
+			Assert.That(_source.ScenarioStartUtc.Offset, Is.EqualTo(TimeSpan.Zero), "kept in UTC");
+			Assert.That(_source.ScenarioStartIsFallback, Is.False, "a start someone chose is not an assumption");
+			Assert.That(_source.RunId, Is.GreaterThan(runId), "a new run");
+			Assert.That(_source.State.Time, Is.EqualTo(_source.Recording.StartTime), "from the first row");
+			Assert.That(_source.IsPlaying, Is.True);
+
+			Assert.That(_source.TryLoadCsv(SamplePath), Is.True, _source.LoadError);
+			Assert.That(_source.ScenarioStartIsFallback, Is.True, "a load brings its own start back");
+			Assert.That(_source.ScenarioStartUtc, Is.EqualTo(new DateTimeOffset(2026, 6, 15, 13, 0, 0, TimeSpan.Zero)));
+		}
 	}
 }

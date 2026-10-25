@@ -104,6 +104,15 @@
 					"processors": "",
 					"interactions": "",
 					"initialStateCheck": false
+				},
+				{
+					"name": "NewRun",
+					"type": "Button",
+					"id": "d0a4b4a8-e887-5834-be15-4adf7f4e50fa",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
 				}
 			],
 			"bindings": [
@@ -489,6 +498,17 @@
 					"processors": "",
 					"groups": "Gamepad",
 					"action": "CameraCycle",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "820fd2a7-c925-501a-9cf4-64be3a75f95a",
+					"path": "<Keyboard>/n",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "NewRun",
 					"isComposite": false,
 					"isPartOfComposite": false
 				}

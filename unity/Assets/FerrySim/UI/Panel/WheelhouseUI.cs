@@ -10,8 +10,10 @@ namespace FerrySim.UI
 	/// Hosts <see cref="WheelhouseView"/> in a UIDocument and refreshes it every frame from an
 	/// <see cref="IVesselTelemetrySource"/>: the serialized source if set, else <see cref="Source"/> assigned
 	/// from code, else the first source found in the scene (the simulation bridge in preference to a fake).
-	/// Other systems drive it through the public members (palette, units, HUD toggle, acknowledge); the
-	/// development toolbar is only for the dev scene.
+	/// The water and the air come from an <see cref="IEnvironmentReadoutSource"/> and the scenario picker uses an
+	/// <see cref="IScenarioCatalog"/> and <see cref="IScenarioLauncher"/>, found the same way unless
+	/// <see cref="ConnectScenario"/> sets them. Other systems drive it through the public members (palette, units,
+	/// HUD toggle, acknowledge, picker); the development toolbar is only for the dev scene.
 	/// </summary>
 	[DisallowMultipleComponent]
 	public sealed class WheelhouseUI : MonoBehaviour
@@ -19,6 +21,18 @@ namespace FerrySim.UI
 		[Tooltip("A component implementing IVesselTelemetrySource. Empty: found in the scene at startup.")]
 		[SerializeField]
 		private MonoBehaviour telemetrySource;
+
+		[Tooltip("A component implementing IEnvironmentReadoutSource. Empty: found in the scene at startup.")]
+		[SerializeField]
+		private MonoBehaviour environmentSource;
+
+		[Tooltip("A component implementing IScenarioCatalog. Empty: found in the scene at startup.")]
+		[SerializeField]
+		private MonoBehaviour scenarioCatalog;
+
+		[Tooltip("A component implementing IScenarioLauncher. Empty: the catalog if it is one, else found in the scene at startup.")]
+		[SerializeField]
+		private MonoBehaviour scenarioLauncher;
 
 		[Tooltip("Optional. Empty: runtime panel settings scaled from a 1280x720 design.")]
 		[SerializeField]
@@ -45,18 +59,50 @@ namespace FerrySim.UI
 
 		private PanelSettings _ownedSettings;
 		private bool _sourceConfigured;
+		private bool _scenarioConfigured;
 		private readonly List<string> _recordings = new List<string>();
 		private int _recordingIndex;
 		private string _statusRun;
 		private double _statusThreshold = double.NaN;
 		private DistanceUnit _statusUnit;
 		private bool _statusAssumedStart;
+		private bool _statusFakeEnvironment;
 
 		public IVesselTelemetrySource Source { get; set; }
+
+		/// <summary>The water and the air for the panel and the HUD; null reads "---".</summary>
+		public IEnvironmentReadoutSource EnvironmentSource { get; set; }
+
+		public IScenarioCatalog ScenarioCatalog { get; private set; }
+
+		public IScenarioLauncher ScenarioLauncher { get; private set; }
 
 		public WheelhouseView View { get; private set; }
 
 		public UIDocument Document { get; private set; }
+
+		/// <summary>
+		/// Connects the readouts of the water and the air and the scenario picker; any argument may be null (its
+		/// readouts read "---", or the picker says it cannot start). Call it any time; what it sets is never replaced by
+		/// a scene search. The simulation side exposes these on its bootstrap (Sim/README.md).
+		/// </summary>
+		public void ConnectScenario(IEnvironmentReadoutSource environment, IScenarioCatalog catalog, IScenarioLauncher launcher)
+		{
+			EnvironmentSource = environment;
+			ScenarioCatalog = catalog;
+			ScenarioLauncher = launcher;
+			_scenarioConfigured = true;
+			View?.ConnectScenario(catalog, launcher);
+		}
+
+		/// <summary>Opens the scenario picker (it reads the catalog again), or closes it. For a key binding or a menu.</summary>
+		public void ShowScenarioPicker(bool show = true)
+		{
+			if (View != null)
+			{
+				View.PickerVisible = show;
+			}
+		}
 
 		/// <summary>
 		/// Sets the source (null for none: the panel then shows NO DATA) and panel settings before the
@@ -76,6 +122,13 @@ namespace FerrySim.UI
 			if (Source == null && !_sourceConfigured)
 			{
 				Source = telemetrySource as IVesselTelemetrySource ?? FindSource();
+			}
+
+			if (!_scenarioConfigured)
+			{
+				EnvironmentSource ??= environmentSource as IEnvironmentReadoutSource ?? Find<IEnvironmentReadoutSource>(typeof(FakeEnvironmentSource));
+				ScenarioCatalog ??= scenarioCatalog as IScenarioCatalog ?? Find<IScenarioCatalog>(typeof(FakeScenarioHost));
+				ScenarioLauncher ??= scenarioLauncher as IScenarioLauncher ?? ScenarioCatalog as IScenarioLauncher ?? Find<IScenarioLauncher>(typeof(FakeScenarioHost));
 			}
 
 			if (panelSettings == null && _ownedSettings == null)
@@ -117,6 +170,11 @@ namespace FerrySim.UI
 
 			// A scene source that has been destroyed would keep answering with its last values: treat it as none.
 			var source = Source is Object component && component == null ? null : Source;
+			if (View != null)
+			{
+				View.EnvironmentSource = EnvironmentSource;
+			}
+
 			View?.Refresh(source, Time.unscaledTimeAsDouble);
 			if (View != null && View.ToolbarVisible)
 			{
@@ -141,6 +199,8 @@ namespace FerrySim.UI
 				HudVisible = showHud,
 			};
 			View.SettingsChanged += MirrorSettings;
+			View.EnvironmentSource = EnvironmentSource;
+			View.ConnectScenario(ScenarioCatalog, ScenarioLauncher);
 			root.Add(View);
 			View.StretchToParentSize();
 			if (showDevToolbar)
@@ -156,19 +216,22 @@ namespace FerrySim.UI
 			depthAlarmThresholdMetres = (float)View.DepthAlarmThresholdMetres;
 		}
 
-		private static IVesselTelemetrySource FindSource()
+		private static IVesselTelemetrySource FindSource() => Find<IVesselTelemetrySource>(typeof(FakeTelemetrySource));
+
+		/// <summary>The first component in the scene implementing <typeparamref name="T"/>, preferring anything to a <paramref name="fake"/>.</summary>
+		private static T Find<T>(System.Type fake) where T : class
 		{
-			IVesselTelemetrySource fallback = null;
+			T fallback = null;
 			foreach (var behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.InstanceID))
 			{
-				if (behaviour is IVesselTelemetrySource source)
+				if (behaviour is T found)
 				{
-					if (!(behaviour is FakeTelemetrySource))
+					if (!fake.IsInstanceOfType(behaviour))
 					{
-						return source;
+						return found;
 					}
 
-					fallback ??= source;
+					fallback ??= found;
 				}
 			}
 
@@ -186,6 +249,12 @@ namespace FerrySim.UI
 			toolbar.AddButton("Ack", View.AcknowledgeAlarms, "acknowledge");
 			toolbar.AddButton("Panel", () => View.PanelVisible = !View.PanelVisible, "toggle-panel");
 			toolbar.AddButton("HUD", () => View.HudVisible = !View.HudVisible, "toggle-hud");
+			toolbar.AddButton("New run", View.TogglePicker, "toggle-picker");
+			if (EnvironmentSource is FakeEnvironmentSource fakeEnvironment)
+			{
+				toolbar.AddButton("Off grid", () => fakeEnvironment.OffDepthGrid = !fakeEnvironment.OffDepthGrid, "toggle-off-grid");
+			}
+
 			if (Source is FakeTelemetrySource fake)
 			{
 				toolbar.AddButton("Play / Pause", () => fake.IsPlaying = !fake.IsPlaying, "toggle-play");
@@ -232,15 +301,20 @@ namespace FerrySim.UI
 			View.DebriefVisible = true;
 		}
 
-		/// <summary>The run, the alarm setting (marked while it is the unconfirmed default) and an assumed clock; rebuilt only when one changes.</summary>
+		/// <summary>
+		/// The run, the alarm setting (marked while it is the unconfirmed default), an assumed clock and a synthetic
+		/// environment; rebuilt only when one changes.
+		/// </summary>
 		private void UpdateToolbarStatus()
 		{
 			var fake = Source as FakeTelemetrySource;
 			var run = fake != null && fake.Recording != null ? fake.Recording.Label : "live";
 			var assumedStart = fake != null && fake.Recording != null && fake.ScenarioStartIsFallback;
+			var fakeEnvironment = EnvironmentSource is FakeEnvironmentSource;
 			var thresholdMetres = View.DepthAlarmThresholdMetres;
 			var unit = View.DistanceUnit;
-			if (ReferenceEquals(run, _statusRun) && thresholdMetres.Equals(_statusThreshold) && unit == _statusUnit && assumedStart == _statusAssumedStart)
+			if (ReferenceEquals(run, _statusRun) && thresholdMetres.Equals(_statusThreshold) && unit == _statusUnit && assumedStart == _statusAssumedStart &&
+				fakeEnvironment == _statusFakeEnvironment)
 			{
 				return;
 			}
@@ -249,6 +323,7 @@ namespace FerrySim.UI
 			_statusThreshold = thresholdMetres;
 			_statusUnit = unit;
 			_statusAssumedStart = assumedStart;
+			_statusFakeEnvironment = fakeEnvironment;
 			var threshold = InstrumentFormat.Distance(thresholdMetres, unit) + " " + DisplayUnits.Symbol(unit);
 			var text = $"{run}  |  alarm below {threshold}";
 			if (DepthAlarm.IsDefaultThreshold(thresholdMetres))
@@ -259,6 +334,11 @@ namespace FerrySim.UI
 			if (assumedStart)
 			{
 				text += "  |  clock: assumed start (no scenario_start_utc in the CSV)";
+			}
+
+			if (fakeEnvironment)
+			{
+				text += "  |  water and air: synthetic (fake), not data";
 			}
 
 			PaletteRoles.SetText(View.Toolbar.Status, text);

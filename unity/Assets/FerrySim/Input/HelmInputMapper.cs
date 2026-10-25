@@ -31,6 +31,7 @@ namespace FerrySim.Controls
 		private readonly InputAction _pause;
 		private readonly InputAction _reset;
 		private readonly InputAction _cameraCycle;
+		private readonly InputAction _newRun;
 		private readonly int _notches;
 		private double _portLever;
 		private double _starboardLever;
@@ -68,6 +69,7 @@ namespace FerrySim.Controls
 			_pause = Find("Pause");
 			_reset = Find("Reset");
 			_cameraCycle = Find("CameraCycle");
+			_newRun = Find("NewRun");
 
 			_port.performed += OnPort;
 			_port.canceled += OnPort;
@@ -88,6 +90,7 @@ namespace FerrySim.Controls
 			_pause.performed += OnPause;
 			_reset.performed += OnReset;
 			_cameraCycle.performed += OnCameraCycle;
+			_newRun.performed += OnNewRun;
 		}
 
 		/// <summary>The horn button went down (true) or up (false).</summary>
@@ -99,6 +102,9 @@ namespace FerrySim.Controls
 		public event Action ResetRequested;
 
 		public event Action CameraCycleRequested;
+
+		/// <summary>The new-run key was pressed: the scene opens its scenario picker.</summary>
+		public event Action NewRunRequested;
 
 		public InputActionMap Map => _map;
 
@@ -122,6 +128,9 @@ namespace FerrySim.Controls
 		}
 
 		public void Disable() => _map.Disable();
+
+		/// <summary>True while the helm reads its devices (between <see cref="Enable"/> and <see cref="Disable"/>).</summary>
+		public bool Enabled => _map.enabled;
 
 		/// <summary>
 		/// Back to where the devices are now: stepped levers return to neutral, and absolute axes that are held
@@ -186,6 +195,7 @@ namespace FerrySim.Controls
 			_pause.performed -= OnPause;
 			_reset.performed -= OnReset;
 			_cameraCycle.performed -= OnCameraCycle;
+			_newRun.performed -= OnNewRun;
 			_map.Disable();
 		}
 
@@ -328,6 +338,8 @@ namespace FerrySim.Controls
 		private void OnReset(InputAction.CallbackContext context) => ResetRequested?.Invoke();
 
 		private void OnCameraCycle(InputAction.CallbackContext context) => CameraCycleRequested?.Invoke();
+
+		private void OnNewRun(InputAction.CallbackContext context) => NewRunRequested?.Invoke();
 
 		private static double Clamp(double value) => double.IsNaN(value) ? 0.0 : Math.Max(-1.0, Math.Min(1.0, value));
 	}

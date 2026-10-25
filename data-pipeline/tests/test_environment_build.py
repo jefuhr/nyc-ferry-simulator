@@ -55,12 +55,40 @@ def environment_fixture(tmp_path, monkeypatch):
 	payload(f'predictions_8516990_{day}.json', {'predictions': water})
 	payload(f'wind_8518750_{day}.json', {'error': {'message': 'No data'}})
 	payload(f'wind_8516945_{day}.json', {'data': [dict(t=t, s='2', d='0', g='3') for t in times]})
-	cal.header['stations'] = [dict(id=s, name=s, lat=40.7, lon=-74.015) for s in ('NYH1919','NYH1920','NYH1921','NYH1922','NYH1927')]
+	# Five harmonic stations 100 m apart (their field disks may not overlap) and one subordinate to a reference.
+	cal.header['stations'] = [dict(id=s, name=s, lat=float(lat), lon=-74.015) for s, lat in zip(('NYH1919','NYH1920','NYH1921','NYH1922','NYH1927'),
+		40.7 + (np.arange(5) - 2) * 100. / 111034.)]
 	for station in cal.header['stations']:
 		body = 'Time, Depth, Velocity_Major, meanFloodDir, meanEbbDir, Bin\n' + ''.join(f'{t},9.4,100,45,225,9\n' for t in times)
 		raw(cal, f'{station["id"]}_{day}.csv', body)
+	(out / 'coops_stations.json').write_text(json.dumps({'stations': [
+		dict(id='ACTX', kind='current_prediction', station_type='subordinate'), dict(id='NYH1920', kind='current_prediction', station_type='harmonic')]}))
+	payload('offsets_ACTX.json', {'stations': [dict(id='ACTX', name='fixture subordinate', lat=40.7, lng=-74.0138, type='S', currbin=1,
+		currentpredictionoffsets=dict(refStationId='REF', refStationBin=6, meanFloodDir=30., meanEbbDir=210., mfcTimeAdjMin=-6,
+			sbeTimeAdjMin=-2, mecTimeAdjMin=8, sbfTimeAdjMin=1, mfcAmpAdj=.6, mecAmpAdj=1.12))]})
+	# The reference: a pure semidiurnal sine over the week's window and 12 hours either side; its events at its slacks and peaks.
+	period = 44712.
+	week0 = series.epoch(day) - timedelta(hours=13)
+	stamps = [week0 + timedelta(seconds=360 * k) for k in range(int((7 * 86400 + 26 * 3600 + 13 * 3600) / 360) + 1)]
+	seconds = [(t - series.epoch(day)).total_seconds() for t in stamps]
+	raw(env, f'currents_REF_bin6_{day}.csv', 'Time, Depth, Velocity_Major, meanFloodDir, meanEbbDir, Bin\n' + ''.join(
+		f'{t.strftime("%Y-%m-%d %H:%M")},4.6,{150 * np.sin(2 * np.pi * x / period):.1f},45.0,225.0,6\n' for t, x in zip(stamps, seconds)))
+	events = []
+	for k in range(int(seconds[0] // (period / 4)) + 1, int(seconds[-1] // (period / 4))):
+		x = k * period / 4
+		kind, v = [('slack', 0.), ('flood', 150.), ('slack', 0.), ('ebb', -150.)][k % 4]
+		events.append(((series.epoch(day) + timedelta(seconds=x)).strftime('%Y-%m-%d %H:%M'), kind, v))
+	header = 'Time, Depth, Type, Velocity_Major, meanFloodDir, meanEbbDir, Bin\n'
+	raw(env, f'events_REF_bin6_{day}.csv', header + ''.join(f'{t},4.6,{k},{v},45.0,225.0,6\n' for t, k, v in events))
+	raw(env, f'events_ACTX_bin1_{day}.csv', header + ''.join(f'{t},null,{k},{v * .6 if v > 0 else v * 1.12},30.0,210.0,1\n' for t, k, v in events))
 	env.save()
 	cal.save()
+	# No ENC or CUDEM offline: open water, 10 m deep, in a small box around the fixture.
+	from ferrydata.environment import region_field
+	monkeypatch.setitem(region_field.REGIONS, 'lower-east-river', dict(north=(-400., 400.), east=(-400., 400.), cell=20., inflow='south', outflow='north'))
+	monkeypatch.setattr(region_field, 'land', lambda lat: (np.zeros((lat.rows, lat.cols), bool), []))
+	monkeypatch.setattr(region_field, 'bed', lambda lat, depth_dir: (np.full((lat.rows, lat.cols), -10.),
+		[dict(name='depth/DIGEST', sha256=pack.read_digest(depth_dir), note='fixture')]))
 	return out, day
 
 
@@ -81,6 +109,12 @@ def test_cli_build_twice_verify_provenance_fill_and_fallback(environment_fixture
 	assert any('261 missing observed' in n for n in metadata['notes'])
 	assert any('no NAVD88' in n for n in metadata['notes'])
 	assert any('Long Island Sound' in n for n in metadata['notes'])
+	assert metadata['field_digest'] == pack.read_digest(root / 'field')
+	subordinate = next(s for s in metadata['current_stations'] if s['id'] == 'ACTX')
+	assert subordinate['kind'] == 'subordinate-prediction' and subordinate['derivation']['reference_station'] == 'REF'
+	assert [s['id'] for s in metadata['current_stations']] == sorted(s['id'] for s in metadata['current_stations'])
+	field_manifest = json.loads((root / 'field' / 'manifest.json').read_text())
+	assert [s['id'] for s in field_manifest['stations']] == sorted(s['id'] for s in metadata['current_stations'])
 	assert (paths.REPO_ROOT / 'artifacts/environment-pack/report.md').is_file()
 	assert (paths.REPO_ROOT / 'artifacts/environment-pack/currents-tide.png').is_file()
 	p = paths.raw_dir('coops-calibration') / f'NYH1919_{day}.csv'

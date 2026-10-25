@@ -12,7 +12,8 @@ namespace FerrySim.Slice.Tests
 	/// The shipped scenario against the landing data it is built from (Astra review finding 2). Failure modes guarded:
 	/// a scenario asset left behind when contacts.json changed (the approach aims where a face used to be), and the
 	/// builder aiming at the wrong face of the stop (its first usable segment instead of the pipeline's primary
-	/// face). Clearance alone catches neither: a stale pose can still start well clear of every face.
+	/// face). Clearance alone catches neither: a stale pose can still start well clear of every face. Also: the scene's
+	/// scenario not running on its real day, or on a day and time the packs do not cover.
 	/// </summary>
 	public class SliceScenarioTests
 	{
@@ -48,7 +49,7 @@ namespace FerrySim.Slice.Tests
 
 			var settings = SliceSceneBuilder.DefaultScenario(landings, vessel);
 
-			var start = settings.InitialState(settings.environment.Create());
+			var start = settings.InitialState(settings.CreateEnvironment().Observer);
 			var ids = face.Segments.Select(s => s.Id).ToArray();
 			var clearance = FaceClearance.Check(vessel, start.North, start.East, start.Heading, landings.Geometry.Segments);
 			var toFace = FaceClearance.Check(vessel, start.North, start.East, start.Heading, face.Segments.Select(s => s.Segment).ToArray());
@@ -59,6 +60,21 @@ namespace FerrySim.Slice.Tests
 			Assert.That(toFace.Distance, Is.EqualTo(SliceSceneBuilder.ApproachBowClearance).Within(1e-6), "bow 40 m off the primary face");
 			Assert.That(Angles.ToDegrees(System.Math.Abs(Angles.WrapPi(start.Heading - inward))), Is.LessThan(1e-9), "heading straight in, against the face's water normal");
 			Assert.That(settings.name, Does.Contain(face.StopName));
+		}
+
+		[Test]
+		public void TheScenesScenario_RunsOnItsRealDay()
+		{
+			var landings = LandingGeometry.Load(SliceTestData.ContactsPath, SliceTestData.SurfacesPath);
+			var settings = SliceSceneBuilder.DefaultScenario(landings, SliceTestData.LoadTClass());
+
+			Assert.That(settings.environment.pack, Is.EqualTo(SliceSceneBuilder.DefaultPack));
+			Assert.That(settings.environment.Kind, Is.EqualTo(EnvironmentKind.Pack));
+			Assert.That(settings.scenarioStartUtc, Is.EqualTo(SliceSceneBuilder.ScenarioStartUtc));
+			Assert.DoesNotThrow(() => settings.Validate(), "the pack is built and covers the start");
+			var environment = settings.CreateEnvironment();
+			Assert.That(environment.LocalUtcOffset, Is.EqualTo(System.TimeSpan.FromHours(-4.0)));
+			Assert.That(settings.StartUtc + environment.LocalUtcOffset, Is.EqualTo(new System.DateTimeOffset(2025, 7, 20, 18, 48, 0, System.TimeSpan.Zero)), "18:48 local");
 		}
 	}
 }

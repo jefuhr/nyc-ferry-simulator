@@ -17,18 +17,24 @@ namespace FerrySim.Slice
 	/// Joins the Lower East River slice into one drivable scene. Before the runner's first run it builds the landing
 	/// contact geometry from the world importer's contacts.json and the slice's fender parameters
 	/// (<see cref="LandingGeometry"/>) and hands it to the runner; it puts the imported terrain under the world frame on
-	/// the water's datum (<see cref="ImportedTerrain"/>), lights the world for each run's scenario start, checks every
+	/// the water's datum (<see cref="ImportedTerrain"/>), keeps the drawn water at the run's tide (<see cref="TideFollower"/>),
+	/// lights the world for each run's scenario start, puts the wheelhouse eye aboard each run's vessel, checks every
 	/// run starts clear of the faces, switches the wheelhouse panel and the HUD with the camera view, and lets the helm's
-	/// camera button swap the wheelhouse and chase views. It fails closed: if the landing files are missing or malformed
-	/// the runner is stopped with an error naming the file and the reason, and any run that starts anyway, or starts less
-	/// than <see cref="FaceClearance.MinimumMetres"/> from a face, is ended before its first physics step with the reason
-	/// kept in <see cref="StartRefusal"/>; the vessel never runs through the landings by accident. A player reads the
-	/// scenario's vessel file from StreamingAssets, where every player build copies it (FerrySim.Build.PlayerPayload);
-	/// a player without it stops with an error naming the file.
+	/// camera button swap the wheelhouse and chase views. It is the slice's hook point for a scenario picker: it is the
+	/// catalog and the launcher (<see cref="IScenarioCatalog"/> and <see cref="IScenarioLauncher"/>, through
+	/// <see cref="SliceScenarios"/>), and <see cref="EnvironmentSource"/> is the runner's environment readout. It connects
+	/// all three to the wheelhouse UI, and the helm's new-run key opens the UI's scenario picker; while the picker is open
+	/// the run is paused and the helm is held, so browsing never moves the boat. It fails
+	/// closed: if the landing files are missing or malformed the runner is stopped with an error naming the file and the
+	/// reason, and any run that starts anyway, or starts less than <see cref="FaceClearance.MinimumMetres"/> from a face, is
+	/// ended before its first physics step with the reason kept in <see cref="StartRefusal"/>; the vessel never runs through
+	/// the landings by accident. A player reads the scenario's vessel file and environment pack from StreamingAssets, where
+	/// every player build copies them (FerrySim.Build.PlayerPayload); a player without them stops with an error naming what
+	/// is missing.
 	/// </summary>
 	[DefaultExecutionOrder(-500)]
 	[DisallowMultipleComponent]
-	public sealed class SliceBootstrap : MonoBehaviour
+	public sealed class SliceBootstrap : MonoBehaviour, IScenarioCatalog, IScenarioLauncher
 	{
 		[SerializeField]
 		private VesselSimulationRunner runner;
@@ -65,6 +71,18 @@ namespace FerrySim.Slice
 		[SerializeField]
 		private string vesselFile = string.Empty;
 
+		[Tooltip("The environment pack (region/date) the runner's scenario runs on, empty for calm or uniform water. A player without it stops with an error.")]
+		[SerializeField]
+		private string environmentPack = string.Empty;
+
+		[Tooltip("Vessel files the scenario picker offers, in its order, relative to the repository root. Player builds copy them into StreamingAssets.")]
+		[SerializeField]
+		private string[] vesselFiles = { "vessels/t-class.json", "vessels/k-class.json" };
+
+		[Tooltip("The region's environment packs the scenario picker offers, data/processed/<region>/env. Player builds copy every file in it into StreamingAssets.")]
+		[SerializeField]
+		private string environmentFolder = EnvironmentPacks.RegionFolder("lower-east-river");
+
 		[SerializeField]
 		private WorldFrame worldFrame;
 
@@ -92,9 +110,14 @@ namespace FerrySim.Slice
 		private bool switchPanelWithCamera = true;
 
 		private readonly List<Object> _owned = new List<Object>();
+		private TideFollower _tide;
+		private SliceScenarios _scenarios;
 		private HelmInputMapper _mapper;
 		private WheelhouseView _switchedView;
 		private CameraRig.Mode _switchedMode;
+		private WheelhouseView _pickerView;
+		private bool _pausedForPicker;
+		private HelmInputMapper _heldMapper;
 
 		public VesselSimulationRunner Runner => runner;
 
@@ -127,6 +150,40 @@ namespace FerrySim.Slice
 
 		/// <summary>The vessel file a player must have, the one the runner's scenario loads.</summary>
 		public string VesselFile => vesselFile;
+
+		/// <summary>The environment pack a player must have, the one the runner's scenario runs on; empty for calm or uniform water.</summary>
+		public string EnvironmentPack => environmentPack;
+
+		/// <summary>The scenario catalog and launcher behind this component's <see cref="IScenarioCatalog"/> and <see cref="IScenarioLauncher"/>.</summary>
+		public SliceScenarios Scenarios => _scenarios ??= new SliceScenarios(this, vesselFiles, environmentFolder);
+
+		/// <summary>What a scenario picker offers: the slice's landings, the pack days and the vessels. This component.</summary>
+		public IScenarioCatalog ScenarioCatalog => this;
+
+		/// <summary>Starts a picked scenario on the slice's runner. This component.</summary>
+		public IScenarioLauncher ScenarioLauncher => this;
+
+		/// <summary>Vessel files the scenario picker offers, in order.</summary>
+		public IReadOnlyList<string> VesselFiles => vesselFiles;
+
+		/// <summary>The region's pack folder the scenario picker offers days from, <c>data/processed/&lt;region&gt;/env</c>.</summary>
+		public string EnvironmentFolder => environmentFolder;
+
+		IReadOnlyList<ScenarioLanding> IScenarioCatalog.Landings => Scenarios.Landings;
+
+		IReadOnlyList<ScenarioDay> IScenarioCatalog.Days => Scenarios.Days;
+
+		IReadOnlyList<ScenarioVessel> IScenarioCatalog.Vessels => Scenarios.Vessels;
+
+		bool IScenarioCatalog.TryCreate(ScenarioChoice choice, out ScenarioSettings settings, out string problem) => Scenarios.TryCreate(choice, out settings, out problem);
+
+		bool IScenarioLauncher.TryStart(ScenarioSettings settings, out string problem) => Scenarios.TryStart(settings, out problem);
+
+		/// <summary>The water and air at the vessel for the UI: the runner's readout.</summary>
+		public IEnvironmentReadoutSource EnvironmentSource => runner;
+
+		/// <summary>The drawn water's tide driver, or null when the scene has no water surface.</summary>
+		public TideFollower Tide => _tide;
 
 		/// <summary>Why this player cannot run the slice (its vessel file is not packaged), or null.</summary>
 		public string PlayerError { get; private set; }
@@ -162,6 +219,17 @@ namespace FerrySim.Slice
 			LoadLandings();
 			PlaceTerrain();
 			CheckPlayer();
+			if (water != null)
+			{
+				_tide = new TideFollower(runner, water);
+			}
+
+			// The panel and the HUD read the run's water and air, and the picker chooses from this catalog and starts runs
+			// through this launcher, never a scene search's guess.
+			if (wheelhouseUI != null)
+			{
+				wheelhouseUI.ConnectScenario(runner, this, this);
+			}
 		}
 
 		/// <summary>
@@ -187,6 +255,28 @@ namespace FerrySim.Slice
 				"rebuild the player with scripts/release.sh or the editor's Build menu (docs/releasing.md).";
 		}
 
+		/// <summary>
+		/// As <see cref="PlayerProblem(bool, string)"/>, and also why the scenario's environment pack is missing from a player's
+		/// <paramref name="packs"/> (StreamingAssets, then the repository, when null). An empty pack name is calm or uniform water.
+		/// </summary>
+		public static string PlayerProblem(bool isEditor, string vesselFile, string environmentPack, EnvironmentPacks packs = null)
+		{
+			var problem = PlayerProblem(isEditor, vesselFile);
+			if (problem != null || isEditor || string.IsNullOrEmpty(environmentPack))
+			{
+				return problem;
+			}
+
+			packs ??= EnvironmentPacks.Default;
+			if (EnvironmentPacks.TryParseName(environmentPack, out _, out _, out var nameProblem) && packs.DayFolder(environmentPack) != null)
+			{
+				return null;
+			}
+
+			return $"This player cannot run its scenario: {nameProblem ?? packs.NotFound(environmentPack)}. Player builds copy the environment packs into StreamingAssets; " +
+				"rebuild the player with scripts/release.sh or the editor's Build menu (docs/releasing.md).";
+		}
+
 		private void OnEnable()
 		{
 			if (runner != null)
@@ -202,11 +292,14 @@ namespace FerrySim.Slice
 				runner.RunStarted -= OnRunStarted;
 			}
 
+			FollowPicker(null);
 			Subscribe(null);
 		}
 
 		private void OnDestroy()
 		{
+			_tide?.Dispose();
+			_tide = null;
 			foreach (var owned in _owned)
 			{
 				if (owned != null)
@@ -220,8 +313,17 @@ namespace FerrySim.Slice
 
 		private void Update()
 		{
-			// The helm builds its mapper when it is enabled; follow whichever one is current.
+			// The helm builds its mapper when it is enabled, and the UI its view; follow whichever ones are current.
 			Subscribe(helm != null && helm.isActiveAndEnabled ? helm.Mapper : null);
+			FollowPicker(wheelhouseUI != null ? wheelhouseUI.View : null);
+		}
+
+		/// <summary>Opens the wheelhouse UI's scenario picker, or closes it: what the helm's new-run key does.</summary>
+		public void ToggleScenarioPicker()
+		{
+			var view = wheelhouseUI != null ? wheelhouseUI.View : null;
+			FollowPicker(view);
+			view?.TogglePicker();
 		}
 
 		private void LateUpdate()
@@ -328,7 +430,7 @@ namespace FerrySim.Slice
 
 		private void CheckPlayer()
 		{
-			PlayerError = PlayerProblem(Application.isEditor, vesselFile);
+			PlayerError = PlayerProblem(Application.isEditor, vesselFile, environmentPack, runner.EnvironmentPacks);
 			if (PlayerError != null)
 			{
 				Debug.LogError($"[FerrySim] {PlayerError} The vessel does not run.", this);
@@ -343,6 +445,8 @@ namespace FerrySim.Slice
 			{
 				sun.SetUtc(runner.ScenarioStartUtc.UtcDateTime);
 			}
+
+			PlaceWheelhouseEye();
 
 			if (runner.IsReplaying)
 			{
@@ -379,6 +483,23 @@ namespace FerrySim.Slice
 		}
 
 		/// <summary>
+		/// Puts the wheelhouse eye at the helm of the run's vessel, as the scene builder put it for the T-class: the eye height
+		/// and forward position of <see cref="GreyboxDimensions"/> from the vessel file, tilted as built. Only a mount aboard the
+		/// vessel moves.
+		/// </summary>
+		private void PlaceWheelhouseEye()
+		{
+			var mount = cameraRig != null ? cameraRig.WheelhouseMount : null;
+			if (mount == null || runner.Parameters == null || mount.transform.parent != runner.transform)
+			{
+				return;
+			}
+
+			var eye = GreyboxDimensions.From(runner.Parameters);
+			mount.transform.localPosition = new Vector3(0f, (float)eye.BridgeEyeHeight, (float)eye.BridgeEyeForward);
+		}
+
+		/// <summary>
 		/// Ends the run that is starting, before its first physics step: called from <see cref="VesselSimulationRunner.RunStarted"/>,
 		/// which every live start raises (Initialize and ResetRun) before the runner's next frame can step.
 		/// </summary>
@@ -399,12 +520,95 @@ namespace FerrySim.Slice
 			if (_mapper != null)
 			{
 				_mapper.CameraCycleRequested -= CycleCamera;
+				_mapper.NewRunRequested -= ToggleScenarioPicker;
 			}
 
 			_mapper = mapper;
 			if (_mapper != null)
 			{
 				_mapper.CameraCycleRequested += CycleCamera;
+				_mapper.NewRunRequested += ToggleScenarioPicker;
+				// A helm enabled again behind an open picker builds a new mapper, which starts enabled: hold it too.
+				if (_pickerView != null && _pickerView.PickerVisible)
+				{
+					HoldHelm();
+				}
+			}
+		}
+
+		private void FollowPicker(WheelhouseView view)
+		{
+			if (ReferenceEquals(view, _pickerView))
+			{
+				return;
+			}
+
+			if (_pickerView != null)
+			{
+				_pickerView.PickerVisibilityChanged -= OnPickerVisibilityChanged;
+				ReleasePickerHolds();
+			}
+
+			_pickerView = view;
+			if (_pickerView != null)
+			{
+				_pickerView.PickerVisibilityChanged += OnPickerVisibilityChanged;
+				if (_pickerView.PickerVisible)
+				{
+					OnPickerVisibilityChanged(true);
+				}
+			}
+		}
+
+		// While the picker is open the run stands still and the helm is held (its keys and axes do nothing), so browsing
+		// never moves the boat. Closing the picker, or starting a run from it, gives both back; a run the captain had
+		// paused before opening it stays paused. Escape and the picker's Close button close it, since the held helm's
+		// new-run key cannot.
+		private void OnPickerVisibilityChanged(bool visible)
+		{
+			if (!visible)
+			{
+				ReleasePickerHolds();
+				return;
+			}
+
+			if (runner != null && !runner.IsPaused)
+			{
+				runner.Pause();
+				_pausedForPicker = true;
+			}
+
+			HoldHelm();
+		}
+
+		private void HoldHelm()
+		{
+			if (_mapper != null && !ReferenceEquals(_heldMapper, _mapper))
+			{
+				_mapper.Disable();
+				_heldMapper = _mapper;
+			}
+		}
+
+		private void ReleasePickerHolds()
+		{
+			if (_pausedForPicker)
+			{
+				_pausedForPicker = false;
+				if (runner != null)
+				{
+					runner.Resume();
+				}
+			}
+
+			if (_heldMapper != null)
+			{
+				var held = _heldMapper;
+				_heldMapper = null;
+				if (ReferenceEquals(held, _mapper) && helm != null && helm.isActiveAndEnabled)
+				{
+					_mapper.Enable();
+				}
 			}
 		}
 

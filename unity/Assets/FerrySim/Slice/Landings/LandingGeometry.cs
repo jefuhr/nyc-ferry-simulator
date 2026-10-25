@@ -9,11 +9,12 @@ using Newtonsoft.Json.Linq;
 
 namespace FerrySim.Slice
 {
-	/// <summary>A landing face segment used for contact, with the pipeline's provenance and its fender.</summary>
+	/// <summary>A landing structure segment used for contact, with the pipeline's provenance and its fender.</summary>
 	public sealed class LandingSegment
 	{
 		public LandingSegment(ContactSegment segment, int fileIndex, string stopId, string stopName, string source, string confidence, string verification,
-			bool waterSideVerifiedByPipeline, bool waterSideCrewReported, bool isPrimary, LandingSurface surface)
+			bool waterSideVerifiedByPipeline, bool waterSideCrewReported, bool isPrimary, LandingSurface surface, string kind = null, string berthId = null,
+			bool solidSideVerified = false)
 		{
 			Segment = segment;
 			FileIndex = fileIndex;
@@ -26,6 +27,9 @@ namespace FerrySim.Slice
 			WaterSideCrewReported = waterSideCrewReported;
 			IsPrimary = isPrimary;
 			Surface = surface;
+			Kind = kind;
+			BerthId = berthId;
+			SolidSideVerified = solidSideVerified;
 		}
 
 		public ContactSegment Segment { get; }
@@ -55,8 +59,26 @@ namespace FerrySim.Slice
 		/// <summary>Crew confirmed which side is water (<c>water_side_crew_reported</c>), whatever the chart check said.</summary>
 		public bool WaterSideCrewReported { get; }
 
-		/// <summary>Who vouches for the water side: <c>pipeline</c>, <c>crew</c> or <c>pipeline+crew</c>.</summary>
-		public string WaterSideBasis => WaterSideVerifiedByPipeline ? (WaterSideCrewReported ? "pipeline+crew" : "pipeline") : "crew";
+		/// <summary>
+		/// The segment belongs to a closed charted outline that is solid on its right, with charted water and no land or
+		/// other structure just off its left (<c>solid_side_evidence.verified</c>, contacts.json version 2).
+		/// </summary>
+		public bool SolidSideVerified { get; }
+
+		/// <summary>
+		/// Who vouches for the water side: <c>pipeline</c>, <c>crew</c> or <c>pipeline+crew</c>, or <c>solid-side</c> for a
+		/// segment off the primary face kept on its charted solid side alone.
+		/// </summary>
+		public string WaterSideBasis => WaterSideVerifiedByPipeline ? (WaterSideCrewReported ? "pipeline+crew" : "pipeline") : WaterSideCrewReported ? "crew" : "solid-side";
+
+		/// <summary>
+		/// What the segment is (contacts.json version 2): <c>berth-face</c>, <c>barge-side</c>, <c>barge-end</c>, <c>pier</c>,
+		/// <c>bulkhead</c> or <c>shoreline</c>; null in a version 1 file.
+		/// </summary>
+		public string Kind { get; }
+
+		/// <summary>The berth the segment's barge outline is, for example <c>enc:0226015B0512B198</c>; null for fixed structures and version 1 files.</summary>
+		public string BerthId { get; }
 
 		/// <summary>Part of the stop's primary landing face, the one the pipeline selected (<c>primary_face</c>).</summary>
 		public bool IsPrimary { get; }
@@ -120,13 +142,15 @@ namespace FerrySim.Slice
 	}
 
 	/// <summary>
-	/// The landing faces the hull can touch, built at run time from the world importer's <c>contacts.json</c>
+	/// The landing structures the hull can touch, built at run time from the world importer's <c>contacts.json</c>
 	/// (a list of segments: id, stop_id, stop_name, start_ne_m, end_ne_m, water_normal_ne, source, confidence,
-	/// verification, water_side_verified_by_pipeline and the optional water_side_crew_reported and primary_face; other
-	/// fields are ignored). A segment is used when the pipeline verified its water side or crew reported it, and its
-	/// normal agrees with Start to End; every other segment is left out and listed in <see cref="Excluded"/>, and
-	/// segments kept on the crew's report alone are listed in <see cref="CrewReportedOnly"/>. Ids are kept as given.
-	/// Fenders come from a <see cref="LandingSurfaceTable"/>, never from constants. A missing or malformed file throws
+	/// verification, water_side_verified_by_pipeline and the optional water_side_crew_reported and primary_face; version
+	/// 2 adds the optional kind, berth_id and solid_side_evidence; other fields are ignored). A segment is used when the
+	/// pipeline verified its water side or crew reported it, or, off the primary face only, when its charted solid side
+	/// is verified; and its normal agrees with Start to End. Every other segment is left out and listed in
+	/// <see cref="Excluded"/>; segments kept on the crew's report alone are listed in <see cref="CrewReportedOnly"/> and
+	/// those kept on their solid side alone in <see cref="SolidSideOnly"/>. Ids are kept as given. Fenders come from a
+	/// <see cref="LandingSurfaceTable"/> by stop and kind, never from constants. A missing or malformed file throws
 	/// <see cref="LandingDataException"/> naming the file and the reason.
 	/// </summary>
 	public sealed class LandingGeometry
@@ -159,6 +183,15 @@ namespace FerrySim.Slice
 		/// <summary>Marks the subsegments of the stop's primary landing face; absent counts as false.</summary>
 		public const string PrimaryFaceField = "primary_face";
 
+		/// <summary>Version 2, optional: what the segment is, which selects its fender (<see cref="LandingSurfaceTable.For(string, string)"/>).</summary>
+		public const string KindField = "kind";
+
+		/// <summary>Version 2, optional: the berth whose barge outline the segment belongs to.</summary>
+		public const string BerthIdField = "berth_id";
+
+		/// <summary>Version 2, optional: an object whose boolean <c>verified</c> vouches for the segment's charted solid side.</summary>
+		public const string SolidSideField = "solid_side_evidence";
+
 		private readonly Dictionary<int, LandingSegment> _byId = new Dictionary<int, LandingSegment>();
 
 		private LandingGeometry()
@@ -183,6 +216,9 @@ namespace FerrySim.Slice
 
 		/// <summary>Kept segments whose water side only crew vouch for: the pipeline's chart check failed or is missing.</summary>
 		public IReadOnlyList<LandingSegment> CrewReportedOnly { get; private set; }
+
+		/// <summary>Kept segments off the primary face that only their charted solid side vouches for (version 2).</summary>
+		public IReadOnlyList<LandingSegment> SolidSideOnly { get; private set; }
 
 		/// <summary>Segments in the file, kept or not.</summary>
 		public int SegmentsRead { get; private set; }
@@ -274,9 +310,16 @@ namespace FerrySim.Slice
 			foreach (var segment in Segments)
 			{
 				var surface = segment.Surface.Surface;
-				text.AppendFormat(invariant, "  {0} stop {1} {2}{3}: {4:F1} m, {5}/{6}, {7}, water side: {8}; fender '{9}' ({10}) k {11:G4} N/m per m, c {12:G4} N*s/m per m, mu {13:G3}, travel {14:G3} m\n",
+				text.AppendFormat(invariant, "  {0} stop {1} {2}{3}{15}: {4:F1} m, {5}/{6}, {7}, water side: {8}; fender '{9}' ({10}) k {11:G4} N/m per m, c {12:G4} N*s/m per m, mu {13:G3}, travel {14:G3} m\n",
 					segment.Id, segment.StopId, segment.StopName, segment.IsPrimary ? " (primary face)" : string.Empty, segment.Segment.Length, segment.Source, segment.Confidence,
-					segment.Verification, segment.WaterSideBasis, segment.Surface.Key, segment.Surface.Confidence, surface.Stiffness, surface.Damping, surface.Friction, surface.MaxCompression);
+					segment.Verification, segment.WaterSideBasis, segment.Surface.Key, segment.Surface.Confidence, surface.Stiffness, surface.Damping, surface.Friction, surface.MaxCompression,
+					segment.Kind == null ? string.Empty : " " + segment.Kind + (segment.BerthId == null ? string.Empty : " of " + segment.BerthId));
+			}
+
+			text.Append(SolidSideOnly.Count == 0 ? "Kept on the charted solid side only (off the primary face): none\n" : "Kept on the charted solid side only (off the primary face):\n");
+			foreach (var segment in SolidSideOnly)
+			{
+				text.AppendFormat(invariant, "  {0} stop {1} {2} {3}\n", segment.Id, segment.StopId, segment.StopName, segment.Kind);
 			}
 
 			text.Append(CrewReportedOnly.Count == 0 ? "Kept on the crew's report only (pipeline chart check failed or missing): none\n" : "Kept on the crew's report only (pipeline chart check failed or missing):\n");
@@ -332,7 +375,8 @@ namespace FerrySim.Slice
 				Geometry = new SegmentListGeometry(segments),
 				Segments = kept,
 				Excluded = excluded,
-				CrewReportedOnly = kept.FindAll(segment => !segment.WaterSideVerifiedByPipeline),
+				CrewReportedOnly = kept.FindAll(segment => !segment.WaterSideVerifiedByPipeline && segment.WaterSideCrewReported),
+				SolidSideOnly = kept.FindAll(segment => !segment.WaterSideVerifiedByPipeline && !segment.WaterSideCrewReported),
 				SegmentsRead = root.Count,
 			};
 			foreach (var segment in kept)
@@ -418,6 +462,9 @@ namespace FerrySim.Slice
 			var verified = Flag(segment, PipelineWaterSideField, where, problems);
 			var crew = Flag(segment, CrewWaterSideField, where, problems);
 			var primary = Flag(segment, PrimaryFaceField, where, problems);
+			var kind = OptionalText(segment, KindField, where, problems, nonEmpty: true);
+			var berthId = OptionalText(segment, BerthIdField, where, problems, nonEmpty: false);
+			var solidSide = SolidSide(segment, where, problems);
 
 			if (hasStart && hasEnd)
 			{
@@ -439,14 +486,16 @@ namespace FerrySim.Slice
 				return;
 			}
 
-			if (!verified && !crew)
+			if (!verified && !crew && (primary || !solidSide))
 			{
+				var solidText = segment[SolidSideField] == null ? "absent" : solidSide ? "true" : "false";
 				excluded.Add(new ExcludedLandingSegment(id, index, stopId, stopName, primary,
-					$"water side neither verified by the pipeline ({PipelineWaterSideField} {FlagText(segment[PipelineWaterSideField])}) nor reported by crew ({CrewWaterSideField} {FlagText(segment[CrewWaterSideField])})"));
+					$"water side neither verified by the pipeline ({PipelineWaterSideField} {FlagText(segment[PipelineWaterSideField])}) nor reported by crew ({CrewWaterSideField} {FlagText(segment[CrewWaterSideField])})" +
+					(primary ? (solidSide ? ", and a primary face is never kept on its solid side alone" : string.Empty) : $", nor its charted solid side verified ({SolidSideField}.verified {solidText})")));
 				return;
 			}
 
-			var surface = surfaces.For(stopId);
+			var surface = surfaces.For(stopId, kind);
 			ContactSegment contact;
 			try
 			{
@@ -469,7 +518,50 @@ namespace FerrySim.Slice
 				return;
 			}
 
-			kept.Add(new LandingSegment(contact, index, stopId, stopName, source, confidence, verification, verified, crew, primary, surface));
+			kept.Add(new LandingSegment(contact, index, stopId, stopName, source, confidence, verification, verified, crew, primary, surface, kind, berthId, solidSide));
+		}
+
+		/// <summary>An optional text field: absent or null is null; anything but text (or empty text when it must not be) is malformed.</summary>
+		private static string OptionalText(JObject segment, string field, string where, List<string> problems, bool nonEmpty)
+		{
+			var token = segment[field];
+			if (token == null || token.Type == JTokenType.Null)
+			{
+				return null;
+			}
+
+			if (token.Type != JTokenType.String || (nonEmpty && string.IsNullOrWhiteSpace((string)token)))
+			{
+				problems.Add($"{where}: {field} must be {(nonEmpty ? "non-empty " : string.Empty)}text");
+				return null;
+			}
+
+			return (string)token;
+		}
+
+		/// <summary>The optional solid-side proof: absent is false; an object whose verified is not true or false is malformed.</summary>
+		private static bool SolidSide(JObject segment, string where, List<string> problems)
+		{
+			var token = segment[SolidSideField];
+			if (token == null || token.Type == JTokenType.Null)
+			{
+				return false;
+			}
+
+			if (!(token is JObject evidence))
+			{
+				problems.Add($"{where}: {SolidSideField} must be an object");
+				return false;
+			}
+
+			var verified = evidence["verified"];
+			if (verified == null || verified.Type != JTokenType.Boolean)
+			{
+				problems.Add($"{where}: {SolidSideField}.verified must be true or false");
+				return false;
+			}
+
+			return (bool)verified;
 		}
 
 		/// <summary>An optional boolean: absent or null is false; anything but true or false is malformed.</summary>

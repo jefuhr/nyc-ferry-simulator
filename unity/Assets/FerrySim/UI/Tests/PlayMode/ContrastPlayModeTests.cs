@@ -68,6 +68,43 @@ namespace FerrySim.UI.Tests.PlayMode
 			Assert.That(CheckVisibleText(_rig.View.Debrief), Is.GreaterThan(40), "debrief");
 		}
 
+		[UnityTest]
+		public IEnumerator ThePickerAndTheEnvironmentReadouts_EveryVisibleDayText_MeetsWcagAA()
+		{
+			// The picker open with a refusal showing, the water and the air on the panel and the HUD, a day without
+			// wind, and both coverage warnings, first live (filled) and then earlier (outlined).
+			_rig = new UITestRig(1280, 720);
+			Assert.That(_rig.Source.TryLoadCsv(UITestRig.SamplePath), Is.True, _rig.Source.LoadError);
+			_rig.Source.Seek(46.0);
+			var host = new GameObject("environment readout (contrast test)");
+			try
+			{
+				var environment = host.AddComponent<StubEnvironmentRunner>();
+				environment.HasEnvironment = true;
+				environment.Environment = TestReadouts.Pack(0.9, 0.35, 1.8, 47.0, 0.0, 0.0, windMissing: true, timeHolds: 5, depthMisses: 5);
+				var catalog = FakeScenarioCatalog.Slice("2025-01-15");
+				catalog.StartProblem = "The run could not start because the vessel file is missing.";
+				_rig.UI.ConnectScenario(environment, catalog, catalog);
+				_rig.View.HudVisible = true;
+				yield return UITestRig.Frames();
+				_rig.View.PickerVisible = true;
+				_rig.View.Picker.Days.SelectedIndex = 9;
+				Assert.That(_rig.View.Picker.TryStartRun(), Is.False);
+				yield return UITestRig.Frames();
+				Assert.That(_rig.View.Panel.Depth.Grid.Indication, Is.EqualTo(CoverageIndication.Live));
+				Assert.That(CheckVisibleText(_rig.View), Is.GreaterThan(100), "panel, HUD and picker, warnings live");
+
+				_rig.Source.Seek(50.0);
+				yield return UITestRig.Frames();
+				Assert.That(_rig.View.Panel.Depth.Grid.Indication, Is.EqualTo(CoverageIndication.Earlier));
+				Assert.That(CheckVisibleText(_rig.View), Is.GreaterThan(100), "warnings earlier");
+			}
+			finally
+			{
+				Object.Destroy(host);
+			}
+		}
+
 		/// <summary>
 		/// Checks every visible text element under <paramref name="root"/> against the backgrounds of its
 		/// ancestors blended over the 3D view, taking the worse of a black and a white view where the

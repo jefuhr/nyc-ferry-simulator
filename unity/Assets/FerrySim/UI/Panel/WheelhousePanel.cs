@@ -7,14 +7,16 @@ namespace FerrySim.UI
 	/// <summary>
 	/// The wheelhouse instrument console along the bottom of the screen. Port engine on the left and
 	/// starboard on the right (where they are on the boat); heading, speeds and the rudders in the middle,
-	/// with depth and contact beside them. It reads only <see cref="IVesselTelemetrySource"/> and converts
-	/// to display units at the last moment.
+	/// with depth and contact beside them. The top strip carries the vessel, the water and the air (tide, set
+	/// and drift, wind), the day and the clock. It reads only <see cref="IVesselTelemetrySource"/> and
+	/// <see cref="IEnvironmentReadoutSource"/> and converts to display units at the last moment.
 	/// <para>
 	/// With no source, or one whose <see cref="IVesselTelemetrySource.HasTelemetry"/> is false, every readout
 	/// shows "---", no alarm is shown and the status bar says NO DATA, rather than zeros or stale values.
-	/// Per-run state (the depth alarm and its acknowledgement, the contact episode) starts over whenever the
-	/// source or its <see cref="IVesselTelemetrySource.RunId"/> changes, but not on a dropout within a run.
-	/// Contact comes from the source's per-step latch, so a touch between two frames is never missed.
+	/// The water and the air follow their own source the same way (<see cref="EnvironmentDisplay"/>).
+	/// Per-run state (the depth alarm and its acknowledgement, the contact episode, the coverage warnings) starts
+	/// over whenever the source or its <see cref="IVesselTelemetrySource.RunId"/> changes, but not on a dropout
+	/// within a run. Contact comes from the source's per-step latch, so a touch between two frames is never missed.
 	/// </para>
 	/// </summary>
 	public sealed class WheelhousePanel : VisualElement, IPaletteAware
@@ -23,15 +25,15 @@ namespace FerrySim.UI
 		private readonly ReadoutText _stwText = new ReadoutText();
 		private readonly ReadoutText _depthText = new ReadoutText();
 		private readonly ReadoutText _elapsedText = new ReadoutText();
-		private long _clockSecond = long.MinValue;
-		private const string ZoneUnknown = "NEW YORK";
 
 		private readonly Label _vessel;
 		private readonly Label _noData;
+		private readonly Label _date;
 		private readonly Label _clockNote;
 		private readonly Label _clock;
 		private readonly Label _zone;
 		private readonly Label _elapsed;
+		private bool _dateShown;
 		private VesselParameters _parameters;
 		private bool _parametersSeen;
 		private InstrumentScales _scales = InstrumentScales.Generic;
@@ -55,8 +57,18 @@ namespace FerrySim.UI
 			_noData = PaletteRoles.Label("NO DATA", null, "fs-caption", "fs-strong", "fs-nodata");
 			_noData.name = "no-data";
 			status.Add(_noData);
-			var spacer = Container("fs-spacer");
-			status.Add(spacer);
+			status.Add(Container("fs-spacer"));
+			EnvironmentReadouts = new EnvironmentReadouts("env");
+			status.Add(EnvironmentReadouts);
+			status.Add(Container("fs-spacer"));
+			// The warning stands where the date would: it is about the clock having run past the day's data.
+			DayData = new CoverageTag("OUTSIDE DAY'S DATA") { name = "day-data" };
+			DayData.AddToClassList("fs-day-data");
+			status.Add(DayData);
+			_date = PaletteRoles.Label(string.Empty, PaletteRoles.Dim, "fs-caption", "fs-date");
+			_date.name = "date";
+			_date.style.display = DisplayStyle.None;
+			status.Add(_date);
 			_clockNote = PaletteRoles.Label(string.Empty, PaletteRoles.Dim, "fs-caption", "fs-clock-note");
 			_clockNote.name = "clock-note";
 			_clockNote.style.display = DisplayStyle.None;
@@ -64,7 +76,7 @@ namespace FerrySim.UI
 			_clock = PaletteRoles.Label(InstrumentFormat.NoValue, PaletteRoles.Text, "fs-value-s");
 			_clock.name = "clock";
 			status.Add(_clock);
-			_zone = PaletteRoles.Label(ZoneUnknown, PaletteRoles.Dim, "fs-unit");
+			_zone = PaletteRoles.Label(EnvironmentDisplay.ZoneUnknown, PaletteRoles.Dim, "fs-unit");
 			_zone.name = "clock-zone";
 			status.Add(_zone);
 			_elapsed = PaletteRoles.Label(InstrumentFormat.NoValue, PaletteRoles.Dim, "fs-unit", "fs-elapsed");
@@ -135,9 +147,21 @@ namespace FerrySim.UI
 
 		public Label ClockZone => _zone;
 
+		/// <summary>The run's date beside the clock; shown only while the clock comes from the environment.</summary>
+		public Label Date => _date;
+
 		public Label Elapsed => _elapsed;
 
 		public Label VesselName => _vessel;
+
+		/// <summary>Tide, set and drift, and wind, in the top strip.</summary>
+		public EnvironmentReadouts EnvironmentReadouts { get; }
+
+		/// <summary>OUTSIDE DAY'S DATA, beside the clock in place of the date while it shows (<see cref="EnvironmentDisplay.DayData"/>).</summary>
+		public CoverageTag DayData { get; }
+
+		/// <summary>What the strip, the clock and the depth block's grid warning show; the HUD shows the same.</summary>
+		public EnvironmentDisplay EnvironmentDisplay { get; } = new EnvironmentDisplay();
 
 		public bool ShowingNoData { get; private set; }
 
@@ -154,15 +178,23 @@ namespace FerrySim.UI
 
 		public void AcknowledgeAlarm() => Alarm.Acknowledge();
 
+		/// <summary>Refreshes without an environment source: the water and the air read "---".</summary>
+		public void Refresh(IVesselTelemetrySource source, DistanceUnit unit, double depthAlarmThresholdMetres, double realTime) =>
+			Refresh(source, null, unit, depthAlarmThresholdMetres, realTime);
+
 		/// <param name="source">May be null.</param>
-		/// <param name="unit">Depth unit setting.</param>
+		/// <param name="environment">May be null.</param>
+		/// <param name="unit">Depth and tide unit setting.</param>
 		/// <param name="depthAlarmThresholdMetres">Shallow-water alarm threshold, metres under keel.</param>
 		/// <param name="realTime">Unscaled real time in seconds, for alarm flashing only.</param>
-		public void Refresh(IVesselTelemetrySource source, DistanceUnit unit, double depthAlarmThresholdMetres, double realTime)
+		public void Refresh(IVesselTelemetrySource source, IEnvironmentReadoutSource environment, DistanceUnit unit, double depthAlarmThresholdMetres, double realTime)
 		{
 			StartOverOnNewRun(source);
 			_unit = unit;
 			Alarm.ThresholdMetres = depthAlarmThresholdMetres;
+			// The water, the air and the clock change on their own, so they are checked every frame; unchanged text costs nothing.
+			EnvironmentDisplay.Update(source, environment, unit);
+			ShowEnvironment(source);
 			if (source == null || !source.HasTelemetry)
 			{
 				ShowNoData();
@@ -210,7 +242,6 @@ namespace FerrySim.UI
 			Depth.ShowValue(InstrumentFormat.NoValue, _unit);
 			Depth.SetAlarm(AlarmState.Normal, false);
 			Contact.ShowNoData();
-			ShowNoClock();
 			PaletteRoles.SetText(_elapsed, InstrumentFormat.NoValue);
 		}
 
@@ -256,33 +287,34 @@ namespace FerrySim.UI
 				InstrumentFormat.IsFinite(telemetry.ContactForce) && InstrumentFormat.IsFinite(state.Time));
 			Contact.Show(ContactMonitor);
 
-			if (NewYorkTime.TryToLocal(sample.ScenarioStartUtc, state.Time, out var local, out var daylight))
-			{
-				var second = local.Hour * 3600 + local.Minute * 60 + local.Second;
-				if (second != _clockSecond || _clock.text == InstrumentFormat.NoValue)
-				{
-					_clockSecond = second;
-					PaletteRoles.SetText(_clock, InstrumentFormat.Clock(local));
-				}
-				PaletteRoles.SetText(_zone, NewYorkTime.Abbreviation(daylight));
-				// CSV playback without a recorded start uses a setting; say so rather than present it as the scenario's.
-				ShowClockNote(source is FakeTelemetrySource fake && fake.ScenarioStartIsFallback ? "ASSUMED START" : string.Empty);
-			}
-			else
-			{
-				ShowNoClock();
-			}
-
 			PaletteRoles.SetText(_elapsed, _elapsedText.Elapsed(state.Time));
 			_shown = sample;
 			_sampleShown = true;
 		}
 
-		private void ShowNoClock()
+		/// <summary>The strip's water and air, the date, the clock and the depth block's grid warning, from <see cref="EnvironmentDisplay"/>.</summary>
+		private void ShowEnvironment(IVesselTelemetrySource source)
 		{
-			PaletteRoles.SetText(_clock, InstrumentFormat.NoValue);
-			PaletteRoles.SetText(_zone, ZoneUnknown);
-			ShowClockNote(string.Empty);
+			var display = EnvironmentDisplay;
+			EnvironmentReadouts.Show(display);
+			DayData.Show(display.DayDataIndication);
+			Depth.ShowGrid(display.DepthGridIndication);
+			PaletteRoles.SetText(_clock, display.Clock);
+			PaletteRoles.SetText(_zone, display.Zone);
+			var dateShown = display.DateShown && display.DayDataIndication == CoverageIndication.None;
+			if (dateShown != _dateShown)
+			{
+				_dateShown = dateShown;
+				_date.style.display = _dateShown ? DisplayStyle.Flex : DisplayStyle.None;
+			}
+
+			if (_dateShown)
+			{
+				PaletteRoles.SetText(_date, display.Date);
+			}
+
+			// CSV playback without a recorded start uses a setting; say so rather than present it as the scenario's.
+			ShowClockNote(display.ClockKnown && source is FakeTelemetrySource fake && fake.ScenarioStartIsFallback ? "ASSUMED START" : string.Empty);
 		}
 
 		private void ShowClockNote(string text)
@@ -333,7 +365,10 @@ namespace FerrySim.UI
 			return element;
 		}
 
-		/// <summary>Everything a refresh shows, compared field by field without boxing to tell a new sample from one already on screen.</summary>
+		/// <summary>
+		/// Everything a sample shows, compared field by field without boxing to tell a new sample from one already on
+		/// screen. The clock is not part of it: it follows the environment too, and is checked every frame.
+		/// </summary>
 		private readonly struct ShownSample
 		{
 			public ShownSample(IVesselTelemetrySource source, DistanceUnit unit, double threshold)
@@ -342,9 +377,7 @@ namespace FerrySim.UI
 				Telemetry = source.Telemetry;
 				Controls = source.Controls;
 				Contact = source.Contact;
-				ScenarioStartUtc = source.ScenarioStartUtc;
 				Parameters = source.Parameters;
-				ClockAssumed = source is FakeTelemetrySource fake && fake.ScenarioStartIsFallback;
 				Unit = unit;
 				Threshold = threshold;
 			}
@@ -357,11 +390,7 @@ namespace FerrySim.UI
 
 			public ContactLatch Contact { get; }
 
-			public System.DateTimeOffset ScenarioStartUtc { get; }
-
 			public VesselParameters Parameters { get; }
-
-			public bool ClockAssumed { get; }
 
 			public DistanceUnit Unit { get; }
 
@@ -369,8 +398,7 @@ namespace FerrySim.UI
 
 			public bool SameAs(in ShownSample other) =>
 				State.Equals(other.State) && Controls.Equals(other.Controls) && SameTelemetry(Telemetry, other.Telemetry) &&
-				SameLatch(Contact, other.Contact) && ScenarioStartUtc.Equals(other.ScenarioStartUtc) &&
-				ReferenceEquals(Parameters, other.Parameters) && ClockAssumed == other.ClockAssumed && Unit == other.Unit &&
+				SameLatch(Contact, other.Contact) && ReferenceEquals(Parameters, other.Parameters) && Unit == other.Unit &&
 				Threshold.Equals(other.Threshold);
 
 			private static bool SameTelemetry(in VesselTelemetry a, in VesselTelemetry b) =>

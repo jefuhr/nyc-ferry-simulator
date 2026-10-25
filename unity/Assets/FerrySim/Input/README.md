@@ -26,6 +26,9 @@ Owner: **unity-sim-bridge-controls**. Assembly `FerrySim.Unity.Input` (namespace
 | `Pause` | button | P | start | |
 | `Reset` | button, hold 1 s | R | select | |
 | `CameraCycle` | button | C | north button | |
+| `NewRun` | button | N | | |
+
+`NewRun` raises `HelmInputMapper.NewRunRequested`. In the slice scene, `SliceBootstrap` opens the wheelhouse UI's scenario picker on it. While the picker is open, the run is paused and the helm map is disabled, so no key or axis moves the boat; Escape or the picker's Close button closes it.
 
 Signs follow `ControlInputs`: +1 is full ahead, −1 full astern, and +1 helm is hard over to starboard. The Input System inverts HID Y axes, so stick forward reads +1.
 

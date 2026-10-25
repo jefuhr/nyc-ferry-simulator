@@ -21,9 +21,9 @@ namespace FerrySim.Slice.Authoring
 	/// Builds <c>Slice/Scenes/LowerEastRiverSlice.unity</c>, the drivable Lower East River slice: the world scene
 	/// (opened, never saved back) plus the bridge's runner with the T-class on the Cesium placement, the helm, the
 	/// wheelhouse UI bound to the runner and <see cref="SliceBootstrap"/>, which builds the landing contact geometry
-	/// from data and places the imported terrain at startup. The scenario starts at rest
-	/// <see cref="ApproachBowClearance"/> m off South Williamsburg's primary landing face, heading in
-	/// (<see cref="DefaultScenario"/>). Object ids are made
+	/// from data, places the imported terrain at startup and is the scenario catalog and launcher. The scenario starts at rest <see cref="ApproachBowClearance"/> m off South
+	/// Williamsburg's primary landing face, heading in, on the environment pack <see cref="DefaultPack"/> at
+	/// <see cref="ScenarioStartUtc"/> (<see cref="DefaultScenario"/>; Slice/README.md says why). Object ids are made
 	/// reproducible (<see cref="SceneFileIds"/>), so a rebuild from the same inputs gives the same bytes. Run it from
 	/// the menu or with
 	/// <code>-executeMethod FerrySim.Slice.Authoring.SliceSceneBuilder.BuildFromCommandLine</code>
@@ -50,8 +50,11 @@ namespace FerrySim.Slice.Authoring
 		/// <summary>Wheelhouse eye tilt below the bow's horizontal, degrees: puts the horizon at about 60% of the screen height.</summary>
 		public const float WheelhouseDownTiltDegrees = 8f;
 
-		/// <summary>Noon EDT on 15 June 2026, inside the pipeline's CO-OPS window (2026-06-14 to 16).</summary>
-		public const string ScenarioStartUtc = "2026-06-15T16:00:00Z";
+		/// <summary>The scenario's real day: Sunday 20 July 2025 (Slice/README.md, The scene, says why).</summary>
+		public const string DefaultPack = "lower-east-river/2025-07-20";
+
+		/// <summary>18:48 EDT on that day: slack water an hour and three quarters after high water, in daylight.</summary>
+		public const string ScenarioStartUtc = "2025-07-20T22:48:00Z";
 
 		[MenuItem("FerrySim/Slice/Build Lower East River Slice Scene")]
 		public static void Build()
@@ -71,7 +74,7 @@ namespace FerrySim.Slice.Authoring
 			var landings = LandingGeometry.Parse(contacts.text, LandingGeometry.DefaultContactsAssetPath,
 				LandingSurfaceTable.Parse(surfaces.text, LandingSurfaceTable.DefaultAssetPath));
 			var settings = DefaultScenario(landings, vessel);
-			var start = settings.InitialState(settings.environment.Create());
+			var start = settings.InitialState(settings.CreateEnvironment().Observer);
 			var clearance = FaceClearance.Check(vessel, start.North, start.East, start.Heading, landings.Geometry.Segments);
 			if (!clearance.IsClear(5.0))
 			{
@@ -139,6 +142,7 @@ namespace FerrySim.Slice.Authoring
 			Set(bootstrap, "sun", sun);
 			Set(bootstrap, "helm", helm);
 			Set(bootstrap, "vesselFile", settings.vesselFile);
+			Set(bootstrap, "environmentPack", settings.environment.pack);
 
 			// A greybox so the scene reads in edit mode; at runtime it is rebuilt from the loaded vessel file.
 			var dimensions = GreyboxDimensions.From(vessel);
@@ -194,15 +198,17 @@ namespace FerrySim.Slice.Authoring
 
 		/// <summary>
 		/// The scene's scenario: the T-class at rest, bow <see cref="ApproachBowClearance"/> m off the middle of South
-		/// Williamsburg's primary landing face, heading straight in, calm water. The face is the one the pipeline
-		/// selected, every segment of the stop that contacts.json flags <c>primary_face</c>
-		/// (<see cref="LandingGeometry.PrimaryFace"/>); the stop's other usable segments, such as the barge's SW end, are
-		/// never chosen in its place, and a primary face left out of contact stops the build.
+		/// Williamsburg's primary landing face, heading straight in, on the real day <see cref="DefaultPack"/> from
+		/// <see cref="ScenarioStartUtc"/>. The face is the one the pipeline selected, every segment of the stop that
+		/// contacts.json flags <c>primary_face</c> (<see cref="LandingGeometry.PrimaryFace"/>); the stop's other usable
+		/// segments, such as the barge's SW end, are never chosen in its place, and a primary face left out of contact
+		/// stops the build.
 		/// </summary>
 		public static ScenarioSettings DefaultScenario(LandingGeometry landings, VesselParameters vessel)
 		{
 			var face = landings.PrimaryFace(ApproachStopId);
-			return LandingApproach.BowOn(face, vessel, ApproachBowClearance, "LowerEastRiverSlice: " + face.StopName + " approach", VesselFile, ScenarioStartUtc);
+			return LandingApproach.BowOn(face, vessel, ApproachBowClearance, "LowerEastRiverSlice: " + face.StopName + " approach", VesselFile, ScenarioStartUtc,
+				0.0, new ScenarioEnvironment { pack = DefaultPack });
 		}
 
 		/// <summary>

@@ -19,7 +19,7 @@ MonoBehaviour:
     startLongitude: -73.9707980762413
     startHeadingDegrees: 125.04204857689795
     startSpeedKnots: 0
-    scenarioStartUtc: 2026-06-15T16:00:00Z
+    scenarioStartUtc: 2025-07-20T22:48:00Z
     environment:
       calm: 1
       currentSpeedKnots: 0
@@ -27,3 +27,4 @@ MonoBehaviour:
       windSpeedKnots: 0
       windFromDegrees: 0
       depthMetres: 50
+      pack: lower-east-river/2025-07-20

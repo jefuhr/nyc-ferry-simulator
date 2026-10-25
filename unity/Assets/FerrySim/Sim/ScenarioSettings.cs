@@ -72,7 +72,16 @@ namespace FerrySim.Sim
 			return VesselState.Planar(0.0, position.North, position.East, heading, surge, sway);
 		}
 
-		public void Validate()
+		/// <summary>Checks the scenario, finding any environment pack it names in StreamingAssets and then the repository.</summary>
+		public void Validate() => Validate(null);
+
+		/// <summary>
+		/// Throws <see cref="ArgumentException"/> naming every problem: an empty vessel file, a start position, heading or
+		/// speed out of range, bad uniform values, a pack name that is not region/date, a pack <paramref name="packs"/> does not
+		/// have (StreamingAssets, then the repository, when null), or a start outside the pack's coverage. A start time that is
+		/// not ISO 8601 throws <see cref="FormatException"/>.
+		/// </summary>
+		public void Validate(EnvironmentPacks packs)
 		{
 			var problems = new List<string>();
 			if (string.IsNullOrWhiteSpace(vesselFile))
@@ -114,16 +123,40 @@ namespace FerrySim.Sim
 				throw new ArgumentException($"Scenario '{name}': " + string.Join("; ", problems) + ".");
 			}
 
-			_ = StartUtc;
+			var start = StartUtc;
+			if (environment.IsPack)
+			{
+				var problem = (packs ?? EnvironmentPacks.Default).StartProblem(environment.pack, start);
+				if (problem != null)
+				{
+					throw new ArgumentException($"Scenario '{name}': {problem}.");
+				}
+			}
+		}
+
+		/// <summary>
+		/// The scenario's water and air: calm, uniform, or the pack's day from <see cref="StartUtc"/>, loaded and verified from
+		/// <paramref name="packs"/> (StreamingAssets, then the repository, when null). Throws when the pack is not found, does
+		/// not verify, or does not cover the start.
+		/// </summary>
+		public RunEnvironment CreateEnvironment(EnvironmentPacks packs = null)
+		{
+			if (!environment.IsPack)
+			{
+				return RunEnvironment.Uniform(environment);
+			}
+
+			var pack = (packs ?? EnvironmentPacks.Default).Load(environment.pack, out var folder);
+			return RunEnvironment.ForPack(pack, StartUtc, folder);
 		}
 
 		private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 	}
 
 	/// <summary>
-	/// Uniform water and air for now: calm, or a current, a wind and a depth that are the same everywhere and
-	/// at all times. Directions follow docs/conventions.md: the current is the direction the water flows toward,
-	/// the wind the direction it blows from.
+	/// The scenario's water and air: one real day from an environment pack (<see cref="pack"/>), or calm, or a current, a
+	/// wind and a depth that are the same everywhere and at all times. Directions follow docs/conventions.md: the current
+	/// is the direction the water flows toward, the wind the direction it blows from.
 	/// </summary>
 	[Serializable]
 	public sealed class ScenarioEnvironment
@@ -143,6 +176,18 @@ namespace FerrySim.Sim
 
 		public double depthMetres = 50.0;
 
+		/// <summary>
+		/// One real day from an environment pack, as region/date (for example <c>lower-east-river/2025-07-14</c>): the run
+		/// takes that day's tide, current, wind and depth from the scenario's start (<see cref="EnvironmentPacks"/>). When set,
+		/// <see cref="calm"/> and the uniform fields are ignored. Empty: calm or uniform.
+		/// </summary>
+		public string pack = string.Empty;
+
+		/// <summary>True when the scenario runs on an environment pack's day.</summary>
+		public bool IsPack => !string.IsNullOrEmpty(pack);
+
+		public EnvironmentKind Kind => IsPack ? EnvironmentKind.Pack : calm ? EnvironmentKind.Calm : EnvironmentKind.Uniform;
+
 		public HorizontalVector Current => calm
 			? UniformEnvironment.Calm.Current
 			: HorizontalVector.FromSpeedToward(Units.KnotsToMetresPerSecond(currentSpeedKnots), Angles.ToRadians(currentTowardDegrees));
@@ -153,14 +198,29 @@ namespace FerrySim.Sim
 
 		public double Depth => calm ? UniformEnvironment.Calm.Depth : depthMetres;
 
-		public UniformEnvironment Create() => new UniformEnvironment(Current, Wind, Depth);
+		/// <summary>The calm or uniform environment. A pack's day needs the scenario's start: use <see cref="ScenarioSettings.CreateEnvironment"/>.</summary>
+		public UniformEnvironment Create()
+		{
+			if (IsPack)
+			{
+				throw new InvalidOperationException($"The environment is the pack '{pack}', which a run loads for its start: use ScenarioSettings.CreateEnvironment.");
+			}
+
+			return new UniformEnvironment(Current, Wind, Depth);
+		}
 
 		/// <summary>
 		/// The same environment in the CLI's <c>--env</c> syntax, so <c>ferrysim run --env "&lt;spec&gt;"</c>
-		/// rebuilds it from the same numbers. Recorded in the telemetry CSV header.
+		/// rebuilds it from the same numbers, or <c>pack</c> for a pack's day (the CLI's <c>--env-pack</c>). Recorded in the
+		/// telemetry CSV header as <c>environment</c>.
 		/// </summary>
 		public string SpecText()
 		{
+			if (IsPack)
+			{
+				return RunEnvironment.PackText;
+			}
+
 			if (calm)
 			{
 				return "calm";
@@ -173,6 +233,16 @@ namespace FerrySim.Sim
 
 		public void Validate(List<string> problems)
 		{
+			if (IsPack)
+			{
+				if (!EnvironmentPacks.TryParseName(pack, out _, out _, out var problem))
+				{
+					problems.Add(problem);
+				}
+
+				return;
+			}
+
 			if (calm)
 			{
 				return;

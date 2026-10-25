@@ -35,9 +35,12 @@ namespace FerrySim.Core.Env
 		private long _depthSamples;
 		private long _depthMisses;
 
-		/// <summary>The pack's day with the provisional station-blend current field.</summary>
+		/// <summary>
+		/// The pack's day with its own current field: the channel field when the pack has a current-field basis, the
+		/// station blend otherwise.
+		/// </summary>
 		public DataEnvironment(EnvironmentPack pack, DateTimeOffset scenarioStartUtc)
-			: this(pack, scenarioStartUtc, new StationBlendCurrentField((pack ?? throw new ArgumentNullException(nameof(pack))).CurrentStations))
+			: this(pack, scenarioStartUtc, DefaultField(pack ?? throw new ArgumentNullException(nameof(pack))))
 		{
 		}
 
@@ -149,5 +152,9 @@ namespace FerrySim.Core.Env
 		}
 
 		private DateTimeOffset At(double packTime) => Pack.EpochUtc.AddTicks((long)Math.Round(packTime * TimeSpan.TicksPerSecond));
+
+		private static ICurrentField DefaultField(EnvironmentPack pack) => pack.CurrentField != null
+			? (ICurrentField)new ChannelCurrentField(pack.CurrentField, pack.CurrentStations)
+			: new StationBlendCurrentField(pack.CurrentStations);
 	}
 }

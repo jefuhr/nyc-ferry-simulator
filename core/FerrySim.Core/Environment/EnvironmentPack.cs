@@ -37,6 +37,15 @@ namespace FerrySim.Core.Env
 		public EnvironmentPack(string region, string date, DateTimeOffset epochUtc, double coverageStart, double coverageEnd, DepthSet depth,
 			IReadOnlyList<CurrentStation> currents, IReadOnlyList<WaterLevelStation> waterLevels, IReadOnlyList<WindStation> winds,
 			IReadOnlyList<string> notes, string digest)
+			: this(region, date, epochUtc, coverageStart, coverageEnd, depth, currents, waterLevels, winds, notes, digest, null)
+		{
+		}
+
+		/// <summary>A pack day with the region's current-field basis, or none (null) for the station blend.</summary>
+		/// <param name="currentField">The region's basis; every station it names must be one of <paramref name="currents"/>.</param>
+		public EnvironmentPack(string region, string date, DateTimeOffset epochUtc, double coverageStart, double coverageEnd, DepthSet depth,
+			IReadOnlyList<CurrentStation> currents, IReadOnlyList<WaterLevelStation> waterLevels, IReadOnlyList<WindStation> winds,
+			IReadOnlyList<string> notes, string digest, CurrentFieldBasis currentField)
 		{
 			if (string.IsNullOrEmpty(region) || string.IsNullOrEmpty(date))
 			{
@@ -59,6 +68,23 @@ namespace FerrySim.Core.Env
 			_winds = Stations(winds, "wind", false);
 			_notes = notes == null ? Array.Empty<string>() : new List<string>(notes).ToArray();
 			Digest = digest ?? string.Empty;
+			if (currentField != null)
+			{
+				if (currentField.Region != region)
+				{
+					throw new ArgumentException($"The current field is for '{currentField.Region}', the pack for '{region}'.");
+				}
+
+				foreach (var station in currentField.Stations)
+				{
+					if (Array.FindIndex(_currents, c => c.Id == station.Id) < 0)
+					{
+						throw new ArgumentException($"The current field needs current station {station.Id}, which the pack does not have.");
+					}
+				}
+			}
+
+			CurrentField = currentField;
 
 			var gaps = new List<SeriesGap>();
 			foreach (var station in _currents)
@@ -113,6 +139,12 @@ namespace FerrySim.Core.Env
 
 		/// <summary>The day digest, which covers the depth set's digest: what recordings carry as <c>environment_digest</c>.</summary>
 		public string Digest { get; }
+
+		/// <summary>
+		/// The region's channel current-field basis when the day names one; null means the station blend
+		/// (<see cref="StationBlendCurrentField"/>).
+		/// </summary>
+		public CurrentFieldBasis CurrentField { get; }
 
 		private static T[] Stations<T>(IReadOnlyList<T> stations, string kind, bool required) where T : EnvironmentStation
 		{

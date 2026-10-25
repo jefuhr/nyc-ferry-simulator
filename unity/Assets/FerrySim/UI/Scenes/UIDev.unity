@@ -134,12 +134,29 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &1500137730589208476
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6454853690009955261}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &1569903141264976695
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 791211570618095118}
   - {fileID: 3624016722814127951}
+  - {fileID: 3483486713844960733}
+  - {fileID: 1500137730589208476}
   - {fileID: 3688327180611523218}
 --- !u!114 &1570490059724809582
 MonoBehaviour:
@@ -151,9 +168,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 19cf9085113f44bedb29db1ff54aa5f5, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: FerrySim.Unity.UI::FerrySim.UI.WheelhouseUI
   telemetrySource: {fileID: 7014392601377912454}
+  environmentSource: {fileID: 6557421828993786308}
+  scenarioCatalog: {fileID: 3596787564969944954}
+  scenarioLauncher: {fileID: 3596787564969944954}
   panelSettings: {fileID: 0}
   palette: 0
   distanceUnit: 0
@@ -229,6 +249,54 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
+--- !u!1 &3136753976779736272
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3483486713844960733}
+  - component: {fileID: 6557421828993786308}
+  m_Layer: 0
+  m_Name: Environment (fake, synthetic water and air)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3483486713844960733
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3136753976779736272}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3596787564969944954
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6454853690009955261}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca4ea205e69374407987f6732cfed479, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: FerrySim.Unity.UI::FerrySim.UI.FakeScenarioHost
+  telemetry: {fileID: 7014392601377912454}
+  environment: {fileID: 6557421828993786308}
+  daysWithoutWind:
+  - 2025-01-15
 --- !u!4 &3624016722814127951
 Transform:
   m_ObjectHideFlags: 0
@@ -276,6 +344,37 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!1 &6454853690009955261
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1500137730589208476}
+  - component: {fileID: 3596787564969944954}
+  m_Layer: 0
+  m_Name: Scenarios (fake catalog and launcher)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &6557421828993786308
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3136753976779736272}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3063a693d2514cccaf1b58ba9865d69, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: FerrySim.Unity.UI::FerrySim.UI.FakeEnvironmentSource
+  telemetry: {fileID: 7014392601377912454}
+  offDepthGrid: 0
 --- !u!114 &7014392601377912454
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -286,7 +385,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 02d0c6ed4f2f34a03a06d820c283e2e1, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: FerrySim.Unity.UI::FerrySim.UI.FakeTelemetrySource
   csvPath: unity/Assets/FerrySim/UI/Samples/t-crash-stop.csv
   scenarioStartUtc: 2026-06-15T13:00:00Z

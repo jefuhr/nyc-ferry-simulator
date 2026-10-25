@@ -19,6 +19,12 @@ namespace FerrySim.World.Import
 	public static class SliceImporter
 	{
 		public const string Output = "Assets/FerrySim/World/Generated/LowerEastRiver";
+		/// <summary>contacts.json version 2: a bare array of segments, version 1 fields first, optional kind, berth and solid-side fields.</summary>
+		public const int ContactsVersion = 2;
+		public static readonly string[] ContactKinds = { "berth-face", "barge-side", "barge-end", "pier", "bulkhead", "shoreline" };
+		private static readonly string[] BargeKinds = { "berth-face", "barge-side", "barge-end" };
+		/// <summary>Largest gap between the pipeline's ferrydata.geodesy coordinates and the core's tangent plane, metres.</summary>
+		public const double PipelineCoordinateTolerance = 1e-3;
 		public static string Repository => Path.GetFullPath(Path.Combine(Application.dataPath, "../.."));
 		public static string Inputs => Path.Combine(Repository, "data/processed/lower-east-river");
 		private const int Stride = 4;
@@ -49,11 +55,11 @@ namespace FerrySim.World.Import
 				var tileCount = BuildTerrain(Child(root, "Terrain"), grid, geoid, terrainMaterial);
 				var structureCount = BuildStructures(Child(root, "Structures"), geoid, structureMaterial);
 				BuildAids(Child(root, "Aids"), geoid, greyMaterial, lightDatum);
-				var contacts = BuildLandings(Child(root, "Landings"), geoid, landingMaterial);
+				var contacts = BuildLandings(Child(root, "Landings"), geoid, landingMaterial, structureMaterial);
 				var prefabPath = Output + "/lower-east-river.prefab";
 				PrefabUtility.SaveAsPrefabAsset(root, prefabPath); Written.Add(prefabPath);
 				WriteText(Output + "/contacts.json", contacts.ToString(Formatting.Indented) + "\n");
-				var inputFiles = new[] { "depth_merged_navd88.tif", "depth_merged_navd88.json", "shoreline_constructions.geojson", "land_areas.geojson", "depth_areas.geojson", "aids.geojson", "landing_faces.geojson", "landings.geojson", "geoid_offset.json", "unity/depth.f32", "unity/depth.json" };
+				var inputFiles = new[] { "depth_merged_navd88.tif", "depth_merged_navd88.json", "shoreline_constructions.geojson", "land_areas.geojson", "depth_areas.geojson", "aids.geojson", "landing_faces.geojson", "landing_structures.geojson", "landings.geojson", "geoid_offset.json", "unity/depth.f32", "unity/depth.json", "unity/contacts.json" };
 				var provenance = new JObject();
 				foreach (var file in inputFiles) provenance[file] = Hash(File.ReadAllBytes(Path.Combine(Inputs, file)));
 				var manifest = new JObject { ["slice"] = "lower-east-river", ["raster_stride"] = Stride, ["tile_cells"] = TileCells,
@@ -65,6 +71,8 @@ namespace FerrySim.World.Import
 					["terrain_note"] = "Merged raster sampled every fourth cell (~12 m); last row/column retained; nodata triangles omitted; no fabricated land elevations",
 					["structure_note"] = "Chart geometry extruded as greybox collider strips from NAVD88 -60 m to +1 m; not surveyed structure heights; point-only objects omitted",
 					["contact_note"] = "Oriented geometry only; bridge must choose reviewed ContactSurface parameters; pipeline provenance retained per segment",
+					["contacts_version"] = ContactsVersion, ["contact_segments"] = contacts.Count,
+					["contact_kinds"] = new JObject(contacts.GroupBy(c => (string)c["kind"]).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => new JProperty(g.Key, g.Count()))),
 					["source_sha256"] = provenance, ["warnings"] = new JArray(Warnings) };
 				WriteText(Output + "/import-manifest.json", manifest.ToString(Formatting.Indented) + "\n");
 				// Only importer-owned stale outputs are removed; .meta files for live assets survive.
@@ -145,9 +153,17 @@ namespace FerrySim.World.Import
 		}
 		private static int BuildStructures(GameObject parent, double geoid, Material material)
 		{
-			var count = 0; var points = 0;
+			// A landing's barges and berths float: the greybox draws them on the tide. Fixed here, from NAVD88 -60 m to +1 m, their chart outline
+			// would stand above the deck at low water, so a structure that contacts.json gives as a barge kind's is left out.
+			var contactsFile = Path.Combine(Inputs, "unity/contacts.json");
+			var afloat = new HashSet<string>(StringComparer.Ordinal);
+			if (File.Exists(contactsFile))
+				foreach (var record in JArray.Parse(File.ReadAllText(contactsFile)).OfType<JObject>())
+					if (Array.IndexOf(BargeKinds, (string)record["kind"]) >= 0 && record["lnam"]?.Type == JTokenType.String) afloat.Add((string)record["lnam"]);
+			var count = 0; var points = 0; var floating = new List<string>();
 			foreach (var feature in ReadFeatures("shoreline_constructions.geojson"))
 			{
+				if (afloat.Contains(FeatureName(feature))) { floating.Add(FeatureName(feature)); continue; }
 				var vertices = new List<Vector3>(); var triangles = new List<int>();
 				foreach (var line in Lines((JObject)feature["geometry"]))
 				for (var i = 1; i < line.Count; i++)
@@ -165,7 +181,8 @@ namespace FerrySim.World.Import
 				mesh.SetVertices(vertices); mesh.SetTriangles(triangles, 0); mesh.RecalculateNormals(); mesh.RecalculateBounds();
 				MeshObject(parent, name, Save(mesh, name + ".asset"), material, true); count++;
 			}
-			Warnings.Add($"{points} point-only chart structures have no extent and are omitted from colliders."); return count;
+			Warnings.Add($"{points} point-only chart structures have no extent and are omitted from colliders.");
+			Warnings.Add($"{floating.Count} floating chart structures are landing barges or berths the greybox draws on the tide and are omitted: {string.Join(", ", floating)}."); return count;
 		}
 
 		private static void BuildAids(GameObject parent, double geoid, Material grey, LightHeightDatum datum)
@@ -250,72 +267,83 @@ namespace FerrySim.World.Import
 			throw new InvalidDataException("Contact segment is not an edge of the landing source outline: " + stop);
 		}
 
-		private static int PrimaryIndex(JArray primary, JToken a, JToken b)
-		{
-			for (var i = 1; i < primary.Count; i++)
-				if ((JToken.DeepEquals(primary[i - 1], a) && JToken.DeepEquals(primary[i], b)) || (JToken.DeepEquals(primary[i - 1], b) && JToken.DeepEquals(primary[i], a))) return i - 1;
-			return -1;
-		}
 		public static bool PipelineWaterSideVerified(JObject feature)
 		{
 			var properties = feature["properties"];
 			return (bool)(properties["water_side_verified_by_pipeline"] ?? properties["water_side"]);
-		}
-		public static bool PipelineWaterSideVerified(JObject feature, int segmentIndex)
-		{
-			var evidence = SegmentEvidence(feature, segmentIndex);
-			if (evidence != null) return (bool?)evidence["water_side_verified_by_pipeline"] == true;
-			// Legacy primary-only evidence never verifies a different outline side.
-			var properties = feature["properties"];
-			var coords = (JArray)(properties["contact_geometry"] ?? properties["face_geometry"])["coordinates"];
-			return PrimaryIndex((JArray)properties["face_geometry"]["coordinates"], coords[segmentIndex], coords[segmentIndex + 1]) >= 0 && PipelineWaterSideVerified(feature);
-		}
-		private static JObject SegmentEvidence(JObject feature, int segmentIndex)
-		{
-			var properties = feature["properties"];
-			if (!(properties["contact_segment_evidence"] is JArray evidence)) return null;
-			var coords = (JArray)(properties["contact_geometry"] ?? properties["face_geometry"])["coordinates"];
-			if (evidence.Count != coords.Count - 1 || (int?)evidence[segmentIndex]["index"] != segmentIndex)
-				throw new InvalidDataException("Landing segment evidence does not match contact geometry for " + properties["stop_id"]);
-			return (JObject)evidence[segmentIndex];
 		}
 
 		private static int StableId(string value)
 		{
 			unchecked { uint h = 2166136261; foreach (var c in value) h = (h ^ c) * 16777619; return (int)(h & 0x7fffffff); }
 		}
-		private static JArray BuildLandings(GameObject parent, double geoid, Material material)
+		/// <summary>
+		/// One contacts.json version 2 record as Unity ships it: the pipeline's record with start_ne_m, end_ne_m and
+		/// water_normal_ne recomputed through the core's tangent plane from start_lonlat and end_lonlat, so every
+		/// position matches the world's to the bit. Throws on an unknown kind, an id outside 1..2^31-1, a segment shorter
+		/// than 1 mm, or pipeline coordinates more than <see cref="PipelineCoordinateTolerance"/> from the core's.
+		/// </summary>
+		public static JObject ContactRecord(JObject pipeline)
 		{
+			var record = (JObject)pipeline.DeepClone();
+			var where = $"contacts.json segment {record["id"]} (stop {record["stop_id"]}, {record["polyline_id"]} {record["index"]})";
+			var kind = (string)record["kind"];
+			if (kind == null || Array.IndexOf(ContactKinds, kind) < 0) throw new InvalidDataException(where + ": unknown kind " + (kind ?? "(none)"));
+			if (record["id"]?.Type != JTokenType.Integer || (long)record["id"] < 1 || (long)record["id"] > int.MaxValue) throw new InvalidDataException(where + ": id must be a whole number from 1 to 2147483647");
+			var start = LonLat(record["start_lonlat"], where); var end = LonLat(record["end_lonlat"], where);
+			ContactSegment segment;
+			try { segment = new ContactSegment(start, end, new ContactSurface(1, 0, 0, 1), (int)record["id"]); }
+			catch (ArgumentException exception) { throw new InvalidDataException(where + ": " + exception.Message, exception); }
+			if (segment.Length < .001) throw new InvalidDataException(where + ": shorter than 1 mm");
+			foreach (var (field, point) in new[] { ("start_ne_m", start), ("end_ne_m", end) })
+			{
+				var given = (JArray)record[field];
+				if (given == null || Math.Sqrt(Math.Pow((double)given[0] - point.North, 2) + Math.Pow((double)given[1] - point.East, 2)) > PipelineCoordinateTolerance)
+					throw new InvalidDataException(where + $": {field} differs from the core's tangent plane by more than {PipelineCoordinateTolerance} m");
+			}
+			record["start_ne_m"] = new JArray(start.North, start.East); record["end_ne_m"] = new JArray(end.North, end.East);
+			record["water_normal_ne"] = new JArray(segment.WaterNormal.North, segment.WaterNormal.East);
+			return record;
+		}
+		private static HorizontalVector LonLat(JToken token, string where)
+		{
+			if (!(token is JArray pair) || pair.Count != 2) throw new InvalidDataException(where + ": a lon/lat end point must be [lon, lat]");
+			return LocalTangentPlane.World.ToLocal(new GeodeticPosition((double)pair[1], (double)pair[0]));
+		}
+		private static JArray BuildLandings(GameObject parent, double geoid, Material landingMaterial, Material structureMaterial)
+		{
+			var source = Path.Combine(Inputs, "unity/contacts.json");
+			if (!File.Exists(source)) throw new FileNotFoundException("contacts.json version 2 is missing; run uv run --project data-pipeline python data-pipeline/ferrydata export-unity --slice lower-east-river", source);
+			var records = JArray.Parse(File.ReadAllText(source)).Cast<JObject>().ToList();
 			var contacts = new JArray(); var contactIds = new HashSet<int>(); var faces = ReadFeatures("landing_faces.geojson").ToDictionary(FeatureName, StringComparer.Ordinal);
 			foreach (var stop in ReadFeatures("landings.geojson"))
 			{
 				var id = FeatureName(stop); if (!faces.TryGetValue(id, out var face)) throw new InvalidDataException("Missing landing face for GTFS stop " + id);
-				var marker = Child(parent, id); var segments = LandingSegments(face).ToArray();
-				for (var i = 0; i < segments.Length; i++)
+				var stopRecords = records.Where(r => (string)r["stop_id"] == id).ToList();
+				// The exposed run keeps the physical-edge identities this importer has always derived from landing_faces.geojson.
+				var legacy = LandingSegments(face).ToArray();
+				var run = stopRecords.Where(r => (string)r["polyline_id"] == "landing-" + id).ToArray();
+				if (run.Length != legacy.Length || run.Where((r, i) => (int?)r["id"] != legacy[i].Id || (int?)r["index"] != i).Any())
+					throw new InvalidDataException($"contacts.json landing-{id} does not keep the landing face's physical edge ids in order");
+				if (!stopRecords.Any(r => (bool?)r["primary_face"] == true)) throw new InvalidDataException("No primary landing face for GTFS stop " + id);
+				var marker = Child(parent, id);
+				for (var i = 0; i < stopRecords.Count; i++)
 				{
-					var properties = face["properties"]; var coordinates = (JArray)(properties["contact_geometry"] ?? properties["face_geometry"])["coordinates"];
-					var onPrimary = PrimaryIndex((JArray)properties["face_geometry"]["coordinates"], coordinates[i], coordinates[i + 1]) >= 0;
-					var segment = segments[i];
-					if (!contactIds.Add(segment.Id)) throw new InvalidDataException("Duplicate contact segment ID: " + segment.Id);
-					var a = new Vector3((float)segment.Start.East, (float)geoid + .18f, (float)segment.Start.North); var b = new Vector3((float)segment.End.East, a.y, (float)segment.End.North);
-					var strip = GameObject.CreatePrimitive(PrimitiveType.Cube); strip.name = id + "-Contact-" + i; strip.transform.SetParent(marker.transform, false); strip.transform.position = (a + b) * .5f;
-					strip.transform.rotation = Quaternion.LookRotation(b - a); strip.transform.localScale = new Vector3(.65f, .35f, (float)segment.Length); strip.GetComponent<Renderer>().sharedMaterial = material;
-					strip.layer = 8;
-					var record = new JObject { ["id"] = segment.Id, ["stop_id"] = id, ["stop_name"] = stop["properties"]["stop_name"].DeepClone(),
-						["start_ne_m"] = new JArray(segment.Start.North, segment.Start.East), ["end_ne_m"] = new JArray(segment.End.North, segment.End.East),
-						["water_normal_ne"] = new JArray(segment.WaterNormal.North, segment.WaterNormal.East),
-						["source"] = properties["source"].DeepClone(), ["confidence"] = (onPrimary ? properties["confidence"] : properties["contact_confidence"] ?? properties["confidence"]).DeepClone(),
-						["polyline_id"] = "landing-" + id, ["index"] = i,
-						["verification"] = properties["verification"].DeepClone(), ["water_side_verified_by_pipeline"] = PipelineWaterSideVerified(face, i) };
-					if (onPrimary) record["primary_face"] = true;
-					var evidence = SegmentEvidence(face, i);
-					if (evidence?["water_side_evidence"] != null) record["water_side_evidence"] = evidence["water_side_evidence"].DeepClone();
-					if (properties["crew_evidence"] is JObject crew && (onPrimary || (string)crew["kind"] == "berth-use-policy")) record["crew_evidence"] = crew.DeepClone();
-					if (!onPrimary && (bool?)properties["contact_geometry_estimated"] == true) record["geometry_estimated"] = true;
-					if (onPrimary && (bool?)properties["water_side_crew_reported"] == true) record["water_side_crew_reported"] = true;
+					var record = ContactRecord(stopRecords[i]);
+					var segmentId = (int)record["id"];
+					if (!contactIds.Add(segmentId)) throw new InvalidDataException("Duplicate contact segment ID: " + segmentId);
 					contacts.Add(record);
+					// A barge floats: the greybox draws its sides on the tide. A strip here would stay at NAVD88 +0.18 m and stand above the deck at low water.
+					if (Array.IndexOf(BargeKinds, (string)record["kind"]) >= 0) continue;
+					var start = (JArray)record["start_ne_m"]; var end = (JArray)record["end_ne_m"];
+					var a = new Vector3((float)(double)start[1], (float)geoid + .18f, (float)(double)start[0]); var b = new Vector3((float)(double)end[1], a.y, (float)(double)end[0]);
+					var strip = GameObject.CreatePrimitive(PrimitiveType.Cube); strip.name = id + "-Contact-" + i; strip.transform.SetParent(marker.transform, false); strip.transform.position = (a + b) * .5f;
+					strip.transform.rotation = Quaternion.LookRotation(b - a); strip.transform.localScale = new Vector3(.65f, .35f, Vector3.Distance(a, b));
+					strip.GetComponent<Renderer>().sharedMaterial = structureMaterial;
+					strip.layer = 8;
 				}
 			}
+			if (contacts.Count != records.Count) throw new InvalidDataException($"contacts.json has {records.Count - contacts.Count} segments for stops that are not GTFS landings of the slice");
 			return contacts;
 		}
 		private static string Hash(byte[] bytes) { using (var hash = SHA256.Create()) return BitConverter.ToString(hash.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant(); }

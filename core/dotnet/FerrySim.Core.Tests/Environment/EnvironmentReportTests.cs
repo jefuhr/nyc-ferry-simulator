@@ -85,6 +85,7 @@ namespace FerrySim.Core.Tests.Env
 				("Pack, three-station blend", "on", () => new DataEnvironment(pack, PackFixtures.Epoch), VesselState.Planar(0.0, 300.0, 200.0, 0.0, surge: 6.0), true),
 				("Pack, three-station blend", "off (reference point only)", () => new DataEnvironment(pack, PackFixtures.Epoch), VesselState.Planar(0.0, 300.0, 200.0, 0.0, surge: 6.0), false),
 				("Uniform 1.5 m, aground", "on", () => new UniformEnvironment(HorizontalVector.Zero, HorizontalVector.Zero, 1.5), VesselState.Planar(0.0, 0.0, 0.0, 0.0), true),
+				("Pack, two-station channel field", "on", () => new DataEnvironment(ChannelDriftTests.Channel(), PackFixtures.Epoch), VesselState.Planar(0.0, 300.0, 200.0, 0.0, surge: 6.0), true),
 			};
 			var fastest = new double[cases.Length];
 			for (var i = 0; i < fastest.Length; i++)
@@ -107,7 +108,8 @@ namespace FerrySim.Core.Tests.Env
 
 			report.Append($"\nAlong the hull, the varying field costs {fastest[2] - fastest[3]:F2} µs a step more than sampling the reference point only, ");
 			report.Append($"and a step in it {fastest[2] - fastest[0]:F2} µs more than in calm water. A uniform environment takes no samples along the hull. ");
-			report.Append("A step that starts aground takes ten substeps with the bed friction, like a step in fender contact.\n");
+			report.Append("A step that starts aground takes ten substeps with the bed friction, like a step in fender contact. ");
+			report.Append($"In the channel field a step costs {fastest[5] - fastest[2]:F2} µs more than in the three-station blend.\n");
 
 			var directory = Path.Combine(RepoPaths.Root, "artifacts", "core");
 			Directory.CreateDirectory(directory);

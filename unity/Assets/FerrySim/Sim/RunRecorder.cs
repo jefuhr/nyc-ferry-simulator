@@ -13,8 +13,8 @@ namespace FerrySim.Sim
 	/// <item><c>&lt;name&gt;.csv</c>, telemetry in the CLI's schema at <c>sampleHz</c>, readable by <c>ferrysim summarize</c> and <c>tools/plot_maneuver.py</c>;</item>
 	/// <item><c>&lt;name&gt;.inputs.csv</c>, every control change, lossless, in the <c>ferrysim run --inputs</c> trace format.</item>
 	/// </list>
-	/// The telemetry header also carries the exact initial state and environment, so <see cref="ReplayPlayer"/>
-	/// can rebuild the run. Rows follow the CLI's semantics: the state at <c>time_s</c> and the controls that start
+	/// The telemetry header also carries the exact initial state and environment (the uniform values, or the pack and its
+	/// digest), so <see cref="ReplayPlayer"/> can rebuild the run. Rows follow the CLI's semantics: the state at <c>time_s</c> and the controls that start
 	/// applying then, with a final row at the end of the run. Both files stream to disk as the run goes.
 	/// </summary>
 	public sealed class RunRecorder : IStepObserver, IDisposable
@@ -116,6 +116,34 @@ namespace FerrySim.Sim
 		/// </summary>
 		public static List<KeyValuePair<string, string>> BuildHeader(ScenarioSettings scenario, VesselParameters vessel, ISimulation simulation, string factoryName, in VesselState initial, UniformEnvironment environment, int sampleHz)
 		{
+			var header = CommonHeader(scenario, vessel, simulation, factoryName, initial, sampleHz);
+			header.Add(Pair("env.current_north_mps", ControlTrace.FormatValue(environment.Current.North)));
+			header.Add(Pair("env.current_east_mps", ControlTrace.FormatValue(environment.Current.East)));
+			header.Add(Pair("env.wind_north_mps", ControlTrace.FormatValue(environment.Wind.North)));
+			header.Add(Pair("env.wind_east_mps", ControlTrace.FormatValue(environment.Wind.East)));
+			header.Add(Pair("env.depth_m", ControlTrace.FormatValue(environment.Depth)));
+			return header;
+		}
+
+		/// <summary>
+		/// The header for a run in <paramref name="environment"/>. Calm and uniform runs get exactly the uniform header above. A
+		/// pack run says <c>environment</c> = <c>pack</c>, followed by the pack (region/date), its day digest, its epoch and its
+		/// wind station (<see cref="RunEnvironment.RecordingHeader"/>), and has no <c>env.*</c> values: a replay loads the pack.
+		/// </summary>
+		public static List<KeyValuePair<string, string>> BuildHeader(ScenarioSettings scenario, VesselParameters vessel, ISimulation simulation, string factoryName, in VesselState initial, RunEnvironment environment, int sampleHz)
+		{
+			if (environment.Kind != EnvironmentKind.Pack)
+			{
+				return BuildHeader(scenario, vessel, simulation, factoryName, initial, environment.UniformEnvironment, sampleHz);
+			}
+
+			var header = CommonHeader(scenario, vessel, simulation, factoryName, initial, sampleHz);
+			header.InsertRange(header.FindIndex(pair => pair.Key == "environment") + 1, environment.RecordingHeader());
+			return header;
+		}
+
+		private static List<KeyValuePair<string, string>> CommonHeader(ScenarioSettings scenario, VesselParameters vessel, ISimulation simulation, string factoryName, in VesselState initial, int sampleHz)
+		{
 			var invariant = CultureInfo.InvariantCulture;
 			return new List<KeyValuePair<string, string>>
 			{
@@ -141,11 +169,6 @@ namespace FerrySim.Sim
 				Pair("initial.surge_mps", ControlTrace.FormatValue(initial.Surge)),
 				Pair("initial.sway_mps", ControlTrace.FormatValue(initial.Sway)),
 				Pair("initial.yaw_rate_radps", ControlTrace.FormatValue(initial.YawRate)),
-				Pair("env.current_north_mps", ControlTrace.FormatValue(environment.Current.North)),
-				Pair("env.current_east_mps", ControlTrace.FormatValue(environment.Current.East)),
-				Pair("env.wind_north_mps", ControlTrace.FormatValue(environment.Wind.North)),
-				Pair("env.wind_east_mps", ControlTrace.FormatValue(environment.Wind.East)),
-				Pair("env.depth_m", ControlTrace.FormatValue(environment.Depth)),
 			};
 		}
 

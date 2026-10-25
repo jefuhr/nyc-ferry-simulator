@@ -14,10 +14,12 @@ namespace FerrySim.World.EditorTools
 	/// <summary>
 	/// Builds the water-level greybox from the pipeline's outputs: the slice datum asset, one floating
 	/// barge per landing face (outline, berthing line, outward normal and a label with the confidence
-	/// flag) and the Brooklyn, Manhattan and Williamsburg bridges (deck at the published clearance,
-	/// estimated towers). Writes assets under World/Greybox/ and World/Data/; overwrites in place so
-	/// GUIDs stay stable. Positions go through the core's LocalTangentPlane, never the pipeline's
-	/// rounded local coordinates, which are only used as a cross-check.
+	/// flag), the whole landing structures of landing_structures.geojson (fender strips on every barge
+	/// side and end, the stop's other berths and pontoons, and fixed pier, bulkhead and shoreline walls)
+	/// and the Brooklyn, Manhattan and Williamsburg bridges (deck at the published clearance, estimated
+	/// towers). Writes assets under World/Greybox/ and World/Data/; overwrites in place so GUIDs stay
+	/// stable. Positions go through the core's LocalTangentPlane, never the pipeline's rounded local
+	/// coordinates, which are only used as a cross-check.
 	/// </summary>
 	public static class GreyboxBuilder
 	{
@@ -37,6 +39,16 @@ namespace FerrySim.World.EditorTools
 		public const float TowerExtraWidth = 6f;
 		public const float TowerTopAboveClearance = 45f;
 		public const float TowerBaseBelowWater = 8f;
+
+		// Whole-structure greybox sizes: estimates chosen for visibility, not survey data.
+		public const float WallTopNavd88 = 2.5f;
+		public const float WallBottomNavd88 = -1.5f;
+		public const float WallCapWidth = 0.6f;
+		public const float FenderBottom = -0.3f;
+		public const float FenderOffset = 0.05f;
+
+		/// <summary>Strip groups, in submesh order: the contact kinds, then segments the runtime does not use for contact.</summary>
+		public static readonly string[] StripGroups = { "berth-face", "barge-side", "barge-end", "pier", "bulkhead", "shoreline", "not-contact" };
 
 		/// <summary>Largest allowed gap between our tangent-plane coordinates and the pipeline's (it rounds to 1 mm).</summary>
 		public const double LocalCoordinateTolerance = 0.01;
@@ -63,9 +75,28 @@ namespace FerrySim.World.EditorTools
 			{
 				var landings = Child(root.transform, "Landings", WorldLayers.Structure);
 				landings.AddComponent<FloatOnWater>();
+				var barges = new Dictionary<string, (GameObject Barge, PlanePoint Centroid)>(StringComparer.Ordinal);
 				foreach (var face in data.Faces.OrderBy(f => f.StopId, StringComparer.Ordinal))
 				{
-					BuildBarge(face, data, datum, materials, landings.transform, report, meshFolder);
+					var built = BuildBarge(face, data, datum, materials, landings.transform, report, meshFolder);
+					if (built.Barge != null)
+					{
+						barges[face.StopId] = built;
+					}
+				}
+
+				// Whole landing structures: fenders on every side and end of the stop's barge, the stop's other
+				// berths and pontoons floating with it, and its piers, bulkheads and shoreline standing fixed.
+				var structures = Child(root.transform, "Structures", WorldLayers.Structure);
+				var written = new HashSet<string>(StringComparer.Ordinal);
+				foreach (var stop in data.Structures.Select(p => p.StopId).Distinct().OrderBy(id => id, StringComparer.Ordinal))
+				{
+					BuildStructures(stop, data.Structures.Where(p => p.StopId == stop).ToList(), barges, datum, materials, landings.transform, structures.transform, report, meshFolder, written);
+				}
+
+				foreach (var path in AssetDatabase.FindAssets("t:Mesh", new[] { meshFolder }).Select(AssetDatabase.GUIDToAssetPath).Where(p => !p.Contains("/Barge_") && !written.Contains(p)).ToList())
+				{
+					AssetDatabase.DeleteAsset(path);
 				}
 
 				var bridges = Child(root.transform, "Bridges", WorldLayers.Structure);
@@ -142,7 +173,7 @@ namespace FerrySim.World.EditorTools
 			return datum;
 		}
 
-		private static void BuildBarge(LandingFace face, PipelineData data, SliceDatum datum, GreyboxMaterials materials, Transform parent, GreyboxReport report, string meshFolder)
+		private static (GameObject Barge, PlanePoint Centroid) BuildBarge(LandingFace face, PipelineData data, SliceDatum datum, GreyboxMaterials materials, Transform parent, GreyboxReport report, string meshFolder)
 		{
 			var plane = LocalTangentPlane.World;
 			var outline = new List<PlanePoint>();
@@ -157,7 +188,7 @@ namespace FerrySim.World.EditorTools
 			if (ring.Count < 3)
 			{
 				report.Errors.Add($"Landing {face.StopId}: outline has {ring.Count} distinct points.");
-				return;
+				return (null, default);
 			}
 
 			var centroid = PolygonGeometry.Centroid(ring);
@@ -166,7 +197,7 @@ namespace FerrySim.World.EditorTools
 			if (gtfs == null)
 			{
 				report.Errors.Add($"Landing face {face.StopId} has no GTFS stop in landings.geojson.");
-				return;
+				return (null, default);
 			}
 
 			var gtfsLocal = plane.ToLocal(new GeodeticPosition(gtfs.Latitude, gtfs.Longitude));
@@ -221,6 +252,150 @@ namespace FerrySim.World.EditorTools
 
 			Label(barge.transform, new Vector3(0f, BargeFreeboard + 2.5f, 0f), component.LabelText, materials.LabelColor(face.Confidence), materials.LabelBacking);
 			report.Barges.Add($"{face.StopId} {face.StopName}: {face.Source}, {face.Confidence}, waterline {waterline:F3} m");
+			return (barge, centroid);
+		}
+
+		private static void BuildStructures(string stop, List<StructurePolyline> polylines, Dictionary<string, (GameObject Barge, PlanePoint Centroid)> barges, SliceDatum datum,
+			GreyboxMaterials materials, Transform landings, Transform structures, GreyboxReport report, string meshFolder, HashSet<string> written)
+		{
+			var name = $"{stop} {polylines[0].StopName}".Replace('/', '-');
+			if (!barges.TryGetValue(stop, out var landing))
+			{
+				report.Errors.Add($"Landing structures for stop {stop} have no landing barge.");
+				return;
+			}
+
+			// The stop's own barge: a fender strip on every side and end, in its kind's colour.
+			var own = polylines.Where(p => p.Role == "landing").ToList();
+			var fenders = Strips(own, landing.Centroid, (point, navd88) => navd88, FenderBottom, BargeFreeboard + FenderOffset, FenderOffset, 0f, report);
+			MeshChild(landing.Barge.transform, "Fenders", UpsertMesh($"{meshFolder}/Fenders_{stop}.asset", fenders), materials, written, $"{meshFolder}/Fenders_{stop}.asset");
+			report.Structures.Add($"{stop}: {own.Sum(p => p.Segments.Count)} barge segments");
+
+			// The stop's other berths and nearby pontoons float with the landings, each its own prism.
+			foreach (var polyline in polylines.Where(p => p.Role == "berth" || p.Role == "floating-structure"))
+			{
+				var outline = polyline.LonLat.Select(ToPlane).ToList();
+				for (var i = 0; i < outline.Count; i++)
+				{
+					report.Check(polyline.PolylineId, outline[i], polyline.NorthEast[i]);
+				}
+
+				var ring = PolygonGeometry.CounterClockwise(PolygonGeometry.CleanRing(outline));
+				if (!polyline.Closed || ring.Count < 3)
+				{
+					report.Errors.Add($"{polyline.PolylineId}: a floating outline must be a closed ring.");
+					continue;
+				}
+
+				var centroid = PolygonGeometry.Centroid(ring);
+				var identity = (polyline.StructureId ?? polyline.PolylineId).Replace("enc:", string.Empty).Replace('#', '-');
+				var floating = Child(landings, $"{name} {(polyline.Role == "berth" ? "berth" : "pontoon")} {identity}", WorldLayers.Structure);
+				floating.transform.localPosition = new Vector3((float)centroid.East, (float)WaterSurface.SurfaceUpAt(datum, centroid.North, centroid.East, 0.0), (float)centroid.North);
+				var hullPath = $"{meshFolder}/Berth_{stop}_{identity}.asset";
+				var hull = Child(floating.transform, "Hull", WorldLayers.Structure);
+				hull.AddComponent<MeshFilter>().sharedMesh = UpsertMesh(hullPath, ExtrudedPrism(ring.Select(p => p - centroid).ToList(), BargeFreeboard, -BargeDraft, "Berth " + identity));
+				hull.AddComponent<MeshRenderer>().sharedMaterial = materials.Barge(polyline.Segments.Select(s => s.Confidence).FirstOrDefault());
+				written.Add(hullPath);
+				var strips = Strips(new[] { polyline }, centroid, (point, navd88) => navd88, FenderBottom, BargeFreeboard + FenderOffset, FenderOffset, 0f, report);
+				MeshChild(floating.transform, "Fenders", UpsertMesh($"{meshFolder}/Fenders_{stop}_{identity}.asset", strips), materials, written, $"{meshFolder}/Fenders_{stop}_{identity}.asset");
+				report.Structures.Add($"{stop}: {polyline.Role} {polyline.StructureId}, {polyline.Segments.Count} segments");
+			}
+
+			// Fixed piers, bulkheads and shoreline: a water-facing wall with a cap on its solid side, on the
+			// datum's surface so the walls follow the Earth's curvature like the water.
+			var fixedPolylines = polylines.Where(p => p.Role == "fixed-structure").ToList();
+			if (fixedPolylines.Count == 0)
+			{
+				return;
+			}
+
+			var origin = ToPlane(fixedPolylines[0].LonLat[0]);
+			var baseUp = WaterSurface.SurfaceUpAt(datum, origin.North, origin.East, 0.0);
+			var group = Child(structures, name, WorldLayers.Structure);
+			group.transform.localPosition = new Vector3((float)origin.East, (float)baseUp, (float)origin.North);
+			Func<PlanePoint, double, double> up = (point, navd88) => WaterSurface.SurfaceUpAt(datum, point.North + origin.North, point.East + origin.East, navd88) - baseUp;
+			var walls = Strips(fixedPolylines, origin, up, WallBottomNavd88, WallTopNavd88, 0f, WallCapWidth, report);
+			MeshChild(group.transform, "Walls", UpsertMesh($"{meshFolder}/Walls_{stop}.asset", walls), materials, written, $"{meshFolder}/Walls_{stop}.asset");
+			report.Structures.Add($"{stop}: {fixedPolylines.Sum(p => p.Segments.Count)} fixed segments in {fixedPolylines.Count} runs");
+		}
+
+		/// <summary>
+		/// A water-facing vertical strip along every segment of the polylines (solid on the right, so the strip faces
+		/// left), raised <paramref name="offset"/> into the water, with an optional cap <paramref name="cap"/> wide
+		/// on its solid side. One submesh per <see cref="StripGroups"/> entry: the segment's kind, or not-contact.
+		/// Heights are NAVD88 metres mapped through <paramref name="up"/>; points are relative to <paramref name="origin"/>.
+		/// </summary>
+		public static Mesh Strips(IEnumerable<StructurePolyline> polylines, PlanePoint origin, Func<PlanePoint, double, double> up, float bottom, float top, float offset, float cap, GreyboxReport report)
+		{
+			var vertices = new List<Vector3>();
+			var groups = StripGroups.Select(_ => new List<int>()).ToArray();
+			foreach (var polyline in polylines)
+			{
+				for (var i = 0; i < polyline.Segments.Count; i++)
+				{
+					var segment = polyline.Segments[i];
+					var a = ToPlane(polyline.LonLat[i]) - origin;
+					var b = ToPlane(polyline.LonLat[i + 1]) - origin;
+					report.Check(polyline.PolylineId + " segment " + segment.Index, a + origin, polyline.NorthEast[i]);
+					var along = b - a;
+					if (along.Length < 1e-3)
+					{
+						continue;
+					}
+
+					var left = new PlanePoint(-along.North, along.East) * (1.0 / along.Length);
+					var group = segment.Contact ? Array.IndexOf(StripGroups, segment.Kind) : StripGroups.Length - 1;
+					if (group < 0)
+					{
+						report.Errors.Add($"{polyline.PolylineId} segment {segment.Index}: unknown kind {segment.Kind}.");
+						continue;
+					}
+
+					var wa = a + left * offset;
+					var wb = b + left * offset;
+					var start = vertices.Count;
+					vertices.Add(Point(wa, up(wa, bottom)));
+					vertices.Add(Point(wb, up(wb, bottom)));
+					vertices.Add(Point(wb, up(wb, top)));
+					vertices.Add(Point(wa, up(wa, top)));
+					// Clockwise seen from the water (left) side: Unity's front face.
+					groups[group].AddRange(new[] { start + 2, start + 3, start, start + 2, start, start + 1 });
+					if (cap > 0f)
+					{
+						var ca = wa - left * cap;
+						var cb = wb - left * cap;
+						var capStart = vertices.Count;
+						vertices.Add(Point(wa, up(wa, top)));
+						vertices.Add(Point(wb, up(wb, top)));
+						vertices.Add(Point(cb, up(cb, top)));
+						vertices.Add(Point(ca, up(ca, top)));
+						// Facing up: clockwise seen from above.
+						groups[group].AddRange(new[] { capStart, capStart + 1, capStart + 2, capStart, capStart + 2, capStart + 3 });
+					}
+				}
+			}
+
+			var mesh = new Mesh { name = "Strips", subMeshCount = StripGroups.Length };
+			mesh.SetVertices(vertices);
+			for (var g = 0; g < groups.Length; g++)
+			{
+				mesh.SetTriangles(groups[g], g);
+			}
+
+			mesh.RecalculateNormals();
+			mesh.RecalculateBounds();
+			return mesh;
+		}
+
+		private static Vector3 Point(PlanePoint point, double up) => new Vector3((float)point.East, (float)up, (float)point.North);
+
+		private static void MeshChild(Transform parent, string name, Mesh mesh, GreyboxMaterials materials, HashSet<string> written, string path)
+		{
+			var child = Child(parent, name, WorldLayers.Structure);
+			child.AddComponent<MeshFilter>().sharedMesh = mesh;
+			var renderer = child.AddComponent<MeshRenderer>();
+			renderer.sharedMaterials = StripGroups.Select(materials.Strip).ToArray();
+			written.Add(path);
 		}
 
 		private static void BuildBridge(string name, PipelineData data, SliceDatum datum, GreyboxMaterials materials, Transform parent, GreyboxReport report)
@@ -473,7 +648,22 @@ namespace FerrySim.World.EditorTools
 				Deck = Upsert("BridgeDeck", new Color(0.56f, 0.56f, 0.60f), 0f);
 				Tower = Upsert("BridgeTower", new Color(0.62f, 0.55f, 0.47f), 0f);
 				LabelBacking = UpsertLabelBacking();
+				_strips = new Dictionary<string, Material>(StringComparer.Ordinal)
+				{
+					["berth-face"] = Face,
+					["barge-side"] = Upsert("Fender_BargeSide", new Color(0.16f, 0.16f, 0.18f), 0f),
+					["barge-end"] = Upsert("Fender_BargeEnd", new Color(0.32f, 0.30f, 0.36f), 0f),
+					["pier"] = Upsert("Wall_Pier", new Color(0.50f, 0.36f, 0.22f), 0f),
+					["bulkhead"] = Upsert("Wall_Bulkhead", new Color(0.70f, 0.70f, 0.68f), 0f),
+					["shoreline"] = Upsert("Wall_Shoreline", new Color(0.33f, 0.38f, 0.28f), 0f),
+					["not-contact"] = Upsert("Structure_NotContact", new Color(0.85f, 0.22f, 0.40f), 0.3f),
+				};
 			}
+
+			private readonly Dictionary<string, Material> _strips;
+
+			/// <summary>The material of a <see cref="StripGroups"/> entry.</summary>
+			public Material Strip(string group) => _strips[group];
 
 			/// <summary>Translucent black plate behind label text (URP Unlit, transparent, drawn just before the text).</summary>
 			public Material LabelBacking { get; }
@@ -588,6 +778,8 @@ namespace FerrySim.World.EditorTools
 
 		public List<string> Bridges { get; } = new List<string>();
 
+		public List<string> Structures { get; } = new List<string>();
+
 		public List<string> Errors { get; } = new List<string>();
 
 		/// <summary>Largest gap between our (north, east) and the pipeline's local_coordinates, metres.</summary>
@@ -606,8 +798,8 @@ namespace FerrySim.World.EditorTools
 		public override string ToString()
 		{
 			var text = new StringBuilder();
-			text.AppendLine($"Greybox: {Barges.Count} landing barges, {Bridges.Count} bridges; largest gap to pipeline local coordinates {MaxLocalCoordinateGap * 1000.0:F2} mm.");
-			foreach (var line in Barges.Concat(Bridges))
+			text.AppendLine($"Greybox: {Barges.Count} landing barges, {Bridges.Count} bridges, {Structures.Count} landing structure groups; largest gap to pipeline local coordinates {MaxLocalCoordinateGap * 1000.0:F2} mm.");
+			foreach (var line in Barges.Concat(Structures).Concat(Bridges))
 			{
 				text.AppendLine("  " + line);
 			}
