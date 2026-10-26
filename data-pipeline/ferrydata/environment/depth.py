@@ -120,7 +120,7 @@ def _floor_sources(source_dir, floor):
 			raise ValueError(f'{source_dir / name}: SHA-256 {digest} is not the {floor[f"{key}_sha256"]} depth_merged_navd88.json recorded')
 		files.append((name, digest))
 	by_class = ', '.join(f'{k} {v}' for k, v in floor['reports']['by_class'].items())
-	note = (f"operational-ais floor: {floor['reports']['total']} T/K AIS reports ({by_class}) within {p['radius_m']:g} m of a primary-face midpoint "
+	note = (f"operational-ais floor: {floor['reports']['total']} T/K AIS reports ({by_class}) within {p['radius_m']:g} m of a selectable berth face's midpoint "
 		f"at SOG at most {p['max_sog_mps']:g} m/s on the 28 scenario days; the bed is at most the simulated water level then less the class "
 		f"maxDraft (T {p['max_draft_m']['T']:g} m, K {p['max_draft_m']['K']:g} m) less a {p['keel_margin_m']:g} m keel margin, an estimate, "
 		f"over the water cells within half the class length overall (T {p['footprint_radius_m']['T']:.2f} m, K {p['footprint_radius_m']['K']:.2f} m); "

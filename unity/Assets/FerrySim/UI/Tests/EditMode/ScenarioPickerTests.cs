@@ -40,6 +40,71 @@ namespace FerrySim.UI.Tests.EditMode
 			return picker;
 		}
 
+		// Failure modes: remembered missing berth, traffic retained on a day without its pack,
+		// leave-out default lost, or visibility not passed through the real picker choice.
+		[Test]
+		public void BerthTrafficAndVisibility_FollowTheChoice_AndUnavailableOptionsFallBack()
+		{
+			var old = Catalog();
+			var catalog = new FakeScenarioCatalog(new[] { new ScenarioLanding("87", "Wall St/Pier 11", new[] {
+				new ScenarioBerth("east", "Outer pontoon (east)"), new ScenarioBerth("north", "North pontoon"), new ScenarioBerth("south", "South pontoon") }) },
+				new[] { new ScenarioDay("2025-07-14", "lower-east-river/2025-07-14", TimeSpan.FromHours(-4), false, true),
+					new ScenarioDay("2025-07-15", "lower-east-river/2025-07-15", TimeSpan.FromHours(-4), false, false) }, old.Vessels);
+			var picker = Bound(catalog);
+			Assert.That(picker.Choice.BerthId, Is.EqualTo("east"));
+			Assert.That(picker.LeaveOut.Value, Is.True);
+			picker.Berths.SelectedIndex = 1;
+			picker.Traffic.Value = true;
+			picker.Visibility.SelectedIndex = 3;
+			Assert.That(picker.Choice.BerthId, Is.EqualTo("north"));
+			Assert.That(picker.Choice.Traffic, Is.True);
+			Assert.That(picker.Choice.LeaveOut, Is.EqualTo(FerrySim.Core.Traffic.TrafficLeaveOut.Automatic));
+			Assert.That(picker.Choice.VisibilityMetres, Is.EqualTo(463));
+			var restored = Bound(catalog);
+			Assert.That(restored.Choice.BerthId, Is.EqualTo("north"));
+			Assert.That(restored.Choice.VisibilityMetres, Is.EqualTo(463));
+			picker.Days.SelectedIndex = 1;
+			Assert.That(picker.Traffic.enabledSelf, Is.False);
+			Assert.That(picker.Choice.Traffic, Is.False);
+			Assert.That(picker.TrafficReason.text, Is.EqualTo(ScenarioPicker.NoTraffic));
+			ScenarioPicker.SessionChoice = new ScenarioChoice("87", "2025-07-14", 540, "t-class", "gone", visibilityMetres: 999);
+			picker.Bind(catalog, catalog);
+			Assert.That(picker.Choice.BerthId, Is.EqualTo("east"));
+			Assert.That(picker.Choice.VisibilityMetres, Is.Zero);
+		}
+
+		// A shallow/grounded start warns but never disables Start; adequate and unknown depths clear the warning.
+		[TestCase(1.5, 1.9, "Start aground")]
+		[TestCase(2.0, 1.9, "Low under-keel clearance")]
+		[TestCase(2.5, 1.9, "")]
+		public void StartDepth_WarnsWithoutRefusing(double water, double draft, string expected)
+		{
+			var catalog = new DepthCatalog(Catalog()) { Depth = new ScenarioStartDepth(water, draft) };
+			var picker = new ScenarioPicker(); picker.Bind(catalog, catalog.Inner);
+			Assert.That(picker.DepthWarning.text, expected.Length == 0 ? Is.Empty : Does.StartWith(expected));
+			if (expected.Length > 0)
+			{
+				Assert.That(picker.DepthWarning.text, Does.Contain("draft 1.90 m"));
+				Assert.That(picker.DepthWarning.text, Does.Contain("depth " + water.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) + " m"));
+			}
+			Assert.That(picker.CanStart && picker.TryStartRun(), Is.True);
+			catalog.Known = false; picker.Time.Step(5);
+			Assert.That(picker.DepthWarning.text, Is.Empty);
+		}
+
+		private sealed class DepthCatalog : IScenarioCatalog, IScenarioStartDepthSource
+		{
+			public readonly FakeScenarioCatalog Inner;
+			public ScenarioStartDepth Depth;
+			public bool Known = true;
+			public DepthCatalog(FakeScenarioCatalog inner) { Inner = inner; }
+			public IReadOnlyList<ScenarioLanding> Landings => Inner.Landings;
+			public IReadOnlyList<ScenarioDay> Days => Inner.Days;
+			public IReadOnlyList<ScenarioVessel> Vessels => Inner.Vessels;
+			public bool TryCreate(ScenarioChoice choice, out ScenarioSettings settings, out string problem) => Inner.TryCreate(choice, out settings, out problem);
+			public bool TryGetStartDepth(ScenarioChoice choice, out ScenarioStartDepth depth) { depth = Depth; return Known; }
+		}
+
 		[Test]
 		public void Options_FollowTheCatalogOrder_WithDefaults()
 		{

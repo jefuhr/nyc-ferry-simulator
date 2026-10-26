@@ -37,6 +37,35 @@
 			"face_outward_compass": "NW",
 			"water_side_crew_reported": true,
 			"limitations": "The crew answer outranks the chart check for orientation. Dry charted MORFAC 022646E95F81764B remains a chart conflict; its role is unverified. A pile or dolphin beside a berth can be worked alongside, but this report does not establish its role or clearance. Crew evidence does not verify depth or change the 2.10 m threshold."
+		},
+		{
+			"stop_id": "87",
+			"id": "pier11-ramped-berths-2026-10-25",
+			"kind": "berth-use-policy",
+			"supersedes": "pier11-berth-use-policy-2026-10-24",
+			"statement": "Boats use all three ramped pontoons at Wall St/Pier 11. The outer (east) pontoon is the default berth.",
+			"date": "2026-10-25",
+			"source": "crew-reported: project crew reviewer",
+			"default_berth_id": "enc:02261FA117EFB198",
+			"berths": [
+				{
+					"id": "enc:02261FA117EFB198",
+					"name": "Outer pontoon (east)"
+				},
+				{
+					"id": "enc:0226111D16AAB198",
+					"name": "North pontoon"
+				},
+				{
+					"id": "enc:0226015B0512B198",
+					"name": "South pontoon"
+				}
+			],
+			"not_a_ferry_berth": [
+				"enc:02260848030BB198"
+			],
+			"water_side_crew_reported": false,
+			"limitations": "Crew establishes ramp presence and berth use only, not the side carrying the ramp, depths or clearances. Each face retains the pipeline select_face result; this note does not establish its water side."
 		}
 	]
 }

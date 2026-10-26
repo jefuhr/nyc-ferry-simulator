@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using FerrySim.Sim;
+using FerrySim.Core.Traffic;
+using System.Globalization;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -35,6 +37,12 @@ namespace FerrySim.UI
 		private IReadOnlyList<ScenarioDay> _days = Array.Empty<ScenarioDay>();
 		private IReadOnlyList<ScenarioVessel> _vessels = Array.Empty<ScenarioVessel>();
 		private bool _restoring;
+		private string _berthStop;
+		private VisualElement _berthField;
+		private IReadOnlyList<ScenarioBerth> _berths = Array.Empty<ScenarioBerth>();
+		public const string NoTraffic = "Traffic isn't available for this day in this build.";
+		private static readonly string[] VisibilityLabels = { "Clear", "2 nm", "½ nm", "¼ nm", "100 m" };
+		private static readonly double[] VisibilityValues = { 0, 3704, 926, 463, 100 };
 
 		public ScenarioPicker()
 		{
@@ -66,6 +74,34 @@ namespace FerrySim.UI
 			body.Add(side);
 			Add(body);
 
+			var options = Column("fs-picker-field-box");
+			options.style.width = 240;
+			Berths = new OptionList("picker-berths");
+			Berths.style.width = 214; Berths.style.height = 98;
+			_berthField = Field("BERTH", Berths, "fs-picker-berths");
+			options.Add(_berthField);
+			var trafficFields = Column("fs-picker-field-box");
+			trafficFields.style.width = 240;
+			Traffic = new PickerToggle("picker-traffic", "Traffic");
+			LeaveOut = new PickerToggle("picker-leave-out", "Leave out the ferry that ran this trip");
+			LeaveOut.SetWithoutNotify(true);
+			trafficFields.Add(Field("TRAFFIC", Traffic, "fs-picker-traffic"));
+			trafficFields.Add(LeaveOut);
+			TrafficReason = PaletteRoles.Label(string.Empty, PaletteRoles.Dim, "fs-caption");
+			TrafficReason.style.whiteSpace = WhiteSpace.Normal;
+			trafficFields.Add(TrafficReason);
+			options.Add(trafficFields);
+			Visibility = new OptionList("picker-visibility");
+			Visibility.style.width = 90; Visibility.style.height = 140;
+			Visibility.SetOptions(VisibilityLabels, 0);
+			body.Add(options);
+			body.Add(Field("VISIBILITY", Visibility, "fs-picker-visibility"));
+			DepthWarning = PaletteRoles.Label(string.Empty, null, "fs-caption");
+			DepthWarning.name = "picker-start-depth";
+			DepthWarning.style.whiteSpace = WhiteSpace.Normal;
+			DepthWarning.style.display = DisplayStyle.None;
+			Add(DepthWarning);
+
 			var footer = Row("fs-picker-footer");
 			Summary = PaletteRoles.Label(string.Empty, PaletteRoles.Text, "fs-caption", "fs-picker-summary");
 			Summary.name = "picker-summary";
@@ -79,11 +115,15 @@ namespace FerrySim.UI
 			ProblemLabel.style.display = DisplayStyle.None;
 			Add(ProblemLabel);
 
-			foreach (var field in new PickerField[] { Landings, Days, Time, Vessels })
+			foreach (var field in new PickerField[] { Landings, Days, Time, Vessels, Berths, Traffic, LeaveOut, Visibility })
 			{
 				field.SubmitRequested += () => TryStartRun();
 			}
 
+			Berths.SelectionChanged += OnChoiceChanged;
+			Traffic.ValueChanged += OnChoiceChanged;
+			LeaveOut.ValueChanged += OnChoiceChanged;
+			Visibility.SelectionChanged += OnChoiceChanged;
 			Landings.SelectionChanged += OnChoiceChanged;
 			Days.SelectionChanged += OnChoiceChanged;
 			Time.MinutesChanged += OnChoiceChanged;
@@ -113,6 +153,12 @@ namespace FerrySim.UI
 		public TimeStepper Time { get; }
 
 		public OptionList Vessels { get; }
+		public OptionList Berths { get; }
+		public PickerToggle Traffic { get; }
+		public PickerToggle LeaveOut { get; }
+		public OptionList Visibility { get; }
+		public Label TrafficReason { get; }
+		public Label DepthWarning { get; }
 
 		/// <summary>The choice in words: "MON 14 JUL 2025 · 09:00 EDT · Wall St/Pier 11 · T-class".</summary>
 		public Label Summary { get; }
@@ -138,7 +184,10 @@ namespace FerrySim.UI
 			Landings.SelectedIndex >= 0 ? _landings[Landings.SelectedIndex].StopId : null,
 			Days.SelectedIndex >= 0 ? _days[Days.SelectedIndex].Date : null,
 			Time.Minutes,
-			Vessels.SelectedIndex >= 0 ? _vessels[Vessels.SelectedIndex].Id : null);
+			Vessels.SelectedIndex >= 0 ? _vessels[Vessels.SelectedIndex].Id : null,
+			Berths.SelectedIndex >= 0 ? _berths[Berths.SelectedIndex].Id : null,
+			Traffic.enabledSelf && Traffic.Value, LeaveOut.Value ? TrafficLeaveOut.Automatic : TrafficLeaveOut.Off,
+			visibilityMetres: Visibility.SelectedIndex >= 0 ? VisibilityValues[Visibility.SelectedIndex] : 0);
 
 		/// <summary>
 		/// Reads the catalog's lists (again) and restores <see cref="SessionChoice"/> where the catalog still offers it.
@@ -171,6 +220,12 @@ namespace FerrySim.UI
 				}
 
 				Vessels.SetOptions(_labels, IndexOf(_vessels, remembered?.VesselId, vessel => vessel.Id));
+				_berthStop = null;
+				RefreshBerths(remembered?.BerthId);
+				Traffic.SetWithoutNotify(remembered?.Traffic ?? false);
+				LeaveOut.SetWithoutNotify(!remembered.HasValue || remembered.Value.LeaveOut != TrafficLeaveOut.Off);
+				Visibility.SetOptions(VisibilityLabels, Math.Max(0, Array.IndexOf(VisibilityValues, remembered?.VisibilityMetres ?? 0)));
+				RefreshTraffic();
 			}
 			finally
 			{
@@ -181,6 +236,7 @@ namespace FerrySim.UI
 			StartButton.SetEnabled(CanStart);
 			ShowProblem(catalog == null ? NoCatalog : launcher == null ? NoLauncher : !CanStart ? NothingToChoose : string.Empty);
 			UpdateSummary();
+			RefreshDepthWarning();
 		}
 
 		/// <summary>
@@ -247,6 +303,7 @@ namespace FerrySim.UI
 			StartButton.style.color = _palette.EngagedText;
 			PaletteRoles.SetBorderColor(StartButton, _palette.Engaged);
 			ProblemLabel.style.color = _palette.Caution;
+			DepthWarning.style.color = _palette.Caution;
 		}
 
 		private void OnChoiceChanged()
@@ -256,6 +313,8 @@ namespace FerrySim.UI
 				return;
 			}
 
+			RefreshBerths(null);
+			RefreshTraffic();
 			if (CanStart)
 			{
 				SessionChoice = Choice;
@@ -264,6 +323,46 @@ namespace FerrySim.UI
 			}
 
 			UpdateSummary();
+			RefreshDepthWarning();
+		}
+
+		private void RefreshBerths(string remembered)
+		{
+			var landing = Landings.SelectedIndex >= 0 ? _landings[Landings.SelectedIndex] : null;
+			if (landing != null && _berthStop == landing.StopId) return;
+			_berthStop = landing?.StopId;
+			_berths = landing?.Berths ?? Array.Empty<ScenarioBerth>();
+			_labels.Clear();
+			foreach (var berth in _berths) _labels.Add(berth.Name);
+			Berths.SetOptions(_labels, IndexOf(_berths, remembered, b => b.Id));
+			_berthField.style.display = _berths.Count > 1 ? DisplayStyle.Flex : DisplayStyle.None;
+		}
+
+		private void RefreshTraffic()
+		{
+			var available = Days.SelectedIndex >= 0 && _days[Days.SelectedIndex].HasTraffic;
+			Traffic.SetEnabled(available);
+			if (!available) Traffic.SetWithoutNotify(false);
+			TrafficReason.text = available ? string.Empty : NoTraffic;
+			TrafficReason.style.display = available ? DisplayStyle.None : DisplayStyle.Flex;
+			LeaveOut.SetEnabled(available && Traffic.Value);
+		}
+
+		private void RefreshDepthWarning()
+		{
+			var text = string.Empty;
+			if (CanStart && Catalog is IScenarioStartDepthSource source)
+			{
+				try
+				{
+					if (source.TryGetStartDepth(Choice, out var depth) && depth.UnderKeel < 0.3)
+						text = string.Format(CultureInfo.InvariantCulture, "{0}: depth {1:F2} m, draft {2:F2} m, under keel {3:F2} m.",
+							depth.UnderKeel < 0 ? "Start aground" : "Low under-keel clearance", depth.MinimumDepth, depth.MaximumDraft, depth.UnderKeel);
+				}
+				catch (Exception error) { Debug.LogWarning("[FerrySim] Start depth unavailable: " + error.Message); }
+			}
+			DepthWarning.text = text;
+			DepthWarning.style.display = text.Length > 0 ? DisplayStyle.Flex : DisplayStyle.None;
 		}
 
 		private void UpdateSummary()

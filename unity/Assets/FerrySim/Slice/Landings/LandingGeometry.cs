@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using FerrySim.Core.Contracts;
@@ -14,7 +15,7 @@ namespace FerrySim.Slice
 	{
 		public LandingSegment(ContactSegment segment, int fileIndex, string stopId, string stopName, string source, string confidence, string verification,
 			bool waterSideVerifiedByPipeline, bool waterSideCrewReported, bool isPrimary, LandingSurface surface, string kind = null, string berthId = null,
-			bool solidSideVerified = false)
+			bool solidSideVerified = false, bool crewBerthSolidSide = false)
 		{
 			Segment = segment;
 			FileIndex = fileIndex;
@@ -30,6 +31,7 @@ namespace FerrySim.Slice
 			Kind = kind;
 			BerthId = berthId;
 			SolidSideVerified = solidSideVerified;
+			CrewBerthSolidSide = crewBerthSolidSide;
 		}
 
 		public ContactSegment Segment { get; }
@@ -65,11 +67,16 @@ namespace FerrySim.Slice
 		/// </summary>
 		public bool SolidSideVerified { get; }
 
+		public bool CrewBerthSolidSide { get; }
+
+		/// <summary>Collision retention alone does not authorize a start on this face subdivision.</summary>
+		public bool StartFaceEligible => WaterSideVerifiedByPipeline || WaterSideCrewReported || CrewBerthSolidSide;
+
 		/// <summary>
 		/// Who vouches for the water side: <c>pipeline</c>, <c>crew</c> or <c>pipeline+crew</c>, or <c>solid-side</c> for a
 		/// segment off the primary face kept on its charted solid side alone.
 		/// </summary>
-		public string WaterSideBasis => WaterSideVerifiedByPipeline ? (WaterSideCrewReported ? "pipeline+crew" : "pipeline") : WaterSideCrewReported ? "crew" : "solid-side";
+		public string WaterSideBasis => WaterSideVerifiedByPipeline ? (WaterSideCrewReported ? "pipeline+crew" : "pipeline") : WaterSideCrewReported ? "crew" : CrewBerthSolidSide ? "solid-side + crew berth use (water side unsurveyed: UNSARE)" : "solid-side";
 
 		/// <summary>
 		/// What the segment is (contacts.json version 2): <c>berth-face</c>, <c>barge-side</c>, <c>barge-end</c>, <c>pier</c>,
@@ -147,13 +154,13 @@ namespace FerrySim.Slice
 	/// verification, water_side_verified_by_pipeline and the optional water_side_crew_reported and primary_face; version
 	/// 2 adds the optional kind, berth_id and solid_side_evidence; other fields are ignored). A segment is used when the
 	/// pipeline verified its water side or crew reported it, or, off the primary face only, when its charted solid side
-	/// is verified; and its normal agrees with Start to End. Every other segment is left out and listed in
+	/// is verified, or the selectable crew-berth/UNSARE/AIS gate passes; and its normal agrees with Start to End. Every other segment is left out and listed in
 	/// <see cref="Excluded"/>; segments kept on the crew's report alone are listed in <see cref="CrewReportedOnly"/> and
 	/// those kept on their solid side alone in <see cref="SolidSideOnly"/>. Ids are kept as given. Fenders come from a
 	/// <see cref="LandingSurfaceTable"/> by stop and kind, never from constants. A missing or malformed file throws
 	/// <see cref="LandingDataException"/> naming the file and the reason.
 	/// </summary>
-	public sealed class LandingGeometry
+	public sealed partial class LandingGeometry
 	{
 		/// <summary>The importer's file, relative to the Unity project.</summary>
 		public const string DefaultContactsAssetPath = "Assets/FerrySim/World/Generated/LowerEastRiver/contacts.json";
@@ -217,7 +224,7 @@ namespace FerrySim.Slice
 		/// <summary>Kept segments whose water side only crew vouch for: the pipeline's chart check failed or is missing.</summary>
 		public IReadOnlyList<LandingSegment> CrewReportedOnly { get; private set; }
 
-		/// <summary>Kept segments off the primary face that only their charted solid side vouches for (version 2).</summary>
+		/// <summary>Kept without water-side proof, on solid-side geometry (including the distinct crew-berth gate).</summary>
 		public IReadOnlyList<LandingSegment> SolidSideOnly { get; private set; }
 
 		/// <summary>Segments in the file, kept or not.</summary>
@@ -316,7 +323,7 @@ namespace FerrySim.Slice
 					segment.Kind == null ? string.Empty : " " + segment.Kind + (segment.BerthId == null ? string.Empty : " of " + segment.BerthId));
 			}
 
-			text.Append(SolidSideOnly.Count == 0 ? "Kept on the charted solid side only (off the primary face): none\n" : "Kept on the charted solid side only (off the primary face):\n");
+			text.Append(SolidSideOnly.Count == 0 ? "Kept without water-side proof on charted solid geometry: none\n" : "Kept without water-side proof on charted solid geometry:\n");
 			foreach (var segment in SolidSideOnly)
 			{
 				text.AppendFormat(invariant, "  {0} stop {1} {2} {3}\n", segment.Id, segment.StopId, segment.StopName, segment.Kind);
@@ -384,6 +391,7 @@ namespace FerrySim.Slice
 				geometry._byId[segment.Id] = segment;
 			}
 
+			geometry.ReadBerths(root);
 			return geometry;
 		}
 
@@ -465,6 +473,7 @@ namespace FerrySim.Slice
 			var kind = OptionalText(segment, KindField, where, problems, nonEmpty: true);
 			var berthId = OptionalText(segment, BerthIdField, where, problems, nonEmpty: false);
 			var solidSide = SolidSide(segment, where, problems);
+			var berthSolid = BerthSolidContact(segment);
 
 			if (hasStart && hasEnd)
 			{
@@ -486,7 +495,7 @@ namespace FerrySim.Slice
 				return;
 			}
 
-			if (!verified && !crew && (primary || !solidSide))
+			if (!verified && !crew && !berthSolid && (primary || !solidSide))
 			{
 				var solidText = segment[SolidSideField] == null ? "absent" : solidSide ? "true" : "false";
 				excluded.Add(new ExcludedLandingSegment(id, index, stopId, stopName, primary,
@@ -518,7 +527,36 @@ namespace FerrySim.Slice
 				return;
 			}
 
-			kept.Add(new LandingSegment(contact, index, stopId, stopName, source, confidence, verification, verified, crew, primary, surface, kind, berthId, solidSide));
+			kept.Add(new LandingSegment(contact, index, stopId, stopName, source, confidence, verification, verified, crew, primary, surface, kind, berthId, solidSide, berthSolid));
+		}
+
+		// Same narrow version-2 gate as export_unity. The pipeline validates the embedded note against
+		// the current manifest and independently recomputes probes/counts; players carry that export.
+		private static bool BerthSolidContact(JObject segment)
+		{
+			bool Yes(JToken token) => token?.Type == JTokenType.Boolean && (bool)token;
+			bool No(JToken token) => token?.Type == JTokenType.Boolean && !(bool)token;
+			string Text(JToken token) => token?.Type == JTokenType.String ? (string)token : null;
+			var use = segment["berth_use_evidence"] as JObject;
+			var note = use?["note"] as JObject;
+			var solid = segment["solid_side_evidence"] as JObject;
+			var side = segment["berth_side_evidence"] as JObject;
+			if (!Yes(segment["berth_face"]) || note == null || solid == null || side == null) return false;
+			var noteId = note["id"]?.Type == JTokenType.String ? (string)note["id"] : null;
+			if (string.IsNullOrWhiteSpace(noteId) || Text(segment["berth_use_crew_note"]) != noteId || Text(note["kind"]) != "berth-use-policy"
+				|| use["crew_notes_sha256"]?.Type != JTokenType.String || ((string)use["crew_notes_sha256"]).Length != 64) return false;
+			var listed = false;
+			if (note["berths"] is JArray berths)
+				foreach (var berth in berths.OfType<JObject>()) if (Text(berth["id"]) != null && Text(berth["id"]) == Text(segment["berth_id"])) listed = true;
+			var outward = side["outward_reports"]; var inward = side["inward_reports"];
+			var offset = solid["probe_offset_m"];
+			if (offset?.Type != JTokenType.Float && offset?.Type != JTokenType.Integer) return false;
+			if (!long.TryParse(outward?.ToString(), out var outCount) || !long.TryParse(inward?.ToString(), out var inCount)) return false;
+			return listed && Yes(solid["verified"]) && Yes(solid["winding_check"]) && (double)offset == 0.5
+				&& Yes(solid["probe_in_charted_water"]) && Text(solid["probe_water_layer"]) == "UNSARE"
+				&& No(solid["probe_in_lndare"]) && No(solid["probe_in_other_structure"]) && Yes(side["verified"])
+				&& outward?.Type == JTokenType.Integer && inward?.Type == JTokenType.Integer
+				&& outCount > 0 && inCount >= 0 && inCount <= outCount;
 		}
 
 		/// <summary>An optional text field: absent or null is null; anything but text (or empty text when it must not be) is malformed.</summary>

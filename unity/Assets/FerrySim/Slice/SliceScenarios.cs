@@ -14,7 +14,7 @@ namespace FerrySim.Slice
 	/// faces, the packs in the environment folder and the vessel files) and the launcher (<see cref="IScenarioLauncher"/>),
 	/// which starts a run on the slice's runner.
 	/// </summary>
-	public sealed class SliceScenarios : IScenarioCatalog, IScenarioLauncher
+	public sealed class SliceScenarios : IScenarioCatalog, IScenarioLauncher, IScenarioStartDepthSource
 	{
 		private readonly SliceBootstrap _bootstrap;
 		private readonly string[] _vesselFiles;
@@ -46,6 +46,8 @@ namespace FerrySim.Slice
 		public void Refresh() => _catalog = null;
 
 		public bool TryCreate(ScenarioChoice choice, out ScenarioSettings settings, out string problem) => Catalog.TryCreate(choice, out settings, out problem);
+
+		public bool TryGetStartDepth(ScenarioChoice choice, out ScenarioStartDepth depth) => Catalog.TryGetStartDepth(choice, out depth);
 
 		/// <summary>
 		/// Ends the slice's current run and starts <paramref name="settings"/> with a new run id. False, with the reason, when it
@@ -144,7 +146,7 @@ namespace FerrySim.Slice
 			var runner = _bootstrap != null ? _bootstrap.Runner : null;
 			var packs = runner != null ? runner.EnvironmentPacks : EnvironmentPacks.Default;
 			var catalog = new SliceScenarioCatalog(_bootstrap != null ? _bootstrap.Landings : null, vessels, packs, region ?? string.Empty,
-				_bootstrap == null ? "the slice has no SliceBootstrap" : _bootstrap.LoadError);
+				_bootstrap == null ? "the slice has no SliceBootstrap" : _bootstrap.LoadError, runner?.TrafficPacks);
 			problems.AddRange(catalog.Excluded);
 			if (folderProblem != null)
 			{

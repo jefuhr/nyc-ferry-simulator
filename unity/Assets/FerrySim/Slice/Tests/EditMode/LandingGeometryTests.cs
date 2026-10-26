@@ -409,6 +409,20 @@ namespace FerrySim.Slice.Tests
 				var crew = segment["water_side_crew_reported"]?.Type == JTokenType.Boolean && (bool)segment["water_side_crew_reported"];
 				var primary = segment["primary_face"]?.Type == JTokenType.Boolean && (bool)segment["primary_face"];
 				var solid = segment["solid_side_evidence"]?["verified"]?.Type == JTokenType.Boolean && (bool)segment["solid_side_evidence"]["verified"];
+				// The crew-use exception is a separate basis, not newly asserted water-side proof.
+				if (primary && (string)segment["stop_id"] == "87")
+				{
+					Assert.That((string)segment["berth_id"], Is.EqualTo("enc:02261FA117EFB198"));
+					Assert.That((bool)segment["berth_face"], Is.True);
+					Assert.That(verified || crew, Is.False);
+					Assert.That(solid, Is.True);
+					Assert.That((string)segment["solid_side_evidence"]["probe_water_layer"], Is.EqualTo("UNSARE"));
+					Assert.That((int)segment["berth_side_evidence"]["outward_reports"], Is.GreaterThan(0));
+					Assert.That((int)segment["berth_side_evidence"]["inward_reports"], Is.LessThanOrEqualTo((int)segment["berth_side_evidence"]["outward_reports"]));
+					Assert.That(geometry.Find(id).CrewBerthSolidSide, Is.True);
+					Assert.That(geometry.Find(id).WaterSideBasis, Does.Contain("crew berth use").And.Contain("UNSARE"));
+					continue;
+				}
 				if (!verified && !crew && (primary || !solid))
 				{
 					Assert.That(geometry.Excluded.Any(e => e.Id == id), Is.True, $"segment {id}, verified neither by the pipeline, by crew nor (off the primary face) by its charted solid side, must be listed as excluded");

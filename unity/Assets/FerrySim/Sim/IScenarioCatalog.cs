@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using FerrySim.Core.Traffic;
 
 namespace FerrySim.Sim
 {
 	/// <summary>
 	/// What the scenario picker offers, and how a choice becomes a <see cref="ScenarioSettings"/>. The simulation
-	/// side implements it from the slice's landings, the environment packs it can find and the vessel files; UI
-	/// tests use a fake. Every list is in a fixed, documented order, so pickers and tests are deterministic.
+	/// side implements it from the slice's landings, the environment and traffic packs it can find and the vessel
+	/// files; UI tests use a fake. Every list is in a fixed, documented order, so pickers and tests are deterministic.
 	/// </summary>
 	public interface IScenarioCatalog
 	{
@@ -21,9 +22,44 @@ namespace FerrySim.Sim
 
 		/// <summary>
 		/// Builds the scenario for a choice. False, with a one-sentence reason a picker can show, when the choice
-		/// can't run: an unknown landing, day or vessel, or a time outside the day's coverage.
+		/// can't run: an unknown landing, berth, day or vessel, a time outside the day's coverage, traffic on a day
+		/// without it (<see cref="ScenarioDay.HasTraffic"/>), or a visibility that is neither 0 nor at least
+		/// <see cref="ScenarioSettings.MinimumVisibilityMetres"/>.
 		/// </summary>
 		bool TryCreate(ScenarioChoice choice, out ScenarioSettings settings, out string problem);
+	}
+
+	/// <summary>
+	/// Optional, beside <see cref="IScenarioCatalog"/>: the water under the keel at a choice's start, so a picker can warn
+	/// before a start that would be aground or nearly so. It never refuses a choice; <see cref="IScenarioCatalog.TryCreate"/>
+	/// decides what can run.
+	/// </summary>
+	public interface IScenarioStartDepthSource
+	{
+		/// <summary>
+		/// The water at the start of a choice that <see cref="IScenarioCatalog.TryCreate"/> would accept. False when it would
+		/// refuse the choice, or when the scenario has no real depth (calm or uniform water).
+		/// </summary>
+		bool TryGetStartDepth(ScenarioChoice choice, out ScenarioStartDepth depth);
+	}
+
+	/// <summary>The water at a run's start, metres.</summary>
+	public readonly struct ScenarioStartDepth
+	{
+		public ScenarioStartDepth(double minimumDepth, double maximumDraft)
+		{
+			MinimumDepth = minimumDepth;
+			MaximumDraft = maximumDraft;
+		}
+
+		/// <summary>The shallowest depth under the hull at the start pose and time: the water level minus the bed, m.</summary>
+		public double MinimumDepth { get; }
+
+		/// <summary>The vessel's maximum draft, m.</summary>
+		public double MaximumDraft { get; }
+
+		/// <summary>Water under the keel, m: negative when the start is aground.</summary>
+		public double UnderKeel => MinimumDepth - MaximumDraft;
 	}
 
 	/// <summary>Starts runs. The simulation side implements it; UI tests use a fake.</summary>
@@ -39,10 +75,19 @@ namespace FerrySim.Sim
 	/// <summary>A landing a run can start from.</summary>
 	public sealed class ScenarioLanding
 	{
+		private static readonly ScenarioBerth[] NoBerths = new ScenarioBerth[0];
+
 		public ScenarioLanding(string stopId, string name)
+			: this(stopId, name, null)
+		{
+		}
+
+		/// <summary>A landing and its berths, the default first; null or empty berths for a landing with one unnamed berth.</summary>
+		public ScenarioLanding(string stopId, string name, IReadOnlyList<ScenarioBerth> berths)
 		{
 			StopId = stopId ?? throw new ArgumentNullException(nameof(stopId));
 			Name = name ?? throw new ArgumentNullException(nameof(name));
+			Berths = berths ?? NoBerths;
 		}
 
 		/// <summary>The GTFS stop id, for example <c>87</c> for Wall St/Pier 11.</summary>
@@ -50,17 +95,40 @@ namespace FerrySim.Sim
 
 		/// <summary>The GTFS stop name.</summary>
 		public string Name { get; }
+
+		/// <summary>
+		/// The berths a run can start at, the default first and the rest in an order the catalog documents. Never
+		/// null. A picker offers a berth choice only when there are two or more.
+		/// </summary>
+		public IReadOnlyList<ScenarioBerth> Berths { get; }
 	}
 
-	/// <summary>A scenario day: one real day of tide, current and wind.</summary>
+	/// <summary>A berth at a landing: one landing face a run can start bow-on to.</summary>
+	public sealed class ScenarioBerth
+	{
+		public ScenarioBerth(string id, string name)
+		{
+			Id = id ?? throw new ArgumentNullException(nameof(id));
+			Name = name ?? throw new ArgumentNullException(nameof(name));
+		}
+
+		/// <summary>A stable id, unique within its landing, for example <c>enc:02261FA117EFB198</c> for a barge's berth.</summary>
+		public string Id { get; }
+
+		/// <summary>The name a picker shows, for example <c>Outer pontoon (east)</c>.</summary>
+		public string Name { get; }
+	}
+
+	/// <summary>A scenario day: one real day of tide, current and wind, and the harbor's traffic when it has it.</summary>
 	public sealed class ScenarioDay
 	{
-		public ScenarioDay(string date, string packName, TimeSpan localUtcOffset, bool windMissing)
+		public ScenarioDay(string date, string packName, TimeSpan localUtcOffset, bool windMissing, bool hasTraffic = false)
 		{
 			Date = date ?? throw new ArgumentNullException(nameof(date));
 			PackName = packName ?? throw new ArgumentNullException(nameof(packName));
 			LocalUtcOffset = localUtcOffset;
 			WindMissing = windMissing;
+			HasTraffic = hasTraffic;
 		}
 
 		/// <summary>The local (America/New_York) date, yyyy-MM-dd.</summary>
@@ -74,6 +142,9 @@ namespace FerrySim.Sim
 
 		/// <summary>True when the day has no wind data, so the wind reads as still air.</summary>
 		public bool WindMissing { get; }
+
+		/// <summary>True when a run on this day can have the harbor's real traffic: the day's traffic pack is available to this build.</summary>
+		public bool HasTraffic { get; }
 	}
 
 	/// <summary>A vessel a run can use.</summary>
@@ -96,15 +167,21 @@ namespace FerrySim.Sim
 		public string VesselFile { get; }
 	}
 
-	/// <summary>What the user picked: where, which day, what time and which vessel.</summary>
+	/// <summary>What the user picked: where and at which berth, which day, what time, which vessel, the traffic and the visibility.</summary>
 	public readonly struct ScenarioChoice
 	{
-		public ScenarioChoice(string stopId, string date, int localMinutes, string vesselId)
+		public ScenarioChoice(string stopId, string date, int localMinutes, string vesselId, string berthId = null, bool traffic = false,
+			TrafficLeaveOut leaveOut = TrafficLeaveOut.Automatic, int leaveOutMmsi = 0, double visibilityMetres = 0.0)
 		{
 			StopId = stopId;
 			Date = date;
 			LocalMinutes = localMinutes;
 			VesselId = vesselId;
+			BerthId = berthId;
+			Traffic = traffic;
+			LeaveOut = leaveOut;
+			LeaveOutMmsi = leaveOutMmsi;
+			VisibilityMetres = visibilityMetres;
 		}
 
 		/// <summary>The landing's GTFS stop id.</summary>
@@ -118,5 +195,23 @@ namespace FerrySim.Sim
 
 		/// <summary>The vessel's <see cref="ScenarioVessel.Id"/>.</summary>
 		public string VesselId { get; }
+
+		/// <summary>The berth's <see cref="ScenarioBerth.Id"/>, or null or empty for the landing's default berth.</summary>
+		public string BerthId { get; }
+
+		/// <summary>True to run with the day's real traffic (<see cref="ScenarioDay.HasTraffic"/>).</summary>
+		public bool Traffic { get; }
+
+		/// <summary>
+		/// Which vessel the traffic leaves out, read only with <see cref="Traffic"/>. The constructor's default leaves out
+		/// the ferry that ran the trip (<see cref="TrafficLeaveOut.Automatic"/>).
+		/// </summary>
+		public TrafficLeaveOut LeaveOut { get; }
+
+		/// <summary>The MMSI to leave out when <see cref="LeaveOut"/> is <see cref="TrafficLeaveOut.Mmsi"/>.</summary>
+		public int LeaveOutMmsi { get; }
+
+		/// <summary>Visibility, metres, as <see cref="ScenarioSettings.visibilityMetres"/>: 0 is unlimited.</summary>
+		public double VisibilityMetres { get; }
 	}
 }

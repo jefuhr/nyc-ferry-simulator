@@ -218,9 +218,9 @@ def test_south_williamsburg_whole_structure_keeps_ids_and_flags_and_drops_the_do
 	assert [s['id'] for s in segments] == [216221522, 149111046], 'the existing contacts.json ids are unchanged'
 	assert [s['kind'] for s in segments] == ['barge-end', 'berth-face']
 	assert segments[1]['primary_face'] and segments[1]['water_side_crew_reported']
-	assert segments[1]['verification'] == 'crew-reported'
-	assert segments[0]['verification'] == 'needs-crew-verification'
-	assert faces[0]['properties']['verification'] == 'needs-crew-verification', 'the landing-level label stays'
+	assert segments[1]['verification'] == 'crew-reported landing side'
+	assert segments[0]['verification'] == 'crew-reported landing side'
+	assert faces[0]['properties']['verification'] == 'crew-reported landing side'
 	assert faces[0]['properties']['contact_segment_evidence'][1]['verification'] == 'crew-reported'
 	back = next(f for f in features if f['properties']['polyline_id'] == 'landing-8-back')
 	ring = landing['local_coordinates'] + back['local_coordinates'][1:]
@@ -245,13 +245,13 @@ def test_every_charted_berth_at_pier_11_is_its_own_berth_ranked_by_ais(monkeypat
 	rows = []
 	for lnam, count in (('02261FA117EFB198', 3), ('0226111D16AAB198', 2), ('0226015B0512B198', 1)):
 		centre = shore[lnam].centroid
-		rows += [{'east_m': centre.x, 'north_m': centre.y, 'sog_kn': .1}] * count
+		rows += [{'east_m': centre.x, 'north_m': centre.y, 'sog_kn': .1, 'mmsi': 367776270}] * count
 	_, faces, structures = _build_fixture(monkeypatch, tmp_path, 'pier-11.json', pd.DataFrame(rows))
 	berths = [f['properties'] for f in structures['features'] if f['properties']['role'] in ('landing', 'berth') and f['properties']['polyline_id'] != 'landing-87-back']
 	by_id = {p['berth_id']: p for p in berths}
 	assert set(by_id) == {'enc:0226015B0512B198', 'enc:02261FA117EFB198', 'enc:0226111D16AAB198'}
 	assert [by_id[k]['berth_rank'] for k in ('enc:02261FA117EFB198', 'enc:0226111D16AAB198', 'enc:0226015B0512B198')] == [1, 2, 3]
-	assert faces[0]['properties']['enc_id'] == '0226015B0512B198', 'the crew-modelled primary berth is unchanged'
+	assert faces[0]['properties']['enc_id'] == '02261FA117EFB198', 'the crew default selects the outer pontoon'
 	for berth_id, props in by_id.items():
 		kinds = [s['kind'] for s in props['segments']]
 		assert 'berth-face' in kinds, berth_id
@@ -349,3 +349,75 @@ def test_runtime_contact_never_keeps_a_primary_face_on_the_probe(primary, chart,
 	if crew:
 		segment['water_side_crew_reported'] = True
 	assert landings.runtime_contact(segment) is expected
+
+# Wrong-side guard: only slow T/K fleet reports, projected onto the complete face span,
+# within 15 m either side; endpoints count, exactly on the face is neither side.
+def test_berth_side_support_uses_the_whole_span_and_separates_sides():
+	import pandas as pd
+	points = [(0, 1), (10, 15), (5, -2), (-.1, 1), (10.1, 1), (5, 15.1), (5, 0), (5, 1), (5, 2)]
+	reports = pd.DataFrame({'east_m': [p[0] for p in points], 'north_m': [p[1] for p in points],
+		'mmsi': [1] * 7 + [2, 1], 'sog_kn': [0] * 8 + [.5]})
+	result = landings.berth_side_support(LineString([(0, 0), (4, 0), (10, 0)]), (1, 0), reports, {1: 'T'})
+	assert result['outward_reports'] == 2
+	assert result['inward_reports'] == 1
+	assert result['verified']
+	assert result['distance_m'] == 15
+
+
+@pytest.mark.parametrize('norths', [[], [-1, -2], [1, -1, -2]])
+def test_berth_side_support_refuses_no_outward_or_more_inward(norths):
+	import pandas as pd
+	reports = pd.DataFrame({'east_m': [5.] * len(norths), 'north_m': norths, 'mmsi': [1] * len(norths), 'sog_kn': [0.] * len(norths)})
+	assert not landings.berth_side_support(LineString([(0, 0), (10, 0)]), (1, 0), reports, {1: 'K'})['verified']
+
+
+def _crew_berth_segment():
+	return {'berth_face': True, 'berth_id': 'enc:P', 'primary_face': True, 'water_side_verified_by_pipeline': False,
+		'berth_use_crew_note': 'current', 'berth_use_evidence': {'crew_notes_sha256': 'a' * 64,
+			'note': {'id': 'current', 'kind': 'berth-use-policy', 'berths': [{'id': 'enc:P', 'name': 'Outer'}]}},
+		'berth_side_evidence': {'verified': True, 'outward_reports': 3, 'inward_reports': 0},
+		'solid_side_evidence': {'verified': True, 'winding_check': True, 'probe_offset_m': .5,
+			'probe_in_charted_water': True, 'probe_water_layer': 'UNSARE', 'probe_in_lndare': False, 'probe_in_other_structure': False}}
+
+
+def test_primary_crew_berth_uses_separate_unsare_solid_side_basis():
+	s = _crew_berth_segment()
+	assert landings.berth_solid_contact(s)
+	assert landings.runtime_contact(s)
+	assert not s['water_side_verified_by_pipeline'] and not s.get('water_side_crew_reported')
+
+
+@pytest.mark.parametrize('change', ['unlisted', 'old-note', 'no-berth', 'land', 'structure', 'depare', 'unverified-solid', 'no-outward', 'more-inward'])
+def test_primary_berth_exception_refuses_missing_or_contradictory_evidence(change):
+	s = _crew_berth_segment()
+	if change == 'unlisted': s['berth_id'] = 'enc:OTHER'
+	elif change == 'old-note': s['berth_use_crew_note'] = 'old'
+	elif change == 'no-berth': s['berth_face'] = False
+	elif change == 'land': s['solid_side_evidence']['probe_in_lndare'] = True
+	elif change == 'structure': s['solid_side_evidence']['probe_in_other_structure'] = True
+	elif change == 'depare': s['solid_side_evidence']['probe_water_layer'] = 'DEPARE'
+	elif change == 'unverified-solid': s['solid_side_evidence']['verified'] = False
+	elif change == 'no-outward': s['berth_side_evidence']['outward_reports'] = 0
+	elif change == 'more-inward': s['berth_side_evidence']['inward_reports'] = 4
+	assert not landings.berth_solid_contact(s)
+	assert not landings.runtime_contact(s)
+
+
+def test_primary_berth_exception_checks_current_note_and_manifest_digest():
+	s = _crew_berth_segment()
+	assert landings.berth_solid_contact(s, s['berth_use_evidence']['note'], 'a' * 64)
+	assert not landings.berth_solid_contact(s, {'id': 'new', 'berths': [{'id': 'enc:P'}]}, 'a' * 64)
+	assert not landings.berth_solid_contact(s, s['berth_use_evidence']['note'], 'b' * 64)
+
+
+@pytest.mark.parametrize('note, berth, own, expected', [
+	({'kind': 'face-orientation', 'water_side_crew_reported': True}, 'enc:own', 'enc:own', 'crew-reported landing side'),
+	({'kind': 'face-orientation', 'water_side_crew_reported': True}, 'enc:other', 'enc:own', 'needs-crew-verification'),
+	({'kind': 'face-orientation', 'water_side_crew_reported': False}, 'enc:own', 'enc:own', 'needs-crew-verification'),
+	({'kind': 'berth-use-policy', 'berths': [{'id': 'enc:east'}]}, 'enc:east', 'enc:east', 'crew-reported berth'),
+	({'kind': 'berth-use-policy', 'berths': [{'id': 'enc:east'}]}, 'enc:fourth', 'enc:east', 'needs-crew-verification'),
+	({'kind': 'berth-use-policy', 'berths': [{'id': 'enc:east'}]}, None, 'enc:east', 'needs-crew-verification'),
+	(None, 'enc:own', 'enc:own', 'needs-crew-verification'),
+])
+def test_structure_label_names_only_the_evidence_that_applies(note, berth, own, expected):
+	assert landings.structure_verification(note, berth, own) == expected

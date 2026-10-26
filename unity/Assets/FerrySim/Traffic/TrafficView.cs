@@ -106,8 +106,14 @@ namespace FerrySim.Traffic
 
 		public VesselSimulationRunner Runner => runner;
 
+		/// <summary>The same run-clock sky as the own vessel; its navigation-light threshold differs from the panel palette.</summary>
+		public SunController Sun { get; set; }
+
+		/// <summary>Allows a paired rendering-cost measurement with hull lights off.</summary>
+		public bool NavigationLightsEnabled { get; set; } = true;
+
 		/// <summary>Sets what the view follows, for bootstrap code and tests, before or after it is enabled.</summary>
-		public void Connect(VesselSimulationRunner simulationRunner, Transform worldFrame, WaterSurface waterSurface, Camera camera)
+		public void Connect(VesselSimulationRunner simulationRunner, Transform worldFrame, WaterSurface waterSurface, Camera camera, SunController sun = null)
 		{
 			Unsubscribe();
 			Clear();
@@ -115,6 +121,7 @@ namespace FerrySim.Traffic
 			frame = worldFrame;
 			water = waterSurface;
 			viewCamera = camera;
+			Sun = sun;
 			if (isActiveAndEnabled)
 			{
 				Subscribe();
@@ -268,6 +275,7 @@ namespace FerrySim.Traffic
 
 			var range = (double)viewRange;
 			var level = water != null ? water.WaterLevelNavd88 : 0.0;
+			var lightsOn = NavigationLightsEnabled && Sun != null && Daylight.ShowsNavigationLights(Sun.Sun, Sun.VisibilityMetres);
 			var shown = 0;
 			for (var i = 0; i < _hulls.Count; i++)
 			{
@@ -289,6 +297,7 @@ namespace FerrySim.Traffic
 					continue;
 				}
 
+				hull.NavigationLights.On = lightsOn;
 				hull.Follow(sample, monitor != null && monitor.IsAlarmed(vessel), monitor != null && monitor.IsColliding(vessel));
 				var transformed = _transforms[i];
 				transformed.localPosition = new Vector3((float)sample.East, (float)WaterHeight(i, sample.North, sample.East, level), (float)sample.North);

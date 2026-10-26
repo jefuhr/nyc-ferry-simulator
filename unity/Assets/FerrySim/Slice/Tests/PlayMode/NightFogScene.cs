@@ -59,10 +59,10 @@ namespace FerrySim.Slice.PlayModeTests
 			};
 		}
 
-		/// <summary>Bow on to Pier 11's primary landing face, <paramref name="bowClearance"/> metres off, at a time and visibility.</summary>
+		/// <summary>Bow on to Pier 11's southern berth (the original night/fog evidence), <paramref name="bowClearance"/> metres off, at a time and visibility.</summary>
 		public static ScenarioSettings OffPier11(SliceScene scene, string startUtc, double visibility, double bowClearance = 80.0)
 		{
-			var settings = LandingApproach.BowOn(scene.Landings.PrimaryFace(Pier11StopId), scene.Vessel, bowClearance, "night-fog, Pier 11", "vessels/t-class.json", startUtc);
+			var settings = LandingApproach.BowOn(scene.Landings.BerthFace(Pier11StopId, "enc:0226015B0512B198"), scene.Vessel, bowClearance, "night-fog, Pier 11", "vessels/t-class.json", startUtc);
 			settings.visibilityMetres = visibility;
 			return settings;
 		}

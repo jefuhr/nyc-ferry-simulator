@@ -103,6 +103,67 @@ namespace FerrySim.Traffic.Tests
 			return view;
 		}
 
+		// Failure modes: no lights, the wrong Rule 23 length set, stopped treated as moored,
+		// or a static vessel showing underway lights. Daylight and fog are checked through the real sky.
+		[Test]
+		public void HullLights_FollowLengthStatusDaylightAndFog()
+		{
+			var tug = TrafficTestPacks.Track.Straight(366000001, 43100.0, 600.0, -200.0, 4.0, 0.0, 12);
+			var stopped = TrafficTestPacks.Track.Straight(366000002, 43100.0, 200.0, -200.0, 0.0, 0.0, 12);
+			stopped.Length = 60.0;
+			var view = View(ScenarioTraffic.Off, tug, stopped, Moored());
+			var sky = _world.AddComponent<SunController>();
+			view.Sun = sky;
+			sky.SetUtc(new DateTime(2025, 7, 14, 4, 0, 0, DateTimeKind.Utc));
+			view.Place();
+			Assert.That(view.HullFor(tug.Mmsi).NavigationLights.Lights.Count, Is.EqualTo(4));
+			Assert.That(view.HullFor(stopped.Mmsi).NavigationLights.Lights.Count, Is.EqualTo(5));
+			Assert.That(view.HullFor(stopped.Mmsi).Status, Is.EqualTo(TrafficHullStatus.Stopped));
+			Assert.That(view.HullFor(tug.Mmsi).NavigationLights.On, Is.True);
+			Assert.That(view.HullFor(366000003).NavigationLights.Lights.Count, Is.Zero);
+			sky.SetUtc(new DateTime(2025, 7, 14, 16, 0, 0, DateTimeKind.Utc));
+			view.Place();
+			Assert.That(view.HullFor(tug.Mmsi).NavigationLights.On, Is.False);
+			sky.VisibilityMetres = 463;
+			view.Place();
+			Assert.That(view.HullFor(tug.Mmsi).NavigationLights.On, Is.True);
+			view.NavigationLightsEnabled = false;
+			view.Place();
+			Assert.That(view.HullFor(tug.Mmsi).NavigationLights.On, Is.False);
+		}
+
+		// Failure mode: a cached steady-state light is allocation-free, but switching the sky,
+		// restricted visibility or the paired benchmark switch allocates in the added light path.
+		[Test]
+		public void HullLightTransitions_AllocateNothingUnderWay()
+		{
+			var tug = TrafficTestPacks.Track.Straight(366000001, 43100.0, 600.0, -200.0, 4.0, 0.0, 12);
+			var stopped = TrafficTestPacks.Track.Straight(366000002, 43100.0, 200.0, -200.0, 0.0, 0.0, 12);
+			stopped.Length = 60.0;
+			var view = View(ScenarioTraffic.Off, tug, stopped, Moored());
+			var sky = _world.AddComponent<SunController>();
+			view.Sun = sky;
+			var night = new DateTime(2025, 7, 14, 4, 0, 0, DateTimeKind.Utc);
+			var day = new DateTime(2025, 7, 14, 16, 0, 0, DateTimeKind.Utc);
+			void Transitions()
+			{
+				view.Runner.AdvanceFrame(1.0 / 60.0);
+				view.NavigationLightsEnabled = true;
+				sky.VisibilityMetres = 0;
+				sky.SetUtc(night);
+				view.Place();
+				sky.SetUtc(day);
+				view.Place();
+				sky.VisibilityMetres = 463;
+				view.Place();
+				view.NavigationLightsEnabled = false;
+				view.Place();
+			}
+
+			Transitions();
+			Assert.That(Transitions, Is.Not.AllocatingGCMemory(), "warmed runner, hull placement and every light on/off transition; recording off");
+		}
+
 		[Test]
 		public void AVesselWhoseCurveBulgesIntoTheArea_GetsAHull_AndIsDrawnThere_ThoughNoReportOrLineDoes()
 		{

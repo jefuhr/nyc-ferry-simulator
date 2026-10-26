@@ -112,15 +112,17 @@ A scenario with `environment.pack` runs on one real day (format `ferrysim-env/1`
 
 ## The scenario catalog
 
-`IScenarioCatalog` and `IScenarioLauncher` (both in this folder) connect a scenario picker to the simulation. The slice implements them on `SliceBootstrap`, through `Slice/SliceScenarioCatalog.cs` and `Slice/SliceScenarios.cs`; these are their rules.
+`IScenarioCatalog` and `IScenarioLauncher` connect the picker to `SliceBootstrap`, through `SliceScenarioCatalog` and `SliceScenarios`. `IScenarioStartDepthSource` is an optional preview source implemented by the same bootstrap.
 
-- **Landings** are the slice's stops with a usable primary face (`LandingGeometry.PrimaryFace`), in GTFS stop id order: numeric ids by value (4, 8, 17, ... 136), then any others by ordinal text. A stop whose primary face is missing, left out of contact or bent is left out, with its reason.
-- **Days** are the region's pack days found in the pack roots, oldest first, each with its local offset (from its epoch) and whether it lacks wind. A folder that is not a date, or whose manifest is unreadable, is left out with its reason.
-- **Vessels** are the configured vessel files in order (the slice: `vessels/t-class.json`, `vessels/k-class.json`), each listed by its file's `id` and `displayName`. A file that does not load, or has no contact outline, is left out.
-- **Start pose:** the slice trips' start (`LandingApproach.BowOn`, as `Tests/E2E/TripData.Start`): at rest, the bow 4 m off the middle of the landing's primary face, heading straight in against its water normal. The position goes through the world tangent plane like every scenario's. A start less than 1 m from any face (`FaceClearance`, the bootstrap's rule) is refused.
-- **Start time:** the pack's local-midnight epoch plus the chosen minutes, 0 to 1439, so a choice is in local time without a time-zone database. A start outside the day's coverage is refused.
-- **Environment:** the chosen day's pack.
-- **Launching** ends the current run and starts the scenario with a new `RunId`. A scenario that cannot start (an invalid choice, a missing vessel file or pack, a pack that does not verify) is refused with the reason before the current run ends. A start the bootstrap refuses (too close to a face) ends the run before its first step, and the refusal is the reason.
+- **Landings** have a usable default face, ordered by numeric GTFS stop id, then other ids by ordinal text. A missing, excluded or bent default face excludes the stop with its reason.
+- **Berths** follow the exported `berth_order`: default first. Pier 11 offers Outer pontoon (east), North pontoon, South pontoon, in that fixed order. Other stops offer one `Main berth`. A barge id is `enc:<LNAM>` or its exported derived identity; a legacy fixed face uses `stop:<stop_id>`. Null or empty `ScenarioChoice.BerthId` means default. An unknown id is refused; it never silently selects another berth. Multi-berth scenario names include the selected berth name.
+- **Days** are readable environment-pack manifests, oldest first, with the pack epoch's local UTC offset and missing-wind flag. `HasTraffic` requires that day's traffic pack in the traffic roots, StreamingAssets first and the repository second. Players without traffic payloads report false.
+- **Vessels** follow the configured order: `vessels/t-class.json`, then `vessels/k-class.json`. An unreadable vessel or one without a contact outline is excluded.
+- **Start pose** is at rest, bow 4 m off the selected face midpoint, heading straight in against its normal (`LandingApproach.BowOn`). Every face subdivision must be retained, joined end to start within 1 mm and straight within 1 degree. A pose less than 1 m clear of any contact face is refused.
+- **Start time** is the pack's local-midnight epoch plus 0–1439 minutes. A start outside pack coverage is refused. The environment is the selected day's pack.
+- **Traffic and visibility** copy `Traffic`, `LeaveOut`, `LeaveOutMmsi` and `VisibilityMetres` into `ScenarioSettings`. Missing traffic, an invalid leave-out or invalid visibility is refused through the existing scenario validation. The picker offers Automatic (default) or Off leave-out; the contract also supports MMSI.
+- **Start depth** samples the pack's water level minus bilinear bed under the contact hull at the chosen start pose and time. It takes the minimum over a 0.25 m world lattice, covered depth-grid nodes and outline edges spaced at most 0.25 m. This is a sampled minimum, not a surveyed continuous minimum. Loaded days are cached. Unknown bed returns no numerical readout. The preview compares water depth with maximum draft; starts aground are permitted, with a non-blocking picker warning below 0.3 m under the keel.
+- **Launching** validates the scenario before ending an existing run, then starts it with a new `RunId`. Refusals remain inline. A bootstrap clearance refusal ends the new run before its first step.
 
 ## Recording and replay
 

@@ -257,7 +257,7 @@ namespace FerrySim.E2E
 			const string date = "2025-07-14";
 			var pack = Pack(date);
 			var bootstrap = Bootstrap;
-			Assert.That(bootstrap.ScenarioCatalog.TryCreate(new ScenarioChoice("87", date, 0, "t-class"), out var probe, out var problem), Is.True, problem);
+			Assert.That(bootstrap.ScenarioCatalog.TryCreate(new ScenarioChoice("87", date, 0, "t-class", berthId: "enc:0226015B0512B198"), out var probe, out var problem), Is.True, problem);
 			var at = probe.StartPosition;
 			var day = new DataEnvironment(pack, pack.EpochUtc);
 			// High and low water at Pier 11's start in daylight (07:00 to 20:00), from the pack itself.
@@ -273,7 +273,7 @@ namespace FerrySim.E2E
 			var levels = new Dictionary<string, double>();
 			foreach (var (name, minute) in new[] { ("high", high), ("low", low) })
 			{
-				var settings = Start(new ScenarioChoice("87", date, minute, "t-class"), new ConstantControls(ControlInputs.Neutral), Path.Combine(folder, name));
+				var settings = Start(new ScenarioChoice("87", date, minute, "t-class", berthId: "enc:0226015B0512B198"), new ConstantControls(ControlInputs.Neutral), Path.Combine(folder, name));
 				yield return Drive(() => _runner.Driver.StepCount >= 100, 100);
 				// Placement and the tide again after the last step, and a frame for the barge (FloatOnWater follows in LateUpdate).
 				_runner.ApplyRenderPose();
@@ -315,20 +315,18 @@ namespace FerrySim.E2E
 		}
 
 		/// <summary>
-		/// Pier 11's landings on a strong tide (the days and times of M3's first run, Tests/E2E/README.md). The channel field
-		/// carries no water through the pier and its barge, so in the slip off the primary face the tide runs weak and along
-		/// the face, 0.2 to 0.3 m/s; its strength is out in the stream off the pier's outer end, 0.8 to 0.9 m/s. The landing
-		/// starts there, at rest in the water 43 m off the face's line and 89 m down it (south-east), comes up a line 30 m off
-		/// the face, which keeps it in the charted berth's depth or deeper and clear of the shoal further off the face, turns
-		/// square 3 m short of the face's middle and comes in.
+		/// Pier 11's outer (east) pontoon, on the original strong-tide days and times. Its NE outward normal is nearly
+		/// opposite the former southern face: flood sets off this face and ebb onto it. Start in the strong stream
+		/// 150 m off and 100 m along the face, then return through (80 m off, 30 m along) to (30 m off, -3 m along).
+		/// These are authoring estimates. The unchanged >0.8 m/s path/hull checks and soft-landing limits judge them.
 		/// </summary>
-		private static readonly FacePoint[] Pier11FromTheStream = { new FacePoint(43.0, -89.0), new FacePoint(30.0, -40.0), new FacePoint(30.0, -3.0) };
+		private static readonly FacePoint[] Pier11FromTheStream = { new FacePoint(150.0, 100.0), new FacePoint(80.0, 30.0), new FacePoint(30.0, -3.0) };
 
 		[UnityTest]
-		public IEnumerator Pier11_OnTheFlood_LandsSoftOnThePrimaryFace_AndHolds() => Landing("pier11-flood", "87", "2025-07-20", 14 * 60 + 48, true, Pier11FromTheStream);
+		public IEnumerator Pier11_OnTheFlood_LandsSoftOnThePrimaryFace_AndHolds() => Landing("pier11-flood", "87", "2025-07-20", 14 * 60 + 48, false, Pier11FromTheStream);
 
 		[UnityTest]
-		public IEnumerator Pier11_OnTheEbb_LandsSoftOnThePrimaryFace_AndHolds() => Landing("pier11-ebb", "87", "2025-04-14", 15 * 60 + 12, false, Pier11FromTheStream);
+		public IEnumerator Pier11_OnTheEbb_LandsSoftOnThePrimaryFace_AndHolds() => Landing("pier11-ebb", "87", "2025-04-14", 15 * 60 + 12, true, Pier11FromTheStream);
 
 		/// <summary>
 		/// The scene's own day and time (Slice/README.md, The scene): at slack water, under two hours after high water, a
@@ -495,9 +493,9 @@ namespace FerrySim.E2E
 			yield return LoadScene();
 			var folder = Artifacts("replay");
 			var bootstrap = Bootstrap;
-			var face = bootstrap.Landings.PrimaryFace("87");
+			var face = bootstrap.Landings.BerthFace("87", "enc:0226015B0512B198");
 			var controls = new PackLandingControls(_runner, face);
-			Start(new ScenarioChoice("87", "2025-04-14", 15 * 60 + 12, "t-class"), controls, folder);
+			Start(new ScenarioChoice("87", "2025-04-14", 15 * 60 + 12, "t-class", berthId: "enc:0226015B0512B198"), controls, folder);
 			var live = new StateDigest();
 			var digest = new StepWatch((step, state, telemetry) => live.Add(state));
 			_runner.Driver.AddObserver(digest);

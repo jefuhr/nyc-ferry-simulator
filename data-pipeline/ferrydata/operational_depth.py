@@ -5,7 +5,7 @@ the piers is unsurveyed (UNSARE). The fleet's T- and K-class boats berth there e
 the bed under it. For each qualifying AIS report:
 
 - Which reports: a T- or K-class identity (the calibration identity audit), inside the depth grid, within RADIUS_M
-  of a slice landing's primary-face midpoint, SOG at most MAX_SOG_MPS (berthed and manoeuvring; faster reports
+  of any selectable berth face's midpoint, SOG at most MAX_SOG_MPS (berthed and manoeuvring; faster reports
   squat), on the 28 scenario days (New York local days, as the environment packs date them).
 - Level L: the simulation's water level at the report's position and time, as the environment packs and the core's
   DataEnvironment compute it from the gauges (series_value, blend).
@@ -445,14 +445,17 @@ def write_outputs(out, bed, water, profile, reports, classes, sources):
 
 
 def face_anchors(faces):
-	"""Each landing's primary-face midpoint and outward normal, as validate's approach boxes take them."""
+	"""Every selectable berth's midpoint and outward normal; older outputs carry only the primary face."""
 	anchors = []
 	for feature in faces:
 		p = feature['properties']
-		line = landings.to_local(shape(p['face_geometry']))
-		middle = line.interpolate(.5, normalized=True)
-		anchors.append(dict(stop_id=p['stop_id'], stop_name=p['stop_name'], north_m=float(middle.y), east_m=float(middle.x),
-			anchor_ne=(float(middle.y), float(middle.x)), outward_normal_ne=tuple(p['outward_normal_ne'])))
+		for berth in p.get('berths', [p]):
+			line = landings.to_local(shape(berth['face_geometry']))
+			middle = line.interpolate(.5, normalized=True)
+			anchors.append(dict(stop_id=p['stop_id'], stop_name=p['stop_name'],
+				berth_id=berth.get('id', p.get('outline_id')), berth_name=berth.get('name', 'Main berth'),
+				north_m=float(middle.y), east_m=float(middle.x), anchor_ne=(float(middle.y), float(middle.x)),
+				outward_normal_ne=tuple(berth['outward_normal_ne'])))
 	return sorted(anchors, key=lambda a: a['stop_id'])
 
 
@@ -529,7 +532,7 @@ def landing_rows(reports, before, after, floor, water, transform, nodata, faces,
 		mask = valid & water & np.isfinite(own_floor) & (own_floor < before)
 		amounts = before[mask].astype('float64') - after[mask].astype('float64')
 		by_day = {day: _counts(group['vessel_class']) for day, group in own.groupby('day', sort=True)}
-		rows.append(dict(stop_id=face['stop_id'], stop_name=face['stop_name'],
+		rows.append(dict(stop_id=face['stop_id'], stop_name=face['stop_name'], berth_id=face.get('berth_id'), berth_name=face.get('berth_name'),
 			reports=dict(total=int(len(own)), by_class=_counts(own['vessel_class']), by_day=by_day),
 			lowest_level_navd88_m=float(own['level_navd88_m'].min()) if len(own) else None,
 			cells_lowered=int(mask.sum()), max_lowering_m=float(amounts.max()) if amounts.size else 0.,
@@ -604,7 +607,7 @@ def report_markdown(report):
 	"""The per-landing report for people: what each landing's reports did to its bed and its approach box."""
 	p = report['parameters']
 	lines = ['# Operational depth floor (operational-ais)', '',
-		f"Method: for each T- or K-class AIS report within {p['radius_m']:g} m of a landing's primary-face midpoint at SOG at most "
+		f"Method: for each T- or K-class AIS report within {p['radius_m']:g} m of any selectable berth face's midpoint at SOG at most "
 		f"{p['max_sog_mps']:g} m/s on the 28 scenario days, the bed is at most L - D - M: L the simulation's water level there and "
 		f"then, D the class's maxDraft (T {p['max_draft_m']['T']:g} m, K {p['max_draft_m']['K']:g} m), M = {p['keel_margin_m']:g} m, "
 		f"a keel margin that is an estimate. Each report covers the water cells within half its class length overall "

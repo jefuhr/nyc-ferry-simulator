@@ -34,6 +34,18 @@ namespace FerrySim.World.Tests.EditMode
 		private BridgeGreybox[] Bridges => _prefab.GetComponentsInChildren<BridgeGreybox>(true);
 
 		[Test]
+		public void Pier11_LabelsNameAllThreeCrewReportedBerths_WithoutClaimingOrientationOrDepth()
+		{
+			var labels = _prefab.GetComponentsInChildren<TextMesh>(true).Select(label => label.text).ToArray();
+			foreach (var name in new[] { "Outer pontoon (east)", "North pontoon", "South pontoon" })
+			{
+				var label = labels.Single(text => text.Contains(name));
+				Assert.That(label.Split(new[] { "crew-reported berth" }, StringSplitOptions.None).Length - 1, Is.EqualTo(1), "berth use is stated once");
+				Assert.That(label, Does.Contain("Face orientation, depth and clearance not crew-verified"));
+			}
+		}
+
+		[Test]
 		public void EveryBarge_HasHullLabelAndFace()
 		{
 			Assert.That(Barges.Length, Is.GreaterThanOrEqualTo(11));
@@ -50,9 +62,12 @@ namespace FerrySim.World.Tests.EditMode
 
 				var label = barge.GetComponentInChildren<TextMesh>(true);
 				Assert.That(label, Is.Not.Null, barge.name);
+				if (barge.StopId != "87") Assert.That(label.text, Is.EqualTo(barge.LabelText), "other barge labels remain unchanged");
 				Assert.That(label.text, Does.Contain(barge.StopName));
 				Assert.That(label.text, Does.Contain(barge.Confidence + " confidence"));
-				Assert.That(label.text, Does.Contain("needs-crew-verification"));
+				var expected = barge.StopId == "8" || barge.StopId == "19" ? "crew-reported landing side"
+					: barge.StopId == "87" ? "crew-reported berth" : "needs-crew-verification";
+				Assert.That(label.text, Does.Contain(expected));
 				Assert.That(label.GetComponent<Billboard>(), Is.Not.Null);
 			}
 		}

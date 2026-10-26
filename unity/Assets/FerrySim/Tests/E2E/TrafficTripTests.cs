@@ -306,7 +306,7 @@ namespace FerrySim.E2E
 			var folder = Artifacts("replay-positions");
 			var pack = Pack(Day);
 			var independent = new TrafficReplay(pack);
-			var settings = Start(new ScenarioChoice("87", Day, 17 * 60, "t-class"), new ConstantControls(ControlInputs.Neutral), folder, new ScenarioTraffic { day = Day });
+			var settings = Start(new ScenarioChoice("87", Day, 17 * 60, "t-class", berthId: "enc:0226015B0512B198"), new ConstantControls(ControlInputs.Neutral), folder, new ScenarioTraffic { day = Day });
 			var bootstrap = Bootstrap;
 			var view = bootstrap.TrafficView;
 			var offset = _runner.Traffic.EpochOffset;
@@ -369,7 +369,7 @@ namespace FerrySim.E2E
 			var folder = Artifacts("leave-out");
 			var pack = Pack(Day);
 			var independent = new TrafficReplay(pack);
-			var settings = Start(new ScenarioChoice("87", Day, 18 * 60, "t-class"), new ConstantControls(ControlInputs.Neutral), folder,
+			var settings = Start(new ScenarioChoice("87", Day, 18 * 60, "t-class", berthId: "enc:0226015B0512B198"), new ConstantControls(ControlInputs.Neutral), folder,
 				new ScenarioTraffic { day = Day, leaveOut = ScenarioTraffic.Automatic });
 			var bootstrap = Bootstrap;
 			var offset = _runner.Traffic.EpochOffset;
@@ -468,7 +468,7 @@ namespace FerrySim.E2E
 			yield return LoadScene();
 			var folder = Artifacts("alongside");
 			var pack = Pack(Day);
-			var settings = Start(new ScenarioChoice("87", Day, 18 * 60, "t-class"), new ConstantControls(ControlInputs.Neutral), folder,
+			var settings = Start(new ScenarioChoice("87", Day, 18 * 60, "t-class", berthId: "enc:0226015B0512B198"), new ConstantControls(ControlInputs.Neutral), folder,
 				new ScenarioTraffic { day = Day, leaveOut = ScenarioTraffic.Automatic });
 			var bootstrap = Bootstrap;
 			Assert.That(pack.Vessel(BerthedMmsi), Is.Not.Null);
@@ -572,7 +572,7 @@ namespace FerrySim.E2E
 			// 13:00 EDT, near slack water (as the launcher's garbage test chose it).
 			traffic = SyntheticTraffic(start, Angles.ToRadians(headingDegrees), 13 * 3600.0);
 			_runner.TrafficPacks = traffic;
-			return Start(new ScenarioChoice("87", Day, 13 * 60, "t-class"), new PursuitControls(_runner), folder,
+			return Start(new ScenarioChoice("87", Day, 13 * 60, "t-class", berthId: "enc:0226015B0512B198"), new PursuitControls(_runner), folder,
 				new ScenarioTraffic { day = Day }, scenario =>
 				{
 					scenario.startLatitude = station.Latitude;
@@ -759,7 +759,7 @@ namespace FerrySim.E2E
 			var kept = pack.Vessels.Where(v => replay.MayEnter(v.Index, minNorth, maxNorth, minEast, maxEast)).ToList();
 			var linesOnly = pack.Vessels.Where(v => ReportsOrLinesInside(pack, v, minNorth, maxNorth, minEast, maxEast)).ToList();
 
-			var choice = new ScenarioChoice("87", Day, busiest, "t-class");
+			var choice = new ScenarioChoice("87", Day, busiest, "t-class", berthId: "enc:0226015B0512B198");
 			var withTraffic = new Measurement();
 			yield return Measure(choice, new ScenarioTraffic { day = Day }, folder, withTraffic);
 			yield return Capture(Path.Combine(folder, "busiest-minute.png"), 300f, 220f);

@@ -244,3 +244,39 @@ def test_crew_report_includes_note_id_and_provenance_kind():
 		'source': 'crew-reported: project crew reviewer', 'statement': 'Every ramp barge is used'}
 	text = '\n'.join(validate.crew_evidence_details(note, {'verified': True, 'method': 'direct-12m'}))
 	assert 'pier11-use' in text and 'berth-use-policy' in text
+
+
+@pytest.mark.parametrize('changed_source', ['none', 'crew', 'probe', 'ais'])
+def test_crew_berth_validation_recomputes_sources_instead_of_trusting_export(tmp_path, monkeypatch, changed_source):
+	"""A forged/stale success cannot survive a changed current note, blocked UNSARE probe or inward AIS majority."""
+	import json
+	from types import SimpleNamespace
+	from shapely.geometry import box, mapping
+	from ferrydata import crew_notes, landings, slices
+	face = LineString([(0, 0), (10, 0)])
+	outline = box(0, -5, 10, 0)
+	water = box(-100, 0, 100, 100)
+	note = {'id': 'current', 'kind': 'berth-use-policy', 'berths': [{'id': 'enc:P', 'name': 'Outer'}]}
+	proof = landings.solid_side_evidence((0, 0), (10, 0), outline, 'PONTON', 'P',
+		landings.ChartedWater([], [(water, {'feature_class': 'UNSARE', 'id': 'W'})]), Polygon(), Polygon())
+	segment = {'id': 1, 'index': 0, 'berth_face': True, 'berth_id': 'enc:P', 'lnam': 'P', 'layer': 'PONTON',
+		'water_side_verified_by_pipeline': False, 'solid_side_evidence': proof, 'berth_use_crew_note': 'current',
+		'berth_use_evidence': {'note': note, 'crew_notes_sha256': 'a' * 64},
+		'berth_side_evidence': {'verified': True, 'outward_reports': 1, 'inward_reports': 0}}
+	def write(name, features): (tmp_path / name).write_text(json.dumps({'features': features}))
+	def feature(geometry, props): return {'geometry': mapping(landings.to_wgs84(geometry)), 'properties': props}
+	write('landing_structures.geojson', [feature(face, {'stop_id': 'S', 'segments': [segment]})])
+	write('landing_faces.geojson', [feature(outline, {'stop_id': 'S', 'berths': [{'id': 'enc:P',
+		'face_geometry': mapping(landings.to_wgs84(face)), 'outward_normal_ne': [1, 0]}]})])
+	write('shoreline_constructions.geojson', [feature(outline, {'id': 'P', 'feature_class': 'PONTON'})])
+	write('land_areas.geojson', [])
+	write('depth_areas.geojson', [])
+	monkeypatch.setattr(validate.paths, 'processed_dir', lambda name: tmp_path)
+	monkeypatch.setattr(slices, 'get_slice', lambda name: SimpleNamespace(name=name))
+	monkeypatch.setattr(landings, '_unsurveyed', lambda region: [(water, {'feature_class': 'UNSARE', 'id': 'W'})])
+	monkeypatch.setattr(landings, 'chart_masks', lambda out: (Polygon(), box(4, .1, 6, .9) if changed_source == 'probe' else Polygon()))
+	monkeypatch.setattr(crew_notes, 'load', lambda: ({'S': {**note, 'id': 'new'} if changed_source == 'crew' else note}, 'a' * 64))
+	monkeypatch.setattr(landings, '_slow_reports', lambda: pd.DataFrame({'mmsi': [367776270] * 3,
+		'east_m': [5, 5, 5], 'north_m': [1, -1, -2] if changed_source == 'ais' else [1, 100, 100], 'sog_kn': [0, 0, 0]}))
+	result = validate.independent_berth_gates('test')[('S', 'enc:P')]
+	assert result['verified'] is (changed_source == 'none'), result

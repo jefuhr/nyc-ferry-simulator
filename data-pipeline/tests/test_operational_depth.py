@@ -563,3 +563,21 @@ def test_the_depth_set_note_names_the_hazards_the_floor_left_alone(tmp_path):
 	manifest_, _ = env_depth.build(slice_, out, tmp_path / 'env' / 'depth')
 	note = next(s['note'] for s in manifest_['sources'] if s['name'] == od.FLOOR_FILE)
 	assert 'charted hazards keep their bed (101 always-submerged structures, 2 wreck areas)' in note
+
+
+def test_face_anchors_include_every_selectable_berth_without_changing_legacy_faces():
+	from shapely.geometry import LineString
+	from ferrydata import landings, geojsonio
+	def berth(identifier, north):
+		return {'id': identifier, 'name': identifier, 'order': north,
+			'face_geometry': geojsonio.make_feature(landings.to_wgs84(LineString([(0, north), (20, north)])), {})['geometry'],
+			'outward_normal_ne': [1, 0]}
+	old = dict(stop_id='87', stop_name='Pier 11', **berth('south', 0))
+	old['berths'] = [berth('east', 20), berth('north', 40), berth('south', 0)]
+	anchors = od.face_anchors([{'properties': old}])
+	assert len(anchors) == 3
+	assert {a['berth_id'] for a in anchors} == {'east', 'north', 'south'}
+	assert sorted(a['north_m'] for a in anchors) == pytest.approx([0, 20, 40], abs=.001)
+	assert all(a['stop_id'] == '87' for a in anchors)
+	del old['berths']
+	assert len(od.face_anchors([{'properties': old}])) == 1

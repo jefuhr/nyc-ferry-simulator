@@ -139,6 +139,63 @@ def check_shoreline(slice_):
 	return shoreline_check(rows, notes)
 
 
+def independent_berth_gates(name):
+	"""Recompute crew-note membership, the 0.5 m solid-side probe and slow T/K side counts from sources."""
+	from shapely.ops import unary_union
+	from ferrydata import slices, tiles
+	out = paths.processed_dir(name)
+	structures_file = out / 'landing_structures.geojson'
+	if not structures_file.exists(): return {}
+	structures = json.loads(structures_file.read_text())
+	selected = [(f, segment) for f in structures['features'] for segment in f['properties']['segments']
+		if segment.get('berth_face') and segment.get('berth_use_crew_note')]
+	if not selected: return {}
+	if name.startswith('harbor/tiles/'):
+		index = json.loads((paths.processed_dir('harbor') / 'index.json').read_text())
+		region = tiles.get_tile(name.rsplit('/', 1)[1], index['enc_cells'])
+	else: region = slices.get_slice(name)
+	areas = [(landing_module.to_local(shape(f['geometry'])), f['properties']) for f in _load_json(name, 'depth_areas.geojson')['features']
+		if f['properties'].get('min_depth_m') is not None and f['properties']['min_depth_m'] >= 0]
+	charted = landing_module.ChartedWater(areas, landing_module._unsurveyed(region))
+	_, land = landing_module.chart_masks(out)
+	shore = [(landing_module.to_local(shape(f['geometry'])), f['properties']) for f in _load_json(name, 'shoreline_constructions.geojson')['features']]
+	floating = landing_module._floating_outlines(shore)
+	solid = fixed_solid(name)
+	notes, digest = crew_notes.load()
+	faces = {f['properties']['stop_id']: f['properties'] for f in _load_json(name, 'landing_faces.geojson')['features']}
+	reports = landing_module._slow_reports()
+	result = {}
+	for feature, segment in selected:
+		stop = feature['properties']['stop_id']; key = (stop, segment['berth_id'])
+		if key not in result:
+			berth = next((b for b in faces[stop].get('berths', []) if b['id'] == segment['berth_id']), None)
+			if berth is None:
+				result[key] = {'verified': False, 'errors': ['selected berth absent from landing face data'], 'outward_reports': 0, 'inward_reports': 0, 'requires_exception': True}; continue
+			face = landing_module.to_local(shape(berth['face_geometry']))
+			side = landing_module.berth_side_support(face, berth['outward_normal_ne'], reports)
+			result[key] = {**side, 'errors': [], 'segment_ids': [], 'requires_exception': False}
+		row = result[key]
+		if 'segment_ids' not in row: continue
+		row['segment_ids'].append(segment['id'])
+		row['requires_exception'] |= not segment['water_side_verified_by_pipeline'] and not segment.get('water_side_crew_reported')
+		interior = next((g for g, props in floating if props['id'] == segment.get('lnam')), None)
+		if interior is None:
+			row['errors'].append('charted floating outline missing'); row['verified'] = False; continue
+		others = unary_union([g for g,_ in floating if not g.equals(interior)] + [solid])
+		line = landing_module.to_local(shape(feature['geometry'])); i = segment['index']
+		probe = landing_module.solid_side_evidence(line.coords[i], line.coords[i+1], interior, segment['layer'], segment['lnam'], charted, land, others)
+		recomputed = {**segment, 'solid_side_evidence': probe, 'berth_side_evidence': {k: row[k] for k in ('verified', 'outward_reports', 'inward_reports')}}
+		note = notes.get(stop)
+		valid = note is not None and landing_module.berth_solid_contact(recomputed, note, digest)
+		if row['requires_exception'] and not valid: row['errors'].append(f"segment {segment['id']}: crew/UNSARE/solid-side/AIS gate failed")
+		stored = segment.get('berth_side_evidence') or {}
+		if any(stored.get(k) != row[k] for k in ('outward_reports', 'inward_reports')): row['errors'].append('stored AIS side counts differ from recomputation')
+		for field in ('verified', 'winding_check', 'probe_water_layer', 'probe_in_lndare', 'probe_in_other_structure'):
+			if probe.get(field) != segment['solid_side_evidence'].get(field): row['errors'].append(f"segment {segment['id']}: stored {field} differs from recomputation")
+		row['verified'] = not row['errors'] and (valid if row['requires_exception'] else True)
+	return result
+
+
 def shoreline_rows(name, reference_stops=None):
 	"""Each GTFS stop's face distance and independently recomputed water side (chart, or the tracked crew note).
 
@@ -150,6 +207,7 @@ def shoreline_rows(name, reference_stops=None):
 	notes, notes_sha256 = crew_notes.load()
 	construction_file = out / 'shoreline_constructions.geojson'
 	constructions = [(landing_module.to_local(shape(f['geometry'])), f['properties']) for f in _load_json(name, 'shoreline_constructions.geojson')['features']] if construction_file.exists() else None
+	gates = independent_berth_gates(name)
 	rows = []
 	for stop in stops:
 		p = stop["properties"]
@@ -179,6 +237,10 @@ def shoreline_rows(name, reference_stops=None):
 				expected, normal = landing_module.berthing_face(barge, vector)
 				if expected.hausdorff_distance(face) < .03 and np.dot(normal, props['outward_normal_ne']) > .999:
 					proof = {**proof, 'chart_verified': proof['verified'], 'chart_method': proof['method'], 'verified': True, 'method': 'crew-reported'}
+			gate = gates.get((p['stop_id'], props.get('outline_id')))
+			if not proof['verified'] and gate and gate['verified']:
+				proof = {**proof, 'chart_verified': False, 'chart_method': proof['method'], 'verified': True, 'method': landing_module.BERTH_SOLID_BASIS, 'berth_side_evidence': gate}
+			row['berth_gates'] = {berth: g for (stop_id, berth), g in gates.items() if stop_id == p['stop_id']}
 			row.update(distance_m=face.distance(point), source=props["source"], confidence=props["confidence"], water_side=proof['verified'], proof=proof)
 		rows.append(row)
 	return rows, notes
@@ -190,6 +252,9 @@ def shoreline_check(rows, notes):
 	result.details += _md_table(['landing', 'water-side method', 'chart check', 'near-face DEPARE gap along corridor (m)'],
 		[(r['stop_name'], r.get('proof', {}).get('method', 'missing'), 'PASS' if r.get('proof', {}).get('chart_verified', r['water_side']) else 'FAIL', _fmt(r.get('proof', {}).get('near_face_coverage_gap_m'), 1)) for r in rows])
 	for r in rows:
+		for berth, gate in r.get('berth_gates', {}).items():
+			basis = landing_module.BERTH_SOLID_BASIS if gate['requires_exception'] else 'existing chart water-side basis'
+			result.details += ['', f"Berth {berth}: slow T/K reports outward {gate['outward_reports']}, inward {gate['inward_reports']}; {'PASS' if gate['verified'] else 'FAIL'}; " + ('; '.join(gate['errors']) or basis)]
 		if r['stop_id'] in notes:
 			proof = r.get('proof', {})
 			result.details += ['', f"### Crew evidence for {r['stop_name']}", ''] + crew_evidence_details(notes[r['stop_id']],
@@ -209,7 +274,7 @@ def crew_evidence_details(note, chart):
 
 def filtered_contact_topology(line, records):
 	"""Runtime's chart OR crew inclusion gate; preserve separate runs across gaps."""
-	retained = [r['index'] for r in records if r.get('water_side_verified_by_pipeline') or r.get('water_side_crew_reported')]
+	retained = [r['index'] for r in records if r.get('water_side_verified_by_pipeline') or r.get('water_side_crew_reported') or r.get('berth_solid_gate')]
 	runs = []
 	coords = list(line.coords)
 	for index in retained:
@@ -224,6 +289,7 @@ def filtered_contact_topology(line, records):
 def check_contact_polylines(slice_):
 	rows, errors, filtered_rows = [], [], []
 	out = paths.processed_dir(slice_.name)
+	gates = independent_berth_gates(slice_.name)
 	for f in _load_json(slice_.name, 'landing_faces.geojson')['features']:
 		p = f['properties']
 		if 'contact_geometry' not in p:
@@ -246,6 +312,10 @@ def check_contact_polylines(slice_):
 					any(a.get(k, False) != b.get(k, False) for k in ('index', 'on_primary_face', 'water_side_verified_by_pipeline', 'water_side_crew_reported'))
 					for a, b in zip(stored, recomputed)):
 					problems.append('stored segment eligibility differs from independent per-side evidence')
+				gate = gates.get((p['stop_id'], p.get('outline_id')))
+				if gate and gate['verified']:
+					for record in recomputed:
+						if record.get('on_primary_face'): record['berth_solid_gate'] = True
 				topology = filtered_contact_topology(line, recomputed)
 				if not topology['primary_retained']:
 					problems.append('runtime filter loses a primary face subdivision')
@@ -257,7 +327,7 @@ def check_contact_polylines(slice_):
 		errors.extend(f"{p['stop_name']}: {problem}" for problem in problems)
 	return CheckResult('Landing contact polylines connected and solid-right', bool(rows) and not errors,
 		'; '.join(errors) if errors else f'all {len(rows)} open polylines preserve shared vertices and water-left orientation',
-		_md_table(['landing', 'segments', 'result'], rows) + ['', 'Runtime eligibility is chart verification OR crew water-side support. Indices are original polyline indices; gaps remain separate open runs, never bridged.', ''] +
+		_md_table(['landing', 'segments', 'result'], rows) + ['', 'Runtime eligibility is chart verification, crew water-side support, or the independently recomputed crew-use/UNSARE/solid-side/AIS gate. Indices are original polyline indices; gaps remain separate open runs, never bridged.', ''] +
 		_md_table(['landing', 'retained indices', 'dropped indices', 'open runs after filter', 'all primary subdivisions retained'], filtered_rows))
 
 
@@ -279,7 +349,7 @@ def fixed_solid(name):
 	return unary_union([g for g in parts if g.geom_type in ('Polygon', 'MultiPolygon')])
 
 
-def structure_errors(structures, faces, solid=None):
+def structure_errors(structures, faces, solid=None, current_notes=None):
 	"""Every landing_structures.geojson polyline joined, solid on the right, with a kind, provenance and the crew label rule.
 
 	faces maps a stop to its landing_faces.geojson properties: the exposed run keeps their primary flags.
@@ -312,8 +382,16 @@ def structure_errors(structures, faces, solid=None):
 			if segment['id'] in seen:
 				errors.append(f"{label}: duplicate id {segment['id']} (also {seen[segment['id']]})")
 			seen[segment['id']] = label
-			crew = segment.get('primary_face') and segment.get('water_side_crew_reported') and (segment.get('crew_evidence') or {}).get('kind') == 'face-orientation'
-			expected = 'crew-reported' if crew else 'needs-crew-verification'
+			from ferrydata.landings import structure_verification
+			face = faces.get(p['stop_id'], {})
+			note = face.get('crew_note') if current_notes is None else current_notes.get(p['stop_id'])
+			if segment.get('berth_face'):
+				eligible = landing_module.start_face_eligible(segment)
+				if current_notes is not None and not (segment.get('water_side_verified_by_pipeline') or segment.get('water_side_crew_reported')):
+					eligible = eligible and note is not None and (segment.get('berth_use_evidence') or {}).get('note') == note
+				if not eligible:
+					errors.append(f"{label} berth {segment.get('berth_id')}: missing start-face basis (pipeline water-side proof, crew-reported water side or complete crew-use exception)")
+			expected = structure_verification(note, p.get('berth_id'), face.get('outline_id'))
 			if segment['verification'] != expected:
 				errors.append(f"{label}: verification {segment['verification']}, the crew label rule gives {expected}")
 			if (p['stop_id'], segment.get('lnam')) in left_out:
@@ -375,7 +453,10 @@ def left_out_table(items):
 def check_landing_structures(slice_):
 	structures = _load_json(slice_.name, 'landing_structures.geojson')
 	faces = {f['properties']['stop_id']: f['properties'] for f in _load_json(slice_.name, 'landing_faces.geojson')['features']}
-	errors = structure_errors(structures, faces, fixed_solid(slice_.name))
+	from ferrydata import crew_notes
+	errors = structure_errors(structures, faces, fixed_solid(slice_.name), crew_notes.load()[0])
+	for (stop, berth), gate in independent_berth_gates(slice_.name).items():
+		if not gate['verified']: errors.append(f"{stop} berth {berth}: " + '; '.join(gate['errors']))
 	rows = structure_rows(structures)
 	missing = sorted(set(faces) - set(rows))
 	errors += [f'{stop}: no landing structures' for stop in missing]
@@ -447,13 +528,16 @@ def compute_approaches(slice_, dataset, min_level):
 		if len(matches) != 1:
 			raise ValueError(f"{props['stop_name']}: missing or duplicate landing face")
 		p = matches[0]["properties"]
-		face = landing_module.to_local(shape(p["face_geometry"]))
-		mid = face.interpolate(.5, normalized=True)
-		a, b = face.coords[0], face.coords[-1]
-		tangent = ((b[0] - a[0]) / face.length, (b[1] - a[1]) / face.length)
-		anchor = (mid.y, mid.x)
-		boxes = [_box_stats(dataset, anchor, p["outward_normal_ne"], min_level)]
-		approaches.append(Approach({**props, "face_source": p["source"], "face_confidence": p["confidence"]}, anchor, tangent, p["side_chosen_by"], boxes))
+		for berth in p.get('berths', [p]):
+			face = landing_module.to_local(shape(berth['face_geometry']))
+			mid = face.interpolate(.5, normalized=True)
+			a, b = face.coords[0], face.coords[-1]
+			tangent = ((b[0] - a[0]) / face.length, (b[1] - a[1]) / face.length)
+			anchor = (mid.y, mid.x)
+			boxes = [_box_stats(dataset, anchor, berth['outward_normal_ne'], min_level)]
+			name = props['stop_name'] + (' — ' + berth['name'] if len(p.get('berths', [])) > 1 else '')
+			approaches.append(Approach({**props, 'stop_name': name, 'berth_id': berth.get('id', p.get('outline_id')),
+				'face_source': p['source'], 'face_confidence': p['confidence']}, anchor, tangent, p['side_chosen_by'], boxes))
 	return approaches
 
 
@@ -620,7 +704,7 @@ def check_depth(slice_):
 	offset, floor = metadata["mllw_zero_navd88_m"], metadata["operational_ais"]
 	if floor.get("method") != operational_depth.METHOD or not floor.get("applied"):
 		raise ValueError("depth_merged_navd88.json does not record the operational-ais floor")
-	records = {row["stop_id"]: row["box"] for row in _load_json(slice_.name, operational_depth.REPORT_FILE)["landings"]}
+	records = {(row["stop_id"], row.get("berth_id")): row["box"] for row in _load_json(slice_.name, operational_depth.REPORT_FILE)["landings"]}
 	areas, soundings = chart_features(slice_.name)
 	with rasterio.open(out / "depth_merged_navd88.tif") as merged, rasterio.open(out / "depth_navd88.tif") as cudem, rasterio.open(out / "depth_chart_navd88.tif") as chart, \
 		rasterio.open(out / operational_depth.LOWERED_FILE) as lowered:
@@ -632,7 +716,7 @@ def check_depth(slice_):
 			approaches = compute_approaches(slice_, merged, min_level)
 			baseline = compute_approaches(slice_, cudem, min_level)
 			charted = [approach_depth(merged, chart, depth.landing_box_polygon(item.anchor_ne, item.boxes[0]["direction"], APPROACH_BOX_M),
-				min_level, required, offset, areas, soundings, before_floor=before, operational=records.get(item.props["stop_id"])) for item in approaches]
+				min_level, required, offset, areas, soundings, before_floor=before, operational=records.get((item.props["stop_id"], item.props.get("berth_id")))) for item in approaches]
 		write_approach_figure(slice_, approaches, merged, min_level, out / "landing_approaches.png", shore)
 	failures, cudem_failures, settled, floored, rows, explanations = [], [], [], [], [], []
 	for item, original, result in zip(approaches, baseline, charted):
@@ -660,7 +744,7 @@ def check_depth(slice_):
 		f"Each {APPROACH_BOX_M:g} m square starts at the berthing face and extends along its outward normal. The shallowest valid merged cell must meet the depth requirement with at least {MIN_VALID_FRACTION:.0%} coverage. CUDEM-only results use the identical face and box.",
 		f"Charted data: the same box and cell rule on depth_chart_navd88.tif, the merge's own chart support (shallowest DEPARE/DRGARE DRVAL1 per cell, a SOUNDG measurement in its own cell, MLLW = {offset:.3f} m NAVD88 at The Battery). A box passes when the merged or the charted column passes with the same {required:.2f} m and {MIN_VALID_FRACTION:.0%} coverage rules: charted depth can settle a failure only CUDEM shows and never undoes a merged pass.",
 		f"Operational-ais floor: {floor['reports']['total']} T/K AIS reports (" + ", ".join(f"{k} {v}" for k, v in floor['reports']['by_class'].items())
-		+ f") within {parameters['radius_m']:g} m of a primary-face midpoint at SOG at most {parameters['max_sog_mps']:g} m/s on the 28 scenario days lowered {floor['cells_lowered']} cells, "
+		+ f") within {parameters['radius_m']:g} m of a selectable berth face's midpoint at SOG at most {parameters['max_sog_mps']:g} m/s on the 28 scenario days lowered {floor['cells_lowered']} cells, "
 		f"largest {floor['max_lowering_m']:.2f} m: each water cell within half the class length overall of a report (T {parameters['footprint_radius_m']['T']:.2f} m, K {parameters['footprint_radius_m']['K']:.2f} m) "
 		f"goes no shallower than the simulated level then less the class maxDraft (T {parameters['max_draft_m']['T']:g} m, K {parameters['max_draft_m']['K']:g} m) and a {parameters['keel_margin_m']:g} m keel margin, an estimate. "
 		"'merged before floor' is the CUDEM and chart merge alone (depth_merged_navd88.tif plus depth_operational_lowered_m.tif); 'basis' names the strongest evidence that passes a box: merged, then charted, then operational-ais. "
@@ -1124,7 +1208,10 @@ def harbor_landing_checks(tile, entry):
 	rows, _ = shoreline_rows(tile.name, reference_stops)
 	faces = {f['properties']['stop_id']: f['properties'] for f in tiles._json(out / 'landing_faces.geojson')['features']}
 	structures = tiles._json(out / 'landing_structures.geojson')
-	errors = structure_errors(structures, faces, fixed_solid(tile.name))
+	from ferrydata import crew_notes
+	errors = structure_errors(structures, faces, fixed_solid(tile.name), crew_notes.load()[0])
+	for (stop, berth), gate in independent_berth_gates(tile.name).items():
+		if not gate['verified']: errors.append(f"{stop} berth {berth}: " + '; '.join(gate['errors']))
 	summary = structure_rows(structures)
 	offset = tiles._json(out / 'depth_merged_navd88.json')['mllw_zero_navd88_m']
 	areas, soundings = chart_features(tile.name)
