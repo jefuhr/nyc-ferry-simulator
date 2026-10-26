@@ -103,6 +103,33 @@ def _clusters(mask, grid, source_dir):
 	return clusters
 
 
+def _hazard_clause(left_out):
+	if not left_out:
+		return ''
+	return '; charted hazards keep their bed (' + ', '.join(f"{entry['features']} {kind}s" for kind, entry in left_out.items()) + ')'
+
+
+def _floor_sources(source_dir, floor):
+	"""The operational-ais floor's rasters as depth-set sources, refused unless they are the ones the merge recorded."""
+	p = floor['parameters']
+	files = []
+	for key in ('floor', 'lowered'):
+		name = floor[f'{key}_file']
+		digest = manifest.sha256_file(source_dir / name)
+		if digest != floor[f'{key}_sha256']:
+			raise ValueError(f'{source_dir / name}: SHA-256 {digest} is not the {floor[f"{key}_sha256"]} depth_merged_navd88.json recorded')
+		files.append((name, digest))
+	by_class = ', '.join(f'{k} {v}' for k, v in floor['reports']['by_class'].items())
+	note = (f"operational-ais floor: {floor['reports']['total']} T/K AIS reports ({by_class}) within {p['radius_m']:g} m of a primary-face midpoint "
+		f"at SOG at most {p['max_sog_mps']:g} m/s on the 28 scenario days; the bed is at most the simulated water level then less the class "
+		f"maxDraft (T {p['max_draft_m']['T']:g} m, K {p['max_draft_m']['K']:g} m) less a {p['keel_margin_m']:g} m keel margin, an estimate, "
+		f"over the water cells within half the class length overall (T {p['footprint_radius_m']['T']:.2f} m, K {p['footprint_radius_m']['K']:.2f} m); "
+		f"{floor['cells_lowered']} cells lowered, largest {floor['max_lowering_m']:.2f} m; never raised, never on land or fixed structures, never into nodata"
+		+ _hazard_clause(floor.get('left_out')))
+	return [dict(name=files[0][0], sha256=files[0][1], note=note),
+		dict(name=files[1][0], sha256=files[1][1], note='metres the operational-ais floor lowered each merged cell; 0 where unchanged')]
+
+
 def build(slice_, source_dir, destination):
 	source_dir, destination = Path(source_dir), Path(destination)
 	source = source_dir / 'depth_merged_navd88.tif'
@@ -157,6 +184,7 @@ def build(slice_, source_dir, destination):
 	if clusters:
 		details = '; '.join(f'{c["cells"]} cells at north_m={c["north_m"]!r}, east_m={c["east_m"]!r} ({c["nearby"]})' for c in clusters)
 		raise ValueError(f'{int(water_after.sum())} unfilled water cells after chart fill; clusters: {details}')
+	floor_sources = _floor_sources(source_dir, metadata['operational_ais']) if metadata.get('operational_ais') else []
 	destination.mkdir(parents=True, exist_ok=True)
 	values.astype('<f4').tofile(destination / grid['file'])
 	grid['sha256'] = manifest.sha256_file(destination / grid['file'])
@@ -165,6 +193,9 @@ def build(slice_, source_dir, destination):
 		sources=[dict(name=source.name, sha256=manifest.sha256_file(source), note=f'CUDEM merged with ENC charted depths near berths; horizontal {crs}; WGS84 cell centres transformed with pyproj always_xy; largest interior world-aligned rectangle, no edge extension; {padding_cells} initial padding cells excluded'),
 			dict(name=metadata_file.name, sha256=manifest.sha256_file(metadata_file), note='Datum chain: CUDEM NAVD88; ENC MLLW converted using The Battery MLLW minus NAVD88 station datum; no VDatum surface correction'),
 			dict(name=chart_file.name, sha256=manifest.sha256_file(chart_file), note=f'Chart-derived NAVD88 water-hole fill: {filled} cells; {int(water_before.sum())} water NaNs before, {int(water_after.sum())} after')])
+	if floor_sources:
+		result['sources'][0]['note'] += '; operational-ais floor applied (depth_merged_navd88.json operational_ais)'
+		result['sources'] += floor_sources
 	pack.write_json(destination / 'manifest.json', result)
 	pack.write_digest(destination, pack.depth_digest(destination))
 	stats = dict(crs=crs, cells=int(values.size), finite_area_m2=int(np.isfinite(values).sum())*25,

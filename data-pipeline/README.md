@@ -18,7 +18,7 @@ uv run --project data-pipeline pytest
 (`python -m ferrydata` also works when the working directory is `data-pipeline/`.)
 
 - `fetch` downloads to the cache and is idempotent and checksum-verified. `--only gtfs,enc,cudem,coops,geoid,ais` and `--skip ...` select sources; `--force` re-downloads and accepts changed upstream data (the manifest is updated).
-- `build` processes from the cache only (no network) into `data/processed/<slice>/` and `data/processed/ais/`. A build selecting all of `gtfs,enc,cudem,coops` also refreshes the landing faces and merged depth. Partial builds do not refresh these dependent products; `--skip ais` can refresh them without rebuilding AIS.
+- `build` processes from the cache only (no network) into `data/processed/<slice>/` and `data/processed/ais/`. A build selecting all of `gtfs,enc,cudem,coops` also refreshes the landing faces and merged depth. Partial builds do not refresh these dependent products; `--skip ais` can refresh them without rebuilding AIS. The merged depth's operational floor (Operational depth floor, below) reads the AIS extract and the environment packs' pinned gauge files, so it needs one full build first and stops, naming the file, when either is missing; it never downloads.
 - `validate` writes `data/processed/<slice>/validation_report.md` (and `landing_approaches.png`) and exits non-zero if any check fails.
 
 Raw downloads live outside the repo in `$HOME/FerrySim-cache/data/raw/<source>/` (override the base with `FERRYSIM_CACHE`). Processed outputs are gitignored. The manifests in `data/manifests/<source>.json` are committed and hold, for each file: URL, retrieval timestamp (UTC), sha256, size, plus the source's licence or terms of use and notes.
@@ -64,7 +64,11 @@ Every output carries WGS84 lon/lat and the world-local `north_m`/`east_m` of `do
 | `unity/contacts.json` | contacts.json version 2 for the Unity importer (`export-unity`) | Derived |
 | `routes.geojson` | GTFS route shapes clipped to the slice | NYC Ferry GTFS |
 | `schedule_summary.json` | routes, trips, ordered stops per route and direction, `in_slice` flags | NYC Ferry GTFS |
-| `depth_merged_navd88.tif` + `.json` | CUDEM grid with conservative chart-supported corrections near structures; metadata pins datum station and source manifests | CUDEM + NOAA ENC + CO-OPS |
+| `depth_merged_navd88.tif` + `.json` | CUDEM grid with conservative chart-supported corrections near structures, then the operational-ais floor where the fleet's T- and K-class boats were seen afloat; metadata pins datum station, source manifests and the floor's provenance (`operational_ais`) | CUDEM + NOAA ENC + CO-OPS + AIS |
+| `depth_operational_floor_navd88.tif` | The operational floor per cell: the deepest required bed over the T/K reports covering it, NAVD88 m, NaN where none applies | AIS + CO-OPS gauges |
+| `depth_operational_lowered_m.tif` | Metres the floor lowered each merged cell (float64, exact): 0 where unchanged, NaN where the bed is nodata | Derived |
+| `depth_operational_reports.csv` | Every AIS report the floor used, with its landing, day, pack time, simulated level, draft, margin, required bed and footprint radius | AIS + CO-OPS gauges |
+| `depth_operational_floor.json` + `.md` | The floor's parameters, sources and gauges, and per landing: reports by class and day, cells lowered, largest and mean lowering, and the approach box before and after | Derived |
 | `depth_chart_navd88.tif` | Conservative chart elevation support on the same grid, with nodata where uncharted | NOAA ENC + CO-OPS |
 | `depth_disagreement_gt1m.tif` | Cell flag: 1 where chart/CUDEM elevation difference exceeds 1 m within the allowed buffer, including retained deeper CUDEM | Derived |
 | `landing_depth_diff.csv` | Per-face approach minima for CUDEM, chart and merged data; coverage, disagreement counts, station and verdicts | Derived |
@@ -99,7 +103,7 @@ And `data/processed/ais/candidate_roster.csv` and `nycferry_tracks.parquet` (see
 1. Required outputs exist.
 2. Every GTFS landing has exactly one landing face within 50 m and on the water side of the fixed shoreline (distances and water-side results are reported).
 3. The whole landing structures are well formed: every polyline joined and solid on the right, each landing's exposed run and back closing its barge, kinds, ids and provenance on every segment, the crew label rule, and no listed object exported as contact.
-4. Depth at each landing approach at the lowest water level of the window is at least K-class max draft + 0.5 m (1.6 + 0.5 = 2.1 m; the draft is read from `vessels/k-class.json`), on merged or on charted data.
+4. Depth at each landing approach at the lowest water level of the window is at least K-class max draft + 0.5 m (1.6 + 0.5 = 2.1 m; the draft is read from `vessels/k-class.json`), on merged or on charted data. Each box names its basis, the strongest evidence that passes it: `merged` (the CUDEM and chart merge alone), `charted`, then `operational-ais` (the merged bed with the operational floor), or `neither`.
 5. More than 0 aids, with parsed light characteristics.
 6. The Brooklyn, Manhattan and Williamsburg bridges are present with clearances.
 7. Current series cover the window with no gap over 1 h (the gap includes the distance from each window edge to the nearest sample).
@@ -130,7 +134,7 @@ For the merged raster, a 60 m buffer is measured in the world tangent plane arou
 
 CO-OPS station datums are checksum-pinned during `fetch --only coops` and recorded in `coops_stations.json` and merged metadata. MLLW zero in NAVD88 is `MLLW(STND) − NAVD88(STND)`; seabed elevation is that offset minus charted depth. For this slice, The Battery **8518750**, epoch **1983–2001**, gives **−0.846 m**. This is a constant local datum offset, not a VDatum surface transformation or a water-level observation. Water levels remain observed NAVD88 values.
 
-Known limits: CUDEM can smear structure elevations into water; ENC conservative depth bands can still be too shallow to establish 2.1 m at the window's lowest tide. North Williamsburg and Wall St chart geometry can omit depth areas around floating structures, and multiple-berth GTFS points cannot uniquely identify a barge. Those uncertainties and failing checks stay visible; crew/survey evidence is needed to resolve them.
+Known limits: CUDEM can smear structure elevations into water; ENC conservative depth bands can still be too shallow to establish 2.1 m at the window's lowest tide. The operational-ais floor (below) deepens the merged bed only where the fleet's boats were seen afloat, and only for the levels they were seen at. North Williamsburg and Wall St chart geometry can omit depth areas around floating structures, and multiple-berth GTFS points cannot uniquely identify a barge. Those uncertainties and failing checks stay visible; crew/survey evidence is needed to resolve them.
 
 ## AIS extract (`data/processed/ais/`)
 
@@ -171,7 +175,7 @@ The full wording and notes are in `data/manifests/*.json`.
 ## Layout and tests
 
 ```
-ferrydata/        geodesy, slices, manifest, fetcher, gtfs, enc, lights, cudem, depth, approach, landings, navdepth, coops, geoid, ais, validate, cli
+ferrydata/        geodesy, slices, manifest, fetcher, gtfs, enc, lights, cudem, depth, approach, landings, navdepth, operational_depth, coops, geoid, ais, validate, cli
 tests/            pytest suite (geodesy reference vectors, GTFS fixture, light parsing, current semantics, bbox clipping,
                   depth-box sampler on a synthetic raster, manifest checksum verification, and more)
 pyproject.toml    uv project, Python 3.12, only the approved packages
@@ -252,7 +256,33 @@ Runtime contact (Unity's `LandingGeometry`, `landings.runtime_contact`): a prima
 
 ### Approach depth on charted data
 
-Each approach box is also sampled on `depth_chart_navd88.tif`, the merge's own chart support: the shallowest DEPARE/DRGARE DRVAL1 per cell and a SOUNDG measurement in its own cell, converted from MLLW to NAVD88 through The Battery's datum offset, with the same box, cell rule, 2.10 m requirement and 50% coverage. A box passes when the merged or the charted column passes: charted depth can settle a failure only CUDEM shows, and never undoes a merged pass. Every box that fails on either column gets a verdict explained from the chart: the governing area or sounding, its band, its NAVD88 elevation and depth at the lowest water, the rest of the box's bands, and soundings in the box or within 30 m. The slice's three CUDEM-only failures (Brooklyn Navy Yard, South Williamsburg, Wall St/Pier 11) also fail on charted data: each box contains a 0-2 m MLLW band, whose lower bound gives -0.076 m at the window's lowest water, and Pier 11's and South Williamsburg's 2-5 m bands give only 1.924 m. The threshold is unchanged.
+Each approach box is also sampled on `depth_chart_navd88.tif`, the merge's own chart support: the shallowest DEPARE/DRGARE DRVAL1 per cell and a SOUNDG measurement in its own cell, converted from MLLW to NAVD88 through The Battery's datum offset, with the same box, cell rule, 2.10 m requirement and 50% coverage. A box passes when the merged or the charted column passes: charted depth can settle a failure only CUDEM shows, and never undoes a merged pass. Every box that fails on either column gets a verdict explained from the chart: the governing area or sounding, its band, its NAVD88 elevation and depth at the lowest water, the rest of the box's bands, and soundings in the box or within 30 m. The slice's three CUDEM-only failures (Brooklyn Navy Yard, South Williamsburg, Wall St/Pier 11) also fail on charted data: each box contains a 0-2 m MLLW band, whose lower bound gives -0.076 m at the window's lowest water, and Pier 11's and South Williamsburg's 2-5 m bands give only 1.924 m. The threshold is unchanged. The operational floor (below) deepens two of the three boxes but settles none.
+
+### Operational depth floor (operational-ais)
+
+Beside these berths the chart cannot settle the depth: its depth areas there are 0-2 m bands, the water next to the piers is unsurveyed (UNSARE), and CUDEM smears the structures into the water. The fleet's own boats berth there every day, and a boat afloat bounds the bed under it. `operational_depth.py` turns that into a floor on the merged bed (method `operational-ais`):
+
+- **Which reports.** Every report in `data/processed/ais/nycferry_tracks.parquet` of a T- or K-class identity (the calibration identity audit, `data-pipeline/calibration/identity-audit.csv`: class `T`, or `K-...`; the traffic packs' ferry candidates), inside the depth grid, within 200 m of a slice landing's primary-face midpoint (the midpoint validate's approach box starts from; a report belongs to its nearest face), SOG at most 2.5 m/s (berthed and manoeuvring; faster reports squat), on the 28 scenario days as New York local days. A report counts once, under the first test it fails, in `depth_operational_floor.json`'s `dropped_reports`.
+- **Level L.** The simulation's water level at the report's position and time, as the environment packs and the core's `DataEnvironment` compute it: the gauges a day's pack carries (the slice's NAVD88 gauges in its order, read from the same pinned `coops-environment` files by the same code), each sampled at the pack time by `SeriesTime` (linear across gaps up to 1800 s, the nearer sample across longer gaps, held at the ends and the coverage edges), then blended by inverse distance squared. It is not one gauge: The Battery and Kings Point differ by up to about 0.7 m.
+- **Required bed.** L - D - M, with D the class's `particulars.maxDraft` (`vessels/t-class.json` 1.9 m, `vessels/k-class.json` 1.6 m; 1.9 m for an unknown class) and M = 0.3 m, a keel margin that is an estimate.
+- **Footprint.** Every water cell whose centre lies within half the class's length overall of the report (T 13.00 m, K 14.80 m), because AIS antenna offsets are unknown. Distances are in the world tangent plane.
+- **Floor and new bed.** A cell's floor is the deepest required bed over every report whose footprint covers it. The new bed is min(merged bed, floor) on water cells only: no bed is raised, ENC LNDARE and dry SLCONS areas (the fixed solid the landing structures and validate use) are never touched, and nodata is never filled. Cells under a floating barge are water. The float32 bed is rounded toward deeper water, so every lowered cell keeps the full margin; `depth_operational_lowered_m.tif` is float64, so the bed before the floor is exactly the merged bed plus the lowering.
+- **Charted hazards keep their bed** (coordinator, 2026-10-25). Every cell touched by an always-submerged structure (WATLEV 3 in `shoreline_constructions.geojson`, mostly old pier remains) or an ENC obstruction or wreck area (OBSTRN and WRECKS polygons, read from the pinned cells) is left out of the floor. A footprint is a disc around an antenna whose place on the hull is unknown, so a boat beside a remnant would otherwise deepen the remnant itself, and a simulator that deepens a real hazard teaches crossing it. `depth_operational_floor.json`'s `hazards_left_out` lists every hazard with the cells it touches, how many a footprint reached and the lowering they would have had.
+- **Determinism.** Pinned inputs (the AIS and `coops-environment` manifests, the identity audit and the vessel files, all hashed in `operational_ais.sources`), sorted iteration, and the same bytes from two builds.
+
+`depth_merged_navd88.tif`'s tags and `depth_merged_navd88.json`'s `operational_ais` record the method, the parameters, the reports by class, the cells lowered, the largest and mean lowering, and the SHA-256 of the floor, lowering and report files. The environment packs' depth set lists the floor and lowering rasters among its sources, with the same parameters and counts in their notes. `floor_grid` and `apply_floor` work on any north-up lon/lat grid, a harbor tile too; only the slice applies the floor.
+
+`validate`'s approach-depth table adds the merged minimum before the floor (from the merged bed and the exact lowering, checked never to raise a bed or fill nodata) and the basis column. A box the floor cannot settle says why: its minimum before and after, how many of its cells a report's footprint reaches, and the lowest level any covering report saw. The 2.10 m requirement is unchanged.
+
+Result on the slice (57,150 reports, T 53,372 and K 3,778; 5,161 cells lowered, largest 3.80 m; 113 charted hazards left out, whose 730 reached cells would have been lowered by up to 4.13 m): the floor deepens two of the three failing boxes but settles none, at the window's lowest water (-0.922 m NAVD88). The core's `DataEnvironment.SampleWaterLevel` on the built packs reproduces every report's level bit for bit.
+
+| Landing | Box minimum before | After | Why it stays short of 2.10 m |
+|---|---|---|---|
+| South Williamsburg (8) | -0.08 m | 1.92 m | 100 of 103 cells pass; the three at the box's far edge, 27 to 30 m out, are covered only by reports at levels of -0.73 m or higher (-0.59 m for the worst of them) |
+| Brooklyn Navy Yard (120) | 0.47 m | 0.66 m | Every cell is covered, but no T/K report covering the box saw a level below -0.75 m, so a T-class report's floor gives at most 2.2 - (0.922 - 0.75) = 2.03 m there; the worst cell, a far corner, is covered only by two reports at high water |
+| Wall St/Pier 11 (87) | -0.08 m | -0.08 m | T/K boats rarely use the crew-modelled southern pontoon (104 slow reports within 10 m of it on 18 days, against 1,151 on all 28 days at the pontoon AIS ranks first); 4 of the box's 100 cells lie beyond every footprint, and the reports covering the rest saw levels no lower than -0.76 m |
+
+The floor is evidence that a boat floated there at that level, not a survey: it says nothing about tides lower than the fleet was seen at, nor about water it never entered. Crew or survey evidence is still what settles a berth.
 
 ### Harbor landing checks
 
