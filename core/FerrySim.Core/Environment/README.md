@@ -11,7 +11,7 @@ The code is in namespace `FerrySim.Core.Env`. It is not `FerrySim.Core.Environme
 | `EnvironmentPack.cs` | One scenario day: time base, coverage window, stations and depth set. Immutable, so one pack can back any number of environments |
 | `EnvironmentStation.cs` | Current, water level and wind stations with their series |
 | `StationSeries.cs` | Time series and how they are read between and beyond samples (`SeriesTime`), held spans (`SeriesGap`) |
-| `DepthSet.cs` | Bed-elevation grids and bilinear sampling |
+| `DepthSet.cs` | Bed-elevation grids, the rule for several grids, and bilinear sampling |
 | `ICurrentField.cs`, `StationBlendCurrentField.cs` | The pluggable current field and the station blend, for packs without a field |
 | `CurrentFieldBasis.cs` | A region's current-field basis: its grids, stations and frames, and its build parameters |
 | `ChannelCurrentField.cs` | The channel current field: the basis and the day's station series |
@@ -41,6 +41,7 @@ var simulation = new VesselDynamicsFactory().Create(vessel, environment, initial
 - each folder's `DIGEST` (64 lower-case hex characters and a newline) against the bytes it covers, which include the manifest itself, so a changed byte anywhere is refused (digest rule as revised on 2026-10-25);
 - the day's `depth_digest` against the depth set's `DIGEST`;
 - the manifests: format strings, region (the day's must be the depth set's), date and `epoch_utc` (local midnight in America/New_York on that date, by the US daylight-saving rule in force since 2007), coverage window, keys (unknown or missing keys are refused), finite numbers, grid file names (`<id>.f32`), grid shapes, `nodata` = `"NaN"`, `datum` = `NAVD88`;
+- a depth set with several grids: grids that meet (overlap, or share an edge or a corner of their lattices) must lie on one lattice, the same cell size with origins a whole number of cells apart, and hold the same value, or NaN in both, at every centre both hold (the rule as revised on 2026-10-25, data-pipeline/ferrydata/environment/README.md, Several grids);
 - every station's `north_m`/`east_m` against its `lat`/`lon` through `LocalTangentPlane.World`, within 1 cm, which catches a swapped or misplaced frame;
 - the series files: UTF-8, the exact header, `\n` line ends only, rows grouped by station with strictly increasing `t_s`, stations listed in the manifest (and every listed station with rows), finite numbers parsed with the invariant culture, `observed` or `predicted` water levels, non-negative gusts;
 - a current station's optional `derivation`: only on a `subordinate-prediction` station, with NOAA's subordinate method, positive ratios, directions in [0, 360) and its sources;
@@ -56,7 +57,7 @@ Simulation time t, seconds since the scenario start, reads the pack at t + (scen
 
 | Sample | What it is |
 |---|---|
-| `SampleDepth` | Water level minus bed elevation. The level is each gauge's series at that time, blended between gauges by inverse distance squared (at a gauge it is that gauge's). The bed is bilinear between the four surrounding cell centres of the grid that contains the point. Outside every grid, or where one of the four is unknown (NaN), it is the depth set's `outside_depth_m`, and the miss is counted |
+| `SampleDepth` | Water level minus bed elevation. The level is each gauge's series at that time, blended between gauges by inverse distance squared (at a gauge it is that gauge's). The bed is bilinear between the four surrounding cell centres of the first grid that contains the point (`DepthSet.GridAt`). Outside every grid, or where one of the four is unknown (NaN), it is the depth set's `outside_depth_m`, and the miss is counted |
 | `SampleCurrent` | The `ICurrentField` at that pack time |
 | `SampleWind` | Uniform: the first wind station's mean wind at that time; gusts are not applied |
 | `SampleWaterLevel`, `SampleBedElevation` | The two parts of the depth, for rendering the water surface and charts |
@@ -100,5 +101,5 @@ The vessel dynamics samples the current along the hull as well as at its referen
 - The channel field knows the water's shape, not its dynamics: no eddies, and the same pattern on the flood and the ebb. Its limitations are in data-pipeline/ferrydata/environment/README.md.
 - Wind is uniform and taken as the 10 m wind `IEnvironment` asks for: no correction from the sensor's height, no gusts, no shielding.
 - `outside_depth_m` is returned as it is, without the tide.
-- Grids in a set must not overlap. Two grids that only share a boundary are fine, but a point between two lattices that do not share their edge row of centres belongs to neither and falls back to the outside depth. The harbor tiles need a shared edge.
+- A point between two grids that do not meet belongs to neither and falls back to the outside depth. Grids that share their edge rows of centres leave no such gap, as the harbor's tile grids do.
 - The daylight-saving check knows the US rule from 2007 only.

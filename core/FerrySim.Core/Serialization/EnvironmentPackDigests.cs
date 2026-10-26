@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -65,21 +64,21 @@ namespace FerrySim.Core.Serialization
 				throw new ArgumentException("The day digest covers exactly the three series files.");
 			}
 
-			using (var stream = new MemoryStream())
+			using (var hash = SHA256.Create())
 			{
-				Append(stream, ManifestFile, manifest);
+				Append(hash, ManifestFile, manifest);
 				for (var i = 0; i < SeriesFiles.Count; i++)
 				{
-					Append(stream, SeriesFiles[i], seriesFiles[i]);
+					Append(hash, SeriesFiles[i], seriesFiles[i]);
 				}
 
-				AppendDigest(stream, depthDigest);
+				AppendDigest(hash, depthDigest);
 				if (fieldDigest != null)
 				{
-					AppendDigest(stream, fieldDigest);
+					AppendDigest(hash, fieldDigest);
 				}
 
-				return Sha256Hex(stream.ToArray());
+				return Finish(hash);
 			}
 		}
 
@@ -193,32 +192,41 @@ namespace FerrySim.Core.Serialization
 				throw new ArgumentException("One file's bytes per file name is needed.");
 			}
 
-			using (var stream = new MemoryStream())
+			// Hashed file by file: a harbor depth set's grid files are tens of megabytes, too many to copy into one buffer.
+			using (var hash = SHA256.Create())
 			{
-				Append(stream, ManifestFile, manifest);
+				Append(hash, ManifestFile, manifest);
 				for (var i = 0; i < files.Count; i++)
 				{
-					Append(stream, fileNames[i], files[i]);
+					Append(hash, fileNames[i], files[i]);
 				}
 
-				return Sha256Hex(stream.ToArray());
+				return Finish(hash);
 			}
 		}
 
-		private static void AppendDigest(Stream stream, string digest)
+		private static readonly byte[] Nul = { 0 };
+
+		private static void AppendDigest(HashAlgorithm hash, string digest)
 		{
-			var bytes = Encoding.ASCII.GetBytes(digest);
-			stream.Write(bytes, 0, bytes.Length);
-			stream.WriteByte(0);
+			Feed(hash, Encoding.ASCII.GetBytes(digest));
+			Feed(hash, Nul);
 		}
 
-		private static void Append(Stream stream, string name, byte[] bytes)
+		private static void Append(HashAlgorithm hash, string name, byte[] bytes)
 		{
-			var nameBytes = Encoding.UTF8.GetBytes(name);
-			stream.Write(nameBytes, 0, nameBytes.Length);
-			stream.WriteByte(0);
-			stream.Write(bytes, 0, bytes.Length);
-			stream.WriteByte(0);
+			Feed(hash, Encoding.UTF8.GetBytes(name));
+			Feed(hash, Nul);
+			Feed(hash, bytes);
+			Feed(hash, Nul);
+		}
+
+		private static void Feed(HashAlgorithm hash, byte[] bytes) => hash.TransformBlock(bytes, 0, bytes.Length, null, 0);
+
+		private static string Finish(HashAlgorithm hash)
+		{
+			hash.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+			return Hex(hash.Hash);
 		}
 
 		private static string Hex(byte[] bytes)

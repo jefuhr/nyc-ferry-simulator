@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace FerrySim.Core.Env
 {
@@ -91,6 +92,9 @@ namespace FerrySim.Core.Env
 		/// <summary>Bed elevation of cell (row, column), NAVD88 m, positive up; NaN when unknown.</summary>
 		public float BedElevation(int row, int column) => _bed[row * Columns + column];
 
+		/// <summary>True when the point lies between the first and last centres, inclusive: the grid samples it.</summary>
+		public bool Contains(double north, double east) => Inside((north - OriginNorth) / CellSize, (east - OriginEast) / CellSize);
+
 		/// <summary>
 		/// The bed elevation at a point, bilinear between the four surrounding cell centres. Points between the first and
 		/// last centres, inclusive, are inside the grid.
@@ -99,7 +103,7 @@ namespace FerrySim.Core.Env
 		{
 			var row = (north - OriginNorth) / CellSize;
 			var column = (east - OriginEast) / CellSize;
-			if (!(row >= 0.0 && row <= Rows - 1 && column >= 0.0 && column <= Columns - 1))
+			if (!Inside(row, column))
 			{
 				bedElevation = 0.0;
 				return BedSample.Outside;
@@ -127,6 +131,8 @@ namespace FerrySim.Core.Env
 		}
 
 		internal float[] Values => _bed;
+
+		private bool Inside(double row, double column) => row >= 0.0 && row <= Rows - 1 && column >= 0.0 && column <= Columns - 1;
 	}
 
 	/// <summary>One input the depth set was built from, as its manifest records it.</summary>
@@ -147,9 +153,18 @@ namespace FerrySim.Core.Env
 	}
 
 	/// <summary>
-	/// The bed-elevation grids of a region (an environment pack's depth set), independent of the day. Grids do not overlap;
-	/// a point belongs to the first grid whose cell-centre lattice it falls inside. Outside every grid, or where the bed is
-	/// unknown, the depth is <see cref="OutsideDepth"/>.
+	/// The bed-elevation grids of a region (an environment pack's depth set), independent of the day. A point belongs to
+	/// the first grid whose cell-centre lattice contains it. Outside every grid, or where the bed is unknown, the depth is
+	/// <see cref="OutsideDepth"/>.
+	/// <para>
+	/// Grids may meet (overlap, or share an edge or a corner of their lattices) only on one lattice and only where every
+	/// shared sample is identical (ferrysim-env-depth/1 as revised 2026-10-25). Two grids meet when their lattices, first
+	/// to last centre inclusive, have a point in common. Grids that meet must have the same cell size and origins a whole
+	/// number of cells apart, so every centre either holds inside both is a centre of both: a shared sample. Each shared
+	/// sample must be the same float32 value in both grids, or unknown (NaN) in both. So the bed is continuous across a
+	/// seam, and the first grid decides only the arithmetic and, where its cell has an unknown corner of zero weight,
+	/// that the bed is unknown. Grids that do not meet are independent.
+	/// </para>
 	/// </summary>
 	public sealed class DepthSet
 	{
@@ -178,10 +193,7 @@ namespace FerrySim.Core.Env
 						throw new ArgumentException($"Depth grid id {copy[i].Id} appears twice.");
 					}
 
-					if (Overlap(copy[j], copy[i]))
-					{
-						throw new ArgumentException($"Depth grids {copy[j].Id} and {copy[i].Id} overlap.");
-					}
+					CheckShared(copy[j], copy[i]);
 				}
 			}
 
@@ -208,6 +220,20 @@ namespace FerrySim.Core.Env
 		/// <summary>The depth set's digest (ferrysim-env/1), hex; empty for a set built in memory.</summary>
 		public string Digest { get; }
 
+		/// <summary>The index in <see cref="Grids"/> of the first grid that contains the point, which <see cref="Sample"/> reads; −1 outside every grid.</summary>
+		public int GridAt(double north, double east)
+		{
+			for (var i = 0; i < _grids.Length; i++)
+			{
+				if (_grids[i].Contains(north, east))
+				{
+					return i;
+				}
+			}
+
+			return -1;
+		}
+
 		/// <summary>The bed elevation at a point from the first grid that contains it.</summary>
 		public BedSample Sample(double north, double east, out double bedElevation)
 		{
@@ -224,8 +250,61 @@ namespace FerrySim.Core.Env
 			return BedSample.Outside;
 		}
 
-		// Lattices that share more than an edge.
-		private static bool Overlap(DepthGrid a, DepthGrid b) =>
-			a.OriginNorth < b.EndNorth && b.OriginNorth < a.EndNorth && a.OriginEast < b.EndEast && b.OriginEast < a.EndEast;
+		// Grids that meet must lie on one lattice and agree on every centre both hold.
+		private static void CheckShared(DepthGrid a, DepthGrid b)
+		{
+			if (a.CellSize == b.CellSize)
+			{
+				// b's centre (r, c) is a's centre (r + rows, c + columns) when the offsets are whole numbers of cells.
+				var rows = (b.OriginNorth - a.OriginNorth) / a.CellSize;
+				var columns = (b.OriginEast - a.OriginEast) / a.CellSize;
+				if (rows == Math.Floor(rows) && columns == Math.Floor(columns))
+				{
+					var firstRow = Math.Max(0.0, rows);
+					var lastRow = Math.Min(a.Rows - 1.0, rows + b.Rows - 1.0);
+					var firstColumn = Math.Max(0.0, columns);
+					var lastColumn = Math.Min(a.Columns - 1.0, columns + b.Columns - 1.0);
+					if (firstRow > lastRow || firstColumn > lastColumn)
+					{
+						return;
+					}
+
+					// They meet, so both offsets are within the grids' sizes.
+					var dr = (int)rows;
+					var dc = (int)columns;
+					for (var r = (int)firstRow; r <= (int)lastRow; r++)
+					{
+						for (var c = (int)firstColumn; c <= (int)lastColumn; c++)
+						{
+							var first = a.Values[r * a.Columns + c];
+							var second = b.Values[(r - dr) * b.Columns + c - dc];
+							if (!(first == second || (float.IsNaN(first) && float.IsNaN(second))))
+							{
+								throw new ArgumentException(
+									$"Depth grids {a.Id} and {b.Id} share the sample at north {Text(a.OriginNorth + r * a.CellSize)}, east {Text(a.OriginEast + c * a.CellSize)}, " +
+									$"but hold {Text(first)} and {Text(second)}: grids may meet only where every shared sample is identical.");
+							}
+						}
+					}
+
+					return;
+				}
+			}
+
+			if (Meet(a, b))
+			{
+				throw new ArgumentException(a.CellSize != b.CellSize
+					? $"Depth grids {a.Id} and {b.Id} meet with different cell sizes ({Text(a.CellSize)} and {Text(b.CellSize)} m): grids that meet must lie on one lattice."
+					: $"Depth grids {a.Id} and {b.Id} meet with origins that are not a whole number of {Text(a.CellSize)} m cells apart: grids that meet must lie on one lattice.");
+			}
+		}
+
+		// Lattices, first to last centre inclusive, with a point in common: an overlap, a shared edge or a shared corner.
+		private static bool Meet(DepthGrid a, DepthGrid b) =>
+			a.OriginNorth <= b.EndNorth && b.OriginNorth <= a.EndNorth && a.OriginEast <= b.EndEast && b.OriginEast <= a.EndEast;
+
+		private static string Text(double value) => value.ToString("R", CultureInfo.InvariantCulture);
+
+		private static string Text(float value) => value.ToString("R", CultureInfo.InvariantCulture);
 	}
 }

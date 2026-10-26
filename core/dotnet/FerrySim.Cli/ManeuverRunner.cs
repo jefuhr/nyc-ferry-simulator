@@ -4,21 +4,26 @@ using FerrySim.Core.Contracts;
 
 namespace FerrySim.Cli
 {
-	/// <summary>What every run needs: the vessel, the world around it and how to sample.</summary>
+	/// <summary>What every run needs: the vessel, the world around it, where it starts and how to sample.</summary>
 	public sealed class RunSetup
 	{
 		public RunSetup(ISimulationFactory factory, VesselParameters vessel, EnvironmentSpec environment, int sampleHz, double headingDegrees)
-			: this(factory, vessel, RunEnvironment.Uniform(environment), sampleHz, headingDegrees)
+			: this(factory, vessel, RunEnvironment.Uniform(environment), sampleHz, StartPosition.AtOrigin(headingDegrees))
 		{
 		}
 
 		public RunSetup(ISimulationFactory factory, VesselParameters vessel, RunEnvironment environment, int sampleHz, double headingDegrees)
+			: this(factory, vessel, environment, sampleHz, StartPosition.AtOrigin(headingDegrees))
+		{
+		}
+
+		public RunSetup(ISimulationFactory factory, VesselParameters vessel, RunEnvironment environment, int sampleHz, StartPosition start)
 		{
 			Factory = factory;
 			Vessel = vessel;
 			Environment = environment;
 			SampleHz = sampleHz;
-			HeadingDegrees = headingDegrees;
+			Start = start ?? throw new ArgumentNullException(nameof(start));
 		}
 
 		public ISimulationFactory Factory { get; }
@@ -30,7 +35,10 @@ namespace FerrySim.Cli
 		/// <summary>CSV rows per simulated second; divides the physics rate.</summary>
 		public int SampleHz { get; }
 
-		public double HeadingDegrees { get; }
+		/// <summary>Where every simulation of the run starts: the lever search's trials and the recorded run.</summary>
+		public StartPosition Start { get; }
+
+		public double HeadingDegrees => Start.HeadingDegrees;
 
 		public int StepsPerSample => SimulationClock.StepsPerSecond / SampleHz;
 	}
@@ -71,6 +79,17 @@ namespace FerrySim.Cli
 			double lever = 0.0;
 			if (spec.StartsAtRest)
 			{
+				if (spec.CalmWaterLever)
+				{
+					// The lever that gives the test speed through water in calm deep water at the origin, whatever the run's water.
+					var calm = new RunSetup(setup.Factory, setup.Vessel, RunEnvironment.Uniform(EnvironmentSpec.Calm), setup.SampleHz, 0.0);
+					lever = FindLever(calm, calm.Environment.Create(), testSpeedMps.Value, out var achieved);
+					settleNote = $"lever {lever:F4} gives {Units.MetresPerSecondToKnots(achieved):F3} kn through water in calm deep water";
+					extra.Add(Maneuvers.Pair("settle.lever", Maneuvers.Number(Math.Round(lever, 6))));
+					extra.Add(Maneuvers.Pair("settle.stw_kn", Maneuvers.Number(Math.Round(Units.MetresPerSecondToKnots(achieved), 4))));
+					extra.Add(Maneuvers.Pair("settle.environment", "calm"));
+				}
+
 				sim = CreateSimulation(setup, environment, 0.0);
 			}
 			else
@@ -88,10 +107,11 @@ namespace FerrySim.Cli
 			}
 
 			var start = sim.State.Time;
-			Drive(sim, plan.Create(lever), recorder, setup.StepsPerSample, recordFinalRow: true);
+			var controller = plan.Create(lever);
+			Drive(sim, controller, recorder, setup.StepsPerSample, recordFinalRow: true);
 
 			var header = BaseHeader(setup, sim, environment, spec.Name, start);
-			if (!spec.StartsAtRest)
+			if (testSpeedMps.HasValue)
 			{
 				header.Add(Maneuvers.Pair("param.speed_kn", Maneuvers.Number(Math.Round(Units.MetresPerSecondToKnots(testSpeedMps.Value), 4))));
 			}
@@ -100,6 +120,14 @@ namespace FerrySim.Cli
 			header.Add(Maneuvers.Pair("duration_s", fixedDuration.HasValue ? Maneuvers.Number(fixedDuration.Value) : "auto"));
 			header.Add(Maneuvers.Pair("lead_in_s", spec.StartsAtRest ? "0" : Maneuvers.Number(leadInSeconds)));
 			header.AddRange(extra);
+			if (controller is IReportsResult reports)
+			{
+				foreach (var pair in reports.Result)
+				{
+					header.Add(new KeyValuePair<string, string>("result." + pair.Key, pair.Value));
+				}
+			}
+
 			return new RunResult(recorder, header) { SettleSummary = settleNote, CoverageWarning = RunEnvironment.CoverageWarning(environment) };
 
 			static IEnumerable<KeyValuePair<string, string>> Prefixed(List<KeyValuePair<string, string>> parameters)
@@ -214,17 +242,22 @@ namespace FerrySim.Cli
 			return sim.Telemetry.SpeedThroughWater;
 		}
 
-		/// <summary>Creates a simulation at the origin, pointing at the run heading, already moving at the given speed through the water.</summary>
+		/// <summary>
+		/// Creates a simulation at the run's start position (the origin unless the start options move it), pointing at the
+		/// run heading, already moving at the given speed through the water there.
+		/// </summary>
 		public static ISimulation CreateSimulation(RunSetup setup, IEnvironment environment, double waterSpeed)
 		{
 			var heading = Angles.ToRadians(setup.HeadingDegrees);
-			var current = environment.SampleCurrent(0.0, 0.0, 0.0);
+			var north = setup.Start.North;
+			var east = setup.Start.East;
+			var current = environment.SampleCurrent(north, east, 0.0);
 			var ground = HorizontalVector.FromSpeedToward(waterSpeed, heading) + current;
 			var cos = Math.Cos(heading);
 			var sin = Math.Sin(heading);
 			var surge = ground.North * cos + ground.East * sin;
 			var sway = -ground.North * sin + ground.East * cos;
-			var initial = VesselState.Planar(0.0, 0.0, 0.0, heading, surge, sway);
+			var initial = VesselState.Planar(0.0, north, east, heading, surge, sway);
 			return setup.Factory.Create(setup.Vessel, environment, initial);
 		}
 
@@ -245,6 +278,7 @@ namespace FerrySim.Cli
 			header.Add(Maneuvers.Pair("physics_hz", SimulationClock.StepsPerSecond.ToString(System.Globalization.CultureInfo.InvariantCulture)));
 			header.Add(Maneuvers.Pair("sample_hz", setup.SampleHz.ToString(System.Globalization.CultureInfo.InvariantCulture)));
 			header.Add(Maneuvers.Pair("initial_heading_deg", Maneuvers.Number(setup.HeadingDegrees)));
+			header.AddRange(setup.Start.Header);
 			return header;
 		}
 

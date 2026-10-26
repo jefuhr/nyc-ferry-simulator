@@ -90,6 +90,9 @@ namespace FerrySim.Core.Env
 		/// <summary>Samples taken outside every grid, which used the station blend.</summary>
 		public long OutsideSamples => _outsideSamples;
 
+		/// <summary>Zeroes <see cref="OutsideSamples"/>, for example before the run a report is about.</summary>
+		public void ResetCounters() => _outsideSamples = 0;
+
 		public HorizontalVector Sample(double north, double east, double packTime)
 		{
 			for (var g = 0; g < _grids.Length; g++)

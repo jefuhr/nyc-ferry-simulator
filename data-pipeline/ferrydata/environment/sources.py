@@ -115,7 +115,20 @@ class Inputs:
 	def reference(self, name):
 		return dict(source=name, source_sha256=self.manifest.files[name]['sha256'])
 
-	def current(self, station, day):
+	def harmonic_week(self, station_id, week):
+		"""A harmonic station's 6-minute predictions at its API-default bin for a scenario week, in the calibration cache's
+		window (the week's first UTC date to the date a week later), fetched once into this cache."""
+		name = f'currents_{station_id}_week_{week}.csv'
+		start = datetime.fromisoformat(week)
+		params = dict(product='currents_predictions', station=station_id, begin_date=start.strftime('%Y%m%d'),
+			end_date=(start + timedelta(days=7)).strftime('%Y%m%d'), interval='6', time_zone='gmt', units='metric', format='csv')
+		if name not in self.current_frames:
+			self.current_frames[name] = coops.parse_currents_csv(self.get(name, f'{coops.API}?{urlencode(params)}').decode('utf-8'))
+		return self.current_frames[name], name
+
+	def current(self, station, day, weekly=False):
+		"""A harmonic station's day series: from the calibration cache when it covers the day, else fetched, for the day
+		(the slice's rule) or with weekly=True for its scenario week (harmonic_week, the harbor's rule)."""
 		week = next(w for w in series.WEEKS if 0 <= (datetime.fromisoformat(day)-datetime.fromisoformat(w)).days < 7)
 		name = f'{station["id"]}_{week}.csv'
 		cache_path = paths.raw_dir('coops-calibration') / name
@@ -129,7 +142,15 @@ class Inputs:
 			frame = frame.assign(t_s=seconds)
 			frame = frame[(frame.t_s >= series.COVERAGE[0]) & (frame.t_s <= series.COVERAGE[1])]
 			reference = dict(source=name, source_sha256=self.calibration.files[name]['sha256'])
+		elif weekly:
+			frame, name = self.harmonic_week(station['id'], week)
+			seconds = (pd.to_datetime(frame['time_utc'], utc=True) - pd.Timestamp(series.epoch(day))).dt.total_seconds()
+			frame = frame.assign(t_s=seconds)
+			frame = frame[(frame.t_s >= series.COVERAGE[0]) & (frame.t_s <= series.COVERAGE[1])]
+			reference = self.reference(name)
 		if frame.empty or frame.t_s.min() > series.COVERAGE[0] or frame.t_s.max() < series.COVERAGE[1]:
+			if weekly:
+				raise ValueError(f'{name}: does not cover {day} from {series.COVERAGE[0]} to {series.COVERAGE[1]} s')
 			# Missing cache coverage is fetched for this entire day, preserving a single
 			# provenance file per station in the v1 manifest.
 			params = dict(product='currents_predictions', station=station['id'],

@@ -14,7 +14,7 @@ namespace FerrySim.Cli
 	public sealed class CliApp
 	{
 		private static readonly string[] CommonManeuverOptions =
-			{ "vessel", "out", "speed-kn", "env", RunEnvironment.PackOption, RunEnvironment.StartOption, "duration-s", "sample-hz", "heading-deg", "lead-in-s" };
+			new[] { "vessel", "out", "speed-kn", "env", RunEnvironment.PackOption, RunEnvironment.StartOption, "duration-s", "sample-hz", "lead-in-s" }.Concat(StartPosition.Options).ToArray();
 
 		private readonly ISimulationFactory _factory;
 
@@ -105,7 +105,7 @@ namespace FerrySim.Cli
 				throw new UsageException($"Unexpected argument '{parsed.Positionals[0]}'.");
 			}
 
-			if (spec.StartsAtRest && parsed.Has("speed-kn"))
+			if (spec.StartsAtRest && !spec.CalmWaterLever && parsed.Has("speed-kn"))
 			{
 				throw new UsageException($"{spec.Name} starts at rest; --speed-kn does not apply.");
 			}
@@ -115,7 +115,7 @@ namespace FerrySim.Cli
 			var environment = RunEnvironment.Parse(parsed);
 			var duration = parsed.GetOptionalDouble("duration-s", 1.0, 86400.0);
 			var sampleHz = ParseSampleHz(parsed);
-			var heading = parsed.GetDouble("heading-deg", 0.0, 0.0, 360.0);
+			var start = StartPosition.Parse(parsed);
 			var leadIn = parsed.GetDouble("lead-in-s", ManeuverRunner.DefaultLeadInSeconds, 0.0, 600.0);
 			var speedKnots = parsed.GetOptionalDouble("speed-kn", 0.1, 100.0);
 			var plan = spec.Build(parsed, duration);
@@ -123,7 +123,7 @@ namespace FerrySim.Cli
 			var vessel = VesselParametersJson.Load(vesselPath);
 			environment.Load();
 			double? speed = null;
-			if (!spec.StartsAtRest)
+			if (!spec.StartsAtRest || spec.CalmWaterLever)
 			{
 				if (speedKnots.HasValue)
 				{
@@ -141,7 +141,7 @@ namespace FerrySim.Cli
 				}
 			}
 
-			var setup = new RunSetup(_factory, vessel, environment, sampleHz, heading);
+			var setup = new RunSetup(_factory, vessel, environment, sampleHz, start);
 			var result = ManeuverRunner.RunManeuver(setup, spec, plan, speed, duration, leadIn);
 			result.Recorder.Write(outPath, result.Header);
 			stdout.WriteLine($"{vessel.Id} {spec.Name}: wrote {result.Recorder.Count} rows to {outPath}");
@@ -157,7 +157,7 @@ namespace FerrySim.Cli
 		private int RunTrace(string[] args, TextWriter stdout)
 		{
 			var parsed = ParsedArguments.Parse(args,
-				new[] { "vessel", "inputs", "env", RunEnvironment.PackOption, RunEnvironment.StartOption, "out", "duration-s", "sample-hz", "heading-deg" }, Array.Empty<string>());
+				new[] { "vessel", "inputs", "env", RunEnvironment.PackOption, RunEnvironment.StartOption, "out", "duration-s", "sample-hz" }.Concat(StartPosition.Options), Array.Empty<string>());
 			if (parsed.Positionals.Count > 0)
 			{
 				throw new UsageException($"Unexpected argument '{parsed.Positionals[0]}'.");
@@ -169,12 +169,12 @@ namespace FerrySim.Cli
 			var environment = RunEnvironment.Parse(parsed);
 			var duration = parsed.GetOptionalDouble("duration-s", 0.01, 86400.0);
 			var sampleHz = ParseSampleHz(parsed);
-			var heading = parsed.GetDouble("heading-deg", 0.0, 0.0, 360.0);
+			var start = StartPosition.Parse(parsed);
 
 			var vessel = VesselParametersJson.Load(vesselPath);
 			var trace = TraceInputs.Load(inputsPath);
 			environment.Load();
-			var setup = new RunSetup(_factory, vessel, environment, sampleHz, heading);
+			var setup = new RunSetup(_factory, vessel, environment, sampleHz, start);
 			var result = ManeuverRunner.RunTrace(setup, trace, Path.GetFileName(inputsPath), duration);
 			result.Recorder.Write(outPath, result.Header);
 			stdout.WriteLine($"{vessel.Id} trace-replay: wrote {result.Recorder.Count} rows to {outPath}");
@@ -230,11 +230,12 @@ namespace FerrySim.Cli
 				"  --env <spec>          calm (default) or items such as current=1.5kn@200,wind=15kn@from300,depth=8m",
 				"                        current: direction it flows toward; wind: direction it blows from (prefix to/from to override)",
 				"  --env-pack <folder>   a real day instead of --env: an environment pack's day folder (.../<region>/env/days/<date>)",
-				"  --start-utc <time>    with --env-pack: the scenario's start, ISO 8601 UTC such as 2025-07-14T16:00:00Z;",
-				"                        runs start at the world origin (north 0, east 0)",
+				"  --start-utc <time>    with --env-pack: the scenario's start, ISO 8601 UTC such as 2025-07-14T16:00:00Z",
+				"  --start-north-m <n>   with --start-east-m <n>: where the run starts, world metres (default the origin, near The Battery)",
+				"  --start-lat <deg>     with --start-lon <deg>: the start as WGS84 latitude and longitude instead",
+				"  --start-heading-deg <n>  initial heading, degrees true (default 0); --heading-deg <n> is the same",
 				"  --duration-s <n>      fixed length of the maneuver (default: run until it is complete)",
 				"  --sample-hz <n>       CSV rows per second, a divisor of 100 (default 10)",
-				"  --heading-deg <n>     initial heading, degrees true (default 0)",
 				"Options for maneuver:",
 				"  --speed-kn <n>        test speed through water (default: the vessel's service speed)",
 				"  --lead-in-s <n>       seconds of steady running recorded before the maneuver (default 10)",
@@ -244,6 +245,8 @@ namespace FerrySim.Cli
 				"  --angle-deg <n>       zigzag: heading change that reverses the helm (default 10)",
 				"  --rudder-deg <n>      zigzag: rudder angle (default 10), with --max-rudder-deg (default 35) giving helm",
 				"  --lever <n>           pivot: lever magnitude in (0, 1] (default 0.5)",
+				"  --waypoints <file>    transit: rows of north_m,east_m, steered in turn from the start",
+				"  --arrive-m <n>        transit: a waypoint is reached within this distance, or once passed (default 50)",
 				"Exit codes: 0 ok, 1 failed, 2 bad arguments",
 				string.Empty);
 	}

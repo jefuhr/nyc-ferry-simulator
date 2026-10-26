@@ -5,6 +5,7 @@ import io
 import json
 import math
 import re
+from collections import namedtuple
 from datetime import date
 from pathlib import Path
 
@@ -329,16 +330,58 @@ def _check_derivation(station, label):
 			'directions in [0, 360) and its sources')
 
 
-def verify(root):
-	root = Path(root)
-	directory = root / 'depth'
+def _number(value):
+	text = repr(float(value))
+	return text[:-2] if text.endswith('.0') else text
+
+
+def _meet(a, b):
+	"""Lattices, first to last centre inclusive, with a point in common: an overlap, a shared edge or a shared corner."""
+	return (a['origin_north_m'] <= b['end_north_m'] and b['origin_north_m'] <= a['end_north_m']
+		and a['origin_east_m'] <= b['end_east_m'] and b['origin_east_m'] <= a['end_east_m'])
+
+
+def _check_shared(a, b, label):
+	"""The depth-set rule for grids that meet (revised 2026-10-25, the same as DepthSet in the core): one lattice, so the
+	same cell size and origins a whole number of cells apart, and every centre both hold the same float32 value or NaN in
+	both. Grids that do not meet are independent."""
+	if a['cell_m'] == b['cell_m']:
+		# b's centre (r, c) is a's centre (r + rows, c + cols) when the offsets are whole numbers of cells.
+		rows = (b['origin_north_m'] - a['origin_north_m']) / a['cell_m']
+		cols = (b['origin_east_m'] - a['origin_east_m']) / a['cell_m']
+		if rows == math.floor(rows) and cols == math.floor(cols):
+			first_row, last_row = max(0., rows), min(a['rows'] - 1., rows + b['rows'] - 1.)
+			first_col, last_col = max(0., cols), min(a['cols'] - 1., cols + b['cols'] - 1.)
+			if first_row > last_row or first_col > last_col:
+				return
+			r0, r1, c0, c1, dr, dc = int(first_row), int(last_row), int(first_col), int(last_col), int(rows), int(cols)
+			x = a['values'][r0:r1 + 1, c0:c1 + 1]
+			y = b['values'][r0 - dr:r1 - dr + 1, c0 - dc:c1 - dc + 1]
+			differ = ~((x == y) | (np.isnan(x) & np.isnan(y)))
+			if differ.any():
+				r, c = (int(k) for k in np.argwhere(differ)[0])
+				raise ValueError(f"{label}: depth grids {a['id']} and {b['id']} share the sample at north "
+					f"{_number(a['origin_north_m'] + (r0 + r) * a['cell_m'])}, east {_number(a['origin_east_m'] + (c0 + c) * a['cell_m'])}, "
+					f"but hold {_number(x[r, c])} and {_number(y[r, c])}: grids may meet only where every shared sample is identical")
+			return
+	if _meet(a, b):
+		raise ValueError(f"{label}: depth grids {a['id']} and {b['id']} meet with different cell sizes ({_number(a['cell_m'])} and "
+			f"{_number(b['cell_m'])} m): grids that meet must lie on one lattice" if a['cell_m'] != b['cell_m'] else
+			f"{label}: depth grids {a['id']} and {b['id']} meet with origins that are not a whole number of {_number(a['cell_m'])} m "
+			'cells apart: grids that meet must lie on one lattice')
+
+
+def verify_depth(directory):
+	"""Checks a depth set and returns its digest, manifest and grids (each grid's manifest entry with its bed elevations
+	as `values`, rows south to north); refuses anything outside the format with the path."""
+	directory = Path(directory)
 	depth = _read_manifest(directory)
 	_validate(depth, DEPTH, str(directory / 'manifest.json'))
 	if depth['format'] != 'ferrysim-env-depth/1' or depth['datum'] != 'NAVD88' or not depth['grids']:
 		raise ValueError('invalid depth manifest format/datum/grids')
 	if not math.isfinite(depth['outside_depth_m']) or depth['outside_depth_m'] <= 0:
 		raise ValueError('invalid outside depth')
-	bounds, grid_ids = [], set()
+	grids, grid_ids = [], set()
 	for grid in depth['grids']:
 		if (grid['id'] in grid_ids or grid['id'] in ('', '.', '..')
 			or re.fullmatch('[A-Za-z0-9_.-]+', grid['id']) is None or grid['file'] != grid['id'] + '.f32'):
@@ -355,11 +398,51 @@ def verify(root):
 		b = (n, e, n+(grid['rows']-1)*cell, e+(grid['cols']-1)*cell)
 		if not all(math.isfinite(x) for x in b):
 			raise ValueError('nonfinite grid bounds')
-		for a in bounds:
-			if max(a[0],b[0]) <= min(a[2],b[2]) and max(a[1],b[1]) <= min(a[3],b[3]):
-				raise ValueError('overlapping grids')
-		bounds.append(b)
-	depth_hash = _verify_digest(directory, depth_digest(directory))
+		grid = dict(grid, end_north_m=b[2], end_east_m=b[3], values=np.frombuffer(body, dtype='<f4').reshape(grid['rows'], grid['cols']))
+		for other in grids:
+			_check_shared(other, grid, str(directory / 'manifest.json'))
+		grids.append(grid)
+	return _verify_digest(directory, depth_digest(directory)), depth, grids
+
+
+Sample = namedtuple('Sample', 'kind grid bed')
+
+
+class DepthSet:
+	"""A verified depth set read the way the core's DepthSet reads it: a point belongs to the first grid whose centres,
+	first to last inclusive, contain it, and its bed is bilinear between the four centres of its cell (the last row and
+	column of centres inside); unknown when any of the four is NaN, whatever its weight."""
+
+	def __init__(self, digest, manifest, grids):
+		self.digest, self.manifest, self.grids = digest, manifest, grids
+
+	def sample(self, north, east):
+		"""Sample(kind, grid, bed): kind 'known', 'unknown' or 'outside', the index of the grid that decides (-1 outside
+		every grid) and the bed elevation (NAVD88 m, positive up; 0 unless known)."""
+		for index, g in enumerate(self.grids):
+			row = (north - g['origin_north_m']) / g['cell_m']
+			col = (east - g['origin_east_m']) / g['cell_m']
+			if not (row >= 0. and row <= g['rows'] - 1 and col >= 0. and col <= g['cols'] - 1):
+				continue
+			r, c = min(int(row), g['rows'] - 2), min(int(col), g['cols'] - 2)
+			v = g['values']
+			south_west, south_east, north_west, north_east = float(v[r, c]), float(v[r, c + 1]), float(v[r + 1, c]), float(v[r + 1, c + 1])
+			if any(math.isnan(x) for x in (south_west, south_east, north_west, north_east)):
+				return Sample('unknown', index, 0.)
+			across, up = col - c, row - r
+			lower = south_west + across * (south_east - south_west)
+			upper = north_west + across * (north_east - north_west)
+			return Sample('known', index, lower + up * (upper - lower))
+		return Sample('outside', -1, 0.)
+
+
+def load_depth(directory):
+	return DepthSet(*verify_depth(directory))
+
+
+def verify(root):
+	root = Path(root)
+	depth_hash, depth, _ = verify_depth(root / 'depth')
 	digests, field = [], None
 	for directory in sorted((root / 'days').iterdir()):
 		if not directory.is_dir():

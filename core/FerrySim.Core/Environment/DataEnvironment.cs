@@ -87,13 +87,20 @@ namespace FerrySim.Core.Env
 			At(_coverageStart), At(_coverageEnd), _coverageStart - _offset, _coverageEnd - _offset, _depth.OutsideDepth,
 			_depthSamples, _depthMisses, _samples, _timeHolds, _wind == null, Pack.Notes, Pack.HeldGaps);
 
-		/// <summary>Zeroes the sample, miss and hold counts, for example before the run a report is about.</summary>
+		/// <summary>
+		/// Zeroes the sample, miss and hold counts, and the channel field's count of samples outside its grids, for example
+		/// before the run a report is about.
+		/// </summary>
 		public void ResetCounters()
 		{
 			_samples = 0;
 			_timeHolds = 0;
 			_depthSamples = 0;
 			_depthMisses = 0;
+			if (_currentField is ChannelCurrentField channel)
+			{
+				channel.ResetCounters();
+			}
 		}
 
 		public HorizontalVector SampleCurrent(double north, double east, double time) => _currentField.Sample(north, east, HeldPackTime(time));

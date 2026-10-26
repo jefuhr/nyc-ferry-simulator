@@ -105,6 +105,9 @@ namespace FerrySim.Cli
 				case "pivot":
 					Pivot(track, report);
 					break;
+				case "transit":
+					Transit(track, table, report);
+					break;
 				default:
 					General(track, report);
 					report.Notes.Add($"No maneuver metrics are defined for '{maneuver}'; showing general figures.");
@@ -307,6 +310,74 @@ namespace FerrySim.Cli
 			report.Metrics.Add(new MetricValue("drift_m", "Drift (largest distance from the start point)", "m", maximum));
 			report.Metrics.Add(new MetricValue("net_displacement_m", "Net displacement", "m", net));
 			report.Notes.Add($"Yaw rate is the mean over the last {window:F0} s of the record.");
+		}
+
+		private static void Transit(Track track, TelemetryTable table, MetricsReport report)
+		{
+			General(track, report);
+			report.Metrics.Add(new MetricValue("arrived", "Arrived at the last waypoint (1 yes, 0 no)", "", table.HeaderValue("result.arrived") == "yes" ? 1.0 : 0.0));
+			var arrived = table.HeaderValue("result.arrived_s");
+			report.Metrics.Add(new MetricValue("time_to_arrive_s", "Time to arrive", "s",
+				double.TryParse(arrived, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var at) ? at : (double?)null));
+
+			// The route as recorded: from where the vessel started through each waypoint.
+			var north = table.North;
+			var east = table.East;
+			var route = new List<HorizontalVector> { new HorizontalVector(north[0], east[0]) };
+			foreach (var point in table.HeaderValue("param.waypoints", string.Empty).Split(';'))
+			{
+				var parts = point.Split(',');
+				if (parts.Length == 2)
+				{
+					route.Add(new HorizontalVector(
+						double.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture), double.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture)));
+				}
+			}
+
+			report.Metrics.Add(new MetricValue("waypoints", "Waypoints", "", route.Count - 1));
+			var cross = 0.0;
+			var closest = new double[route.Count];
+			for (var k = 0; k < closest.Length; k++)
+			{
+				closest[k] = double.PositiveInfinity;
+			}
+
+			for (var i = 0; i < table.RowCount; i++)
+			{
+				var p = new HorizontalVector(north[i], east[i]);
+				var off = double.PositiveInfinity;
+				for (var k = 1; k < route.Count; k++)
+				{
+					closest[k] = Math.Min(closest[k], (p - route[k]).Magnitude);
+					off = Math.Min(off, DistanceToSegment(p, route[k - 1], route[k]));
+				}
+
+				cross = Math.Max(cross, route.Count > 1 ? off : 0.0);
+			}
+
+			for (var k = 1; k < route.Count; k++)
+			{
+				report.Metrics.Add(new MetricValue($"waypoint_{k}_closest_m", $"Closest approach to waypoint {k}", "m", closest[k]));
+			}
+
+			report.Metrics.Add(new MetricValue("max_cross_track_m", "Largest distance off the route", "m", cross));
+			var keel = table.Column("depth_under_keel_m");
+			var least = double.PositiveInfinity;
+			foreach (var value in keel)
+			{
+				least = Math.Min(least, value);
+			}
+
+			report.Metrics.Add(new MetricValue("min_depth_under_keel_m", "Least depth under the keel", "m", least));
+			report.Metrics.Add(new MetricValue("mean_speed_through_water_kn", "Mean speed through water", "kn", Units.MetresPerSecondToKnots(track.MeanOver(track.Stw, track.Time[0], track.Time[track.Count - 1]))));
+		}
+
+		private static double DistanceToSegment(HorizontalVector p, HorizontalVector a, HorizontalVector b)
+		{
+			var ab = b - a;
+			var squared = ab.North * ab.North + ab.East * ab.East;
+			var t = squared > 0.0 ? Math.Max(0.0, Math.Min(1.0, ((p.North - a.North) * ab.North + (p.East - a.East) * ab.East) / squared)) : 0.0;
+			return (p - (a + ab * t)).Magnitude;
 		}
 
 		private static void General(Track track, MetricsReport report)

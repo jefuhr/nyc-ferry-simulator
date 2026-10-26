@@ -1,6 +1,6 @@
 # Scenario-day environment packs
 
-This package writes `ferrysim-env/1` for the 28 AIS scenario days: the four Monday–Sunday weeks beginning 2024-10-07, 2025-01-13, 2025-04-14 and 2025-07-14. It has its own CLI and does not change the slice CLI or the calibration cache.
+This package writes `ferrysim-env/1` for the 28 AIS scenario days: the four Monday–Sunday weeks beginning 2024-10-07, 2025-01-13, 2025-04-14 and 2025-07-14. It has its own CLI and does not change the slice CLI or the calibration cache. It builds two regions: `lower-east-river`, the slice, described first, and `harbor`, harbor tiles v1 as one region (The harbor region, at the end).
 
 From the repository root:
 
@@ -34,6 +34,27 @@ World-frame centres are 5 m apart, south-to-north rows and west-to-east columns.
 Merged CUDEM values already use NAVD88; ENC MLLW chart depths use The Battery's published MLLW-minus-NAVD88 datum offset. The merged raster and its metadata are hashed in `sources`; no additional vertical transformation is applied here. The horizontal raster CRS is read from the file (currently EPSG:4269), not assumed to be WGS84.
 
 Unknown water cells are filled only where `depth_chart_navd88.tif` has a valid bilinear value, as approved by the coordinator. The chart raster digest and fill counts are recorded in the depth manifest. Remaining unknown cells stay NaN; water-hole clusters, centroid positions and nearby charted construction classes are listed in the report. The present source raster has no interior nodata, so the chart fill count is zero.
+
+### Several grids (revised 2026-10-25)
+
+A depth set may have several grids, each on the conventions above: cell centres, row 0 south, rows growing north and columns east.
+
+- **Meeting.** Two grids meet when their lattices, first to last centre inclusive, have a point in common: an overlap, a shared edge or a shared corner. Grids that do not meet are independent, with any cell size or origin.
+- **One lattice.** Grids that meet must have the same `cell_m` and origins a whole number of cells apart: `(origin_b - origin_a) / cell_m`, north and east, is a whole number as computed in double arithmetic. Then every centre inside both lattices is a centre of both grids: a *shared sample*.
+- **Identical shared samples.** Each shared sample holds the same float32 value in both grids, or NaN in both.
+- **The first grid.** A point inside several grids belongs to the first in `grids` order. Its bed is bilinear between the four centres of that grid's cell (the last row and column of centres inside), and unknown when any of the four is NaN, whatever its weight.
+
+So the bed is continuous across a seam. On a shared edge both grids interpolate the same samples, so the value approaching the seam from either side is the same, and the step from one grid's samples to the other's is spread over a cell. The first grid decides only the rounding, and where its cell has an unknown corner of zero weight on the seam, that the bed there is unknown.
+
+Both readers refuse a set that breaks a rule, naming the two grids, and for a sample its world position and both values: `pack.verify_depth` (which `verify` calls) and the core's `DepthSet`. They read a set the same way: `pack.load_depth(...).sample(north, east)` gives the kind, the grid that decides and the bed, as `DepthSet.Sample` and `DepthSet.GridAt` do.
+
+**Golden vectors.** `core/dotnet/FerrySim.Core.Tests/Environment/python_depth_pack.py` is an independent implementation. It writes a pack with six grids: four 10 m grids meeting at the origin on their shared edges, a fifth overlapping one of them by four centres, and a sixth of another cell size that meets none, with three unknown centres, one of them shared. It samples 26 points: on and next to each seam (1e-9 m and 1 mm either side), at and next to the corner of four grids, in the overlap and next to it, next to unknown centres, on a seam where the first grid's cell has an unknown corner of zero weight (unknown, where the second grid would say known), on an unshared last centre, in the other cell size and outside every grid. The core's loader and `DepthSet`, and the pipeline's `verify` and `load_depth`, reproduce its digests, the grid each point resolves to and its bed within 1e-12 m (`DepthSetPackTests`, `test_environment_depth_set.py`). Both refuse the same broken variants of it: a shared sample that differs or is unknown in one grid only, grids that meet half a cell off, and grids that meet with different cell sizes.
+
+**Format version.** The depth format stays `ferrysim-env-depth/1`, because a version-1 reader never misreads a revised pack. The revision changes which sets are valid, not the layout or the meaning of any byte.
+- The version-1 pipeline reader refuses any two grids that touch, so it refuses a revised multi-grid pack rather than misreading it.
+- The version-1 core reader refuses grids that overlap by more than an edge. It reads grids that share an edge by the same first-grid rule, which gives the revision's values exactly, because the shared samples are identical.
+
+What the revision refuses is what version 1 read ambiguously: grids sharing an edge with different values (the core read -10 m or -20 m by their order), or meeting off one lattice. Single-grid sets, every pack so far, are unchanged in bytes and digests.
 
 ## Integrity and repeatability
 
@@ -202,3 +223,74 @@ The task asks for no normal flow at the shoreline, not no flow, and the evidence
 - **Slips and basins.** Shelter comes from potential flow, so it catches dead ends and pier shadows but not the eddies that stir them. Wallabout Bay is a dead end, so the field at the Brooklyn Navy Yard landing is close to zero. No near-shore measurements calibrate any of this; crew observations at the landings are the way to do that.
 - **Piers charted as outlines.** They are open water to the field (step 1), so where such a pier is solid the field misses its shelter.
 - **Inherited bed errors.** The depth factor reads the depth set, which is too shallow next to some berths (South Williamsburg, Pier 11's outer berth, the Brooklyn Navy Yard). The field is a function of the depth set, so a revised depth set needs only a rebuild.
+
+## The harbor region
+
+`--region harbor` writes the same layout for harbor tiles v1 (`ferrydata.tiles`, `data/processed/harbor/`): the core loads it whole at a scenario start and can run anywhere in the harbor. The simulation never reads the render tiles (decision 0004).
+
+```sh
+uv run --project data-pipeline python data-pipeline/ferrydata build --harbor   # never inside the heavy lock: it locks per tile
+PYTHONPATH=data-pipeline uv run --project data-pipeline python -m ferrydata.environment build --region harbor --all
+PYTHONPATH=data-pipeline uv run --project data-pipeline python -m ferrydata.environment verify --region harbor
+PYTHONPATH=data-pipeline uv run --project data-pipeline python -m ferrydata.environment validate --region harbor
+```
+
+Outputs are under `data/processed/harbor/env/` (`depth/` and `days/<date>/`, no `field/`). The build writes `artifacts/environment-pack/harbor/report.md` and `build-summary.json`; `validate` writes the depth evidence to `artifacts/environment-pack/harbor/validation.md` and `validation.json`.
+
+### Depth
+
+- **One grid per active tile**, `tile_<i>_<j>`, in (i, j) order: its 4 km square from first to last centre, both edges included, on the world lattice of 5 m cells. So neighbouring grids share their edge rows and columns of centres, and corners are shared by up to four grids. There are no gaps between active tiles.
+- **Each centre's bed comes from the tile that owns it**, by the tiles' half-open squares: inside a square and on its south and west edges from that tile's merged raster, on its north and east edges from the neighbour's. Where the owner is not an active tile, the first active tile in (i, j) order whose square holds the centre gives it. The rasters are sampled as the slice's are: `geodesy.from_local`, pyproj from WGS84 to the raster's CRS (`always_xy`), then strict bilinear between pixel centres. Every grid that holds a centre therefore holds the same value there, as the rule for several grids requires, and the build checks it (`pack.verify_depth`) before it writes the digest.
+- **Continuity.** The bed is continuous across every seam. Where two tiles' rasters differ in their shared band (validate `--harbor` bounds that at 0.05 m), the difference is spread over the last cell before the seam instead of a step at it.
+- **No unknown bed.** Harbor tiles v1 have no nodata inside their squares, so no centre is unknown; a tile that had some would stop the build rather than be filled.
+- `outside_depth_m` stays 20 m. It applies only off the active tiles, where tiles v1 found no charted water.
+- The depth manifest lists each tile's merged raster and its metadata as sources.
+
+**Cell size: 5 m**, the slice's. `validate` compares a 5 m and a 10 m lattice, each centre from its owner's raster, with the rasters' own bilinear bed (pixels about 2.6 by 3.4 m):
+
+| | 5 m | 10 m |
+|---|---:|---:|
+| Depth grids, all 29 tiles | 74,425,716 bytes | 18,652,916 bytes |
+| Over the water (9,105 points, bed below -2 m): RMS / 99th percentile / largest | 0.064 / 0.173 / 2.92 m | 0.157 / 0.516 / 5.29 m |
+| Within 10 m of a landing's primary face, worst landing (Wall St/Pier 11) | 0.54 m | 0.80 m |
+| Within 10 m of a face, next worst (East 34th Street; Red Hook) | 0.21 m; 0.10 m | 0.45 m; 0.44 m |
+
+At the landings, where a ferry lies alongside with a metre or two under the keel, 10 m cells are off by up to 0.8 m, and over the water they are 2.5 times further off. So 5 m, for four times the bytes. The CLI's memory and load time for both are in the task report, artifacts/harbor-environment/report.md.
+
+### Stations
+
+- **Current stations:** every current prediction station harbor tiles v1 list (inside a tile's square grown by 250 m, one entry per id), except the weak and variable ones (CO-OPS type `W`, no predictions): ACT3361 (Flushing Creek entrance) and ACT3371 (Bronx River).
+  - Harmonic stations use the API-default bin, which for every harbor station is its shallowest. The five the calibration cache holds are read from it, as the slice reads them. The others are fetched as one 6-minute file per scenario week, in the calibration cache's window: `currents_<id>_week_<week>.csv`, `Inputs.harmonic_week`. Like Dimond Reef, NYH1915, NYH1918 and n05010 reference their bins to the seabed (depthType S), so their `bin_depth_m` is a height above the bed; the days' notes say so.
+  - Subordinate stations use the reference-station method above, with the references their offsets name: `NYH1924` bin 6, `n03020` bin 7 and `HUR0611` bin 16.
+- **Water levels:** the slice's rule over the region's gauges, the tiles' list (8518750, 8519483, 8516945, 8516990), then any other gauge a tile lists. The harbor extent holds only The Battery, so the days have The Battery, Kings Point and Willets Point, and omit Bergen Point, which has no NAVD88 datum.
+- **Wind:** the slice's rule, the first available station of Battery, Kings Point, Robbins Reef, Bergen Point.
+
+### Sizes (harbor)
+
+- **Depth set:** 74,425,716 bytes of grids (29 of 801 by 801 float32), once for every day.
+- **Day:** about 567 kB with 34 current stations (`currents.csv` 489 kB, the manifest 37 kB).
+- **All 28 days:** 171 files and 90,333,747 bytes in all.
+
+The days' series come from 109 new CO-OPS downloads (all recorded in `data/manifests/coops-environment.json`):
+- the nine new harmonic stations' weeks (36);
+- the 13 new subordinate stations' offsets and published events (65);
+- `HUR0611` bin 16's weeks and events (8), the reference of ACT3656 (Grant's Tomb).
+
+### No current field yet
+
+The harbor days name no `field_digest`, so the core blends every current station of the day by inverse distance squared everywhere (`StationBlendCurrentField`). That blend crosses land: a Hudson station weighs on the East River, and the Jamaica Bay and Hackensack stations on the Upper Bay, by distance alone. A harbor channel field (`channel-harmonic/1` over the harbor's water) is a later task. The days' notes say so.
+
+### Transits
+
+`transit-route` plans a route through the depth set's water for `ferrysim maneuver transit`:
+- a shortest path over a 25 m lattice of points whose bed is below `--deep` (default -6 m NAVD88) and at least `--clear` (default 25 m) from shallower water;
+- then legs as long as they can be while they stay in that water.
+
+`transit-check` reads the transit CSVs. It checks that each run arrived with no depth misses or time holds, and that the depth under the keel is continuous at every tile seam crossed. It writes a table and a plot per transit.
+
+```sh
+PYTHONPATH=data-pipeline uv run --project data-pipeline python -m ferrydata.environment transit-route --region harbor --start=122,733 --end=-5803,-4767 --out route.csv
+dotnet run --project core/dotnet/FerrySim.Cli -- maneuver transit --vessel vessels/t-class.json --out transit.csv --waypoints route.csv \
+  --env-pack data/processed/harbor/env/days/2025-07-14 --start-utc 2025-07-14T19:45:00Z --start-north-m 122 --start-east-m 733 --start-heading-deg 235.8
+PYTHONPATH=data-pipeline uv run --project data-pipeline python -m ferrydata.environment transit-check --region harbor --out artifacts/harbor-environment transit.csv
+```
