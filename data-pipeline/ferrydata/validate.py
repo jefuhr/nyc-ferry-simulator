@@ -1023,14 +1023,21 @@ def harbor_bridge_clearances(bridges_by_tile, routes_by_tile, ferry_route_ids):
 	return CheckResult('Ferry-route bridge vertical clearances', not failures, summary), audit
 
 
+def harbor_tile_required_outputs():
+	"""The files every harbor tile must hold: the slice's, less its slice-only ones, plus the tile's own. The operational-ais
+	depth floor is applied to the slice only so far, so harbor tiles don't carry its outputs."""
+	slice_only = ('landing_faces.geojson', 'landing_depth_diff.csv', operational_depth.FLOOR_FILE, operational_depth.LOWERED_FILE,
+		operational_depth.REPORT_FILE)
+	return [name for name in REQUIRED_OUTPUTS if name not in slice_only] + ['raw_sources.json', 'depth_chart_navd88.tif']
+
+
 def _harbor_tile_checks(tile, entry):
 	from ferrydata import enc, manifest, tiles
 	out = paths.processed_dir(tile.name)
 	checks = []
 	def check(name, passed, detail):
 		checks.append(CheckResult(f"{tile.id}: {name}", bool(passed), str(detail)))
-	required = [name for name in REQUIRED_OUTPUTS if name not in
-		('landing_faces.geojson', 'landing_depth_diff.csv')] + ['raw_sources.json', 'depth_chart_navd88.tif']
+	required = harbor_tile_required_outputs()
 	missing = sorted({name for name in required if not (out / name).is_file()})
 	check('outputs', not missing and not entry.get('build_error'), entry.get('build_error') or f"missing: {missing}")
 	if missing:

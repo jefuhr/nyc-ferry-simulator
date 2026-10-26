@@ -42,7 +42,7 @@
   },
   "source_sha256": {
     "depth_merged_navd88.tif": "b1ac8f0190eab1ffd3dbcbc1ee3f1857e6f565c14b2fde9e7f75a4802800d832",
-    "depth_merged_navd88.json": "03ba06ab3321d50dd50eb5672b23dc3604edcbfb1c2ec5aea73e8c9eed8b9a5d",
+    "depth_merged_navd88.json": "b599e6b5d83846a72cfa56460cbe6a5d60bdf70acd1457e9194c1f8beada09ad",
     "shoreline_constructions.geojson": "ab504c8448df677e1cea87ec65e715082c625f5193b8ad1f7926bb89ae558eff",
     "land_areas.geojson": "73ae26ef40d850cf448daca55642569df09a50c963cbd44001ae044aacb2c897",
     "depth_areas.geojson": "d63408e079de116bb0cb2bcf9a54924b69d66343277fc29aeb172d2519ee7e9a",

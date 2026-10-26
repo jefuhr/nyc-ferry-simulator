@@ -229,6 +229,8 @@ Runtime contact (Unity's `LandingGeometry`, `landings.runtime_contact`): a prima
 
 ## contacts.json version 2
 
+**The harbor's file.** `export-unity --harbor` writes `data/processed/harbor/unity/contacts.json` in the same schema: all 24 harbor landings, assembled from the 29 tiles' landing files, each segment once even where tiles overlap (`export_unity.run_harbor`). The core loads it whole at a scenario's start. The slice's file is unchanged by it.
+
 `export-unity` writes `unity/contacts.json` from `landing_structures.geojson`; World/Import recomputes `start_ne_m`, `end_ne_m` and `water_normal_ne` through the core's `LocalTangentPlane` from the WGS84 end points and writes `World/Generated/LowerEastRiver/contacts.json`. It is still a bare JSON array with one record per segment, every version 1 field first and unchanged in meaning, so a reader that knows only version 1 still loads it: the Slice loader's version 1 gate keeps the chart- or crew-verified segments and ignores the new fields. Records are ordered by `stop_id`, then by polyline as above, then by `index`; the existing exposed runs keep their ids, end points, indices and flags.
 
 | Field | Version | Meaning |

@@ -475,6 +475,10 @@ MonoBehaviour:
   ambientIntensity: 1
   driveFog: 1
   fogDensity: 0.00007
+  followRun: 1
+  runner: {fileID: 0}
+  fogLayerDepth: 300
+  horizonFogPath: 5000
 --- !u!108 &408543966
 Light:
   m_ObjectHideFlags: 0

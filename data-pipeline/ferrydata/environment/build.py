@@ -27,7 +27,7 @@ def build(region, days, log=print):
 	source_dir = paths.processed_dir(region)
 	root = source_dir / 'env'
 	if not (source_dir / 'depth_merged_navd88.tif').exists():
-		raise ValueError('missing slice depth; run python data-pipeline/ferrydata build --slice lower-east-river --skip ais first')
+		raise ValueError('missing slice depth; run python data-pipeline/ferrydata build --slice lower-east-river first (the full build: the operational-ais depth floor reads the AIS extract)')
 	inputs = Inputs(log)
 	subordinates = subordinate_ids(source_dir)
 	water_stations, skipped_datums = [], []

@@ -487,6 +487,32 @@ def test_validator_catches_terrain_that_disagrees_with_the_slice(built, harbor, 
 	assert any(f["tile"] == "tile_0_0" for f in found)
 
 
+def test_validator_compares_with_the_slice_before_its_operational_floor(built, harbor, tmp_path):
+	# The slice deepens its berths by the operational-ais floor and the harbor tiles don't yet, so the check adds the
+	# slice's recorded lowering back before comparing. A patch lowered by the floor, and recorded so, passes.
+	import rasterio
+	from rasterio.transform import Affine
+	lat, lon = geodesy.from_local(1500.0, 1500.0)
+
+	def patch(LAT, LON):
+		return (np.abs(LAT - float(lat)) < 0.0005) & (np.abs(LON - float(lon)) < 0.0006)
+
+	slice_dir, manifest = fixtures.make_slice(tmp_path / "slice", harbor, bias=lambda LAT, LON: np.where(patch(LAT, LON), -2.5, 0.0))
+	header = json.loads((slice_dir / "unity" / "depth.json").read_text())
+	width, height = header["width"], header["height"]
+	(west, north), (dx, dy) = header["origin"], header["cell_size"]
+	LON, LAT = np.meshgrid(west + (np.arange(width) + 0.5) * dx, north + (np.arange(height) + 0.5) * dy)
+	lowered = np.where(patch(LAT, LON), 2.5, 0.0)
+	with rasterio.open(slice_dir / "depth_operational_lowered_m.tif", "w", driver="GTiff", width=width, height=height, count=1,
+			dtype="float64", crs="EPSG:4269", transform=Affine(dx, 0.0, west, 0.0, dy, north), nodata=float("nan")) as ds:
+		ds.write(lowered, 1)
+	result = validate.validate(built, harbor, slice_dir=slice_dir, import_manifest=manifest, report_dir=tmp_path / "report",
+		log=lambda *a: None)
+	assert failures(result, "slice") == []
+	stats = json.loads((tmp_path / "report" / "validation.json").read_text())["slice"]
+	assert stats["operational_floor_cells"] == int((lowered > 0).sum())
+
+
 def test_validator_refuses_a_slice_export_that_is_not_the_imported_one(built, harbor, slice_files, tmp_path):
 	slice_dir, manifest = slice_files
 	stale = tmp_path / "import-manifest.json"

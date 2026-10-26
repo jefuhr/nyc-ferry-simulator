@@ -113,6 +113,7 @@ Levels 0 and 1 carry each tile's fixed chart structures from `shoreline_construc
 **Agreement with the slice.** World/Import built the slice's terrain from `data/processed/lower-east-river/unity/depth.f32`, the slice's merged raster on the same 1/9 arc-second lattice the harbor rasters use.
 - The check first requires that file's SHA-256 to be the one `World/Generated/LowerEastRiver/import-manifest.json` recorded, so it compares with the terrain actually imported.
 - At every level-0 vertex over that grid, it compares the vertex's NAVD88 height (its ellipsoidal height less the owner's geoid offset) with the grid sampled the same way.
+- **The operational-ais floor.** The slice deepens its berths where the fleet's AIS shows boats afloat (`ferrydata.operational_depth`), and the harbor tiles don't yet. So the check compares with the slice's terrain before the floor: the lowering the slice records in `depth_operational_lowered_m.tif`, on the same grid, is added back. The report gives the number of cells lowered. When the floor reaches the harbor tiles, compare after it on both sides instead.
 - **Stated tolerance:** at least 99.9% of the vertices within 0.01 m, and none beyond 1.0 m.
 
 The two merges differ in a few cells, where a chart correction or the slice's own edge differs from the harbor tile's. Today 221,104 vertices compare: 99.9986% agree to float rounding (median 0.001 mm), and the worst, three vertices on the slice's east edge, differs by 0.48 m.

@@ -19,6 +19,12 @@ Unity-side code for the simulator. The physics lives in `core/FerrySim.Core` (lo
 | `World/Import/Editor/` | `FerrySim.World.Import.Editor` (Editor only) | unity-world-import |
 | `World/Import/Tests/` | `FerrySim.World.Import.Tests` (Editor only) | unity-world-import |
 | `World/Generated/` | none (generated assets only) | unity-world-import |
+| `World/Atmosphere/` | (in `FerrySim.Unity.World`) | night-fog |
+| `World/Tiles3D/Runtime/` | `FerrySim.World.Tiles3D` (the Windows probe) | world3d-tiles |
+| `World/Tiles3D/Editor/` | `FerrySim.World.Tiles3D.Editor` (Editor only) | world3d-tiles |
+| `World/Tiles3D/Tests/EditMode/` | `FerrySim.World.Tiles3D.Tests.EditMode` | world3d-tiles |
+| `Traffic/` | `FerrySim.Unity.Traffic` | traffic-unity |
+| `Traffic/Tests/EditMode/` | `FerrySim.Unity.Traffic.Tests.EditMode` | traffic-unity |
 | `UI/` | `FerrySim.Unity.UI` | wheelhouse-ui |
 | `UI/Editor/` | `FerrySim.Unity.UI.Editor` (Editor only) | wheelhouse-ui |
 | `UI/Tests/EditMode/`, `UI/Tests/PlayMode/` | `FerrySim.Unity.UI.Tests.*` | wheelhouse-ui |

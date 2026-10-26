@@ -21,6 +21,7 @@ import math
 from pathlib import Path
 
 import numpy as np
+import rasterio
 from rasterio.transform import Affine
 
 from ferrydata import geodesy, manifest, paths
@@ -589,9 +590,23 @@ def check_slice(documents, meshes, sources, slice_dir, import_manifest, results)
 			f"{import_manifest}): rebuild the slice outputs")
 		return None
 	values, transform, header = read_slice_grid(slice_dir)
+	# The slice deepens its berths by the operational-ais floor (ferrydata.operational_depth) and the harbor tiles don't
+	# yet, so compare with the slice's terrain before the floor: its recorded lowering, on the same grid, added back.
+	floor_cells = 0
+	lowered_file = slice_dir / "depth_operational_lowered_m.tif"
+	if lowered_file.is_file():
+		with rasterio.open(lowered_file) as ds:
+			lowered = ds.read(1).astype(np.float64)
+		if lowered.shape != values.shape:
+			results.fail("slice", f"{lowered_file} is {lowered.shape[1]} x {lowered.shape[0]} cells, not the slice grid's {values.shape[1]} x {values.shape[0]}")
+			return None
+		lowered = np.where(np.isfinite(lowered), lowered, 0.0)
+		floor_cells = int((lowered > 0.0).sum())
+		values = values + lowered
 	west, north_edge = transform.c, transform.f
 	east_edge, south = west + transform.a * values.shape[1], north_edge + transform.e * values.shape[0]
-	stats = {"tolerance_m": SLICE_TOLERANCE_M, "fraction_required": SLICE_FRACTION, "maximum_m": SLICE_MAXIMUM_M, "tiles": {}}
+	stats = {"tolerance_m": SLICE_TOLERANCE_M, "fraction_required": SLICE_FRACTION, "maximum_m": SLICE_MAXIMUM_M, "tiles": {},
+		"operational_floor_cells": floor_cells}
 	all_differences = []
 	worst = []
 	for tile, document in sorted(documents.items()):
@@ -645,7 +660,8 @@ def check_slice(documents, meshes, sources, slice_dir, import_manifest, results)
 		"worst": sorted(worst, key=lambda x: -abs(x["difference_m"]))[:10], "grid_sha256": digest})
 	if not results.failed("slice"):
 		results.ok("slice", f"{stats['vertices']} level-0 vertices over the slice: {stats['within_tolerance']:.4%} within "
-			f"{SLICE_TOLERANCE_M} m of the imported terrain, median {stats['median_abs_m'] * 1000:.3f} mm, worst {stats['max_abs_m']:.3f} m")
+			f"{SLICE_TOLERANCE_M} m of the imported terrain, median {stats['median_abs_m'] * 1000:.3f} mm, worst {stats['max_abs_m']:.3f} m"
+			+ (f"; compared before the slice's operational-ais floor ({floor_cells} cells lowered)" if floor_cells else ""))
 	return stats
 
 
