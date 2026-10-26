@@ -37,10 +37,10 @@ namespace FerrySim.E2E
 			var normal = TripData.Normal(arrival);
 			var middle = TripData.Middle(arrival);
 			// Estimated calm-water authoring speeds: 7 m/s (~13.6 kn) for transit, 1.5 m/s backing.
-			// Leg 1 leaves Pier 11's slip round the pier's outer end (its charted structure is contact geometry), through a
-			// point 31 m south of the end's south-west corner, then crosses directly. Leg 2 follows the river through the two
-			// World's span centres.
-			var points = leg.RequiredBridges.Length == 0 ? new[] { new HorizontalVector(240, 800), middle + normal * 70 } : new[]
+			// Leg 1 backs off the outer east pontoon, clears the other pontoons to the east at N390 E940,
+			// then crosses directly to DUMBO. The former south-slip waypoint crossed the fourth pontoon from this berth.
+			// Leg 2 follows the river through the two World's span centres.
+			var points = leg.RequiredBridges.Length == 0 ? new[] { new HorizontalVector(390, 940), middle + normal * 70 } : new[]
 			{
 				new HorizontalVector(650, 1560),
 				new HorizontalVector(820, 2050),

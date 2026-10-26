@@ -151,9 +151,10 @@ def test_structure_check_requires_kind_provenance_and_the_label_rule():
 	line = [(0, 0), (0, 10), (30, 10)]
 	missing = _segment(0, 'barge-end'); missing.pop('confidence')
 	stale = _segment(1, 'berth-face', primary_face=True, water_side_crew_reported=True, crew_evidence={'note_id': 'n', 'kind': 'face-orientation'})
-	errors = validate.structure_errors(_structures([(line, {'stop_id': 'S', 'polyline_id': 'landing-S', 'role': 'landing', 'segments': [missing, stale]})]), {})
+	errors = validate.structure_errors(_structures([(line, {'stop_id': 'S', 'polyline_id': 'landing-S', 'role': 'landing', 'berth_id': 'enc:L', 'segments': [missing, stale]})]),
+		{'S': {'outline_id': 'enc:L', 'crew_note': {'id': 'n', 'kind': 'face-orientation', 'water_side_crew_reported': True}}})
 	assert any('confidence' in error for error in errors)
-	assert any('crew-reported' in error for error in errors), 'a crew-reported primary face must say so'
+	assert any('crew-reported' in error for error in errors), 'a structure with crew-reported landing-side evidence must name that basis'
 	unknown = _segment(0, 'wharf')
 	assert any('kind' in error for error in validate.structure_errors(_structures([(line[:2], {'stop_id': 'S', 'polyline_id': 'fixed-S-0', 'role': 'fixed-structure', 'segments': [unknown]})]), {}))
 

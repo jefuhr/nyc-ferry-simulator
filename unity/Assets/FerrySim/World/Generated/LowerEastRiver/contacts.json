@@ -92,6 +92,12 @@
       "method": "direct-12m",
       "near_face_coverage_gap_m": 0.0
     },
+    "berth_face": true,
+    "berth_name": "Main berth",
+    "berth_order": 0,
+    "berth_face_segment_ids": [
+      703378532
+    ],
     "kind": "berth-face",
     "role": "landing",
     "berth_id": "enc:0226C9D1DA71764B",
@@ -973,6 +979,12 @@
       "method": "direct-12m",
       "near_face_coverage_gap_m": 0.0
     },
+    "berth_face": true,
+    "berth_name": "Main berth",
+    "berth_order": 0,
+    "berth_face_segment_ids": [
+      825678289
+    ],
     "kind": "berth-face",
     "role": "landing",
     "berth_id": "derived-barge:115:0226359E630A1C82",
@@ -2284,6 +2296,12 @@
       "method": "direct-12m",
       "near_face_coverage_gap_m": 0.0
     },
+    "berth_face": true,
+    "berth_name": "Main berth",
+    "berth_order": 0,
+    "berth_face_segment_ids": [
+      116437372
+    ],
     "kind": "berth-face",
     "role": "landing",
     "berth_id": "derived-barge:120:02262FAC44F71C82",
@@ -4341,6 +4359,12 @@
       "method": "direct-12m",
       "near_face_coverage_gap_m": 0.0
     },
+    "berth_face": true,
+    "berth_name": "Main berth",
+    "berth_order": 0,
+    "berth_face_segment_ids": [
+      1040383703
+    ],
     "kind": "berth-face",
     "role": "landing",
     "berth_id": "derived-barge:136:0226359E630A1C82",
@@ -5398,6 +5422,13 @@
       "method": "direct-12m",
       "near_face_coverage_gap_m": 0.0
     },
+    "berth_face": true,
+    "berth_name": "Main berth",
+    "berth_order": 0,
+    "berth_face_segment_ids": [
+      1238696637,
+      926901007
+    ],
     "kind": "berth-face",
     "role": "landing",
     "berth_id": "enc:02261ACE4C291C82",
@@ -5464,6 +5495,13 @@
       "method": "direct-12m",
       "near_face_coverage_gap_m": 0.0
     },
+    "berth_face": true,
+    "berth_name": "Main berth",
+    "berth_order": 0,
+    "berth_face_segment_ids": [
+      1238696637,
+      926901007
+    ],
     "kind": "berth-face",
     "role": "landing",
     "berth_id": "enc:02261ACE4C291C82",
@@ -8690,6 +8728,12 @@
       "method": "direct-12m",
       "near_face_coverage_gap_m": 0.0
     },
+    "berth_face": true,
+    "berth_name": "Main berth",
+    "berth_order": 0,
+    "berth_face_segment_ids": [
+      970705333
+    ],
     "kind": "berth-face",
     "role": "landing",
     "berth_id": "derived-barge:18:02263973E1BC1C82",
@@ -9247,7 +9291,7 @@
     "confidence": "medium",
     "polyline_id": "landing-19",
     "index": 0,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported landing side",
     "water_side_verified_by_pipeline": true,
     "water_side_evidence": {
       "verified": true,
@@ -9315,7 +9359,7 @@
     "confidence": "medium",
     "polyline_id": "landing-19",
     "index": 1,
-    "verification": "crew-reported",
+    "verification": "crew-reported landing side",
     "water_side_verified_by_pipeline": true,
     "primary_face": true,
     "water_side_evidence": {
@@ -9345,6 +9389,14 @@
       "kind": "face-orientation"
     },
     "water_side_crew_reported": true,
+    "berth_face": true,
+    "berth_name": "Main berth",
+    "berth_order": 0,
+    "berth_face_segment_ids": [
+      427719354,
+      444496973,
+      394164116
+    ],
     "kind": "berth-face",
     "role": "landing",
     "berth_id": "enc:02264AC31B5B764B",
@@ -9403,7 +9455,7 @@
     "confidence": "medium",
     "polyline_id": "landing-19",
     "index": 2,
-    "verification": "crew-reported",
+    "verification": "crew-reported landing side",
     "water_side_verified_by_pipeline": true,
     "primary_face": true,
     "water_side_evidence": {
@@ -9433,6 +9485,14 @@
       "kind": "face-orientation"
     },
     "water_side_crew_reported": true,
+    "berth_face": true,
+    "berth_name": "Main berth",
+    "berth_order": 0,
+    "berth_face_segment_ids": [
+      427719354,
+      444496973,
+      394164116
+    ],
     "kind": "berth-face",
     "role": "landing",
     "berth_id": "enc:02264AC31B5B764B",
@@ -9491,7 +9551,7 @@
     "confidence": "medium",
     "polyline_id": "landing-19",
     "index": 3,
-    "verification": "crew-reported",
+    "verification": "crew-reported landing side",
     "water_side_verified_by_pipeline": true,
     "primary_face": true,
     "water_side_evidence": {
@@ -9521,6 +9581,14 @@
       "kind": "face-orientation"
     },
     "water_side_crew_reported": true,
+    "berth_face": true,
+    "berth_name": "Main berth",
+    "berth_order": 0,
+    "berth_face_segment_ids": [
+      427719354,
+      444496973,
+      394164116
+    ],
     "kind": "berth-face",
     "role": "landing",
     "berth_id": "enc:02264AC31B5B764B",
@@ -9579,7 +9647,7 @@
     "confidence": "medium",
     "polyline_id": "landing-19",
     "index": 4,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported landing side",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -9647,7 +9715,7 @@
     "confidence": "medium",
     "polyline_id": "landing-19-back",
     "index": 0,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported landing side",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -9711,7 +9779,7 @@
     "confidence": "medium",
     "polyline_id": "landing-19-back",
     "index": 1,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported landing side",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -9775,7 +9843,7 @@
     "confidence": "medium",
     "polyline_id": "landing-19-back",
     "index": 2,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported landing side",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -9839,7 +9907,7 @@
     "confidence": "medium",
     "polyline_id": "landing-19-back",
     "index": 3,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported landing side",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -14811,6 +14879,12 @@
       "method": "direct-12m",
       "near_face_coverage_gap_m": 0.0
     },
+    "berth_face": true,
+    "berth_name": "Main berth",
+    "berth_order": 0,
+    "berth_face_segment_ids": [
+      892710090
+    ],
     "kind": "berth-face",
     "role": "landing",
     "berth_id": "derived-barge:20:02262FAC44F71C82",
@@ -17653,6 +17727,12 @@
       "method": "direct-12m",
       "near_face_coverage_gap_m": 0.0
     },
+    "berth_face": true,
+    "berth_name": "Main berth",
+    "berth_order": 0,
+    "berth_face_segment_ids": [
+      578664348
+    ],
     "kind": "berth-face",
     "role": "landing",
     "berth_id": "derived-barge:4:0226144581DB1C82",
@@ -19631,7 +19711,7 @@
     "confidence": "medium",
     "polyline_id": "landing-8",
     "index": 0,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported landing side",
     "water_side_verified_by_pipeline": true,
     "water_side_evidence": {
       "verified": true,
@@ -19696,7 +19776,7 @@
     "confidence": "medium",
     "polyline_id": "landing-8",
     "index": 1,
-    "verification": "crew-reported",
+    "verification": "crew-reported landing side",
     "water_side_verified_by_pipeline": false,
     "primary_face": true,
     "water_side_evidence": {
@@ -19721,6 +19801,12 @@
       "kind": "face-orientation"
     },
     "water_side_crew_reported": true,
+    "berth_face": true,
+    "berth_name": "Main berth",
+    "berth_order": 0,
+    "berth_face_segment_ids": [
+      149111046
+    ],
     "kind": "berth-face",
     "role": "landing",
     "berth_id": "enc:022679C2F5BA764B",
@@ -19779,7 +19865,7 @@
     "confidence": "medium",
     "polyline_id": "landing-8-back",
     "index": 0,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported landing side",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -19843,7 +19929,7 @@
     "confidence": "medium",
     "polyline_id": "landing-8-back",
     "index": 1,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported landing side",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -19907,7 +19993,7 @@
     "confidence": "medium",
     "polyline_id": "landing-8-back",
     "index": 2,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported landing side",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -21501,692 +21587,6 @@
     ]
   },
   {
-    "id": 537299060,
-    "stop_id": "87",
-    "stop_name": "Wall St/Pier 11",
-    "start_ne_m": [
-      305.41087457789547,
-      766.819920289015
-    ],
-    "end_ne_m": [
-      304.89999979475022,
-      766.30444961914247
-    ],
-    "water_normal_ne": [
-      -0.71026602358902224,
-      0.70393336029416775
-    ],
-    "source": "enc-feature",
-    "confidence": "low",
-    "polyline_id": "landing-87",
-    "index": 0,
-    "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": true,
-    "water_side_evidence": {
-      "verified": true,
-      "method": "direct-12m",
-      "near_face_coverage_gap_m": 0.0
-    },
-    "crew_evidence": {
-      "note_id": "pier11-berth-use-policy-2026-10-24",
-      "kind": "berth-use-policy"
-    },
-    "kind": "barge-end",
-    "role": "landing",
-    "berth_id": "enc:0226015B0512B198",
-    "berth_rank": 3,
-    "structure_id": "enc:0226015B0512B198",
-    "layer": "PONTON",
-    "lnam": "0226015B0512B198",
-    "solid_side_evidence": {
-      "verified": true,
-      "method": "enc-closed-outline",
-      "layer": "PONTON",
-      "lnam": "0226015B0512B198",
-      "winding": "clockwise: outline interior on the right, start to end",
-      "winding_check": true,
-      "probe_offset_m": 0.5,
-      "probe_ne_m": [
-        304.8,
-        766.914
-      ],
-      "probe_lonlat": [
-        -74.0059254,
-        40.7027444
-      ],
-      "probe_in_charted_water": true,
-      "probe_water_layer": "DEPARE",
-      "probe_water_lnam": "022655E80D1BCBF6",
-      "probe_in_lndare": false,
-      "probe_in_other_structure": false
-    },
-    "start_lonlat": [
-      -74.0059265,
-      40.7027499
-    ],
-    "end_lonlat": [
-      -74.0059326,
-      40.7027453
-    ]
-  },
-  {
-    "id": 587631917,
-    "stop_id": "87",
-    "stop_name": "Wall St/Pier 11",
-    "start_ne_m": [
-      304.89999979475022,
-      766.30444961914247
-    ],
-    "end_ne_m": [
-      297.94770296935815,
-      759.67096594827228
-    ],
-    "water_normal_ne": [
-      -0.6903232838999418,
-      0.72350104609848365
-    ],
-    "source": "enc-feature",
-    "confidence": "low",
-    "polyline_id": "landing-87",
-    "index": 1,
-    "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": true,
-    "water_side_evidence": {
-      "verified": true,
-      "method": "direct-12m",
-      "near_face_coverage_gap_m": 0.0
-    },
-    "crew_evidence": {
-      "note_id": "pier11-berth-use-policy-2026-10-24",
-      "kind": "berth-use-policy"
-    },
-    "kind": "barge-end",
-    "role": "landing",
-    "berth_id": "enc:0226015B0512B198",
-    "berth_rank": 3,
-    "structure_id": "enc:0226015B0512B198",
-    "layer": "PONTON",
-    "lnam": "0226015B0512B198",
-    "solid_side_evidence": {
-      "verified": true,
-      "method": "enc-closed-outline",
-      "layer": "PONTON",
-      "lnam": "0226015B0512B198",
-      "winding": "clockwise: outline interior on the right, start to end",
-      "winding_check": true,
-      "probe_offset_m": 0.5,
-      "probe_ne_m": [
-        301.079,
-        763.349
-      ],
-      "probe_lonlat": [
-        -74.0059676,
-        40.7027109
-      ],
-      "probe_in_charted_water": true,
-      "probe_water_layer": "DEPARE",
-      "probe_water_lnam": "022655E80D1BCBF6",
-      "probe_in_lndare": false,
-      "probe_in_other_structure": false
-    },
-    "start_lonlat": [
-      -74.0059326,
-      40.7027453
-    ],
-    "end_lonlat": [
-      -74.0060111,
-      40.7026827
-    ]
-  },
-  {
-    "id": 570854298,
-    "stop_id": "87",
-    "stop_name": "Wall St/Pier 11",
-    "start_ne_m": [
-      297.94770296935815,
-      759.67096594827228
-    ],
-    "end_ne_m": [
-      298.13646842498576,
-      759.51037361672377
-    ],
-    "water_normal_ne": [
-      -0.64798027604881114,
-      -0.76165711567063188
-    ],
-    "source": "enc-feature",
-    "confidence": "low",
-    "polyline_id": "landing-87",
-    "index": 2,
-    "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": true,
-    "water_side_evidence": {
-      "verified": true,
-      "method": "direct-12m",
-      "near_face_coverage_gap_m": 0.0
-    },
-    "crew_evidence": {
-      "note_id": "pier11-berth-use-policy-2026-10-24",
-      "kind": "berth-use-policy"
-    },
-    "kind": "barge-side",
-    "role": "landing",
-    "berth_id": "enc:0226015B0512B198",
-    "berth_rank": 3,
-    "structure_id": "enc:0226015B0512B198",
-    "layer": "PONTON",
-    "lnam": "0226015B0512B198",
-    "solid_side_evidence": {
-      "verified": true,
-      "method": "enc-closed-outline",
-      "layer": "PONTON",
-      "lnam": "0226015B0512B198",
-      "winding": "clockwise: outline interior on the right, start to end",
-      "winding_check": true,
-      "probe_offset_m": 0.5,
-      "probe_ne_m": [
-        297.718,
-        759.21
-      ],
-      "probe_lonlat": [
-        -74.0060166,
-        40.7026806
-      ],
-      "probe_in_charted_water": true,
-      "probe_water_layer": "DEPARE",
-      "probe_water_lnam": "022655E80D1BCBF6",
-      "probe_in_lndare": false,
-      "probe_in_other_structure": false
-    },
-    "start_lonlat": [
-      -74.0060111,
-      40.7026827
-    ],
-    "end_lonlat": [
-      -74.006013,
-      40.7026844
-    ]
-  },
-  {
-    "id": 352745251,
-    "stop_id": "87",
-    "stop_name": "Wall St/Pier 11",
-    "start_ne_m": [
-      298.13646842498576,
-      759.51037361672377
-    ],
-    "end_ne_m": [
-      298.18088336728982,
-      759.46811301606931
-    ],
-    "water_normal_ne": [
-      -0.689318578776538,
-      -0.72445834728678082
-    ],
-    "source": "enc-feature",
-    "confidence": "low",
-    "polyline_id": "landing-87",
-    "index": 3,
-    "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": true,
-    "water_side_evidence": {
-      "verified": true,
-      "method": "direct-12m",
-      "near_face_coverage_gap_m": 0.0
-    },
-    "crew_evidence": {
-      "note_id": "pier11-berth-use-policy-2026-10-24",
-      "kind": "berth-use-policy"
-    },
-    "kind": "barge-side",
-    "role": "landing",
-    "berth_id": "enc:0226015B0512B198",
-    "berth_rank": 3,
-    "structure_id": "enc:0226015B0512B198",
-    "layer": "PONTON",
-    "lnam": "0226015B0512B198",
-    "solid_side_evidence": {
-      "verified": true,
-      "method": "enc-closed-outline",
-      "layer": "PONTON",
-      "lnam": "0226015B0512B198",
-      "winding": "clockwise: outline interior on the right, start to end",
-      "winding_check": true,
-      "probe_offset_m": 0.5,
-      "probe_ne_m": [
-        297.814,
-        759.127
-      ],
-      "probe_lonlat": [
-        -74.0060175,
-        40.7026815
-      ],
-      "probe_in_charted_water": true,
-      "probe_water_layer": "DEPARE",
-      "probe_water_lnam": "022655E80D1BCBF6",
-      "probe_in_lndare": false,
-      "probe_in_other_structure": false
-    },
-    "start_lonlat": [
-      -74.006013,
-      40.7026844
-    ],
-    "end_lonlat": [
-      -74.0060135,
-      40.7026848
-    ]
-  },
-  {
-    "id": 335967632,
-    "stop_id": "87",
-    "stop_name": "Wall St/Pier 11",
-    "start_ne_m": [
-      298.18088336728982,
-      759.46811301606931
-    ],
-    "end_ne_m": [
-      323.02015437670605,
-      737.60236155211226
-    ],
-    "water_normal_ne": [
-      -0.66075038440201661,
-      -0.75060570841993146
-    ],
-    "source": "enc-feature",
-    "confidence": "low",
-    "polyline_id": "landing-87",
-    "index": 4,
-    "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": true,
-    "primary_face": true,
-    "water_side_evidence": {
-      "verified": true,
-      "method": "direct-12m",
-      "near_face_coverage_gap_m": 0.0
-    },
-    "crew_evidence": {
-      "note_id": "pier11-berth-use-policy-2026-10-24",
-      "kind": "berth-use-policy"
-    },
-    "kind": "berth-face",
-    "role": "landing",
-    "berth_id": "enc:0226015B0512B198",
-    "berth_rank": 3,
-    "structure_id": "enc:0226015B0512B198",
-    "layer": "PONTON",
-    "lnam": "0226015B0512B198",
-    "solid_side_evidence": {
-      "verified": true,
-      "method": "enc-closed-outline",
-      "layer": "PONTON",
-      "lnam": "0226015B0512B198",
-      "winding": "clockwise: outline interior on the right, start to end",
-      "winding_check": true,
-      "probe_offset_m": 0.5,
-      "probe_ne_m": [
-        310.27,
-        748.16
-      ],
-      "probe_lonlat": [
-        -74.0061473,
-        40.7027937
-      ],
-      "probe_in_charted_water": true,
-      "probe_water_layer": "DEPARE",
-      "probe_water_lnam": "022655E80D1BCBF6",
-      "probe_in_lndare": false,
-      "probe_in_other_structure": false
-    },
-    "start_lonlat": [
-      -74.0060135,
-      40.7026848
-    ],
-    "end_lonlat": [
-      -74.0062722,
-      40.7029085
-    ]
-  },
-  {
-    "id": 486966203,
-    "stop_id": "87",
-    "stop_name": "Wall St/Pier 11",
-    "start_ne_m": [
-      323.02015437670605,
-      737.60236155211226
-    ],
-    "end_ne_m": [
-      330.21685471691995,
-      745.40208112422113
-    ],
-    "water_normal_ne": [
-      0.73494623391739333,
-      -0.67812538165935077
-    ],
-    "source": "enc-feature",
-    "confidence": "low",
-    "polyline_id": "landing-87",
-    "index": 5,
-    "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": false,
-    "water_side_evidence": {
-      "verified": false,
-      "method": "unverified"
-    },
-    "crew_evidence": {
-      "note_id": "pier11-berth-use-policy-2026-10-24",
-      "kind": "berth-use-policy"
-    },
-    "kind": "barge-end",
-    "role": "landing",
-    "berth_id": "enc:0226015B0512B198",
-    "berth_rank": 3,
-    "structure_id": "enc:0226015B0512B198",
-    "layer": "PONTON",
-    "lnam": "0226015B0512B198",
-    "solid_side_evidence": {
-      "verified": true,
-      "method": "enc-closed-outline",
-      "layer": "PONTON",
-      "lnam": "0226015B0512B198",
-      "winding": "clockwise: outline interior on the right, start to end",
-      "winding_check": true,
-      "probe_offset_m": 0.5,
-      "probe_ne_m": [
-        326.986,
-        741.163
-      ],
-      "probe_lonlat": [
-        -74.0062301,
-        40.7029442
-      ],
-      "probe_in_charted_water": true,
-      "probe_water_layer": "DEPARE",
-      "probe_water_lnam": "022655E80D1BCBF6",
-      "probe_in_lndare": false,
-      "probe_in_other_structure": false
-    },
-    "start_lonlat": [
-      -74.0062722,
-      40.7029085
-    ],
-    "end_lonlat": [
-      -74.0061799,
-      40.7029733
-    ]
-  },
-  {
-    "id": 470188584,
-    "stop_id": "87",
-    "stop_name": "Wall St/Pier 11",
-    "start_ne_m": [
-      330.21685471691995,
-      745.40208112422113
-    ],
-    "end_ne_m": [
-      314.81582005067742,
-      758.69735302104539
-    ],
-    "water_normal_ne": [
-      0.65346159374267787,
-      0.75695967230974692
-    ],
-    "source": "enc-feature",
-    "confidence": "low",
-    "polyline_id": "landing-87-back",
-    "index": 0,
-    "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": false,
-    "water_side_evidence": {
-      "verified": false,
-      "method": "unverified"
-    },
-    "crew_evidence": {
-      "note_id": "pier11-berth-use-policy-2026-10-24",
-      "kind": "berth-use-policy"
-    },
-    "kind": "barge-side",
-    "role": "landing",
-    "berth_id": "enc:0226015B0512B198",
-    "berth_rank": 3,
-    "structure_id": "enc:0226015B0512B198",
-    "layer": "PONTON",
-    "lnam": "0226015B0512B198",
-    "solid_side_evidence": {
-      "verified": true,
-      "method": "enc-closed-outline",
-      "layer": "PONTON",
-      "lnam": "0226015B0512B198",
-      "winding": "clockwise: outline interior on the right, start to end",
-      "winding_check": true,
-      "probe_offset_m": 0.5,
-      "probe_ne_m": [
-        322.843,
-        752.428
-      ],
-      "probe_lonlat": [
-        -74.0060968,
-        40.7029069
-      ],
-      "probe_in_charted_water": true,
-      "probe_water_layer": "DEPARE",
-      "probe_water_lnam": "022655E80D1BCBF6",
-      "probe_in_lndare": false,
-      "probe_in_other_structure": false
-    },
-    "start_lonlat": [
-      -74.0061799,
-      40.7029733
-    ],
-    "end_lonlat": [
-      -74.0060226,
-      40.7028346
-    ]
-  },
-  {
-    "id": 520521441,
-    "stop_id": "87",
-    "stop_name": "Wall St/Pier 11",
-    "start_ne_m": [
-      314.81582005067742,
-      758.69735302104539
-    ],
-    "end_ne_m": [
-      305.47749736845878,
-      766.76075498726334
-    ],
-    "water_normal_ne": [
-      0.65354962339251033,
-      0.75688366990146383
-    ],
-    "source": "enc-feature",
-    "confidence": "low",
-    "polyline_id": "landing-87-back",
-    "index": 1,
-    "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": false,
-    "water_side_evidence": {
-      "verified": false,
-      "method": "unverified"
-    },
-    "crew_evidence": {
-      "note_id": "pier11-berth-use-policy-2026-10-24",
-      "kind": "berth-use-policy"
-    },
-    "kind": "barge-side",
-    "role": "landing",
-    "berth_id": "enc:0226015B0512B198",
-    "berth_rank": 3,
-    "structure_id": "enc:0226015B0512B198",
-    "layer": "PONTON",
-    "lnam": "0226015B0512B198",
-    "solid_side_evidence": {
-      "verified": true,
-      "method": "enc-closed-outline",
-      "layer": "PONTON",
-      "lnam": "0226015B0512B198",
-      "winding": "clockwise: outline interior on the right, start to end",
-      "winding_check": true,
-      "probe_offset_m": 0.5,
-      "probe_ne_m": [
-        310.473,
-        763.107
-      ],
-      "probe_lonlat": [
-        -74.0059704,
-        40.7027955
-      ],
-      "probe_in_charted_water": true,
-      "probe_water_layer": "DEPARE",
-      "probe_water_lnam": "022655E80D1BCBF6",
-      "probe_in_lndare": false,
-      "probe_in_other_structure": false
-    },
-    "start_lonlat": [
-      -74.0060226,
-      40.7028346
-    ],
-    "end_lonlat": [
-      -74.0059272,
-      40.7027505
-    ]
-  },
-  {
-    "id": 503743822,
-    "stop_id": "87",
-    "stop_name": "Wall St/Pier 11",
-    "start_ne_m": [
-      305.47749736845878,
-      766.76075498726334
-    ],
-    "end_ne_m": [
-      305.42197764948219,
-      766.80301673537849
-    ],
-    "water_normal_ne": [
-      0.6056895951681408,
-      0.79570102067614168
-    ],
-    "source": "enc-feature",
-    "confidence": "low",
-    "polyline_id": "landing-87-back",
-    "index": 2,
-    "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": false,
-    "water_side_evidence": {
-      "verified": false,
-      "method": "unverified"
-    },
-    "crew_evidence": {
-      "note_id": "pier11-berth-use-policy-2026-10-24",
-      "kind": "berth-use-policy"
-    },
-    "kind": "barge-side",
-    "role": "landing",
-    "berth_id": "enc:0226015B0512B198",
-    "berth_rank": 3,
-    "structure_id": "enc:0226015B0512B198",
-    "layer": "PONTON",
-    "lnam": "0226015B0512B198",
-    "solid_side_evidence": {
-      "verified": true,
-      "method": "enc-closed-outline",
-      "layer": "PONTON",
-      "lnam": "0226015B0512B198",
-      "winding": "clockwise: outline interior on the right, start to end",
-      "winding_check": true,
-      "probe_offset_m": 0.5,
-      "probe_ne_m": [
-        305.753,
-        767.18
-      ],
-      "probe_lonlat": [
-        -74.0059222,
-        40.702753
-      ],
-      "probe_in_charted_water": true,
-      "probe_water_layer": "DEPARE",
-      "probe_water_lnam": "022655E80D1BCBF6",
-      "probe_in_lndare": false,
-      "probe_in_other_structure": false
-    },
-    "start_lonlat": [
-      -74.0059272,
-      40.7027505
-    ],
-    "end_lonlat": [
-      -74.0059267,
-      40.70275
-    ]
-  },
-  {
-    "id": 554076679,
-    "stop_id": "87",
-    "stop_name": "Wall St/Pier 11",
-    "start_ne_m": [
-      305.42197764948219,
-      766.80301673537849
-    ],
-    "end_ne_m": [
-      305.41087457789547,
-      766.819920289015
-    ],
-    "water_normal_ne": [
-      0.83581842870653555,
-      0.54900596921576184
-    ],
-    "source": "enc-feature",
-    "confidence": "low",
-    "polyline_id": "landing-87-back",
-    "index": 3,
-    "verification": "needs-crew-verification",
-    "water_side_verified_by_pipeline": false,
-    "water_side_evidence": {
-      "verified": false,
-      "method": "unverified"
-    },
-    "crew_evidence": {
-      "note_id": "pier11-berth-use-policy-2026-10-24",
-      "kind": "berth-use-policy"
-    },
-    "kind": "barge-side",
-    "role": "landing",
-    "berth_id": "enc:0226015B0512B198",
-    "berth_rank": 3,
-    "structure_id": "enc:0226015B0512B198",
-    "layer": "PONTON",
-    "lnam": "0226015B0512B198",
-    "solid_side_evidence": {
-      "verified": true,
-      "method": "enc-closed-outline",
-      "layer": "PONTON",
-      "lnam": "0226015B0512B198",
-      "winding": "clockwise: outline interior on the right, start to end",
-      "winding_check": true,
-      "probe_offset_m": 0.5,
-      "probe_ne_m": [
-        305.834,
-        767.086
-      ],
-      "probe_lonlat": [
-        -74.0059234,
-        40.7027537
-      ],
-      "probe_in_charted_water": true,
-      "probe_water_layer": "DEPARE",
-      "probe_water_lnam": "022655E80D1BCBF6",
-      "probe_in_lndare": false,
-      "probe_in_other_structure": false
-    },
-    "start_lonlat": [
-      -74.0059267,
-      40.70275
-    ],
-    "end_lonlat": [
-      -74.0059265,
-      40.7027499
-    ]
-  },
-  {
     "id": 331091013,
     "stop_id": "87",
     "stop_name": "Wall St/Pier 11",
@@ -22204,9 +21604,9 @@
     ],
     "source": "enc-feature",
     "confidence": "low",
-    "polyline_id": "berth-87-02261FA117EFB198",
+    "polyline_id": "landing-87",
     "index": 0,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported berth",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -22216,8 +21616,12 @@
       "far_end_charted": false,
       "near_face_coverage_gap_m": 30.0
     },
+    "crew_evidence": {
+      "note_id": "pier11-ramped-berths-2026-10-25",
+      "kind": "berth-use-policy"
+    },
     "kind": "barge-end",
-    "role": "berth",
+    "role": "landing",
     "berth_id": "enc:02261FA117EFB198",
     "berth_rank": 1,
     "structure_id": "enc:02261FA117EFB198",
@@ -22272,10 +21676,11 @@
     ],
     "source": "enc-feature",
     "confidence": "low",
-    "polyline_id": "berth-87-02261FA117EFB198",
+    "polyline_id": "landing-87",
     "index": 1,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported berth",
     "water_side_verified_by_pipeline": false,
+    "primary_face": true,
     "water_side_evidence": {
       "verified": false,
       "method": "unverified",
@@ -22284,8 +21689,90 @@
       "far_end_charted": false,
       "near_face_coverage_gap_m": 30.0
     },
+    "crew_evidence": {
+      "note_id": "pier11-ramped-berths-2026-10-25",
+      "kind": "berth-use-policy"
+    },
+    "berth_face": true,
+    "berth_name": "Outer pontoon (east)",
+    "berth_order": 0,
+    "berth_face_segment_ids": [
+      314313394
+    ],
+    "berth_use_crew_note": "pier11-ramped-berths-2026-10-25",
+    "berth_use_evidence": {
+      "note": {
+        "stop_id": "87",
+        "id": "pier11-ramped-berths-2026-10-25",
+        "kind": "berth-use-policy",
+        "supersedes": "pier11-berth-use-policy-2026-10-24",
+        "statement": "Boats use all three ramped pontoons at Wall St/Pier 11. The outer (east) pontoon is the default berth.",
+        "date": "2026-10-25",
+        "source": "crew-reported: project crew reviewer",
+        "default_berth_id": "enc:02261FA117EFB198",
+        "berths": [
+          {
+            "id": "enc:02261FA117EFB198",
+            "name": "Outer pontoon (east)"
+          },
+          {
+            "id": "enc:0226111D16AAB198",
+            "name": "North pontoon"
+          },
+          {
+            "id": "enc:0226015B0512B198",
+            "name": "South pontoon"
+          }
+        ],
+        "not_a_ferry_berth": [
+          "enc:02260848030BB198"
+        ],
+        "water_side_crew_reported": false,
+        "limitations": "Crew establishes ramp presence and berth use only, not the side carrying the ramp, depths or clearances. Each face retains the pipeline select_face result; this note does not establish its water side."
+      },
+      "crew_notes_sha256": "1a09bc5dc9735e0af1b2e5223501b398159734886949fe7945841f339594c975"
+    },
+    "berth_side_evidence": {
+      "verified": true,
+      "method": "slow-TK-face-span",
+      "distance_m": 15.0,
+      "sog_below_kn": 0.5,
+      "outward_reports": 3249,
+      "inward_reports": 0,
+      "note": "T/K fleet identity audit; positions project onto the whole face span. AIS antenna positions do not establish ramp side, depth or clearance."
+    },
+    "berth_corridor_structures": [
+      {
+        "lnam": "02260A6923D81558",
+        "object_class": "MORFAC",
+        "geometry_type": "Point",
+        "water_level_effect_code": 2,
+        "distance_from_face_m": 20.256799234362717,
+        "signed_outward_m": 20.256799234362667,
+        "along_from_midpoint_m": 0.41564034688265217,
+        "position_lonlat": [
+          -74.0054701,
+          40.703225599999996
+        ],
+        "note": "Charted object; role and clearance unverified. Point geometry is not runtime contact."
+      },
+      {
+        "lnam": "022630EA6B161558",
+        "object_class": "MORFAC",
+        "geometry_type": "Point",
+        "water_level_effect_code": 2,
+        "distance_from_face_m": 9.49246624306317,
+        "signed_outward_m": 9.4924662430631219,
+        "along_from_midpoint_m": 0.29130894400860896,
+        "position_lonlat": [
+          -74.0055781,
+          40.703174199999992
+        ],
+        "note": "Charted object; role and clearance unverified. Point geometry is not runtime contact."
+      }
+    ],
     "kind": "berth-face",
-    "role": "berth",
+    "role": "landing",
     "berth_id": "enc:02261FA117EFB198",
     "berth_rank": 1,
     "structure_id": "enc:02261FA117EFB198",
@@ -22340,9 +21827,9 @@
     ],
     "source": "enc-feature",
     "confidence": "low",
-    "polyline_id": "berth-87-02261FA117EFB198",
+    "polyline_id": "landing-87",
     "index": 2,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported berth",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -22352,8 +21839,12 @@
       "far_end_charted": false,
       "near_face_coverage_gap_m": 30.0
     },
+    "crew_evidence": {
+      "note_id": "pier11-ramped-berths-2026-10-25",
+      "kind": "berth-use-policy"
+    },
     "kind": "barge-end",
-    "role": "berth",
+    "role": "landing",
     "berth_id": "enc:02261FA117EFB198",
     "berth_rank": 1,
     "structure_id": "enc:02261FA117EFB198",
@@ -22408,16 +21899,20 @@
     ],
     "source": "enc-feature",
     "confidence": "low",
-    "polyline_id": "berth-87-02261FA117EFB198",
+    "polyline_id": "landing-87",
     "index": 3,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported berth",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
       "method": "unverified"
     },
+    "crew_evidence": {
+      "note_id": "pier11-ramped-berths-2026-10-25",
+      "kind": "berth-use-policy"
+    },
     "kind": "barge-end",
-    "role": "berth",
+    "role": "landing",
     "berth_id": "enc:02261FA117EFB198",
     "berth_rank": 1,
     "structure_id": "enc:02261FA117EFB198",
@@ -22472,16 +21967,20 @@
     ],
     "source": "enc-feature",
     "confidence": "low",
-    "polyline_id": "berth-87-02261FA117EFB198",
-    "index": 4,
-    "verification": "needs-crew-verification",
+    "polyline_id": "landing-87-back",
+    "index": 0,
+    "verification": "crew-reported berth",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
       "method": "unverified"
     },
+    "crew_evidence": {
+      "note_id": "pier11-ramped-berths-2026-10-25",
+      "kind": "berth-use-policy"
+    },
     "kind": "barge-side",
-    "role": "berth",
+    "role": "landing",
     "berth_id": "enc:02261FA117EFB198",
     "berth_rank": 1,
     "structure_id": "enc:02261FA117EFB198",
@@ -22536,16 +22035,20 @@
     ],
     "source": "enc-feature",
     "confidence": "low",
-    "polyline_id": "berth-87-02261FA117EFB198",
-    "index": 5,
-    "verification": "needs-crew-verification",
+    "polyline_id": "landing-87-back",
+    "index": 1,
+    "verification": "crew-reported berth",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
       "method": "unverified"
     },
+    "crew_evidence": {
+      "note_id": "pier11-ramped-berths-2026-10-25",
+      "kind": "berth-use-policy"
+    },
     "kind": "barge-side",
-    "role": "berth",
+    "role": "landing",
     "berth_id": "enc:02261FA117EFB198",
     "berth_rank": 1,
     "structure_id": "enc:02261FA117EFB198",
@@ -22600,16 +22103,20 @@
     ],
     "source": "enc-feature",
     "confidence": "low",
-    "polyline_id": "berth-87-02261FA117EFB198",
-    "index": 6,
-    "verification": "needs-crew-verification",
+    "polyline_id": "landing-87-back",
+    "index": 2,
+    "verification": "crew-reported berth",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
       "method": "unverified"
     },
+    "crew_evidence": {
+      "note_id": "pier11-ramped-berths-2026-10-25",
+      "kind": "berth-use-policy"
+    },
     "kind": "barge-side",
-    "role": "berth",
+    "role": "landing",
     "berth_id": "enc:02261FA117EFB198",
     "berth_rank": 1,
     "structure_id": "enc:02261FA117EFB198",
@@ -22666,7 +22173,7 @@
     "confidence": "low",
     "polyline_id": "berth-87-0226111D16AAB198",
     "index": 0,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported berth",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -22730,7 +22237,7 @@
     "confidence": "low",
     "polyline_id": "berth-87-0226111D16AAB198",
     "index": 1,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported berth",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -22794,7 +22301,7 @@
     "confidence": "low",
     "polyline_id": "berth-87-0226111D16AAB198",
     "index": 2,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported berth",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -22804,6 +22311,72 @@
       "far_end_charted": false,
       "near_face_coverage_gap_m": 30.0
     },
+    "berth_face": true,
+    "berth_name": "North pontoon",
+    "berth_order": 1,
+    "berth_face_segment_ids": [
+      916889923,
+      900112304,
+      1017555637
+    ],
+    "berth_use_crew_note": "pier11-ramped-berths-2026-10-25",
+    "berth_use_evidence": {
+      "note": {
+        "stop_id": "87",
+        "id": "pier11-ramped-berths-2026-10-25",
+        "kind": "berth-use-policy",
+        "supersedes": "pier11-berth-use-policy-2026-10-24",
+        "statement": "Boats use all three ramped pontoons at Wall St/Pier 11. The outer (east) pontoon is the default berth.",
+        "date": "2026-10-25",
+        "source": "crew-reported: project crew reviewer",
+        "default_berth_id": "enc:02261FA117EFB198",
+        "berths": [
+          {
+            "id": "enc:02261FA117EFB198",
+            "name": "Outer pontoon (east)"
+          },
+          {
+            "id": "enc:0226111D16AAB198",
+            "name": "North pontoon"
+          },
+          {
+            "id": "enc:0226015B0512B198",
+            "name": "South pontoon"
+          }
+        ],
+        "not_a_ferry_berth": [
+          "enc:02260848030BB198"
+        ],
+        "water_side_crew_reported": false,
+        "limitations": "Crew establishes ramp presence and berth use only, not the side carrying the ramp, depths or clearances. Each face retains the pipeline select_face result; this note does not establish its water side."
+      },
+      "crew_notes_sha256": "1a09bc5dc9735e0af1b2e5223501b398159734886949fe7945841f339594c975"
+    },
+    "berth_side_evidence": {
+      "verified": true,
+      "method": "slow-TK-face-span",
+      "distance_m": 15.0,
+      "sog_below_kn": 0.5,
+      "outward_reports": 1064,
+      "inward_reports": 0,
+      "note": "T/K fleet identity audit; positions project onto the whole face span. AIS antenna positions do not establish ramp side, depth or clearance."
+    },
+    "berth_corridor_structures": [
+      {
+        "lnam": "02261D74DBD91558",
+        "object_class": "MORFAC",
+        "geometry_type": "Point",
+        "water_level_effect_code": 2,
+        "distance_from_face_m": 9.84254458987253,
+        "signed_outward_m": 9.8425456365850525,
+        "along_from_midpoint_m": 0.0073697435715462944,
+        "position_lonlat": [
+          -74.0060208,
+          40.703571600000004
+        ],
+        "note": "Charted object; role and clearance unverified. Point geometry is not runtime contact."
+      }
+    ],
     "kind": "berth-face",
     "role": "berth",
     "berth_id": "enc:0226111D16AAB198",
@@ -22862,7 +22435,7 @@
     "confidence": "low",
     "polyline_id": "berth-87-0226111D16AAB198",
     "index": 3,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported berth",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -22872,6 +22445,72 @@
       "far_end_charted": false,
       "near_face_coverage_gap_m": 30.0
     },
+    "berth_face": true,
+    "berth_name": "North pontoon",
+    "berth_order": 1,
+    "berth_face_segment_ids": [
+      916889923,
+      900112304,
+      1017555637
+    ],
+    "berth_use_crew_note": "pier11-ramped-berths-2026-10-25",
+    "berth_use_evidence": {
+      "note": {
+        "stop_id": "87",
+        "id": "pier11-ramped-berths-2026-10-25",
+        "kind": "berth-use-policy",
+        "supersedes": "pier11-berth-use-policy-2026-10-24",
+        "statement": "Boats use all three ramped pontoons at Wall St/Pier 11. The outer (east) pontoon is the default berth.",
+        "date": "2026-10-25",
+        "source": "crew-reported: project crew reviewer",
+        "default_berth_id": "enc:02261FA117EFB198",
+        "berths": [
+          {
+            "id": "enc:02261FA117EFB198",
+            "name": "Outer pontoon (east)"
+          },
+          {
+            "id": "enc:0226111D16AAB198",
+            "name": "North pontoon"
+          },
+          {
+            "id": "enc:0226015B0512B198",
+            "name": "South pontoon"
+          }
+        ],
+        "not_a_ferry_berth": [
+          "enc:02260848030BB198"
+        ],
+        "water_side_crew_reported": false,
+        "limitations": "Crew establishes ramp presence and berth use only, not the side carrying the ramp, depths or clearances. Each face retains the pipeline select_face result; this note does not establish its water side."
+      },
+      "crew_notes_sha256": "1a09bc5dc9735e0af1b2e5223501b398159734886949fe7945841f339594c975"
+    },
+    "berth_side_evidence": {
+      "verified": true,
+      "method": "slow-TK-face-span",
+      "distance_m": 15.0,
+      "sog_below_kn": 0.5,
+      "outward_reports": 1064,
+      "inward_reports": 0,
+      "note": "T/K fleet identity audit; positions project onto the whole face span. AIS antenna positions do not establish ramp side, depth or clearance."
+    },
+    "berth_corridor_structures": [
+      {
+        "lnam": "02261D74DBD91558",
+        "object_class": "MORFAC",
+        "geometry_type": "Point",
+        "water_level_effect_code": 2,
+        "distance_from_face_m": 9.84254458987253,
+        "signed_outward_m": 9.8425456365850525,
+        "along_from_midpoint_m": 0.0073697435715462944,
+        "position_lonlat": [
+          -74.0060208,
+          40.703571600000004
+        ],
+        "note": "Charted object; role and clearance unverified. Point geometry is not runtime contact."
+      }
+    ],
     "kind": "berth-face",
     "role": "berth",
     "berth_id": "enc:0226111D16AAB198",
@@ -22930,7 +22569,7 @@
     "confidence": "low",
     "polyline_id": "berth-87-0226111D16AAB198",
     "index": 4,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported berth",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -22940,6 +22579,72 @@
       "far_end_charted": false,
       "near_face_coverage_gap_m": 30.0
     },
+    "berth_face": true,
+    "berth_name": "North pontoon",
+    "berth_order": 1,
+    "berth_face_segment_ids": [
+      916889923,
+      900112304,
+      1017555637
+    ],
+    "berth_use_crew_note": "pier11-ramped-berths-2026-10-25",
+    "berth_use_evidence": {
+      "note": {
+        "stop_id": "87",
+        "id": "pier11-ramped-berths-2026-10-25",
+        "kind": "berth-use-policy",
+        "supersedes": "pier11-berth-use-policy-2026-10-24",
+        "statement": "Boats use all three ramped pontoons at Wall St/Pier 11. The outer (east) pontoon is the default berth.",
+        "date": "2026-10-25",
+        "source": "crew-reported: project crew reviewer",
+        "default_berth_id": "enc:02261FA117EFB198",
+        "berths": [
+          {
+            "id": "enc:02261FA117EFB198",
+            "name": "Outer pontoon (east)"
+          },
+          {
+            "id": "enc:0226111D16AAB198",
+            "name": "North pontoon"
+          },
+          {
+            "id": "enc:0226015B0512B198",
+            "name": "South pontoon"
+          }
+        ],
+        "not_a_ferry_berth": [
+          "enc:02260848030BB198"
+        ],
+        "water_side_crew_reported": false,
+        "limitations": "Crew establishes ramp presence and berth use only, not the side carrying the ramp, depths or clearances. Each face retains the pipeline select_face result; this note does not establish its water side."
+      },
+      "crew_notes_sha256": "1a09bc5dc9735e0af1b2e5223501b398159734886949fe7945841f339594c975"
+    },
+    "berth_side_evidence": {
+      "verified": true,
+      "method": "slow-TK-face-span",
+      "distance_m": 15.0,
+      "sog_below_kn": 0.5,
+      "outward_reports": 1064,
+      "inward_reports": 0,
+      "note": "T/K fleet identity audit; positions project onto the whole face span. AIS antenna positions do not establish ramp side, depth or clearance."
+    },
+    "berth_corridor_structures": [
+      {
+        "lnam": "02261D74DBD91558",
+        "object_class": "MORFAC",
+        "geometry_type": "Point",
+        "water_level_effect_code": 2,
+        "distance_from_face_m": 9.84254458987253,
+        "signed_outward_m": 9.8425456365850525,
+        "along_from_midpoint_m": 0.0073697435715462944,
+        "position_lonlat": [
+          -74.0060208,
+          40.703571600000004
+        ],
+        "note": "Charted object; role and clearance unverified. Point geometry is not runtime contact."
+      }
+    ],
     "kind": "berth-face",
     "role": "berth",
     "berth_id": "enc:0226111D16AAB198",
@@ -22998,7 +22703,7 @@
     "confidence": "low",
     "polyline_id": "berth-87-0226111D16AAB198",
     "index": 5,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported berth",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -23062,7 +22767,7 @@
     "confidence": "low",
     "polyline_id": "berth-87-0226111D16AAB198",
     "index": 6,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported berth",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -23126,7 +22831,7 @@
     "confidence": "low",
     "polyline_id": "berth-87-0226111D16AAB198",
     "index": 7,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported berth",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -23190,7 +22895,7 @@
     "confidence": "low",
     "polyline_id": "berth-87-0226111D16AAB198",
     "index": 8,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported berth",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -23254,7 +22959,7 @@
     "confidence": "low",
     "polyline_id": "berth-87-0226111D16AAB198",
     "index": 9,
-    "verification": "needs-crew-verification",
+    "verification": "crew-reported berth",
     "water_side_verified_by_pipeline": false,
     "water_side_evidence": {
       "verified": false,
@@ -23296,6 +23001,700 @@
     "end_lonlat": [
       -74.0063298,
       40.703601
+    ]
+  },
+  {
+    "id": 486966203,
+    "stop_id": "87",
+    "stop_name": "Wall St/Pier 11",
+    "start_ne_m": [
+      323.02015437670605,
+      737.60236155211226
+    ],
+    "end_ne_m": [
+      330.21685471691995,
+      745.40208112422113
+    ],
+    "water_normal_ne": [
+      0.73494623391739333,
+      -0.67812538165935077
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "polyline_id": "berth-87-0226015B0512B198",
+    "index": 0,
+    "verification": "crew-reported berth",
+    "water_side_verified_by_pipeline": false,
+    "water_side_evidence": {
+      "verified": false,
+      "method": "unverified"
+    },
+    "kind": "barge-end",
+    "role": "berth",
+    "berth_id": "enc:0226015B0512B198",
+    "berth_rank": 3,
+    "structure_id": "enc:0226015B0512B198",
+    "layer": "PONTON",
+    "lnam": "0226015B0512B198",
+    "solid_side_evidence": {
+      "verified": true,
+      "method": "enc-closed-outline",
+      "layer": "PONTON",
+      "lnam": "0226015B0512B198",
+      "winding": "clockwise: outline interior on the right, start to end",
+      "winding_check": true,
+      "probe_offset_m": 0.5,
+      "probe_ne_m": [
+        326.986,
+        741.163
+      ],
+      "probe_lonlat": [
+        -74.0062301,
+        40.7029442
+      ],
+      "probe_in_charted_water": true,
+      "probe_water_layer": "DEPARE",
+      "probe_water_lnam": "022655E80D1BCBF6",
+      "probe_in_lndare": false,
+      "probe_in_other_structure": false
+    },
+    "start_lonlat": [
+      -74.0062722,
+      40.7029085
+    ],
+    "end_lonlat": [
+      -74.0061799,
+      40.7029733
+    ]
+  },
+  {
+    "id": 470188584,
+    "stop_id": "87",
+    "stop_name": "Wall St/Pier 11",
+    "start_ne_m": [
+      330.21685471691995,
+      745.40208112422113
+    ],
+    "end_ne_m": [
+      314.81582005067742,
+      758.69735302104539
+    ],
+    "water_normal_ne": [
+      0.65346159374267787,
+      0.75695967230974692
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "polyline_id": "berth-87-0226015B0512B198",
+    "index": 1,
+    "verification": "crew-reported berth",
+    "water_side_verified_by_pipeline": false,
+    "water_side_evidence": {
+      "verified": false,
+      "method": "unverified"
+    },
+    "kind": "barge-side",
+    "role": "berth",
+    "berth_id": "enc:0226015B0512B198",
+    "berth_rank": 3,
+    "structure_id": "enc:0226015B0512B198",
+    "layer": "PONTON",
+    "lnam": "0226015B0512B198",
+    "solid_side_evidence": {
+      "verified": true,
+      "method": "enc-closed-outline",
+      "layer": "PONTON",
+      "lnam": "0226015B0512B198",
+      "winding": "clockwise: outline interior on the right, start to end",
+      "winding_check": true,
+      "probe_offset_m": 0.5,
+      "probe_ne_m": [
+        322.843,
+        752.428
+      ],
+      "probe_lonlat": [
+        -74.0060968,
+        40.7029069
+      ],
+      "probe_in_charted_water": true,
+      "probe_water_layer": "DEPARE",
+      "probe_water_lnam": "022655E80D1BCBF6",
+      "probe_in_lndare": false,
+      "probe_in_other_structure": false
+    },
+    "start_lonlat": [
+      -74.0061799,
+      40.7029733
+    ],
+    "end_lonlat": [
+      -74.0060226,
+      40.7028346
+    ]
+  },
+  {
+    "id": 520521441,
+    "stop_id": "87",
+    "stop_name": "Wall St/Pier 11",
+    "start_ne_m": [
+      314.81582005067742,
+      758.69735302104539
+    ],
+    "end_ne_m": [
+      305.47749736845878,
+      766.76075498726334
+    ],
+    "water_normal_ne": [
+      0.65354962339251033,
+      0.75688366990146383
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "polyline_id": "berth-87-0226015B0512B198",
+    "index": 2,
+    "verification": "crew-reported berth",
+    "water_side_verified_by_pipeline": false,
+    "water_side_evidence": {
+      "verified": false,
+      "method": "unverified"
+    },
+    "kind": "barge-side",
+    "role": "berth",
+    "berth_id": "enc:0226015B0512B198",
+    "berth_rank": 3,
+    "structure_id": "enc:0226015B0512B198",
+    "layer": "PONTON",
+    "lnam": "0226015B0512B198",
+    "solid_side_evidence": {
+      "verified": true,
+      "method": "enc-closed-outline",
+      "layer": "PONTON",
+      "lnam": "0226015B0512B198",
+      "winding": "clockwise: outline interior on the right, start to end",
+      "winding_check": true,
+      "probe_offset_m": 0.5,
+      "probe_ne_m": [
+        310.473,
+        763.107
+      ],
+      "probe_lonlat": [
+        -74.0059704,
+        40.7027955
+      ],
+      "probe_in_charted_water": true,
+      "probe_water_layer": "DEPARE",
+      "probe_water_lnam": "022655E80D1BCBF6",
+      "probe_in_lndare": false,
+      "probe_in_other_structure": false
+    },
+    "start_lonlat": [
+      -74.0060226,
+      40.7028346
+    ],
+    "end_lonlat": [
+      -74.0059272,
+      40.7027505
+    ]
+  },
+  {
+    "id": 503743822,
+    "stop_id": "87",
+    "stop_name": "Wall St/Pier 11",
+    "start_ne_m": [
+      305.47749736845878,
+      766.76075498726334
+    ],
+    "end_ne_m": [
+      305.42197764948219,
+      766.80301673537849
+    ],
+    "water_normal_ne": [
+      0.6056895951681408,
+      0.79570102067614168
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "polyline_id": "berth-87-0226015B0512B198",
+    "index": 3,
+    "verification": "crew-reported berth",
+    "water_side_verified_by_pipeline": false,
+    "water_side_evidence": {
+      "verified": false,
+      "method": "unverified"
+    },
+    "kind": "barge-side",
+    "role": "berth",
+    "berth_id": "enc:0226015B0512B198",
+    "berth_rank": 3,
+    "structure_id": "enc:0226015B0512B198",
+    "layer": "PONTON",
+    "lnam": "0226015B0512B198",
+    "solid_side_evidence": {
+      "verified": true,
+      "method": "enc-closed-outline",
+      "layer": "PONTON",
+      "lnam": "0226015B0512B198",
+      "winding": "clockwise: outline interior on the right, start to end",
+      "winding_check": true,
+      "probe_offset_m": 0.5,
+      "probe_ne_m": [
+        305.753,
+        767.18
+      ],
+      "probe_lonlat": [
+        -74.0059222,
+        40.702753
+      ],
+      "probe_in_charted_water": true,
+      "probe_water_layer": "DEPARE",
+      "probe_water_lnam": "022655E80D1BCBF6",
+      "probe_in_lndare": false,
+      "probe_in_other_structure": false
+    },
+    "start_lonlat": [
+      -74.0059272,
+      40.7027505
+    ],
+    "end_lonlat": [
+      -74.0059267,
+      40.70275
+    ]
+  },
+  {
+    "id": 554076679,
+    "stop_id": "87",
+    "stop_name": "Wall St/Pier 11",
+    "start_ne_m": [
+      305.42197764948219,
+      766.80301673537849
+    ],
+    "end_ne_m": [
+      305.41087457789547,
+      766.819920289015
+    ],
+    "water_normal_ne": [
+      0.83581842870653555,
+      0.54900596921576184
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "polyline_id": "berth-87-0226015B0512B198",
+    "index": 4,
+    "verification": "crew-reported berth",
+    "water_side_verified_by_pipeline": false,
+    "water_side_evidence": {
+      "verified": false,
+      "method": "unverified"
+    },
+    "kind": "barge-side",
+    "role": "berth",
+    "berth_id": "enc:0226015B0512B198",
+    "berth_rank": 3,
+    "structure_id": "enc:0226015B0512B198",
+    "layer": "PONTON",
+    "lnam": "0226015B0512B198",
+    "solid_side_evidence": {
+      "verified": true,
+      "method": "enc-closed-outline",
+      "layer": "PONTON",
+      "lnam": "0226015B0512B198",
+      "winding": "clockwise: outline interior on the right, start to end",
+      "winding_check": true,
+      "probe_offset_m": 0.5,
+      "probe_ne_m": [
+        305.834,
+        767.086
+      ],
+      "probe_lonlat": [
+        -74.0059234,
+        40.7027537
+      ],
+      "probe_in_charted_water": true,
+      "probe_water_layer": "DEPARE",
+      "probe_water_lnam": "022655E80D1BCBF6",
+      "probe_in_lndare": false,
+      "probe_in_other_structure": false
+    },
+    "start_lonlat": [
+      -74.0059267,
+      40.70275
+    ],
+    "end_lonlat": [
+      -74.0059265,
+      40.7027499
+    ]
+  },
+  {
+    "id": 537299060,
+    "stop_id": "87",
+    "stop_name": "Wall St/Pier 11",
+    "start_ne_m": [
+      305.41087457789547,
+      766.819920289015
+    ],
+    "end_ne_m": [
+      304.89999979475022,
+      766.30444961914247
+    ],
+    "water_normal_ne": [
+      -0.71026602358902224,
+      0.70393336029416775
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "polyline_id": "berth-87-0226015B0512B198",
+    "index": 5,
+    "verification": "crew-reported berth",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "kind": "barge-end",
+    "role": "berth",
+    "berth_id": "enc:0226015B0512B198",
+    "berth_rank": 3,
+    "structure_id": "enc:0226015B0512B198",
+    "layer": "PONTON",
+    "lnam": "0226015B0512B198",
+    "solid_side_evidence": {
+      "verified": true,
+      "method": "enc-closed-outline",
+      "layer": "PONTON",
+      "lnam": "0226015B0512B198",
+      "winding": "clockwise: outline interior on the right, start to end",
+      "winding_check": true,
+      "probe_offset_m": 0.5,
+      "probe_ne_m": [
+        304.8,
+        766.914
+      ],
+      "probe_lonlat": [
+        -74.0059254,
+        40.7027444
+      ],
+      "probe_in_charted_water": true,
+      "probe_water_layer": "DEPARE",
+      "probe_water_lnam": "022655E80D1BCBF6",
+      "probe_in_lndare": false,
+      "probe_in_other_structure": false
+    },
+    "start_lonlat": [
+      -74.0059265,
+      40.7027499
+    ],
+    "end_lonlat": [
+      -74.0059326,
+      40.7027453
+    ]
+  },
+  {
+    "id": 587631917,
+    "stop_id": "87",
+    "stop_name": "Wall St/Pier 11",
+    "start_ne_m": [
+      304.89999979475022,
+      766.30444961914247
+    ],
+    "end_ne_m": [
+      297.94770296935815,
+      759.67096594827228
+    ],
+    "water_normal_ne": [
+      -0.6903232838999418,
+      0.72350104609848365
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "polyline_id": "berth-87-0226015B0512B198",
+    "index": 6,
+    "verification": "crew-reported berth",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "kind": "barge-end",
+    "role": "berth",
+    "berth_id": "enc:0226015B0512B198",
+    "berth_rank": 3,
+    "structure_id": "enc:0226015B0512B198",
+    "layer": "PONTON",
+    "lnam": "0226015B0512B198",
+    "solid_side_evidence": {
+      "verified": true,
+      "method": "enc-closed-outline",
+      "layer": "PONTON",
+      "lnam": "0226015B0512B198",
+      "winding": "clockwise: outline interior on the right, start to end",
+      "winding_check": true,
+      "probe_offset_m": 0.5,
+      "probe_ne_m": [
+        301.079,
+        763.349
+      ],
+      "probe_lonlat": [
+        -74.0059676,
+        40.7027109
+      ],
+      "probe_in_charted_water": true,
+      "probe_water_layer": "DEPARE",
+      "probe_water_lnam": "022655E80D1BCBF6",
+      "probe_in_lndare": false,
+      "probe_in_other_structure": false
+    },
+    "start_lonlat": [
+      -74.0059326,
+      40.7027453
+    ],
+    "end_lonlat": [
+      -74.0060111,
+      40.7026827
+    ]
+  },
+  {
+    "id": 570854298,
+    "stop_id": "87",
+    "stop_name": "Wall St/Pier 11",
+    "start_ne_m": [
+      297.94770296935815,
+      759.67096594827228
+    ],
+    "end_ne_m": [
+      298.13646842498576,
+      759.51037361672377
+    ],
+    "water_normal_ne": [
+      -0.64798027604881114,
+      -0.76165711567063188
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "polyline_id": "berth-87-0226015B0512B198",
+    "index": 7,
+    "verification": "crew-reported berth",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "kind": "barge-side",
+    "role": "berth",
+    "berth_id": "enc:0226015B0512B198",
+    "berth_rank": 3,
+    "structure_id": "enc:0226015B0512B198",
+    "layer": "PONTON",
+    "lnam": "0226015B0512B198",
+    "solid_side_evidence": {
+      "verified": true,
+      "method": "enc-closed-outline",
+      "layer": "PONTON",
+      "lnam": "0226015B0512B198",
+      "winding": "clockwise: outline interior on the right, start to end",
+      "winding_check": true,
+      "probe_offset_m": 0.5,
+      "probe_ne_m": [
+        297.718,
+        759.21
+      ],
+      "probe_lonlat": [
+        -74.0060166,
+        40.7026806
+      ],
+      "probe_in_charted_water": true,
+      "probe_water_layer": "DEPARE",
+      "probe_water_lnam": "022655E80D1BCBF6",
+      "probe_in_lndare": false,
+      "probe_in_other_structure": false
+    },
+    "start_lonlat": [
+      -74.0060111,
+      40.7026827
+    ],
+    "end_lonlat": [
+      -74.006013,
+      40.7026844
+    ]
+  },
+  {
+    "id": 352745251,
+    "stop_id": "87",
+    "stop_name": "Wall St/Pier 11",
+    "start_ne_m": [
+      298.13646842498576,
+      759.51037361672377
+    ],
+    "end_ne_m": [
+      298.18088336728982,
+      759.46811301606931
+    ],
+    "water_normal_ne": [
+      -0.689318578776538,
+      -0.72445834728678082
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "polyline_id": "berth-87-0226015B0512B198",
+    "index": 8,
+    "verification": "crew-reported berth",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "kind": "barge-side",
+    "role": "berth",
+    "berth_id": "enc:0226015B0512B198",
+    "berth_rank": 3,
+    "structure_id": "enc:0226015B0512B198",
+    "layer": "PONTON",
+    "lnam": "0226015B0512B198",
+    "solid_side_evidence": {
+      "verified": true,
+      "method": "enc-closed-outline",
+      "layer": "PONTON",
+      "lnam": "0226015B0512B198",
+      "winding": "clockwise: outline interior on the right, start to end",
+      "winding_check": true,
+      "probe_offset_m": 0.5,
+      "probe_ne_m": [
+        297.814,
+        759.127
+      ],
+      "probe_lonlat": [
+        -74.0060175,
+        40.7026815
+      ],
+      "probe_in_charted_water": true,
+      "probe_water_layer": "DEPARE",
+      "probe_water_lnam": "022655E80D1BCBF6",
+      "probe_in_lndare": false,
+      "probe_in_other_structure": false
+    },
+    "start_lonlat": [
+      -74.006013,
+      40.7026844
+    ],
+    "end_lonlat": [
+      -74.0060135,
+      40.7026848
+    ]
+  },
+  {
+    "id": 335967632,
+    "stop_id": "87",
+    "stop_name": "Wall St/Pier 11",
+    "start_ne_m": [
+      298.18088336728982,
+      759.46811301606931
+    ],
+    "end_ne_m": [
+      323.02015437670605,
+      737.60236155211226
+    ],
+    "water_normal_ne": [
+      -0.66075038440201661,
+      -0.75060570841993146
+    ],
+    "source": "enc-feature",
+    "confidence": "medium",
+    "polyline_id": "berth-87-0226015B0512B198",
+    "index": 9,
+    "verification": "crew-reported berth",
+    "water_side_verified_by_pipeline": true,
+    "water_side_evidence": {
+      "verified": true,
+      "method": "direct-12m",
+      "near_face_coverage_gap_m": 0.0
+    },
+    "berth_face": true,
+    "berth_name": "South pontoon",
+    "berth_order": 2,
+    "berth_face_segment_ids": [
+      335967632
+    ],
+    "berth_use_crew_note": "pier11-ramped-berths-2026-10-25",
+    "berth_use_evidence": {
+      "note": {
+        "stop_id": "87",
+        "id": "pier11-ramped-berths-2026-10-25",
+        "kind": "berth-use-policy",
+        "supersedes": "pier11-berth-use-policy-2026-10-24",
+        "statement": "Boats use all three ramped pontoons at Wall St/Pier 11. The outer (east) pontoon is the default berth.",
+        "date": "2026-10-25",
+        "source": "crew-reported: project crew reviewer",
+        "default_berth_id": "enc:02261FA117EFB198",
+        "berths": [
+          {
+            "id": "enc:02261FA117EFB198",
+            "name": "Outer pontoon (east)"
+          },
+          {
+            "id": "enc:0226111D16AAB198",
+            "name": "North pontoon"
+          },
+          {
+            "id": "enc:0226015B0512B198",
+            "name": "South pontoon"
+          }
+        ],
+        "not_a_ferry_berth": [
+          "enc:02260848030BB198"
+        ],
+        "water_side_crew_reported": false,
+        "limitations": "Crew establishes ramp presence and berth use only, not the side carrying the ramp, depths or clearances. Each face retains the pipeline select_face result; this note does not establish its water side."
+      },
+      "crew_notes_sha256": "1a09bc5dc9735e0af1b2e5223501b398159734886949fe7945841f339594c975"
+    },
+    "berth_side_evidence": {
+      "verified": true,
+      "method": "slow-TK-face-span",
+      "distance_m": 15.0,
+      "sog_below_kn": 0.5,
+      "outward_reports": 7,
+      "inward_reports": 0,
+      "note": "T/K fleet identity audit; positions project onto the whole face span. AIS antenna positions do not establish ramp side, depth or clearance."
+    },
+    "berth_corridor_structures": [],
+    "kind": "berth-face",
+    "role": "berth",
+    "berth_id": "enc:0226015B0512B198",
+    "berth_rank": 3,
+    "structure_id": "enc:0226015B0512B198",
+    "layer": "PONTON",
+    "lnam": "0226015B0512B198",
+    "solid_side_evidence": {
+      "verified": true,
+      "method": "enc-closed-outline",
+      "layer": "PONTON",
+      "lnam": "0226015B0512B198",
+      "winding": "clockwise: outline interior on the right, start to end",
+      "winding_check": true,
+      "probe_offset_m": 0.5,
+      "probe_ne_m": [
+        310.27,
+        748.16
+      ],
+      "probe_lonlat": [
+        -74.0061473,
+        40.7027937
+      ],
+      "probe_in_charted_water": true,
+      "probe_water_layer": "DEPARE",
+      "probe_water_lnam": "022655E80D1BCBF6",
+      "probe_in_lndare": false,
+      "probe_in_other_structure": false
+    },
+    "start_lonlat": [
+      -74.0060135,
+      40.7026848
+    ],
+    "end_lonlat": [
+      -74.0062722,
+      40.7029085
     ]
   },
   {

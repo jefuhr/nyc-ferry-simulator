@@ -425,6 +425,16 @@ def segment_verification(record, note):
 	return 'needs-crew-verification'
 
 
+def structure_verification(note, berth_id, primary_outline_id):
+	"""Name only the crew evidence applying to this structure, never verification of its outline or depth."""
+	if note and berth_id:
+		if note.get('kind') == 'face-orientation' and note.get('water_side_crew_reported') and berth_id == primary_outline_id:
+			return 'crew-reported landing side'
+		if note.get('kind') == 'berth-use-policy' and any(b.get('id') == berth_id for b in note.get('berths', [])):
+			return 'crew-reported berth'
+	return 'needs-crew-verification'
+
+
 def structure_kind(props):
 	"""pier, bulkhead or shoreline from a charted construction's category; uncategorised is shoreline."""
 	if props is None or props.get('feature_class') != 'SLCONS':
@@ -505,11 +515,17 @@ class ChartedWater:
 		return (hits[0][2], hits[0][1] or None) if hits else (None, None)
 
 
+def start_face_eligible(segment):
+	"""A start needs a basis on every subdivision; solid-side collision retention alone is insufficient."""
+	return bool(segment.get('water_side_verified_by_pipeline') or segment.get('water_side_crew_reported')
+		or berth_solid_contact(segment))
+
+
 def runtime_contact(segment):
 	"""The Slice loader's gate: a primary face on the chart test or crew report; any other segment also on its solid side."""
 	if segment['water_side_verified_by_pipeline'] or segment.get('water_side_crew_reported'):
 		return True
-	return not segment.get('primary_face') and bool(segment['solid_side_evidence']['verified'])
+	return berth_solid_contact(segment) or (not segment.get('primary_face') and bool(segment['solid_side_evidence']['verified']))
 
 
 def solid_side_evidence(a, b, interior, layer, lnam, water, land, others, method='enc-closed-outline'):
@@ -913,7 +929,10 @@ def build(slice_, log=print, reference_stops=None):
 			berth_faces[cp['id']] = {'polygon': g, 'props': cp, 'face': cf, 'normal': normal, 'proof': proof, 'anchor': ca, 'obstacles': obstacles}
 		if candidate_records:
 			chosen = choose_candidate_for_stop(p['stop_id'], candidate_records, match['id'])
-			if notes.get(p['stop_id'], {}).get('modelled_enc_id'):
+			default_berth = notes.get(p['stop_id'], {}).get('default_berth_id')
+			if default_berth:
+				chosen = next(r for r in candidate_records if f"enc:{r['enc_id']}" == default_berth)
+			elif notes.get(p['stop_id'], {}).get('modelled_enc_id'):
 				chosen = next(r for r in candidate_records if r['enc_id'] == notes[p['stop_id']]['modelled_enc_id'])
 			barge, match, anchor, tangent, bulk = contexts[chosen['enc_id']]
 		def is_water(n, e):
@@ -978,7 +997,7 @@ def build(slice_, log=print, reference_stops=None):
 			'stop_id': p['stop_id'], 'stop_name': p['stop_name'], 'route_ids': p.get('route_ids', []),
 			'source': 'derived-from-gtfs' if derived else 'enc-feature',
 			'confidence': face_confidence(derived, ambiguous, proof, note),
-			'verification': 'needs-crew-verification',
+			'verification': structure_verification(note, f"derived-barge:{p['stop_id']}:{bulk['id']}" if derived else f"enc:{match['id']}", f"derived-barge:{p['stop_id']}:{bulk['id']}" if derived else f"enc:{match['id']}"),
 			'outline_source': ASCE_URL if derived else 'NOAA ENC',
 			'outline_id': f"derived-barge:{p['stop_id']}:{bulk['id']}" if derived else f"enc:{match['id']}",
 			'enc_id': match['id'] if match else None, 'enc_cell': match.get('cell') if match else None,
@@ -1005,6 +1024,28 @@ def build(slice_, log=print, reference_stops=None):
 			'derivation': {'length_m': BARGE_LENGTH_M, 'width_m': BARGE_WIDTH_M, 'nominal_gangway_m': GANGWAY_M,
 				'note': 'Estimated horizontal 85 ft gangway (published range 70–100 ft), barge parallel to nearest ENC LNDARE shoreline boundary. GTFS offshore offset retained if larger; not a survey.'} if derived else None,
 		}
+		choices = note.get('berths') if note else None
+		if choices:
+			default_id = note['default_berth_id']
+			choices = sorted(enumerate(choices), key=lambda item: (item[1]['id'] != default_id, item[0]))
+		else:
+			choices = [(0, {'id': props['outline_id'], 'name': 'Main berth'})]
+		selectable = []
+		for order, (_, choice) in enumerate(choices):
+			if choice['id'] == props['outline_id']:
+				selected_face, selected_normal = face, normal
+			else:
+				selected = berth_faces[choice['id'].removeprefix('enc:')]
+				selected_face, selected_normal = selected['face'], selected['normal']
+			selectable.append({**choice, 'order': order,
+				'face_geometry': geojsonio.make_feature(to_wgs84(selected_face), {})['geometry'],
+				'outward_normal_ne': list(selected_normal),
+				'crew_note': note['id'] if note and note.get('berths') else None})
+			if note and note.get('berths'):
+				selectable[-1]['use_evidence'] = {'note': note, 'crew_notes_sha256': notes_sha256}
+				selectable[-1]['side_evidence'] = berth_side_support(selected_face, selected_normal, near)
+				selectable[-1]['corridor_structures'] = berth_corridor_structures(selected_face, selected_normal, shore, choice['id'].removeprefix('enc:'))
+		props['berths'] = selectable
 		features.append(geojsonio.make_feature(to_wgs84(barge), props))
 		# Every other candidate is its own berth, ranked by the same historical AIS usage.
 		ring_lonlat = features[-1]['geometry']['coordinates'][0]
@@ -1022,7 +1063,7 @@ def build(slice_, log=print, reference_stops=None):
 			'outline_id': props['outline_id'], 'match': match, 'face': face, 'contact': contact, 'records': records, 'note': note,
 			'ring_lonlat': ring_lonlat, 'contact_lonlat': contact_geo['geometry']['coordinates'],
 			'source': props['source'], 'confidence': props['confidence'], 'contact_confidence': props['contact_confidence'],
-			'anchor': anchor, 'structures': structures, 'berths': berths, 'rank': own_rank})
+			'anchor': anchor, 'structures': structures, 'berths': berths, 'selectable_berths': selectable, 'rank': own_rank})
 	geojsonio.write_collection(out / 'landing_faces.geojson', features, 'landing_faces', {
 		'note': 'Geometry is barge outline; properties.face_geometry is the berthing line in WGS84, face_local_coordinates is [north,east]. Outward normal heading is clockwise from true north. All assigned faces require crew verification; ENC outlines do not identify the operational berth.',
 		'derived_size_source': ASCE_URL})
@@ -1038,25 +1079,34 @@ def write_structures(out, contexts, shore, lands, bulkheads, water, land, clip, 
 	for context in contexts:
 		stop_polylines, stop_left_out = stop_structures(context, shore, lands, bulkheads, water, land, clip, charted=charted)
 		for polyline in stop_polylines:
+			polyline['verification'] = structure_verification(context['note'], polyline['berth_id'], context['outline_id'])
+			for segment in polyline['segments']:
+				segment['verification'] = polyline['verification']
 			polyline['berth_rank'] = (context['rank'] if polyline['polyline_id'].startswith('landing-') else
 				next((b['rank'] for b in context['berths'] if f"enc:{b['props']['id']}" == polyline['berth_id']), None))
+		mark_berth_faces(stop_polylines, context.get('selectable_berths', []))
 		polylines += stop_polylines
 		left_out += stop_left_out
 	keys = [segment['id_key'] for polyline in polylines for segment in polyline['segments']]
 	if len(keys) != len(set(keys)):
 		raise ValueError('a physical structure edge is within the radius of two stops; landing structures need an ownership rule')
 	assign_contact_ids(polylines)
+	# IDs are assigned after every structure is known. Repeat the ordered face IDs on each face segment.
+	for polyline in polylines:
+		for segment in polyline['segments']:
+			if segment.get('berth_face'):
+				segment['berth_face_segment_ids'] = [s['id'] for s in ordered_berth_segments(polylines, polyline['stop_id'], segment['berth_id'])]
 	features = []
 	for polyline in polylines:
-		props = {key: polyline[key] for key in ('stop_id', 'stop_name', 'polyline_id', 'role', 'structure_id', 'berth_id', 'berth_rank', 'source', 'closed')}
-		props['segments'] = [{'index': s['index'], 'id': s['id'], **{k: v for k, v in s.items() if k not in ('index', 'id')}} for s in polyline['segments']]
+		props = {key: polyline[key] for key in ('stop_id', 'stop_name', 'polyline_id', 'role', 'structure_id', 'berth_id', 'berth_rank', 'source', 'closed', 'verification')}
+		props['segments'] = [{'index': s['index'], 'id': s['id'], **{k: v for k, v in s.items() if k not in ('index', 'id') and not k.startswith('_')}} for s in polyline['segments']]
 		features.append(geojsonio.make_feature(LineString(polyline['lonlat']), props))
 	kinds = sorted({s['kind'] for polyline in polylines for s in polyline['segments']})
 	geojsonio.write_collection(out / 'landing_structures.geojson', features, 'landing_structures', {
 		'radius_m': STRUCTURE_RADIUS_M, 'reference': 'GTFS stop point; an edge is included when any part of it lies within the radius',
 		'kinds': kinds, 'left_out': left_out,
-		'eligibility': 'Runtime contact: a primary-face segment when water_side_verified_by_pipeline or water_side_crew_reported (unchanged); any other segment also when solid_side_evidence.verified (closed charted outline solid on the right by winding; 0.5 m out on the left charted water, a depth area or ENC UNSARE, with no land or other structure). UNSARE proves the water side only, never depth. Open lines in water, points and always-submerged structures are never contact geometry; they are listed in left_out.',
-		'note': 'One feature per contact polyline, solid on the right and water on the left. landing-<stop> is the existing exposed run with unchanged ids; landing-<stop>-back closes the barge. Confidence is ordinal geometry confidence; every segment except crew-reported primary faces still needs crew verification.'})
+		'eligibility': 'Runtime contact: water_side_verified_by_pipeline or water_side_crew_reported; a selectable crew-use berth also on verified solid-side geometry with a clear 0.5 m UNSARE probe and outward slow T/K reports at least as numerous as inward (and nonzero); any non-primary segment also when solid_side_evidence.verified (closed charted outline solid on the right by winding; 0.5 m out on the left charted water, a depth area or ENC UNSARE, with no land or other structure). UNSARE proves the water side only, never depth. Open lines in water, points and always-submerged structures are never contact geometry; they are listed in left_out.',
+		'note': 'One feature per contact polyline, solid on the right and water on the left. landing-<stop> is the existing exposed run with unchanged ids; landing-<stop>-back closes the barge. Confidence is ordinal geometry confidence. Verification labels name only the applicable crew evidence (landing side or berth use); neither verifies the outline, depth or clearance.'})
 	log(f'  landing_structures.geojson: {len(features)} polylines, {sum(len(f["properties"]["segments"]) for f in features)} segments, {len(left_out)} charted objects left out of contact')
 
 
@@ -1065,3 +1115,106 @@ def build_tile(tile, log=print):
 	from ferrydata import tiles
 	stops, _ = tiles._stop_inventory(tiles._feed())
 	build(tile, log, reference_stops={s['stop_id']: s for s in stops})
+
+
+def ordered_berth_segments(polylines, stop_id, berth_id):
+	"""Face subdivisions in start-to-end order, including a face crossing a closed ring's first vertex."""
+	segments = [s for p in polylines if p['stop_id'] == stop_id for s in p['segments']
+		if s.get('berth_face') and s.get('berth_id') == berth_id]
+	by_start = {tuple(s['_berth_start']): s for s in segments}
+	ends = {tuple(s['_berth_end']) for s in segments}
+	first = [s for s in segments if tuple(s['_berth_start']) not in ends]
+	if len(first) != 1:
+		raise ValueError(f'stop {stop_id} berth {berth_id}: face must be one open joined line')
+	ordered = [first[0]]
+	while tuple(ordered[-1]['_berth_end']) in by_start:
+		following = by_start[tuple(ordered[-1]['_berth_end'])]
+		if following in ordered:
+			raise ValueError(f'stop {stop_id} berth {berth_id}: cyclic face')
+		ordered.append(following)
+	if len(ordered) != len(segments):
+		raise ValueError(f'stop {stop_id} berth {berth_id}: disconnected face')
+	return ordered
+
+
+def mark_berth_faces(polylines, berths):
+	for berth in berths:
+		found = []
+		for polyline in polylines:
+			if polyline.get('berth_id') != berth['id']:
+				continue
+			for segment in polyline['segments']:
+				if segment['kind'] != 'berth-face':
+					continue
+				i = segment['index']
+				segment.update(berth_face=True, berth_name=berth['name'], berth_order=berth['order'],
+					_berth_start=polyline['lonlat'][i], _berth_end=polyline['lonlat'][i + 1])
+				if berth.get('crew_note'):
+					segment['berth_use_crew_note'] = berth['crew_note']
+					for source, target in (('use_evidence', 'berth_use_evidence'), ('side_evidence', 'berth_side_evidence'), ('corridor_structures', 'berth_corridor_structures')):
+						if source in berth: segment[target] = berth[source]
+				found.append(segment)
+		if not found:
+			raise ValueError(f"berth {berth['id']}: no selected face segments")
+
+
+def berth_side_support(face, outward_ne, reports, classes=None):
+	"""Slow T/K reports within the face span and 15 m either side; evidence, not a ramp-side survey."""
+	if classes is None:
+		from ferrydata.operational_depth import identity_classes
+		classes = identity_classes()
+	outward = inward = 0
+	if reports is not None and len(reports):
+		fleet = reports[reports.mmsi.isin(classes) & (reports.sog_kn < .5)]
+		a = np.array(face.coords[0]); b = np.array(face.coords[-1])
+		length = np.linalg.norm(b - a); tangent = (b - a) / length
+		delta = np.stack([fleet.east_m - a[0], fleet.north_m - a[1]], axis=1)
+		along = delta @ tangent; side = delta @ np.array(outward_ne[::-1])
+		span = (along >= 0) & (along <= length)
+		outward = int(np.sum(span & (side > 0) & (side <= 15)))
+		inward = int(np.sum(span & (side < 0) & (side >= -15)))
+	return {'verified': outward > 0 and outward >= inward, 'method': 'slow-TK-face-span', 'distance_m': 15.,
+		'sog_below_kn': .5, 'outward_reports': outward, 'inward_reports': inward,
+		'note': 'T/K fleet identity audit; positions project onto the whole face span. AIS antenna positions do not establish ramp side, depth or clearance.'}
+
+
+BERTH_SOLID_BASIS = 'solid-side + crew berth use (water side unsurveyed: UNSARE)'
+
+
+def berth_solid_contact(segment, current_note=None, notes_sha256=None):
+	"""The crew-use exception, separate from water-side proof. Validation supplies the live note and digest."""
+	use = segment.get('berth_use_evidence') or {}
+	note = use.get('note') or {}
+	solid = segment.get('solid_side_evidence') or {}
+	side = segment.get('berth_side_evidence') or {}
+	if current_note is not None and (note != current_note or use.get('crew_notes_sha256') != notes_sha256):
+		return False
+	outward, inward = side.get('outward_reports', 0), side.get('inward_reports', 0)
+	return bool(segment.get('berth_face') is True and note.get('kind') == 'berth-use-policy'
+		and segment.get('berth_use_crew_note') == note.get('id') and note.get('id')
+		and any(b.get('id') == segment.get('berth_id') for b in note.get('berths', []))
+		and isinstance(use.get('crew_notes_sha256'), str) and len(use['crew_notes_sha256']) == 64
+		and solid.get('verified') is True and solid.get('winding_check') is True
+		and solid.get('probe_offset_m') == .5 and solid.get('probe_in_charted_water') is True
+		and solid.get('probe_water_layer') == 'UNSARE' and solid.get('probe_in_lndare') is False
+		and solid.get('probe_in_other_structure') is False and side.get('verified') is True
+		and type(outward) is int and type(inward) is int and outward > 0 and 0 <= inward <= outward)
+
+
+def berth_corridor_structures(face, normal, shore, own_id):
+	"""Disclose every unchanged 8 x 30 m corridor blocker; points keep unknown role and clearance."""
+	mid = face.interpolate(.5, normalized=True); n, e = normal
+	corridor = Polygon([(mid.x + e*d + n*w, mid.y + n*d - e*w) for d,w in ((0,-4),(0,4),(30,4),(30,-4))])
+	blockers = surface_structures(shore, own_id)
+	along = np.array(face.coords[-1]) - np.array(face.coords[0]); along /= np.linalg.norm(along)
+	rows = []
+	for geometry, props in shore:
+		if not geometry.intersects(corridor) or not any(geometry.equals(g) for g in blockers): continue
+		point = geometry if geometry.geom_type == 'Point' else nearest_points(face, geometry)[1]
+		delta = np.array([point.x - mid.x, point.y - mid.y])
+		rows.append({'lnam': props['id'], 'object_class': props['feature_class'], 'geometry_type': geometry.geom_type,
+			'water_level_effect_code': props.get('water_level_effect_code'), 'distance_from_face_m': float(face.distance(geometry)),
+			'signed_outward_m': float(delta @ np.array([e,n])), 'along_from_midpoint_m': float(delta @ along),
+			'position_lonlat': list(to_wgs84(point).coords[0]),
+			'note': 'Charted object; role and clearance unverified. Point geometry is not runtime contact.'})
+	return sorted(rows, key=lambda r: (r['lnam'], r['object_class']))

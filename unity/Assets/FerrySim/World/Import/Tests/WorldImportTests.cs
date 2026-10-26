@@ -400,9 +400,9 @@ namespace FerrySim.World.Import.Tests
 				Assert.That((string)contact["crew_evidence"]["note_id"], Is.EqualTo("south-williamsburg-face-orientation-2026-10-24"));
 				Assert.That((string)contact["crew_evidence"]["kind"], Is.EqualTo("face-orientation"));
 				Assert.That((string)contact["confidence"], Is.EqualTo("medium"));
-				Assert.That((string)contact["verification"], Is.EqualTo("crew-reported"), "the crew-reported NW face is no longer labelled as needing crew verification");
+				Assert.That((string)contact["verification"], Is.EqualTo("crew-reported landing side"), "the crew-reported NW face is no longer labelled as needing crew verification");
 			}
-			Assert.That((string)south[0]["verification"], Is.EqualTo("needs-crew-verification"));
+			Assert.That((string)south[0]["verification"], Is.EqualTo("crew-reported landing side"));
 			Assert.That(south[0]["primary_face"], Is.Null);
 			Assert.That(south[0]["water_side_crew_reported"], Is.Null);
 			Assert.That(south[0]["crew_evidence"], Is.Null);

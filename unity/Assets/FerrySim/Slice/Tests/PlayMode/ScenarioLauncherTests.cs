@@ -42,7 +42,7 @@ namespace FerrySim.Slice.PlayModeTests
 
 		private ScenarioSettings Create(string stop, string date, int minutes, string vessel = "t-class")
 		{
-			Assert.That(_scene.Bootstrap.ScenarioCatalog.TryCreate(new ScenarioChoice(stop, date, minutes, vessel), out var settings, out var problem), Is.True, problem);
+			Assert.That(_scene.Bootstrap.ScenarioCatalog.TryCreate(new ScenarioChoice(stop, date, minutes, vessel, berthId: stop == "87" ? "enc:0226015B0512B198" : null), out var settings, out var problem), Is.True, problem);
 			return settings;
 		}
 

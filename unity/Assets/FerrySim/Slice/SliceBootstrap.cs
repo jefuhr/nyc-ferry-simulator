@@ -35,7 +35,7 @@ namespace FerrySim.Slice
 	/// </summary>
 	[DefaultExecutionOrder(-500)]
 	[DisallowMultipleComponent]
-	public sealed class SliceBootstrap : MonoBehaviour, IScenarioCatalog, IScenarioLauncher
+	public sealed class SliceBootstrap : MonoBehaviour, IScenarioCatalog, IScenarioLauncher, IScenarioStartDepthSource
 	{
 		[SerializeField]
 		private VesselSimulationRunner runner;
@@ -176,6 +176,8 @@ namespace FerrySim.Slice
 
 		IReadOnlyList<ScenarioVessel> IScenarioCatalog.Vessels => Scenarios.Vessels;
 
+		bool IScenarioStartDepthSource.TryGetStartDepth(ScenarioChoice choice, out ScenarioStartDepth depth) => Scenarios.TryGetStartDepth(choice, out depth);
+
 		bool IScenarioCatalog.TryCreate(ScenarioChoice choice, out ScenarioSettings settings, out string problem) => Scenarios.TryCreate(choice, out settings, out problem);
 
 		bool IScenarioLauncher.TryStart(ScenarioSettings settings, out string problem) => Scenarios.TryStart(settings, out problem);
@@ -235,7 +237,7 @@ namespace FerrySim.Slice
 			}
 
 			TrafficView = traffic;
-			traffic.Connect(runner, worldFrame != null ? worldFrame.transform : null, water, cameraRig != null ? cameraRig.GetComponent<Camera>() : null);
+			traffic.Connect(runner, worldFrame != null ? worldFrame.transform : null, water, cameraRig != null ? cameraRig.GetComponent<Camera>() : null, sun);
 
 			// The panel and the HUD read the run's water and air, and the picker chooses from this catalog and starts runs
 			// through this launcher, never a scene search's guess.

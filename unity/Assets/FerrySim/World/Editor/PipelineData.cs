@@ -19,6 +19,35 @@ namespace FerrySim.World.EditorTools
 	{
 		public const string DefaultSlice = "lower-east-river";
 
+		// Same narrow version-2 gate as export_unity. The pipeline validates the embedded note against
+		// the current manifest and independently recomputes probes/counts; players carry that export.
+		private static bool BerthSolidContact(JObject segment)
+		{
+			bool Yes(JToken token) => token?.Type == JTokenType.Boolean && (bool)token;
+			bool No(JToken token) => token?.Type == JTokenType.Boolean && !(bool)token;
+			string Text(JToken token) => token?.Type == JTokenType.String ? (string)token : null;
+			var use = segment["berth_use_evidence"] as JObject;
+			var note = use?["note"] as JObject;
+			var solid = segment["solid_side_evidence"] as JObject;
+			var side = segment["berth_side_evidence"] as JObject;
+			if (!Yes(segment["berth_face"]) || note == null || solid == null || side == null) return false;
+			var noteId = note["id"]?.Type == JTokenType.String ? (string)note["id"] : null;
+			if (string.IsNullOrWhiteSpace(noteId) || Text(segment["berth_use_crew_note"]) != noteId || Text(note["kind"]) != "berth-use-policy"
+				|| use["crew_notes_sha256"]?.Type != JTokenType.String || ((string)use["crew_notes_sha256"]).Length != 64) return false;
+			var listed = false;
+			if (note["berths"] is JArray berths)
+				foreach (var berth in berths.OfType<JObject>()) if (Text(berth["id"]) != null && Text(berth["id"]) == Text(segment["berth_id"])) listed = true;
+			var outward = side["outward_reports"]; var inward = side["inward_reports"];
+			var offset = solid["probe_offset_m"];
+			if (offset?.Type != JTokenType.Float && offset?.Type != JTokenType.Integer) return false;
+			if (!long.TryParse(outward?.ToString(), out var outCount) || !long.TryParse(inward?.ToString(), out var inCount)) return false;
+			return listed && Yes(solid["verified"]) && Yes(solid["winding_check"]) && (double)offset == 0.5
+				&& Yes(solid["probe_in_charted_water"]) && Text(solid["probe_water_layer"]) == "UNSARE"
+				&& No(solid["probe_in_lndare"]) && No(solid["probe_in_other_structure"]) && Yes(side["verified"])
+				&& outward?.Type == JTokenType.Integer && inward?.Type == JTokenType.Integer
+				&& outCount > 0 && inCount >= 0 && inCount <= outCount;
+		}
+
 		private PipelineData()
 		{
 		}
@@ -141,6 +170,8 @@ namespace FerrySim.World.EditorTools
 					Confidence = (string)properties["confidence"],
 					Verification = (string)properties["verification"],
 					EncId = (string)properties["enc_id"] ?? "",
+					BerthName = (string)properties["berths"]?[0]?["name"],
+					BerthUseCrewNote = (string)properties["berths"]?[0]?["crew_note"],
 					OutlineLonLat = LonLatRing((JArray)geometry["coordinates"][0]),
 					OutlineNorthEast = PairRing((JArray)feature["local_coordinates"][0]),
 					FaceLonLat = LonLatRing((JArray)properties["face_geometry"]["coordinates"]),
@@ -177,6 +208,12 @@ namespace FerrySim.World.EditorTools
 				};
 				foreach (JObject segment in (JArray)properties["segments"])
 				{
+					if ((bool?)segment["berth_face"] == true)
+					{
+						polyline.BerthName = (string)segment["berth_name"];
+						polyline.BerthOrder = (int?)segment["berth_order"] ?? 0;
+						polyline.BerthUseCrewNote = (string)segment["berth_use_crew_note"];
+					}
 					var primary = (bool?)segment["primary_face"] == true;
 					var chart = (bool)segment["water_side_verified_by_pipeline"];
 					var crew = (bool?)segment["water_side_crew_reported"] == true;
@@ -188,7 +225,7 @@ namespace FerrySim.World.EditorTools
 						Kind = (string)segment["kind"],
 						Confidence = (string)segment["confidence"],
 						Primary = primary,
-						Contact = chart || crew || (!primary && solid),
+						Contact = chart || crew || BerthSolidContact(segment) || (!primary && solid),
 					});
 				}
 
@@ -275,6 +312,8 @@ namespace FerrySim.World.EditorTools
 		public string Confidence;
 		public string Verification;
 		public string EncId;
+		public string BerthName;
+		public string BerthUseCrewNote;
 		public List<double[]> OutlineLonLat;
 		public List<double[]> OutlineNorthEast;
 		public List<double[]> FaceLonLat;
@@ -295,6 +334,9 @@ namespace FerrySim.World.EditorTools
 		public string Role;
 		public string StructureId;
 		public string BerthId;
+		public string BerthName;
+		public int BerthOrder;
+		public string BerthUseCrewNote;
 		public bool Closed;
 		public List<double[]> LonLat;
 		public List<double[]> NorthEast;

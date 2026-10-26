@@ -42,18 +42,18 @@
   },
   "source_sha256": {
     "depth_merged_navd88.tif": "b1ac8f0190eab1ffd3dbcbc1ee3f1857e6f565c14b2fde9e7f75a4802800d832",
-    "depth_merged_navd88.json": "b599e6b5d83846a72cfa56460cbe6a5d60bdf70acd1457e9194c1f8beada09ad",
+    "depth_merged_navd88.json": "4e6c9e3ccc374aad7890df0615b25a6a730c41897014560fc8fe1c95ff43b0ff",
     "shoreline_constructions.geojson": "ab504c8448df677e1cea87ec65e715082c625f5193b8ad1f7926bb89ae558eff",
     "land_areas.geojson": "73ae26ef40d850cf448daca55642569df09a50c963cbd44001ae044aacb2c897",
     "depth_areas.geojson": "d63408e079de116bb0cb2bcf9a54924b69d66343277fc29aeb172d2519ee7e9a",
     "aids.geojson": "6525a10abaf5d19ce756b036426c19171a2dce44f5a0b6f551f1b3262102f850",
-    "landing_faces.geojson": "04d5983dbc9b8d5d6dc67474d88a189d71883a8cd68b67b534d357e33868f815",
-    "landing_structures.geojson": "5ccfbcfedcde0008e72830bc047a1fa4989fadfb48a24bf74d20f37b0a3c5d34",
+    "landing_faces.geojson": "88e6d72919aabdea9431ef9e1ee2cfa866f4239cc996d14b701701fb836d6b39",
+    "landing_structures.geojson": "4d8885b0bcbed9751bf955cbeca59bf0dea0d318d203e43b85fb00a818a229fb",
     "landings.geojson": "fd0c780e38d17c2ecc8bb6d69e5e5d7c9375db583a0be7917234a47982d8b862",
     "geoid_offset.json": "f2075fb1b4cc31f09356445e6b626fd82268b0c22267e71f4be34c77351cdd48",
     "unity/depth.f32": "bb35195fb685f7837eaea9727fb9a054929b87499f2fb43807c7d6163cc00dc3",
     "unity/depth.json": "f919fadc4515086f4d4c37e2ffae7784fdd01c59f190bc40713fac4742dd7e2b",
-    "unity/contacts.json": "ba94a168ce75451d13fcc0f12129f211e58504430395c39f6c2ccea5e850ab70"
+    "unity/contacts.json": "560b4fe2bf3356e8487accc192479012df3dc867dfa5cfa3955793dd3f8deea5"
   },
   "warnings": [
     "59 point-only chart structures have no extent and are omitted from colliders.",

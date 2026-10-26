@@ -14,6 +14,7 @@ data/manifests/           committed manifests; raw and processed data stay out o
 unity/                    Unity 6.3 LTS project (URP)
 scripts/check.sh          runs every automated check and writes results to artifacts/
 scripts/release.sh        builds, packages and smoke-tests the macOS and Windows players
+scripts/record-windows-smoke.sh  records a release's Windows smoke run on a PC
 ```
 
 Start with [docs/conventions.md](docs/conventions.md). It defines the units, frames and sign conventions every part of the simulator shares.

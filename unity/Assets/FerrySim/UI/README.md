@@ -172,3 +172,11 @@ Asked within the limits of `docs/reference-capture-kit.md` (permission first, no
 18. Wind: true direction it comes from, or apparent wind relative to the bow, as a wind instrument shows it? Gusts?
 19. Which date and time would you want to see for a run: local time only, or also the tide station's time?
 20. In the scenario picker: which landings, days and times would you want first, and would you pick by tide (for example "strong ebb") rather than by date?
+
+## Berths, traffic, visibility and start depth
+
+The picker shows BERTH only when the landing has multiple choices. It follows catalog order, with the default first. TRAFFIC is enabled only for a day with `HasTraffic`; otherwise it says “Traffic isn't available for this day in this build.” With traffic on, “Leave out the ferry that ran this trip” defaults on (Automatic); off selects Off. MMSI entry is not offered.
+
+VISIBILITY offers Clear (0), 2 nm (3704 m), ½ nm (926 m), ¼ nm (463 m), and 100 m. Below 1 nm is restricted visibility, using the existing fog and Rule 35 signal. A source implementing `IScenarioStartDepthSource` supplies a non-blocking warning below 0.3 m under the keel, with depth, maximum draft and under-keel clearance. An aground start remains available.
+
+All options use the existing Tab, Up/Down, Enter and Escape handling and day/night palette. Session memory is in-process only; missing options fall back to available defaults. Depth preview runs when choices change, never every frame during a run. Picker-driven integration evidence is produced by `PickerBerthTripTests` under `artifacts/pier11-and-picker/`.

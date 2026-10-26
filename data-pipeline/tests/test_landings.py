@@ -186,7 +186,7 @@ def test_crew_notes_are_loaded_from_tracked_manifest_with_provenance():
 	assert notes['19']['source'] == 'crew-reported: project crew reviewer'
 	assert notes['19']['date'] == '2026-10-24'
 	assert notes['19']['water_side_crew_reported']
-	assert notes['87']['modelled_enc_id'] == '0226015B0512B198'
+	assert notes['87']['default_berth_id'] == 'enc:02261FA117EFB198'
 	assert len(checksum) == 64
 
 
@@ -348,3 +348,20 @@ def test_morfac_conflict_discloses_raw_attributes_and_lateral_position():
 	# Outside the full face sweep, submerged, and own outline do not become conflicts.
 	assert not landing_audit.surface_conflicts(face, (1, 0), [(Point(15, 41), props)], {'MORFAC': attrs})
 	assert not landing_audit.surface_conflicts(face, (1, 0), [(Point(10, 41), {**props, 'water_level_effect_code': 3})], {'MORFAC': attrs})
+
+
+# History is retained, but a superseded modelling decision must never remain active.
+def test_crew_notes_supersedes_replaces_old_fields_and_rejects_unrelated_duplicates(tmp_path, monkeypatch):
+	import json
+	from ferrydata import crew_notes
+	monkeypatch.setattr(crew_notes.paths, 'MANIFEST_DIR', tmp_path)
+	old = dict(stop_id='87', id='old', statement='old', source='crew', date='2026-10-24', modelled_enc_id='old-pontoon')
+	new = dict(stop_id='87', id='new', statement='new', source='crew', date='2026-10-25', supersedes='old', default_berth_id='enc:new')
+	file = tmp_path / 'crew-landing-notes.json'
+	file.write_text(json.dumps({'notes':[old, new]}))
+	active, _ = crew_notes.load()
+	assert active['87'] == new and 'modelled_enc_id' not in active['87']
+	new['supersedes'] = 'someone-else'
+	file.write_text(json.dumps({'notes':[old, new]}))
+	with pytest.raises(ValueError, match='Duplicate'):
+		crew_notes.load()

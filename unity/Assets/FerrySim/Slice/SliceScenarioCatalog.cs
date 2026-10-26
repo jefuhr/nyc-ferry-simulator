@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using FerrySim.Core.Contracts;
+using FerrySim.Core.Serialization;
+using FerrySim.Core.Traffic;
 using FerrySim.Sim;
 
 namespace FerrySim.Slice
@@ -15,7 +17,7 @@ namespace FerrySim.Slice
 	/// changed. Every list is in a fixed order: landings by GTFS stop id (numeric ids by value, then any others by ordinal
 	/// text), days oldest first, vessels as configured.
 	/// </summary>
-	public sealed class SliceScenarioCatalog : IScenarioCatalog
+	public sealed partial class SliceScenarioCatalog : IScenarioCatalog, IScenarioStartDepthSource
 	{
 		/// <summary>Bow to the primary face at the start, m: the slice E2E trips' start (Tests/E2E, TripData.Start).</summary>
 		public const double StartBowClearance = 4.0;
@@ -25,6 +27,7 @@ namespace FerrySim.Slice
 
 		private readonly LandingGeometry _landings;
 		private readonly EnvironmentPacks _packs;
+		private readonly TrafficPacks _trafficPacks;
 		private readonly List<ScenarioLanding> _landingList = new List<ScenarioLanding>();
 		private readonly Dictionary<string, LandingFace> _faces = new Dictionary<string, LandingFace>(StringComparer.Ordinal);
 		private readonly List<ScenarioDay> _dayList = new List<ScenarioDay>();
@@ -39,10 +42,11 @@ namespace FerrySim.Slice
 		/// <param name="region">The region whose packs are the days, for example <c>lower-east-river</c>.</param>
 		/// <param name="landingError">Why the landings did not load, when <paramref name="landings"/> is null.</param>
 		public SliceScenarioCatalog(LandingGeometry landings, IReadOnlyList<KeyValuePair<string, VesselParameters>> vessels, EnvironmentPacks packs, string region,
-			string landingError = null)
+			string landingError = null, TrafficPacks trafficPacks = null)
 		{
 			_landings = landings;
 			_packs = packs ?? throw new ArgumentNullException(nameof(packs));
+			_trafficPacks = trafficPacks ?? ScenarioTraffic.DefaultPacks;
 			Region = region ?? throw new ArgumentNullException(nameof(region));
 			LandingError = landings == null ? landingError ?? "the slice's landing faces did not load" : null;
 			AddLandings();
@@ -88,6 +92,30 @@ namespace FerrySim.Slice
 				return false;
 			}
 
+			var berths = _landings.Berths(choice.StopId);
+			var knownBerth = string.IsNullOrEmpty(choice.BerthId);
+			foreach (var berth in berths) if (berth.Id == choice.BerthId) knownBerth = true;
+			if (!knownBerth)
+			{
+				problem = $"There is no berth '{choice.BerthId}' at {face.StopName}.";
+				return false;
+			}
+			if (!(choice.VisibilityMetres == 0 || (choice.VisibilityMetres >= ScenarioSettings.MinimumVisibilityMetres && !double.IsInfinity(choice.VisibilityMetres))))
+			{
+				problem = "Visibility must be clear (0) or at least " + ScenarioSettings.MinimumVisibilityMetres.ToString(CultureInfo.InvariantCulture) + " m.";
+				return false;
+			}
+
+			try
+			{
+				face = _landings.BerthFace(choice.StopId, choice.BerthId);
+			}
+			catch (LandingDataException error)
+			{
+				problem = error.Message;
+				return false;
+			}
+
 			if (choice.Date == null || !_days.TryGetValue(choice.Date, out var day))
 			{
 				problem = $"There is no environment pack for {choice.Date} in {Region}.";
@@ -114,8 +142,23 @@ namespace FerrySim.Slice
 				return false;
 			}
 
+			if (choice.Traffic && _trafficPacks.DayFolder(choice.Date) == null)
+			{
+				problem = "Traffic isn't available for this day in this build.";
+				return false;
+			}
+			if (choice.Traffic && !Enum.IsDefined(typeof(TrafficLeaveOut), choice.LeaveOut))
+			{
+				problem = "The traffic leave-out mode is unknown.";
+				return false;
+			}
 			var file = VesselFile(choice.VesselId);
 			var name = string.Format(CultureInfo.InvariantCulture, "{0} ({1}), {2}, from {3}, {4}", face.StopName, face.StopId, day.Name, EnvironmentPacks.Iso(start), vessel.Id);
+			if (berths.Count > 1)
+			{
+				foreach (var berth in berths)
+					if (berth.Id == choice.BerthId || (string.IsNullOrEmpty(choice.BerthId) && berth.Order == 0)) name += ", " + berth.Name;
+			}
 			ScenarioSettings candidate;
 			try
 			{
@@ -139,7 +182,10 @@ namespace FerrySim.Slice
 
 			try
 			{
-				candidate.Validate(_packs);
+				candidate.visibilityMetres = choice.VisibilityMetres;
+				candidate.traffic = choice.Traffic ? new ScenarioTraffic { day = choice.Date,
+					leaveOut = ScenarioTraffic.LeaveOutText(choice.LeaveOut), leaveOutMmsi = choice.LeaveOutMmsi } : null;
+				candidate.Validate(_packs, _trafficPacks);
 			}
 			catch (Exception error) when (error is ArgumentException || error is FormatException)
 			{
@@ -208,7 +254,8 @@ namespace FerrySim.Slice
 				LandingFace face;
 				try
 				{
-					face = _landings.PrimaryFace(stop);
+					_landings.PrimaryFace(stop);
+					face = _landings.BerthFace(stop);
 				}
 				catch (LandingDataException error)
 				{
@@ -217,7 +264,20 @@ namespace FerrySim.Slice
 				}
 
 				_faces[stop] = face;
-				_landingList.Add(new ScenarioLanding(stop, face.StopName));
+				var berths = new List<ScenarioBerth>();
+				foreach (var berth in _landings.Berths(stop))
+				{
+					try
+					{
+						_landings.BerthFace(stop, berth.Id);
+						berths.Add(new ScenarioBerth(berth.Id, berth.Name));
+					}
+					catch (LandingDataException error)
+					{
+						_excluded.Add(error.Message);
+					}
+				}
+				_landingList.Add(new ScenarioLanding(stop, face.StopName, berths));
 			}
 		}
 
@@ -227,7 +287,7 @@ namespace FerrySim.Slice
 			foreach (var day in _packs.Days(Region, problems))
 			{
 				_days[day.Date] = day;
-				_dayList.Add(new ScenarioDay(day.Date, day.Name, day.LocalUtcOffset, day.WindMissing));
+				_dayList.Add(new ScenarioDay(day.Date, day.Name, day.LocalUtcOffset, day.WindMissing, _trafficPacks.DayFolder(day.Date) != null));
 			}
 
 			foreach (var problem in problems)

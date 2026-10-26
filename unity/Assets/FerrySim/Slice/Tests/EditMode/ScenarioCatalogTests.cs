@@ -6,6 +6,7 @@ using FerrySim.Core.Contracts;
 using FerrySim.Core.Serialization;
 using FerrySim.Sim;
 using NUnit.Framework;
+using Newtonsoft.Json.Linq;
 
 namespace FerrySim.Slice.Tests
 {
@@ -44,6 +45,146 @@ namespace FerrySim.Slice.Tests
 			{
 				Assert.Ignore($"The environment packs are not built ({DaysFolder}); run PYTHONPATH=data-pipeline uv run --project data-pipeline python -m ferrydata.environment build --region lower-east-river --all.");
 			}
+		}
+
+		// Failure modes: the fourth pontoon offered, an unknown berth silently substituted,
+		// chosen face ignored, traffic unavailable but accepted, or visibility lost in settings.
+		// A retained collision face is not necessarily an eligible start; check every subdivision.
+		[TestCase("no-outward")]
+		[TestCase("unlisted")]
+		[TestCase("subdivision")]
+		public void NondefaultBerthWithoutStartBasis_IsRetainedForContactButExcludedFromStarts(string change)
+		{
+			const string northId = "enc:0226111D16AAB198";
+			var records = JArray.Parse(File.ReadAllText(SliceTestData.ContactsPath));
+			var north = records.OfType<JObject>().Where(r => (bool?)r["berth_face"] == true && (string)r["berth_id"] == northId).ToArray();
+			Assert.That(north.Length, Is.GreaterThan(1));
+			foreach (var record in north)
+			{
+				if (change == "no-outward")
+				{
+					record["berth_side_evidence"]["verified"] = false;
+					record["berth_side_evidence"]["outward_reports"] = 0;
+				}
+				if (change == "unlisted")
+				{
+					var note = record["berth_use_evidence"]["note"];
+					note["berths"] = new JArray(note["berths"].Where(b => (string)b["id"] != northId).ToArray());
+				}
+			}
+			if (change == "subdivision") north[1]["solid_side_evidence"]["probe_in_other_structure"] = true;
+			var geometry = LandingGeometry.Parse(records.ToString(), "contacts.json", SliceTestData.ShippedSurfaces());
+			Assert.That(north.All(r => geometry.Find((int)r["id"]) != null), Is.True, "solid-side collision fallback remains");
+			var catalog = new SliceScenarioCatalog(geometry, Array.Empty<KeyValuePair<string, VesselParameters>>(), RepositoryPacks, Region);
+			var offered = catalog.Landings.Single(l => l.StopId == "87").Berths.Select(b => b.Id).ToArray();
+			Assert.That(offered, Is.EqualTo(new[] { "enc:02261FA117EFB198", "enc:0226015B0512B198" }));
+			Assert.That(catalog.Excluded.Any(reason => reason.Contains("stop 87 berth " + northId) && reason.Contains("start-face basis")), Is.True);
+			Assert.That(() => geometry.BerthFace("87", northId), Throws.TypeOf<LandingDataException>().With.Message.Contains("stop 87 berth " + northId).And.Message.Contains("start-face basis"));
+		}
+
+		[Test]
+		public void IneligibleDefault_ExcludesTheLandingEvenWhenOtherBerthsAreEligible()
+		{
+			var records = JArray.Parse(File.ReadAllText(SliceTestData.ContactsPath));
+			foreach (var record in records.Where(r => (bool?)r["primary_face"] == true && (string)r["stop_id"] == "87"))
+				record["berth_side_evidence"]["outward_reports"] = 0;
+			var geometry = LandingGeometry.Parse(records.ToString(), "contacts.json", SliceTestData.ShippedSurfaces());
+			var catalog = new SliceScenarioCatalog(geometry, Array.Empty<KeyValuePair<string, VesselParameters>>(), RepositoryPacks, Region);
+			Assert.That(catalog.Landings.Any(l => l.StopId == "87"), Is.False);
+			Assert.That(catalog.Excluded.Any(reason => reason.Contains("landing 87")), Is.True);
+		}
+
+		[TestCase("enc:0226111D16AAB198")]
+		[TestCase("enc:0226015B0512B198")]
+		public void ShippedNondefaultBerth_HasAStartBasisOnEverySubdivision_AndIsOffered(string berthId)
+		{
+			var geometry = LandingGeometry.Load(SliceTestData.ContactsPath, SliceTestData.SurfacesPath);
+			Assert.That(geometry.BerthFace("87", berthId).Segments.All(s => s.WaterSideVerifiedByPipeline || s.WaterSideCrewReported || s.CrewBerthSolidSide), Is.True);
+			Assert.That(Catalog().Landings.Single(l => l.StopId == "87").Berths.Any(b => b.Id == berthId), Is.True);
+		}
+
+		[Test]
+		public void Pier11_StartDepthMatrix_CoversEveryBerthDayHourAndVessel()
+		{
+			RequirePacks();
+			var catalog = Catalog();
+			var landing = catalog.Landings.Single(l => l.StopId == "87");
+			var folder = Path.Combine(SliceTestData.RepoRoot, "artifacts/pier11-and-picker");
+			Directory.CreateDirectory(folder);
+			var times = new List<double>();
+			var aground = 0;
+			var rows = 0;
+			using (var writer = new StreamWriter(Path.Combine(folder, "start-depth-matrix.csv")))
+			{
+				writer.WriteLine("berth_id,berth_name,day,local_hour,vessel,minimum_depth_m,maximum_draft_m,under_keel_m,aground");
+				foreach (var day in catalog.Days)
+				foreach (var berth in landing.Berths)
+				for (var hour = 0; hour < 24; hour++)
+				foreach (var vessel in catalog.Vessels)
+				{
+					var watch = System.Diagnostics.Stopwatch.StartNew();
+					Assert.That(catalog.TryGetStartDepth(new ScenarioChoice("87", day.Date, hour * 60, vessel.Id, berth.Id), out var depth), Is.True);
+					watch.Stop();
+					if (hour > 0) times.Add(watch.Elapsed.TotalMilliseconds);
+					Assert.That(double.IsNaN(depth.MinimumDepth) || double.IsInfinity(depth.MinimumDepth), Is.False);
+					Assert.That(depth.MaximumDraft, Is.EqualTo(catalog.Vessel(vessel.Id).Particulars.MaxDraft.Value));
+					writer.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0},{1},{2},{3:00},{4},{5:F6},{6:F6},{7:F6},{8}",
+						berth.Id, berth.Name, day.Date, hour, vessel.Id, depth.MinimumDepth, depth.MaximumDraft, depth.UnderKeel, depth.UnderKeel < 0));
+					if (depth.UnderKeel < 0) aground++;
+					rows++;
+				}
+			}
+			times.Sort();
+			File.WriteAllText(Path.Combine(folder, "start-depth-summary.txt"), string.Format(System.Globalization.CultureInfo.InvariantCulture,
+				"{0} starts, {1} aground. Warm depth query milliseconds: p50 {2:F3}, p95 {3:F3}, max {4:F3}.\n", rows, aground, times[times.Count / 2], times[(int)(times.Count * .95)], times.Last()));
+			Assert.That(rows, Is.EqualTo(3 * 28 * 24 * 2));
+		}
+
+		[Test]
+		public void Pier11_OffersThreeBerths_AndEveryChoiceStartsClearAtItsOwnFace()
+		{
+			RequirePacks();
+			var catalog = Catalog();
+			var landing = catalog.Landings.Single(l => l.StopId == "87");
+			Assert.That(landing.Berths.Select(b => b.Id), Is.EqualTo(new[] { "enc:02261FA117EFB198", "enc:0226111D16AAB198", "enc:0226015B0512B198" }));
+			var geometry = LandingGeometry.Load(SliceTestData.ContactsPath, SliceTestData.SurfacesPath);
+			foreach (var berth in landing.Berths)
+			foreach (var vessel in catalog.Vessels)
+			{
+				var choice = new ScenarioChoice("87", catalog.Days[0].Date, 540, vessel.Id, berth.Id, visibilityMetres: 463);
+				Assert.That(catalog.TryCreate(choice, out var settings, out var problem), Is.True, problem);
+				var expected = LandingApproach.BowOn(geometry.BerthFace("87", berth.Id), catalog.Vessel(vessel.Id), SliceScenarioCatalog.StartBowClearance, "test", vessel.VesselFile, settings.scenarioStartUtc);
+				Assert.That((settings.StartPosition - expected.StartPosition).Magnitude, Is.LessThan(1e-6));
+				Assert.That(settings.StartHeading, Is.EqualTo(expected.StartHeading));
+				Assert.That(settings.name, Does.Contain(berth.Name));
+				Assert.That(settings.visibilityMetres, Is.EqualTo(463));
+			}
+			Assert.That(catalog.TryCreate(new ScenarioChoice("87", catalog.Days[0].Date, 540, "t-class", "unknown"), out _, out var refusal), Is.False);
+			Assert.That(refusal, Is.EqualTo("There is no berth 'unknown' at Wall St/Pier 11."));
+		}
+
+		[TestCase(-1.0)]
+		[TestCase(9.9)]
+		[TestCase(double.NaN)]
+		[TestCase(double.PositiveInfinity)]
+		public void InvalidVisibility_IsRefusedWithAReadableReason(double visibility)
+		{
+			RequirePacks();
+			Assert.That(Catalog().TryCreate(new ScenarioChoice("87", "2025-07-14", 540, "t-class", visibilityMetres: visibility), out _, out var reason), Is.False);
+			Assert.That(reason, Does.StartWith("Visibility must be"));
+		}
+
+		[Test]
+		public void AnUnpackagedTrafficDay_IsNotOfferedOrAccepted()
+		{
+			RequirePacks();
+			var normal = Catalog();
+			var geometry = LandingGeometry.Load(SliceTestData.ContactsPath, SliceTestData.SurfacesPath);
+			var catalog = new SliceScenarioCatalog(geometry, normal.Vessels.Select(v => new KeyValuePair<string, VesselParameters>(v.VesselFile, normal.Vessel(v.Id))).ToArray(),
+				RepositoryPacks, Region, trafficPacks: new TrafficPacks(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))));
+			Assert.That(catalog.Days.All(d => !d.HasTraffic), Is.True);
+			Assert.That(catalog.TryCreate(new ScenarioChoice("87", "2025-07-14", 540, "t-class", traffic: true), out _, out var reason), Is.False);
+			Assert.That(reason, Is.EqualTo("Traffic isn't available for this day in this build."));
 		}
 
 		[Test]

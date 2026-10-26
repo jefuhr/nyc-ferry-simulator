@@ -8,7 +8,7 @@ import numpy as np
 import rasterio
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 
-from ferrydata import geodesy, paths
+from ferrydata import geodesy, paths, landings
 
 
 def export_grid(source, destination):
@@ -45,6 +45,7 @@ def export_grid(source, destination):
 
 CONTACTS_VERSION = 2
 # Version 1 fields first, in the order the importer has always written them; version 2 adds the rest.
+BERTH_FIELDS = ('berth_face', 'berth_name', 'berth_order', 'berth_face_segment_ids', 'berth_use_crew_note', 'berth_use_evidence', 'berth_side_evidence', 'berth_corridor_structures')
 OPTIONAL_V1 = ('primary_face', 'water_side_evidence', 'crew_evidence', 'geometry_estimated', 'water_side_crew_reported')
 V2_FIELDS = ('kind', 'role', 'berth_id', 'berth_rank', 'structure_id', 'layer', 'lnam', 'solid_side_evidence')
 
@@ -72,7 +73,7 @@ def contact_records(structures):
 				'water_normal_ne': [(end[1] - start[1]) / length, -(end[0] - start[0]) / length],
 				'source': segment['source'], 'confidence': segment['confidence'], 'polyline_id': p['polyline_id'], 'index': i,
 				'verification': segment['verification'], 'water_side_verified_by_pipeline': segment['water_side_verified_by_pipeline']}
-			record.update({key: segment[key] for key in OPTIONAL_V1 if key in segment})
+			record.update({key: segment[key] for key in OPTIONAL_V1 + BERTH_FIELDS if key in segment})
 			values = {'kind': segment['kind'], 'role': p['role'], 'berth_id': segment.get('berth_id'), 'berth_rank': p['berth_rank'] if segment.get('berth_id') else None,
 				'structure_id': p['structure_id'], 'layer': segment['layer'], 'lnam': segment['lnam'], 'solid_side_evidence': segment['solid_side_evidence']}
 			record.update({key: values[key] for key in V2_FIELDS if values[key] is not None})
@@ -201,7 +202,7 @@ def landing_gate(record):
 	length = math.hypot(n1 - n0, e1 - e0)
 	if not math.isfinite(length) or length < GATE_MINIMUM_LENGTH_M:
 		return 'malformed', 'shorter than 1 mm'
-	if not verified and not crew and (primary or not solid):
+	if not verified and not crew and not landings.berth_solid_contact(record) and (primary or not solid):
 		return 'left out', 'water side unverified' + (', and a primary face is never kept on its solid side alone' if primary and solid else '')
 	normal = record['water_normal_ne']
 	cos = ((e1 - e0) / length * normal[0] - (n1 - n0) / length * normal[1]) / math.hypot(*normal)

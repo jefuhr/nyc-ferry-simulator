@@ -398,21 +398,37 @@ namespace FerrySim.Core.Tests.Traffic
 				TrafficFixtures.Straight(200000003, 0.0, 500.0, 300.0, 3.0, 4.0, 5),
 				TrafficFixtures.Straight(200000004, 0.0, -800.0, -50.0, 6.0, 0.2, 5),
 				Barge());
-			var monitor = new TrafficMonitor(new TrafficReplay(pack), 0.0, -1, HullOutline.FromContact(ManeuverRunner.Load("t-class.json")), TrafficAlarmLimits.Default);
-			var sink = new Counting();
-			for (long step = 1; step <= 100; step++)
+			var outline = HullOutline.FromContact(ManeuverRunner.Load("t-class.json"));
+			// An allocation per step or per event shows in every run. The runtime's tiered JIT can allocate once while it
+			// recompiles hot methods early in a test run (seen as about 5 kB under load, never with tiering off), so the same
+			// run is measured up to three times, each with a fresh monitor, and one must be clean.
+			var allocated = 0L;
+			var events = 0;
+			for (var run = 0; run < 3; run++)
 			{
-				monitor.Update(step, Learner(step), sink);
+				var monitor = new TrafficMonitor(new TrafficReplay(pack), 0.0, -1, outline, TrafficAlarmLimits.Default);
+				var sink = new Counting();
+				for (long step = 1; step <= 100; step++)
+				{
+					monitor.Update(step, Learner(step), sink);
+				}
+
+				var before = GC.GetAllocatedBytesForCurrentThread();
+				for (long step = 101; step <= 20000; step++)
+				{
+					monitor.Update(step, Learner(step), sink);
+				}
+
+				allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+				events = sink.Count;
+				if (allocated == 0)
+				{
+					break;
+				}
 			}
 
-			var before = GC.GetAllocatedBytesForCurrentThread();
-			for (long step = 101; step <= 20000; step++)
-			{
-				monitor.Update(step, Learner(step), sink);
-			}
-
-			Assert.That(GC.GetAllocatedBytesForCurrentThread() - before, Is.EqualTo(0), "no garbage per step, events included");
-			Assert.That(sink.Count, Is.GreaterThan(0));
+			Assert.That(allocated, Is.EqualTo(0), "no garbage per step, events included, once the runtime has settled");
+			Assert.That(events, Is.GreaterThan(0));
 		}
 
 		private sealed class Counting : ITrafficEventSink

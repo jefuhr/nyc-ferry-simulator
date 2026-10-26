@@ -121,9 +121,10 @@ namespace FerrySim.Slice.PlayModeTests
 			var catalog = _scene.Bootstrap.ScenarioCatalog;
 			picker.Landings.SelectedIndex = catalog.Landings.ToList().FindIndex(landing => landing.StopId == "87");
 			picker.Days.SelectedIndex = catalog.Days.ToList().FindIndex(day => day.Date == "2025-07-14");
+			picker.Berths.SelectedIndex = 2; // Preserve the original southern-berth launcher evidence.
 			picker.Time.Minutes = 10 * 60;
 			picker.Vessels.SelectedIndex = catalog.Vessels.ToList().FindIndex(vessel => vessel.Id == "k-class");
-			Assert.That(picker.Choice, Is.EqualTo(new ScenarioChoice("87", "2025-07-14", 600, "k-class")));
+			Assert.That(picker.Choice, Is.EqualTo(new ScenarioChoice("87", "2025-07-14", 600, "k-class", berthId: "enc:0226015B0512B198")));
 
 			Assert.That(picker.TryStartRun(), Is.True, picker.Problem);
 

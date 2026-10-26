@@ -250,7 +250,8 @@ namespace FerrySim.World.EditorTools
 				Draft = BargeDraft,
 			});
 
-			Label(barge.transform, new Vector3(0f, BargeFreeboard + 2.5f, 0f), component.LabelText, materials.LabelColor(face.Confidence), materials.LabelBacking);
+			Label(barge.transform, new Vector3(0f, BargeFreeboard + 2.5f, 0f), BargeLabelText(component, face.BerthName, face.BerthUseCrewNote), materials.LabelColor(face.Confidence), materials.LabelBacking, materials.LabelText,
+				string.IsNullOrEmpty(face.BerthUseCrewNote) ? 0.08f : 0.05f);
 			report.Barges.Add($"{face.StopId} {face.StopName}: {face.Source}, {face.Confidence}, waterline {waterline:F3} m");
 			return (barge, centroid);
 		}
@@ -298,6 +299,9 @@ namespace FerrySim.World.EditorTools
 				written.Add(hullPath);
 				var strips = Strips(new[] { polyline }, centroid, (point, navd88) => navd88, FenderBottom, BargeFreeboard + FenderOffset, FenderOffset, 0f, report);
 				MeshChild(floating.transform, "Fenders", UpsertMesh($"{meshFolder}/Fenders_{stop}_{identity}.asset", strips), materials, written, $"{meshFolder}/Fenders_{stop}_{identity}.asset");
+				if (!string.IsNullOrEmpty(polyline.BerthUseCrewNote))
+					Label(floating.transform, new Vector3(0f, BargeFreeboard + 2.5f + 12f * polyline.BerthOrder, 0f), polyline.StopName + BerthUseLabel(polyline.BerthName, polyline.BerthUseCrewNote),
+						materials.LabelColor(polyline.Segments[0].Confidence), materials.LabelBacking, materials.LabelText, 0.05f);
 				report.Structures.Add($"{stop}: {polyline.Role} {polyline.StructureId}, {polyline.Segments.Count} segments");
 			}
 
@@ -479,7 +483,7 @@ namespace FerrySim.World.EditorTools
 			var text = string.Format(CultureInfo.InvariantCulture, "{0}\nclearance {1:F1} m above {2} (NOAA ENC)\ntowers: greybox estimate", name, clearance, span.ClearanceDatum);
 			// Above the towers, so the label never hides the deck it describes.
 			var towerTopUp = WaterSurface.SurfaceUpAt(datum, deckCentre.North, deckCentre.East, towerTopNavd88);
-			Label(bridge.transform, new Vector3(0f, (float)(towerTopUp + 6.0), 0f), text, materials.BridgeLabel, materials.LabelBacking);
+			Label(bridge.transform, new Vector3(0f, (float)(towerTopUp + 6.0), 0f), text, materials.BridgeLabel, materials.LabelBacking, materials.LabelText);
 			report.Bridges.Add(string.Format(CultureInfo.InvariantCulture, "{0}: clearance {1} m above {2}, deck underside {3:F2} m NAVD88 ({4:F2} m ellipsoidal), span {5:F0} m x {6:F0} m, deck {7:F0} m", name, clearance, span.ClearanceDatum, undersideNavd88, undersideEllipsoidal, rectangle.Length, rectangle.Width, deckLength));
 		}
 
@@ -574,7 +578,19 @@ namespace FerrySim.World.EditorTools
 			return box;
 		}
 
-		private static void Label(Transform parent, Vector3 localPosition, string text, Color color, Material backing)
+		private static string BargeLabelText(LandingBarge barge, string name, string crewNote)
+		{
+			var text = barge.LabelText;
+			// The berth-use line already supplies this verification; retain every other label verbatim.
+			if (!string.IsNullOrEmpty(crewNote) && text.EndsWith("\ncrew-reported berth", StringComparison.Ordinal))
+				text = text.Substring(0, text.LastIndexOf('\n'));
+			return text + BerthUseLabel(name, crewNote);
+		}
+
+		public static string BerthUseLabel(string name, string crewNote) => string.IsNullOrEmpty(crewNote)
+			? string.Empty : "\n" + name + " · crew-reported berth\nFace orientation, depth and clearance not crew-verified";
+
+		private static void Label(Transform parent, Vector3 localPosition, string text, Color color, Material backing, Material textMaterial, float characterSize = 0.08f)
 		{
 			var label = new GameObject("Label");
 			label.transform.SetParent(parent, false);
@@ -584,12 +600,12 @@ namespace FerrySim.World.EditorTools
 			mesh.text = text;
 			mesh.font = font;
 			mesh.fontSize = 64;
-			mesh.characterSize = 0.08f;
+			mesh.characterSize = characterSize;
 			mesh.anchor = TextAnchor.LowerCenter;
 			mesh.alignment = TextAlignment.Center;
 			mesh.color = color;
 			var renderer = label.GetComponent<MeshRenderer>();
-			renderer.sharedMaterial = font.material;
+			renderer.sharedMaterial = textMaterial;
 			renderer.shadowCastingMode = ShadowCastingMode.Off;
 			renderer.receiveShadows = false;
 
@@ -648,6 +664,7 @@ namespace FerrySim.World.EditorTools
 				Deck = Upsert("BridgeDeck", new Color(0.56f, 0.56f, 0.60f), 0f);
 				Tower = Upsert("BridgeTower", new Color(0.62f, 0.55f, 0.47f), 0f);
 				LabelBacking = UpsertLabelBacking();
+				LabelText = UpsertLabelText();
 				_strips = new Dictionary<string, Material>(StringComparer.Ordinal)
 				{
 					["berth-face"] = Face,
@@ -665,8 +682,10 @@ namespace FerrySim.World.EditorTools
 			/// <summary>The material of a <see cref="StripGroups"/> entry.</summary>
 			public Material Strip(string group) => _strips[group];
 
-			/// <summary>Translucent black plate behind label text (URP Unlit, transparent, drawn just before the text).</summary>
+			/// <summary>Translucent black plate behind label text, depth-tested and drawn just before the text.</summary>
 			public Material LabelBacking { get; }
+
+			public Material LabelText { get; }
 
 			public Material Low { get; }
 
@@ -688,22 +707,24 @@ namespace FerrySim.World.EditorTools
 			public Color LabelColor(string confidence) =>
 				confidence == "high" ? new Color(0.55f, 1f, 0.6f) : confidence == "medium" ? new Color(1f, 0.9f, 0.45f) : new Color(1f, 0.65f, 0.45f);
 
+			private Material UpsertLabelText()
+			{
+				var shader = Shader.Find("FerrySim/GreyboxLabel") ?? throw new InvalidOperationException("Greybox label shader not found.");
+				var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+				var material = new Material(shader) { name = "LabelText" };
+				material.SetOverrideTag("RenderType", "Transparent");
+				material.mainTexture = font.material.mainTexture;
+				return Store(material);
+			}
+
 			private Material UpsertLabelBacking()
 			{
-				var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? throw new InvalidOperationException("URP Unlit shader not found.");
+				var shader = Shader.Find("FerrySim/GreyboxLabel") ?? throw new InvalidOperationException("Greybox label shader not found.");
 				var material = new Material(shader) { name = "LabelBacking" };
-				material.SetFloat("_Surface", 1f);
-				material.SetFloat("_Blend", 0f);
-				material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
-				material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
-				material.SetFloat("_SrcBlendAlpha", (float)BlendMode.One);
-				material.SetFloat("_DstBlendAlpha", (float)BlendMode.OneMinusSrcAlpha);
-				material.SetFloat("_ZWrite", 0f);
-				material.SetColor("_BaseColor", new Color(0f, 0f, 0f, 0.55f));
-				material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
 				material.SetOverrideTag("RenderType", "Transparent");
-
-				// GUI/Text Shader draws at 3000; the plate must come first.
+				material.SetColor("_Color", new Color(0f, 0f, 0f, 0.55f));
+				material.SetFloat("_Cull", (float)CullMode.Back);
+				// Before text and signal lights; depth writes keep farther signals behind the annotation.
 				material.renderQueue = 2999;
 				return Store(material);
 			}

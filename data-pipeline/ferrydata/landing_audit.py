@@ -80,7 +80,7 @@ def explanation(props, evidence, required):
 	if props['stop_id'] == '8':
 		return base + f"South Williamsburg uses the crew-selected NW long river side at {props['face_heading_deg_true']:.3f}° true. Crew orientation outranks the failed chart check; the dry MORFAC structure role remains unverified." + ' Its broad 0–2 m MLLW DEPARE supplies a zero-depth lower bound, not a 2 m measurement; CUDEM also reports shallow water beside the structure. Evidence supports a near-structure data limitation, but cannot prove the real bed is deeper. A berth survey/crew verification is still needed; the operational-ais floor lowered the merged bed only where T/K boats were seen afloat, and the threshold is unchanged.'
 	if props['stop_id'] == '87':
-		return base + 'Pier 11 geometry changed to the southern charted pontoon and its outward side. The worst cell lies within one raster cell of the face and CUDEM reports an above-water elevation there; ENC provides only a 0–2 m MLLW bound at that cell. This is unresolved near-pier bathymetry despite corrected chart geometry, not proof that a ferry cannot berth. Multiple pontoons and schematic GTFS routes leave the operational assignment provisional.'
+		return base + f"{props['berth_name']} is a crew-reported ramped berth; the crew default is {props['default_berth_name']}. This box uses its own exported face and normal. The cell evidence below retains chart support and nearby submerged structures; the floor preserves charted fixed/submerged hazards. Crew berth use does not establish ramp side, depth or clearance. The failed box is unresolved bathymetry, not proof that a ferry cannot berth."
 	if props['stop_id'] == '19':
 		return base + 'North Williamsburg now uses the unobstructed southwest pontoon end. The worst cell lacks chart depth support; its exact distance and deficit remain in the cell evidence below. The original long-face corridor crossed a charted pier. The 30 m square is wider than this short end and remains a conservative approach envelope; this marginal raster result is not rounded up or presented as surveyed shoaling.'
 	return base + 'Existing cached sources do not establish sufficient depth. Geometry and near-structure raster uncertainty remain explicit; no depth values or thresholds were changed.'
@@ -110,6 +110,32 @@ def surface_conflicts(face, outward_ne, constructions, raw_attributes):
 	return records
 
 
+def berth_properties(props, item, constructions, segments):
+	"""Use the exported selectable face and its source outline; do not choose a new face for the audit."""
+	if len(props.get('berths', [])) < 2:
+		return props
+	berth = next(b for b in props['berths'] if b['id'] == item.props['berth_id'])
+	default = next(b for b in props['berths'] if b['id'] == props['crew_note']['default_berth_id'])
+	identifier = berth['id'].removeprefix('enc:')
+	outline = next(g for g, p in constructions if p['id'] == identifier)
+	face = landings.to_local(shape(berth['face_geometry']))
+	owned = segments[berth['id']]
+	face_record = next(s for s in owned if s.get('berth_face'))
+	result = {**props, 'stop_name': item.props['stop_name'], 'berth_id': berth['id'], 'berth_name': berth['name'],
+		'default_berth_name': default['name'], 'enc_id': identifier, 'face_geometry': berth['face_geometry'],
+		'outward_normal_ne': berth['outward_normal_ne'], 'face_heading_deg_true': landings.heading_deg(berth['outward_normal_ne']),
+		'water_side_evidence': face_record['water_side_evidence'], 'verification': face_record['verification'],
+		'confidence': face_record.get('confidence', props.get('confidence')),
+		'gtfs_to_face_m': face.distance(Point(item.props['east_m'], item.props['north_m'])),
+		'submerged_hazards': landings.submerged_hazards(face, berth['outward_normal_ne'], constructions),
+		'audit_outline_geometry': landings.to_wgs84(outline).__geo_interface__,
+		'audit_figure': props['stop_id'] + ('' if berth['order'] == 0 else '-' + identifier)}
+	if berth['order'] != 0:
+		result['contact_geometry'] = landings.to_wgs84(outline.boundary).__geo_interface__
+		result['contact_segment_evidence'] = owned
+	return result
+
+
 def write(slice_, approaches, baseline, low, required, target=None):
 	import matplotlib
 	matplotlib.use('Agg')
@@ -120,6 +146,10 @@ def write(slice_, approaches, baseline, low, required, target=None):
 	target = target or paths.REPO_ROOT / 'artifacts' / 'landing-faces'
 	target.mkdir(parents=True, exist_ok=True)
 	faces = {f['properties']['stop_id']: f for f in _load(out, 'landing_faces.geojson')}
+	berth_segments = {}
+	for feature in _load(out, 'landing_structures.geojson'):
+		for segment in feature['properties']['segments']:
+			if segment.get('berth_id'): berth_segments.setdefault(segment['berth_id'], []).append(segment)
 	constructions = [(landings.to_local(shape(f['geometry'])), f['properties']) for f in _load(out, 'shoreline_constructions.geojson')]
 	areas = _load(out, 'depth_areas.geojson')
 	raw_structures, _ = enc.read_layers(slice_, ['SLCONS', 'MORFAC'])
@@ -134,14 +164,18 @@ def write(slice_, approaches, baseline, low, required, target=None):
 	with rasterio.open(out / 'depth_merged_navd88.tif') as merged, rasterio.open(out / 'depth_navd88.tif') as cudem, rasterio.open(out / 'depth_chart_navd88.tif') as chart:
 		array = merged.read(1)
 		for item, original in zip(approaches, baseline):
-			p = faces[item.props['stop_id']]['properties']
-			outline = landings.to_local(shape(faces[p['stop_id']]['geometry']))
+			p = berth_properties(faces[item.props['stop_id']]['properties'], item, constructions, berth_segments)
+			figure = p.get('audit_figure', p['stop_id'])
+			outline = landings.to_local(shape(p.get('audit_outline_geometry', faces[p['stop_id']]['geometry'])))
 			face = landings.to_local(shape(p['face_geometry']))
 			contact = landings.to_local(shape(p['contact_geometry']))
 			n, e = p['outward_normal_ne']; mid = face.interpolate(.5, normalized=True)
 			polygon = depth.landing_box_polygon(item.anchor_ne, (n, e))
 			evidence = box_evidence(merged, cudem, chart, polygon, face, outline, low, required, areas, constructions, land)
 			conflicts = surface_conflicts(face, (n, e), constructions, raw_attributes)
+			if p['stop_id'] == '87':
+				for conflict in conflicts:
+					conflict['interpretation'] = 'Crew reports berth use, not ramp side or water-side orientation. The charted object role and clearance remain unverified; point geometry has no invented contact extent. This is not a depth or clearance survey.'
 			submerged = []
 			for hazard in p.get('submerged_hazards', []):
 				g, _ = next((g, q) for g, q in constructions if q['id'] == hazard['enc_id'])
@@ -180,7 +214,7 @@ def write(slice_, approaches, baseline, low, required, target=None):
 				evidence['cached_ais_reports_below_0_5kn_within_10m_outline'] = sum(d < 10 for d in distances)
 				evidence['ais_note'] = 'Historical 2024–2025 candidate-fleet reports; not unique visits, vessel footprint, a surveyed face, or proof of present berth assignment.'
 			change = ('Crew selects the NW long side toward Manhattan. The SW short-end candidate is rejected. Submerged structures remain depth hazards without becoming surface contact walls.' if p['stop_id'] == '19' else
-				'Changed from northern pontoon 0226111D16AAB198 to southern 0226015B0512B198; its long face directly adjoins DEPARE. Multiple operational berths remain provisional.' if p['stop_id'] == '87' else
+				f"{p['berth_name']} is selectable; the current crew note defaults to {p['default_berth_name']}. Face selection is unchanged; crew establishes berth use, not ramp side, depth or clearance." if p['stop_id'] == '87' else
 				'Changed from southern ENC pontoon 02261ACE4C291C82 to AIS-preferred northern pontoon 02260960FDFF1C82 with a valid water-facing long side; multiple berth assignment remains provisional.' if p['stop_id'] == '17' and p['enc_id'] == '02260960FDFF1C82' else
 				'Crew selects the NW long river side (305.042° true, 25.590 m), outranking the chart check for orientation. Independent chart support remains FAIL because dry MORFAC 022646E95F81764B (WATLEV=2) intersects the full swept-face check. The SW end retains its independent chart proof and no crew flag. The structure role remains unverified.' if p['stop_id'] == '8' else
 				'Primary face retained; added connected exposed sides and ends where supported. Estimated placements and dimensions remain labelled.' if p['source'] == 'derived-from-gtfs' else
@@ -188,6 +222,7 @@ def write(slice_, approaches, baseline, low, required, target=None):
 			note = explanation(p, evidence, required)
 			record = {'stop_id': p['stop_id'], 'stop_name': p['stop_name'], 'source': p['source'], 'enc_id': p['enc_id'],
 				'confidence': p['confidence'], 'verification': p['verification'], 'face_length_m': face.length,
+				**({'berth_id': p['berth_id'], 'berth_name': p['berth_name']} if p.get('berth_id') else {}),
 				'gtfs_to_face_m': p['gtfs_to_face_m'], 'water_side_evidence': p['water_side_evidence'],
 				'candidate_evidence': p.get('candidate_evidence', []),
 				'crew_evidence': p.get('crew_evidence'), 'crew_note': p.get('crew_note'), 'crew_notes_sha256': p.get('crew_notes_sha256'), 'crew_orientation': p.get('crew_orientation'),
@@ -198,7 +233,7 @@ def write(slice_, approaches, baseline, low, required, target=None):
 				f"Water side: {p['water_side_evidence']['method']}; near-face DEPARE gap {p['water_side_evidence'].get('near_face_coverage_gap_m', 0):.1f} m along the 8 m corridor. {change}", note,
 				f"Worst cell: row {evidence['worst_cell']['row']}, column {evidence['worst_cell']['column']}, {evidence['worst_cell_distance_to_face_m']:.2f} m from face; CUDEM depth there {evidence['cudem_at_worst_depth_m']:.3f} m, chart-supported depth {evidence['chart_at_worst_depth_m'] if evidence['chart_at_worst_depth_m'] is not None else 'unknown'}. Approach/LNDARE overlap {evidence['approach_land_overlap_m2']:.2f} m².",
 				f"GTFS route distance at 60 m outward/inward: {evidence['route_distance_at_60m_outward_m']:.1f}/{evidence['route_distance_at_60m_inward_m']:.1f} m; schematic route geometry is not a berth survey. Cached slow AIS reports within 10 m of outline: {evidence.get('cached_ais_reports_below_0_5kn_within_10m_outline', 'unavailable')}; historical candidate-fleet evidence only.",
-				f"![{p['stop_name']} evidence](../../../artifacts/landing-faces/{p['stop_id']}.png)"]
+				f"![{p['stop_name']} evidence](../../../artifacts/landing-faces/{figure}.png)"]
 			if p.get('crew_note'):
 				cn = p['crew_note']
 				notes += ['', f"Crew provenance: {cn['id']} ({cn['kind']}); ordinal geometry confidence remains {p['confidence']}."]
@@ -222,13 +257,13 @@ def write(slice_, approaches, baseline, low, required, target=None):
 				notes += ['', f"Rejected SW candidate: normal {alternative['outward_bearing_deg_true']:.3f}°, minimum {alternative['min_depth_m']:.9f} m; deficit {required - alternative['min_depth_m']:.9f} m, {alternative['shallow_cells']}/{alternative['sampled_cells']} cells fail. Worst cell {alternative['worst_cell']['row']}/{alternative['worst_cell']['column']} is retained in diagnosis.json. Distances to submerged hazards: {alternative['worst_cell_distance_to_submerged_hazards_m']}. Do not attribute this cell to a submerged pier unless positions match; these are different approach boxes."]
 			candidates = sorted(p.get('candidate_evidence', []), key=lambda c: (-c['ais_slow_reports_within_10m'], c['enc_id']))
 			if len(candidates) > 1:
-				notes += ['', ('For stop 87, candidate priority is historical AIS usage first, then water-side validity. Other stops retain their existing assignment pending separate crew review. Reports are SOG < 0.5 kn within 150 m of GTFS, then within 10 m of the ENC polygon; not unique visits and no antenna correction. GTFS route distances are schematic evidence and do not override a blocked corridor.'), '',
+				notes += ['', (f"The current crew note defaults Pier 11 to {p['default_berth_name']}; the historical AIS ranking below is retained as evidence, not the default selector. Reports are SOG < 0.5 kn within 150 m of GTFS, then within 10 m of the ENC polygon; not unique visits and no antenna correction. GTFS route distances are schematic evidence and do not override a blocked corridor." if p['stop_id'] == '87' else ('For stop 87, candidate priority is historical AIS usage first, then water-side validity. Other stops retain their existing assignment pending separate crew review. Reports are SOG < 0.5 kn within 150 m of GTFS, then within 10 m of the ENC polygon; not unique visits and no antenna correction. GTFS route distances are schematic evidence and do not override a blocked corridor.')), '',
 					'| ENC pontoon | slow reports | GTFS distance (m) | route outward / inward at 60 m (m) | water side |', '|---|---|---|---|---|']
 				for candidate in candidates:
 					notes.append(f"| {candidate['enc_id']} | {candidate['ais_slow_reports_within_10m']} | {candidate['distance_to_gtfs_m']:.1f} | {candidate['route_distance_60m_outward_m']:.1f} / {candidate['route_distance_60m_inward_m']:.1f} | {candidate['water_side_evidence']['method']} ({'pass' if candidate['water_side_evidence']['verified'] else 'FAIL'}) |")
 					notes.append(f"Candidate side evidence: `{json.dumps(candidate['sides'], separators=(',', ':'))}`")
 				if p['stop_id'] == '87':
-					notes += ['', 'Pier 11 middle and northern candidates fail all evaluated sides; the approved corridor is obstructed and/or its far end lacks DEPARE. Southern is the remaining water-side-valid candidate, not the AIS usage winner. The two unselected pontoons are NOT contact segments in this task; follow-up: represent every physical structure with matching contact geometry and greybox visuals.']
+					notes += ['', 'Pier 11 east and north retain failed 12 m/corridor water-side checks. Their separately validated crew-use/solid-side/0.5 m UNSARE/AIS basis permits selectable contact faces without claiming water-side or depth proof. All three ramped pontoons have contact geometry and greybox visuals; the fourth remains a non-berth contact structure.']
 			fig, ax = plt.subplots(figsize=(10, 9))
 			half = 85.; center_e, center_n = item.props['east_m'], item.props['north_m']
 			east, north = np.meshgrid(np.linspace(center_e - half, center_e + half, 171), np.linspace(center_n - half, center_n + half, 171))
@@ -289,7 +324,7 @@ def write(slice_, approaches, baseline, low, required, target=None):
 				fig.text(.08, .01, text, fontsize=7)
 			fig.colorbar(image, ax=ax, label='merged depth at lowest water (m); dashed white = 2.10 m')
 			ax.legend(handles=[Line2D([], [], color=c, lw=2, label=l) for c, l in [('gold', 'connected contact'), ('cyan', 'primary face / water normal'), ('red', '30 m approach box / GTFS star'), ('magenta', 'ENC structures'), ('cornflowerblue', 'DEPARE boundary'), ('white', 'worst cell × / historical slow AIS dots')]], loc='upper left', fontsize=7, facecolor='.3', labelcolor='white')
-			fig.tight_layout(rect=(0, .25 if p['stop_id'] == '8' else .1 if p['stop_id'] == '87' else 0, 1, .91)); fig.savefig(target / f"{p['stop_id']}.png", dpi=110, bbox_inches='tight', pad_inches=.15); plt.close(fig)
+			fig.tight_layout(rect=(0, .25 if p['stop_id'] == '8' else .1 if p['stop_id'] == '87' else 0, 1, .91)); fig.savefig(target / f"{figure}.png", dpi=110, bbox_inches='tight', pad_inches=.15); plt.close(fig)
 	(target / 'diagnosis.json').write_text(json.dumps(records, indent='\t') + '\n')
 	(target / 'diagnosis.md').write_text('# Landing face and approach evidence\n\nSources: built cached NOAA ENC, CUDEM, GTFS, CO-OPS and historical AIS. No new source, manual digitisation or lowered threshold; the operational-ais floor lowered the merged bed where T/K boats were seen afloat, with the threshold unchanged. Gold lines are topological exterior contact outlines, not fender surveys.\n' + '\n'.join(notes) + '\n')
 	return notes

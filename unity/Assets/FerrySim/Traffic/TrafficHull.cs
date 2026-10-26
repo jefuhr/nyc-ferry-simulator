@@ -1,6 +1,7 @@
 using System;
 using FerrySim.Core.Contracts;
 using FerrySim.Core.Traffic;
+using FerrySim.World;
 using UnityEngine;
 
 namespace FerrySim.Traffic
@@ -92,6 +93,9 @@ namespace FerrySim.Traffic
 
 		public bool Colliding { get; private set; }
 
+		/// <summary>The power-driven light set, built once with this hull.</summary>
+		public NavigationLights NavigationLights { get; private set; }
+
 		internal void Describe(TrafficVessel vessel, double height)
 		{
 			VesselIndex = vessel.Index;
@@ -106,6 +110,12 @@ namespace FerrySim.Traffic
 			Moving = vessel.Moving;
 			FerryCandidate = vessel.FerryCandidate;
 			Height = height;
+			NavigationLights = gameObject.AddComponent<NavigationLights>();
+			// The pack has no navigational status. Static vessels retain the existing moored classification.
+			// A 1.5 m mast and a deck at 40% of the greybox height are visual estimates, not AIS particulars.
+			NavigationLights.ConfigureGeneric(Length, Beam, Height + 1.5, Height * 0.4,
+				Moving ? VesselLightStatus.Underway : VesselLightStatus.Moored);
+			NavigationLights.On = false;
 		}
 
 		internal void Follow(in TrafficSample sample, bool alarmed, bool colliding)

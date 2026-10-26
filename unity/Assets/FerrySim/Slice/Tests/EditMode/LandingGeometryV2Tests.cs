@@ -82,7 +82,7 @@ namespace FerrySim.Slice.Tests
 				Assert.That(geometry.Find(21).SolidSideVerified, Is.EqualTo(hasProof && verified));
 				Assert.That(geometry.CrewReportedOnly, Is.Empty, "the solid side is not a crew report");
 				Assert.That(geometry.SolidSideOnly.Select(s => s.Id), Is.EqualTo(basis == "solid-side" ? new[] { 21 } : new int[0]));
-				Assert.That(geometry.Describe(), Does.Contain("Kept on the charted solid side only"));
+				Assert.That(geometry.Describe(), Does.Contain("Kept without water-side proof on charted solid geometry"));
 			}
 			else
 			{
@@ -197,7 +197,7 @@ namespace FerrySim.Slice.Tests
 			}
 
 			Assert.That(geometry.PrimaryFace(LandingGeometryTests.ContactTestStopId).Segments.Select(s => s.Id), Is.EqualTo(new[] { 149111046 }));
-			Assert.That(geometry.Find(149111046).Verification, Is.EqualTo("crew-reported"));
+			Assert.That(geometry.Find(149111046).Verification, Is.EqualTo("crew-reported landing side"));
 			var report = Path.Combine(SliceTestData.RepoRoot, "artifacts", "unity", "slice");
 			Directory.CreateDirectory(report);
 			File.WriteAllText(Path.Combine(report, "landing-geometry-v2.txt"), geometry.Describe());
