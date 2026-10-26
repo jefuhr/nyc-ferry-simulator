@@ -6,7 +6,11 @@
 # The Mac app is tested as a user gets it: copied out of the mounted disk image and launched with -ferrysim-smoke
 # (FerrySim.Slice.PlayerSmokeRun), which drives the slice and fails on any error; a window opens for about a minute.
 # The Windows player cannot run here: its package is checked for the executable, Unity's player, the Cesium native
-# plugin and the packaged data.
+# plugin and the packaged data, and scripts/record-windows-smoke.sh records its smoke run on a PC afterwards.
+#
+# The players package the slice's processed data (docs/releasing.md, Before a release), so the environment packs must
+# verify before anything is built, and every pack file must reach each player. Traffic packs must not: players refuse
+# traffic for now.
 #
 # Usage: scripts/release.sh [--allow-dirty]
 #   --allow-dirty  build from uncommitted changes; everything is labelled <version>-dirty and is not for publishing
@@ -19,6 +23,7 @@ UNITY_EDITOR="${UNITY_EDITOR:-/Applications/Unity/Hub/Editor/6000.3.27f1/Unity.a
 UNITY_LOCK="$HOME/FerrySim-cache/unity.lock"
 SETTINGS="unity/ProjectSettings/ProjectSettings.asset"
 SMOKE_TIMEOUT_S=300
+REGION="lower-east-river"
 
 usage() { echo "usage: scripts/release.sh [--allow-dirty]" >&2; exit 2; }
 fail() { echo "release: $*" >&2; exit 1; }
@@ -35,6 +40,7 @@ esac
 json_field() { python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$1" "$2"; }
 
 [[ -x "$UNITY_EDITOR" ]] || fail "no Unity editor at $UNITY_EDITOR (set UNITY_EDITOR to override)"
+command -v uv > /dev/null || fail "uv is not on PATH; the environment packs are verified with the data pipeline's uv environment"
 [[ -d "$(dirname "$UNITY_EDITOR")/../../../PlaybackEngines/WindowsStandaloneSupport" ]] \
 	|| fail "Unity has no Windows Build Support (Mono) module; docs/releasing.md says how to add it"
 
@@ -79,12 +85,26 @@ build() {
 		|| fail "the $target build did not succeed; see $OUT/$target/build-report.json"
 }
 
-# verify_payload <StreamingAssets folder> <target>: the build record names this version, commit and tree state, the
-# slice's vessel file is packaged, and every packaged file is there with the recorded hash and the repository's bytes.
+# check_data: the processed data the players package is there, and the environment packs verify (their digests).
+check_data() {
+	echo "--- Checking the processed data (log: $OUT/logs/environment-verify.log)"
+	[[ -f "data/processed/$REGION/geoid_offset.json" ]] \
+		|| fail "data/processed/$REGION/geoid_offset.json is missing; build the slice first (docs/releasing.md, Before a release)"
+	[[ -d "data/processed/$REGION/env/days" ]] \
+		|| fail "data/processed/$REGION/env has no packs; build them first (docs/releasing.md, Before a release)"
+	PYTHONPATH=data-pipeline uv run --project data-pipeline python -m ferrydata.environment verify --region "$REGION" \
+		> "$OUT/logs/environment-verify.log" 2>&1 \
+		|| fail "the environment packs do not verify; see $OUT/logs/environment-verify.log"
+	tail -1 "$OUT/logs/environment-verify.log"
+}
+
+# verify_payload <StreamingAssets folder> <target>: the build record names this version, commit and tree state; both
+# vessel files, the slice's geoid offset and every file of its environment packs are packaged, and no traffic is; every
+# packaged file is there with the recorded hash and the repository's bytes; and StreamingAssets holds nothing else.
 verify_payload() {
-	python3 -I - "$1" "$ROOT" "$VERSION" "$COMMIT" "$DIRTY" "$2" <<'PY'
+	python3 -I - "$1" "$ROOT" "$VERSION" "$COMMIT" "$DIRTY" "$2" "$REGION" <<'PY'
 import hashlib, json, os, sys
-streaming, root, version, commit, dirty, target = sys.argv[1:7]
+streaming, root, version, commit, dirty, target, region = sys.argv[1:8]
 record = json.load(open(os.path.join(streaming, "build-info.json")))
 problems = []
 if record.get("version") != version:
@@ -94,8 +114,34 @@ if record.get("commit") != commit:
 if bool(record.get("dirty")) != (dirty == "1"):
 	problems.append(f"the build saw dirty={record.get('dirty')}, the script dirty={dirty == '1'}")
 paths = [entry["path"] for entry in record.get("payload", [])]
-if "vessels/t-class.json" not in paths:
-	problems.append("vessels/t-class.json is not packaged")
+for required in ("vessels/t-class.json", "vessels/k-class.json", f"data/processed/{region}/geoid_offset.json"):
+	if required not in paths:
+		problems.append(f"{required} is not packaged")
+# Every file of the environment packs, as FerrySim.Build.PlayerPayload walks a folder: no part of the path may start with a dot.
+env = f"data/processed/{region}/env"
+expected = set()
+for folder, _, files in os.walk(os.path.join(root, env)):
+	for name in files:
+		relative = os.path.relpath(os.path.join(folder, name), root).replace(os.sep, "/")
+		if not any(part.startswith(".") for part in relative.split("/")):
+			expected.add(relative)
+packaged_env = {path for path in paths if path.startswith(env + "/")}
+if not expected:
+	problems.append(f"{env} has no files")
+for label, names in (("not packaged", sorted(expected - packaged_env)), ("packaged but not in the repository", sorted(packaged_env - expected))):
+	if names:
+		problems.append(f"{len(names)} environment pack files are {label}, the first {names[0]}")
+# What the player really carries, not only what the build recorded: anything else in StreamingAssets is unvetted data.
+present = set()
+for folder, _, files in os.walk(streaming):
+	for name in files:
+		present.add(os.path.relpath(os.path.join(folder, name), streaming).replace(os.sep, "/"))
+unrecorded = sorted(path for path in present - set(paths) - {"build-info.json"} if not any(part.startswith(".") for part in path.split("/")))
+if unrecorded:
+	problems.append(f"{len(unrecorded)} files in StreamingAssets are not in the build record, the first {unrecorded[0]}")
+traffic = sorted(path for path in present | set(paths) if "traffic" in path.split("/"))
+if traffic:
+	problems.append(f"{len(traffic)} traffic files are in the player, the first {traffic[0]}; players refuse traffic for now")
 real_root = os.path.realpath(root)
 for entry in record.get("payload", []):
 	packaged = os.path.join(streaming, entry["path"])
@@ -115,7 +161,10 @@ for entry in record.get("payload", []):
 if problems:
 	print(f"{target} payload problems:\n  " + "\n  ".join(problems))
 	sys.exit(1)
-print(f"{target} payload: {', '.join(paths)}; build {record['version']} ({record['commit'][:7]}{'-dirty' if record.get('dirty') else ''})")
+size = sum(entry["bytes"] for entry in record.get("payload", []))
+others = ", ".join(path for path in paths if not path.startswith(env + "/"))
+print(f"{target} payload: {len(paths)} files, {size / 1e6:.1f} MB: {len(packaged_env)} environment pack files, {others}; "
+	f"build {record['version']} ({record['commit'][:7]}{'-dirty' if record.get('dirty') else ''})")
 PY
 }
 
@@ -196,7 +245,7 @@ def artifact(path):
 smoke = json.load(open(os.path.join(out, "smoke", "result", "smoke.json")))
 keys = ("passed", "failures", "build", "operating_system", "graphics_device", "drive_simulated_s", "displacement_m",
 	"max_speed_over_ground_mps", "landing_segments", "recording_bytes", "min_screenshot_colours", "errors", "warnings",
-	"average_fps", "persistent_data")
+	"average_fps", "persistent_data", "environment", "environment_pack", "environment_digest", "environment_packaged")
 manifest = {
 	"product": product,
 	"version": version,
@@ -205,8 +254,8 @@ manifest = {
 	"dirty": dirty == "1",
 	"created_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
 	"artifacts": [artifact(dmg), artifact(archive)],
-	"mac_smoke_run": {key: smoke[key] for key in keys},
-	"windows_run": "not run: built and inspected on macOS",
+	"mac_smoke_run": {key: smoke.get(key) for key in keys},
+	"windows_run": "not run yet: built and inspected on macOS; scripts/record-windows-smoke.sh records a run on a PC",
 }
 with open(os.path.join(out, "release-manifest.json"), "w") as handle:
 	json.dump(manifest, handle, indent=2)
@@ -215,6 +264,7 @@ PY
 }
 
 echo "=== $PRODUCT $LABEL from $COMMIT into $OUT"
+check_data
 build windows Win64
 # The Mac build goes last so the project is left on the target the editor and the tests use.
 build mac OSXUniversal
