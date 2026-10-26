@@ -51,6 +51,9 @@ namespace FerrySim.Sim
 		/// <summary>The recorded <see cref="StateDigest"/> text, or null for a recording that has none (cut short by a crash).</summary>
 		public string StateDigest { get; private set; }
 
+		/// <summary>The run's visibility (<see cref="ScenarioSettings.visibilityMetres"/>), metres: 0, unlimited, when the header has no <c>visibility_m</c>.</summary>
+		public double VisibilityMetres { get; private set; }
+
 		public static RecordedRun Load(string telemetryPath)
 		{
 			if (!File.Exists(telemetryPath))
@@ -117,6 +120,16 @@ namespace FerrySim.Sim
 
 			DateTimeOffset.TryParse(Required(header, "scenario_start_utc", telemetryPath), CultureInfo.InvariantCulture,
 				DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var start);
+			var visibility = 0.0;
+			if (header.ContainsKey(ScenarioSettings.VisibilityKey))
+			{
+				visibility = Number(header, ScenarioSettings.VisibilityKey, telemetryPath);
+				if (!(visibility >= ScenarioSettings.MinimumVisibilityMetres) || double.IsInfinity(visibility))
+				{
+					throw new FormatException($"{telemetryPath}: header '{ScenarioSettings.VisibilityKey}' is not a visibility of at least {ScenarioSettings.MinimumVisibilityMetres.ToString(CultureInfo.InvariantCulture)} m: '{header[ScenarioSettings.VisibilityKey]}'.");
+				}
+			}
+
 			return new RecordedRun
 			{
 				TelemetryPath = telemetryPath,
@@ -133,6 +146,7 @@ namespace FerrySim.Sim
 				SampleHz = sampleHz,
 				ScenarioStartUtc = start,
 				StateDigest = digest,
+				VisibilityMetres = visibility,
 			};
 		}
 

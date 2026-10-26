@@ -36,6 +36,19 @@ namespace FerrySim.Sim
 
 		public ScenarioEnvironment environment = new ScenarioEnvironment();
 
+		/// <summary>The recording header key for <see cref="visibilityMetres"/>, written only when the visibility is limited.</summary>
+		public const string VisibilityKey = "visibility_m";
+
+		/// <summary>The smallest limited visibility a scenario may set, metres.</summary>
+		public const double MinimumVisibilityMetres = 10.0;
+
+		/// <summary>
+		/// Visibility, metres: the meteorological optical range of the fog the run is drawn in (World/Atmosphere/README.md).
+		/// Zero, the default, is unlimited: no fog, and a recording without a <see cref="VisibilityKey"/> line. Rendering
+		/// only; the physics never reads it.
+		/// </summary>
+		public double visibilityMetres;
+
 		public DateTimeOffset StartUtc
 		{
 			get
@@ -77,9 +90,10 @@ namespace FerrySim.Sim
 
 		/// <summary>
 		/// Throws <see cref="ArgumentException"/> naming every problem: an empty vessel file, a start position, heading or
-		/// speed out of range, bad uniform values, a pack name that is not region/date, a pack <paramref name="packs"/> does not
-		/// have (StreamingAssets, then the repository, when null), or a start outside the pack's coverage. A start time that is
-		/// not ISO 8601 throws <see cref="FormatException"/>.
+		/// speed out of range, a visibility that is neither 0 nor a distance of at least 10 m, bad uniform values, a pack
+		/// name that is not region/date, a pack <paramref name="packs"/> does not have (StreamingAssets, then the
+		/// repository, when null), or a start outside the pack's coverage. A start time that is not ISO 8601 throws
+		/// <see cref="FormatException"/>.
 		/// </summary>
 		public void Validate(EnvironmentPacks packs)
 		{
@@ -107,6 +121,11 @@ namespace FerrySim.Sim
 			if (!IsFinite(startSpeedKnots) || startSpeedKnots < 0.0)
 			{
 				problems.Add("startSpeedKnots must be zero or positive");
+			}
+
+			if (!(visibilityMetres == 0.0 || (visibilityMetres >= MinimumVisibilityMetres && !double.IsInfinity(visibilityMetres))))
+			{
+				problems.Add($"visibilityMetres must be 0 (unlimited) or a distance of at least {MinimumVisibilityMetres.ToString(CultureInfo.InvariantCulture)} m");
 			}
 
 			if (environment == null)

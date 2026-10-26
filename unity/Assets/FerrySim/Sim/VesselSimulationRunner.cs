@@ -172,6 +172,9 @@ namespace FerrySim.Sim
 		/// <summary>True while playing back a recorded run instead of live controls.</summary>
 		public bool IsReplaying => _replay != null;
 
+		/// <summary>The recording being replayed, or null.</summary>
+		public RecordedRun Replay => _replay;
+
 		public FixedStepDriver Driver => _driver;
 
 		public ScenarioSettings Scenario { get; private set; }

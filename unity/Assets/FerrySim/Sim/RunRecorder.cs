@@ -145,7 +145,7 @@ namespace FerrySim.Sim
 		private static List<KeyValuePair<string, string>> CommonHeader(ScenarioSettings scenario, VesselParameters vessel, ISimulation simulation, string factoryName, in VesselState initial, int sampleHz)
 		{
 			var invariant = CultureInfo.InvariantCulture;
-			return new List<KeyValuePair<string, string>>
+			var header = new List<KeyValuePair<string, string>>
 			{
 				Pair("vessel", vessel.Id),
 				Pair("maneuver", "unity-run"),
@@ -170,6 +170,14 @@ namespace FerrySim.Sim
 				Pair("initial.sway_mps", ControlTrace.FormatValue(initial.Sway)),
 				Pair("initial.yaw_rate_radps", ControlTrace.FormatValue(initial.YawRate)),
 			};
+
+			// Only a run that asked for fog says so: one that did not records the same bytes as before the setting existed.
+			if (scenario.visibilityMetres > 0.0)
+			{
+				header.Add(Pair(ScenarioSettings.VisibilityKey, ControlTrace.FormatValue(scenario.visibilityMetres)));
+			}
+
+			return header;
 		}
 
 		public void BeforeStep(long step, in VesselState state, in VesselTelemetry telemetry, in ControlInputs controls)
