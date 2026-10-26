@@ -1,0 +1,14 @@
+{
+	"name": "FerrySim.World.Tiles3D",
+	"rootNamespace": "FerrySim.World.Tiles3D",
+	"references": ["FerrySim.Core", "CesiumForUnity", "Unity.Mathematics"],
+	"includePlatforms": [],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": false,
+	"precompiledReferences": [],
+	"autoReferenced": false,
+	"defineConstraints": [],
+	"versionDefines": [],
+	"noEngineReferences": false
+}

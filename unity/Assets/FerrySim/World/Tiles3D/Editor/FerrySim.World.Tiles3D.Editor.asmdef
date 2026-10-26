@@ -1,0 +1,25 @@
+{
+	"name": "FerrySim.World.Tiles3D.Editor",
+	"rootNamespace": "FerrySim.World.Tiles3D.EditorTools",
+	"references": [
+		"FerrySim.Core",
+		"FerrySim.World.Tiles3D",
+		"CesiumForUnity",
+		"Unity.Mathematics",
+		"Unity.RenderPipelines.Core.Runtime",
+		"Unity.RenderPipelines.Universal.Runtime"
+	],
+	"includePlatforms": [
+		"Editor"
+	],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"Newtonsoft.Json.dll"
+	],
+	"autoReferenced": false,
+	"defineConstraints": [],
+	"versionDefines": [],
+	"noEngineReferences": false
+}
