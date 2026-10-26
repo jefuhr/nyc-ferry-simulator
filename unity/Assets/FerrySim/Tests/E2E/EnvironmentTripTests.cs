@@ -332,7 +332,7 @@ namespace FerrySim.E2E
 
 		/// <summary>
 		/// The scene's own day and time (Slice/README.md, The scene): at slack water, under two hours after high water, a
-		/// T-class can land at South Williamsburg, where the depth grid is shallowest, without grounding.
+		/// T-class can land at South Williamsburg without grounding (on the operational-ais floor, with at least 1.79 m under the keel).
 		/// </summary>
 		[UnityTest]
 		public IEnumerator SouthWilliamsburg_AtTheScenesDayAndTime_LandsSoftWithoutGrounding() => Landing("south-williamsburg-slack", "8", "2025-07-20", 18 * 60 + 48, null);

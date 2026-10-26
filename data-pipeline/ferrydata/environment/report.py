@@ -47,7 +47,7 @@ def write(result, root, destination):
 		f'Region: `{result["region"]}`. {len(result["days"])} days built in this invocation. All packs present passed offline verification.', '',
 		f'Total environment directory: {result["total_pack_bytes"]:,} bytes (depth shared once). New raw downloads in this invocation: {result["new_fetch_count"]}; provenance manifest contains {result["total_raw_files"]} files.', '',
 		'## Reproduction', '', 'Run from the repository root:', '', '```sh',
-		'uv run --project data-pipeline python data-pipeline/ferrydata build --slice lower-east-river --skip ais',
+		'uv run --project data-pipeline python data-pipeline/ferrydata build --slice lower-east-river',
 		'PYTHONPATH=data-pipeline uv run --project data-pipeline python -m ferrydata.environment build --region lower-east-river --all',
 		'PYTHONPATH=data-pipeline uv run --project data-pipeline python -m ferrydata.environment verify --region lower-east-river', '```', '',
 		'`PYTHONPATH` is required because the existing project uses `package = false`; no project wiring or packages were changed.', '',

@@ -78,6 +78,8 @@ A `ScenarioAsset` (Create > FerrySim > Scenario), or JSON with the same fields t
 | `environment.currentSpeedKnots`, `currentTowardDegrees` | Uniform current, direction it flows toward |
 | `environment.windSpeedKnots`, `windFromDegrees` | Uniform wind, direction it blows from |
 | `environment.depthMetres` | Uniform depth |
+| `traffic.day` | A traffic pack's day, yyyy-MM-dd, which must be the environment pack's: the run replays that day's harbor traffic (Traffic, below). Empty: no traffic |
+| `traffic.leaveOut`, `traffic.leaveOutMmsi` | Which vessel to leave out of the traffic: `off`, `mmsi` (the vessel with `leaveOutMmsi`) or `auto` (the learner's own ferry) |
 
 `startSpeedKnots` 0 starts at rest in the water: with a current, the hull starts moving over the ground with the water, as the CLI's runs do.
 
@@ -132,6 +134,7 @@ A new file pair starts on every reset.
 |---|---|
 | `<stamp>-<vessel>-runNN.csv` | Telemetry in the CLI's schema (`core/dotnet/FerrySim.Cli/TelemetryCsv.cs`): the same `# ferrysim-csv: 1` header, columns and number formats, at `telemetrySampleHz` (default 10). Each row is the state at `time_s` and the controls that start applying then; the last row is the end of the run. |
 | `<stamp>-<vessel>-runNN.inputs.csv` | Every control change, lossless, in the `ferrysim run --inputs` format, plus a closing row at the end time and trailing `#` lines: step count, `state_digest` (FNV-1a over every bit of every state) and the end state at full precision. |
+| `<stamp>-<vessel>-runNN.traffic.csv` | Only for a run with traffic: its CPA alarms, collisions and the vessels it started alongside, one row per event, and the encounter digest (Traffic, below). |
 
 `maneuver` is `unity-run`. The header also carries what a replay needs, at full precision: `vessel_file`, `initial.*`, the environment, `scenario_start_utc` (to the tick), `start_latitude_deg`/`start_longitude_deg` and `world_geometry_digest` (the `WorldGeometryDigest` of the fixed structures, `none` for open water; `ReplayPlayer.Verify` and `InitializeReplay` refuse a replay against other structures). The header holds no wall-clock times and no absolute paths.
 
@@ -156,6 +159,33 @@ uv run tools/plot_maneuver.py artifacts/unity/runs/<run>.csv --out <run>.png
 - the state digest must match, because CSV rounding alone would hide a divergence in the last bits.
 
 To watch a replay in a scene, set the runner's `replayRecording` (or call `InitializeReplay`). The runner then plays the run back, checks it row by row, pauses at the end and logs the result. A replay is not recorded again.
+
+## Traffic
+
+A scenario with `traffic.day` replays that real day's harbor traffic from a traffic pack (format `ferrysim-traffic/1`, `core/FerrySim.Core/Traffic/README.md`) on the run's clock: simulation time t reads the pack at t + (scenario start − the pack's local-midnight epoch), as the environment does. A day's tide, current, wind and traffic are one real day, so the traffic day must be the environment pack's.
+
+- **Where packs are.** `TrafficPacks` finds a day in `<root>/harbor/traffic/<date>`. The default roots are StreamingAssets' `data/processed`, then the repository's (`ScenarioTraffic.DefaultPacks`); the runner's `TrafficPacks` property replaces them (tests do).
+- **Checks.** `ScenarioSettings.Validate` refuses, naming the scenario: a day that is not yyyy-MM-dd, traffic on calm or uniform water or on another day than the environment pack's, and a leave-out that is not `off`, `mmsi` or `auto` (or an MMSI out of range); `Validate(packs, trafficPacks)`, which the runner calls, also refuses a day whose pack is not found, naming every place looked. Loading (`CreateTraffic`, at every `Initialize`) verifies every byte through `TrafficPackJson` and refuses a changed file, naming it, and an MMSI to leave out that the pack does not have. A scenario that cannot start leaves the current run going.
+- **Leaving out the learner's ferry.** `auto` leaves out the ferry candidate (the fleet's T and K boats) nearest the start at the start time, within 150 m, by its position then or its report nearest in time within 120 s (`OwnFerryFinder`); none when no candidate is that near. The recording names the MMSI, and a replay leaves out the same one.
+- **Every step.** The runner's `TrafficMonitor` (a fresh one per run) looks at the state after each physics step: every vessel present gets its CPA and TCPA (positions and velocities over the ground), the CPA alarm (a vessel closing to 100 m or less within 120 s, estimates for crew review), and the learner's contact outline against its AIS-sized rectangle. Alarms and collisions starting and ending are events. Traffic never pushes the learner's vessel: a collision is an event only. Allocation-free per step.
+- **The readout.** The runner is also an `ITrafficReadoutSource` (core): `TrafficEnabled` (the run has traffic), `HasTraffic` (the readout is the latest step's) and `TrafficAlarm` (the alarm state and its target: the nearest vessel in collision, else under alarm, else within a nautical mile). The wheelhouse panel reads it.
+- **Drawing** is the slice's `TrafficView` (Traffic/README.md); the runner only exposes `Traffic` (the scenario's `TrafficRun`: pack, replay, time base, the vessel left out) and `TrafficMonitor`.
+
+**Recording a run with traffic.** The telemetry header carries, after the world geometry:
+
+| Key | Value |
+|---|---|
+| `traffic` | `pack` |
+| `traffic_pack` | The day, yyyy-MM-dd |
+| `traffic_digest` | The pack's digest (`manifest.json`'s `digest`, which covers every byte of its three files and its epoch) |
+| `traffic_epoch_utc` | The pack's local-midnight epoch |
+| `traffic_leave_out` | `off`, `mmsi` or `auto` |
+| `traffic_removed_mmsi` | The MMSI left out, or `none` |
+| `traffic_events` | The event log's file name (after `param.inputs`) |
+
+**The encounter data goes in a sidecar**, `<run>.traffic.csv` beside the telemetry and the control trace, not in columns: the telemetry CSV keeps the CLI's schema exactly (so `ferrysim summarize` and `tools/plot_maneuver.py` read traffic runs unchanged), events are kept at the exact physics step they happened (a 10 Hz column would lose a one-step collision), and runs without traffic write exactly the two files and the header they wrote before. The log (core Traffic/README.md, The event log) has the pack, the leave-out and the alarm limits (the alongside margin among them) in its header, one row per event at full precision (step, time, kind, MMSI, the episode's steps, range, bearing, CPA, TCPA, relative speed, the episode's least range and CPA, the vessel's class, hull size and name), then the snapshot of the episodes still open when the run ended (an alarm still up keeps its least CPA so far, written as `alarm-open`, never as an end), and closing lines with the event count, the open-episode count, the step count and the monitor's encounter digest. The debrief reads it (UI/README.md).
+
+**Replaying a run with traffic.** `ReplayPlayer.Verify(..., traffic:, trafficPacks:)` and `InitializeReplay(run, vessel, pack, traffic)` replay against the given traffic pack, or the day the header names, found where scenarios find packs, leaving out the recorded MMSI with the recorded alarm limits and alongside margin. A pack whose digest is not the recorded one, a missing pack, or a pack given to a run without traffic is refused before anything is replayed, naming both: `Verify` returns a failed result, and `InitializeReplay` throws and leaves the current run going. During the replay every event the monitor produces must equal the recorded row character for character, as many as recorded, its open-episode snapshot at the end must equal the recorded one (when the recording has one), and the encounter digest must be the same (`ReplayResult.Traffic`); `ReplayResult.Matches` includes it. A run without traffic has no traffic keys and replays as before.
 
 ## BridgeDev
 

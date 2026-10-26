@@ -23,21 +23,29 @@ namespace FerrySim.Cli
 	/// <summary>One standard maneuver: its name, options and how its command line becomes a controller.</summary>
 	internal sealed class ManeuverSpec
 	{
-		public ManeuverSpec(string name, string summary, bool startsAtRest, string[] options, Func<ParsedArguments, double?, ManeuverPlan> build)
+		public ManeuverSpec(string name, string summary, bool startsAtRest, string[] options, Func<ParsedArguments, double?, ManeuverPlan> build,
+			bool calmWaterLever = false)
 		{
 			Name = name;
 			Summary = summary;
 			StartsAtRest = startsAtRest;
 			Options = options;
 			Build = build;
+			CalmWaterLever = calmWaterLever;
 		}
 
 		public string Name { get; }
 
 		public string Summary { get; }
 
-		/// <summary>True when the vessel starts dead in the water (no settling at a test speed, no <c>--speed-kn</c>).</summary>
+		/// <summary>True when the vessel starts dead in the water (no settling at a test speed in the run's water).</summary>
 		public bool StartsAtRest { get; }
+
+		/// <summary>
+		/// True when a manoeuvre that starts at rest holds the lever that gives the test speed (<c>--speed-kn</c>) through
+		/// water in calm deep water, found before the run as the settled manoeuvres find theirs.
+		/// </summary>
+		public bool CalmWaterLever { get; }
 
 		/// <summary>Maneuver-specific option names (without dashes).</summary>
 		public string[] Options { get; }
@@ -90,7 +98,16 @@ namespace FerrySim.Cli
 				false,
 				Array.Empty<string>(),
 				(args, duration) => BuildStop(0.0, duration)),
+			new ManeuverSpec(
+				"transit",
+				"from rest through --waypoints in turn, both levers at the test speed's calm-water lever, steered by a heading hold",
+				true,
+				new[] { "waypoints", "arrive-m" },
+				BuildTransit,
+				calmWaterLever: true),
 		};
+
+		public const double DefaultArriveMetres = 50.0;
 
 		public static ManeuverSpec Find(string name)
 		{
@@ -175,6 +192,28 @@ namespace FerrySim.Cli
 			var controls = new ControlInputs(1.0, 1.0, 0.0);
 			var parameters = new List<KeyValuePair<string, string>> { Pair("lever", "1") };
 			return new ManeuverPlan(parameters, hold => new HoldController(controls, duration, true, HoldController.AccelerationCap));
+		}
+
+		private static ManeuverPlan BuildTransit(ParsedArguments args, double? duration)
+		{
+			var file = args.GetString("waypoints");
+			if (file == null)
+			{
+				throw new UsageException("transit needs --waypoints <file.csv>, rows of north_m,east_m in world metres.");
+			}
+
+			var arrive = args.GetDouble("arrive-m", DefaultArriveMetres, 1.0, 1000.0);
+			var waypoints = Waypoints.Load(file);
+			var parameters = new List<KeyValuePair<string, string>>
+			{
+				Pair("waypoints_file", System.IO.Path.GetFileName(file)),
+				Pair("waypoints", waypoints.Text),
+				Pair("arrive_m", Number(arrive)),
+				Pair("lookahead_m", Number(TransitController.LookaheadMetres)),
+				Pair("heading_gain", Number(TransitController.HeadingGain)),
+				Pair("rate_gain_s", Number(TransitController.RateGain)),
+			};
+			return new ManeuverPlan(parameters, hold => new TransitController(hold, waypoints, arrive, duration));
 		}
 
 		public static KeyValuePair<string, string> Pair(string key, string value) => new KeyValuePair<string, string>(key, value);

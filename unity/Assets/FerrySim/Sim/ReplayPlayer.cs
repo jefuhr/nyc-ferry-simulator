@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using FerrySim.Core.Contracts;
+using FerrySim.Core.Serialization;
+using FerrySim.Core.Traffic;
 
 namespace FerrySim.Sim
 {
@@ -50,6 +52,27 @@ namespace FerrySim.Sim
 
 		/// <summary>The recorded <see cref="StateDigest"/> text, or null for a recording that has none (cut short by a crash).</summary>
 		public string StateDigest { get; private set; }
+
+		/// <summary>The run's visibility (<see cref="ScenarioSettings.visibilityMetres"/>), metres: 0, unlimited, when the header has no <c>visibility_m</c>.</summary>
+		public double VisibilityMetres { get; private set; }
+
+		/// <summary>True for a run with traffic: the header's <c>traffic</c> is <c>pack</c>.</summary>
+		public bool HasTraffic { get; private set; }
+
+		/// <summary>The traffic pack's day (<c>traffic_pack</c>); null without traffic.</summary>
+		public string TrafficPack { get; private set; }
+
+		/// <summary>The traffic pack's digest (<c>traffic_digest</c>); null without traffic.</summary>
+		public string TrafficDigest { get; private set; }
+
+		/// <summary>How the run chose the vessel it left out (<c>traffic_leave_out</c>).</summary>
+		public TrafficLeaveOut TrafficLeaveOut { get; private set; }
+
+		/// <summary>The MMSI the run left out (<c>traffic_removed_mmsi</c>), 0 for none: a replay leaves out the same one.</summary>
+		public int TrafficRemovedMmsi { get; private set; }
+
+		/// <summary>The run's traffic event log (<c>traffic_events</c>, beside the telemetry); null without traffic.</summary>
+		public TrafficEventLogFile TrafficEvents { get; private set; }
 
 		public static RecordedRun Load(string telemetryPath)
 		{
@@ -117,6 +140,54 @@ namespace FerrySim.Sim
 
 			DateTimeOffset.TryParse(Required(header, "scenario_start_utc", telemetryPath), CultureInfo.InvariantCulture,
 				DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var start);
+			var visibility = 0.0;
+			if (header.ContainsKey(ScenarioSettings.VisibilityKey))
+			{
+				visibility = Number(header, ScenarioSettings.VisibilityKey, telemetryPath);
+				if (!(visibility >= ScenarioSettings.MinimumVisibilityMetres) || double.IsInfinity(visibility))
+				{
+					throw new FormatException($"{telemetryPath}: header '{ScenarioSettings.VisibilityKey}' is not a visibility of at least {ScenarioSettings.MinimumVisibilityMetres.ToString(CultureInfo.InvariantCulture)} m: '{header[ScenarioSettings.VisibilityKey]}'.");
+				}
+			}
+
+			string trafficPack = null;
+			string trafficDigest = null;
+			var leaveOut = FerrySim.Core.Traffic.TrafficLeaveOut.Off;
+			var removed = 0;
+			TrafficEventLogFile trafficEvents = null;
+			var hasTraffic = header.TryGetValue(RunRecorder.TrafficKey, out var trafficText);
+			if (hasTraffic)
+			{
+				if (trafficText != TrafficRun.PackText)
+				{
+					throw new FormatException($"{telemetryPath}: header '{RunRecorder.TrafficKey}' is '{trafficText}'; a run with traffic records '{TrafficRun.PackText}'.");
+				}
+
+				trafficPack = Required(header, RunRecorder.TrafficPackKey, telemetryPath);
+				trafficDigest = Required(header, RunRecorder.TrafficDigestKey, telemetryPath);
+				if (!EnvironmentPackDigests.IsHexDigest(trafficDigest))
+				{
+					throw new FormatException($"{telemetryPath}: header '{RunRecorder.TrafficDigestKey}' is not 64 lower-case hex characters: '{trafficDigest}'.");
+				}
+
+				var leaveOutText = Required(header, RunRecorder.TrafficLeaveOutKey, telemetryPath);
+				leaveOut = leaveOutText == ScenarioTraffic.ByMmsi ? FerrySim.Core.Traffic.TrafficLeaveOut.Mmsi : leaveOutText == ScenarioTraffic.Automatic ? FerrySim.Core.Traffic.TrafficLeaveOut.Automatic :
+					leaveOutText == ScenarioTraffic.Off ? FerrySim.Core.Traffic.TrafficLeaveOut.Off : throw new FormatException($"{telemetryPath}: header '{RunRecorder.TrafficLeaveOutKey}' is '{leaveOutText}', not off, mmsi or auto.");
+				var removedText = Required(header, RunRecorder.TrafficRemovedKey, telemetryPath);
+				if (removedText != TrafficRun.NoneRemoved && (!int.TryParse(removedText, NumberStyles.None, CultureInfo.InvariantCulture, out removed) || removed < 1))
+				{
+					throw new FormatException($"{telemetryPath}: header '{RunRecorder.TrafficRemovedKey}' is '{removedText}', not an MMSI or {TrafficRun.NoneRemoved}.");
+				}
+
+				var eventsPath = Path.Combine(directory, Required(header, RunRecorder.TrafficEventsKey, telemetryPath));
+				if (!File.Exists(eventsPath))
+				{
+					throw new FileNotFoundException($"{telemetryPath}: its traffic event log {Path.GetFileName(eventsPath)} is missing (looked at {eventsPath}).", eventsPath);
+				}
+
+				trafficEvents = TrafficEventLog.Parse(File.ReadAllLines(eventsPath), eventsPath);
+			}
+
 			return new RecordedRun
 			{
 				TelemetryPath = telemetryPath,
@@ -133,6 +204,13 @@ namespace FerrySim.Sim
 				SampleHz = sampleHz,
 				ScenarioStartUtc = start,
 				StateDigest = digest,
+				VisibilityMetres = visibility,
+				HasTraffic = hasTraffic,
+				TrafficPack = trafficPack,
+				TrafficDigest = trafficDigest,
+				TrafficLeaveOut = leaveOut,
+				TrafficRemovedMmsi = removed,
+				TrafficEvents = trafficEvents,
 			};
 		}
 
@@ -167,6 +245,19 @@ namespace FerrySim.Sim
 			ReplayedDigest = replayedDigest;
 		}
 
+		/// <summary>A result with the traffic events' comparison (a run with traffic).</summary>
+		public ReplayResult(ReplayResult rows, TrafficEventVerifier traffic)
+			: this(rows.RowsCompared, rows.ExpectedRows, rows.FirstMismatchRow, rows.Expected, rows.Actual, rows.RecordedDigest, rows.ReplayedDigest)
+		{
+			Traffic = traffic;
+		}
+
+		/// <summary>The traffic events' comparison, or null for a run without traffic.</summary>
+		public TrafficEventVerifier Traffic { get; }
+
+		/// <summary>True without traffic, or when every traffic event and the encounter digest came out the same.</summary>
+		public bool TrafficMatches => Traffic == null || Traffic.Matches;
+
 		public int RowsCompared { get; }
 
 		public int ExpectedRows { get; }
@@ -189,8 +280,8 @@ namespace FerrySim.Sim
 		/// <summary>True when the digests agree, or when there is no recorded digest to check.</summary>
 		public bool DigestMatches => RecordedDigest == null || string.Equals(RecordedDigest, ReplayedDigest, StringComparison.Ordinal);
 
-		/// <summary>Every row equal and, when recorded, every state equal bit for bit.</summary>
-		public bool Matches => RowsMatch && DigestMatches;
+		/// <summary>Every row equal and, when recorded, every state equal bit for bit, and with traffic every event too.</summary>
+		public bool Matches => RowsMatch && DigestMatches && TrafficMatches;
 
 		public override string ToString()
 		{
@@ -206,9 +297,15 @@ namespace FerrySim.Sim
 				return $"every row matches at CSV precision but the states differ: recorded {RecordedDigest}, replayed {ReplayedDigest}";
 			}
 
+			if (!TrafficMatches)
+			{
+				return "every row and state matches, but the traffic does not: " + Traffic;
+			}
+
+			var traffic = Traffic != null ? $", and all {Traffic.Compared} traffic events ({Traffic.ReplayedDigest})" : string.Empty;
 			return RecordedDigest == null
-				? $"replay matches all {RowsCompared} recorded rows (no state digest recorded)"
-				: $"replay matches all {RowsCompared} recorded rows and every state bit for bit ({ReplayedDigest})";
+				? $"replay matches all {RowsCompared} recorded rows (no state digest recorded){traffic}"
+				: $"replay matches all {RowsCompared} recorded rows and every state bit for bit ({ReplayedDigest}){traffic}";
 		}
 	}
 
@@ -228,6 +325,8 @@ namespace FerrySim.Sim
 		private string _actual;
 		private bool _finished;
 		private ReplayResult _final;
+		private TrafficEventVerifier _traffic;
+		private TrafficMonitor _trafficMonitor;
 
 		public ReplayVerifier(RecordedRun run)
 		{
@@ -236,7 +335,16 @@ namespace FerrySim.Sim
 		}
 
 		/// <summary>The comparison so far; complete once <see cref="Finish"/> has run.</summary>
-		public ReplayResult Result => _final ?? new ReplayResult(_compared, _compared, _firstMismatch, _expected, _actual);
+		public ReplayResult Result => _final ?? WithTraffic(new ReplayResult(_compared, _compared, _firstMismatch, _expected, _actual));
+
+		/// <summary>Also compares the run's traffic events, which <paramref name="monitor"/> hands to <paramref name="traffic"/>.</summary>
+		public void AttachTraffic(TrafficEventVerifier traffic, TrafficMonitor monitor)
+		{
+			_traffic = traffic ?? throw new ArgumentNullException(nameof(traffic));
+			_trafficMonitor = monitor ?? throw new ArgumentNullException(nameof(monitor));
+		}
+
+		private ReplayResult WithTraffic(ReplayResult rows) => _traffic == null ? rows : new ReplayResult(rows, _traffic);
 
 		public bool IsFinished => _finished;
 
@@ -270,10 +378,11 @@ namespace FerrySim.Sim
 
 				// The trace's closing row repeats the last controls, which is what the final row records.
 				Compare(TelemetryCsv.FormatRow(state, telemetry, _run.Inputs.At(stepCount)));
+				_traffic?.Finish(_trafficMonitor, stepCount);
 				_finished = true;
 			}
 
-			_final ??= new ReplayResult(_compared, _run.Rows.Count, _firstMismatch, _expected, _actual, _run.StateDigest, _digest.Text);
+			_final ??= WithTraffic(new ReplayResult(_compared, _run.Rows.Count, _firstMismatch, _expected, _actual, _run.StateDigest, _digest.Text));
 			return _final;
 		}
 
@@ -308,10 +417,13 @@ namespace FerrySim.Sim
 		/// <paramref name="geometry"/> has another, nothing is replayed and the result says so. A pack run is replayed
 		/// against <paramref name="pack"/>, or the pack its header names, found in <paramref name="packs"/> (StreamingAssets,
 		/// then the repository, when null); when that pack's day digest is not the recorded one, or it cannot be loaded, nothing
-		/// is replayed and the result names both digests. A calm or uniform run given a pack is refused the same way.
+		/// is replayed and the result names both digests. A calm or uniform run given a pack is refused the same way. A run with
+		/// traffic is replayed against <paramref name="traffic"/>, or the traffic pack its header names from
+		/// <paramref name="trafficPacks"/>, refused the same way for another digest, and its traffic events must come out the
+		/// same, row for row, with the same encounter digest; a run without traffic given a traffic pack is refused.
 		/// </summary>
 		public static ReplayResult Verify(RecordedRun run, VesselParameters parameters, ISimulationFactory factory, IStepObserver observer = null, IWorldGeometry geometry = null,
-			FerrySim.Core.Env.EnvironmentPack pack = null, EnvironmentPacks packs = null)
+			FerrySim.Core.Env.EnvironmentPack pack = null, EnvironmentPacks packs = null, TrafficPack traffic = null, TrafficPacks trafficPacks = null)
 		{
 			geometry ??= EmptyWorldGeometry.Instance;
 			if (run.Header.TryGetValue(WorldGeometryDigest.HeaderKey, out var recordedGeometry))
@@ -328,10 +440,22 @@ namespace FerrySim.Sim
 				return new ReplayResult(0, run.Rows.Count, 0, recordedEnvironment, replayedEnvironment);
 			}
 
+			if (!RecordedTraffic.TryForRecording(run, traffic, trafficPacks, out var trafficRun, out var recordedTraffic, out var replayedTraffic))
+			{
+				return new ReplayResult(0, run.Rows.Count, 0, recordedTraffic, replayedTraffic);
+			}
+
 			var simulation = factory.Create(parameters, environment.StartRun(), geometry, run.InitialState);
 			var driver = new FixedStepDriver(simulation, run.Inputs);
 			var verifier = new ReplayVerifier(run);
 			driver.AddObserver(verifier);
+			if (trafficRun != null)
+			{
+				var monitor = trafficRun.StartRun(HullOutline.FromContact(parameters), RecordedTraffic.Limits(run));
+				var events = new TrafficEventVerifier(run.TrafficEvents, trafficRun);
+				verifier.AttachTraffic(events, monitor);
+				driver.AddObserver(new TrafficStepObserver(monitor) { Verifier = events });
+			}
 			if (observer != null)
 			{
 				driver.AddObserver(observer);
@@ -347,6 +471,219 @@ namespace FerrySim.Sim
 			}
 
 			return verifier.Finish(driver.StepCount, simulation.State, simulation.Telemetry);
+		}
+	}
+
+	/// <summary>
+	/// A recording's traffic for its replay: its pack, which must be the one it was recorded with, the vessel it left out and
+	/// its alarm limits, as the run had them.
+	/// </summary>
+	public static class RecordedTraffic
+	{
+		/// <summary>
+		/// The traffic to replay <paramref name="run"/> with: none for a run without traffic, else <paramref name="pack"/> or the
+		/// day its header names from <paramref name="packs"/> (StreamingAssets, then the repository, when null), leaving out the
+		/// recorded MMSI. False, with what was recorded and what the replay has (both digests), for another pack, a pack that
+		/// cannot be loaded, or a pack given to a run without traffic.
+		/// </summary>
+		public static bool TryForRecording(RecordedRun run, TrafficPack pack, TrafficPacks packs, out TrafficRun traffic, out string recorded, out string replayed)
+		{
+			if (run == null)
+			{
+				throw new ArgumentNullException(nameof(run));
+			}
+
+			traffic = null;
+			if (!run.HasTraffic)
+			{
+				recorded = "no traffic";
+				replayed = pack != null ? $"traffic pack {pack.Date} (digest {pack.Digest})" : recorded;
+				return pack == null;
+			}
+
+			recorded = $"traffic pack {run.TrafficPack} (digest {run.TrafficDigest})";
+			string folder = null;
+			if (pack == null)
+			{
+				try
+				{
+					pack = (packs ?? ScenarioTraffic.DefaultPacks).Load(run.TrafficPack, out folder);
+				}
+				catch (Exception error) when (error is IOException || error is ArgumentException || error is TrafficPackException)
+				{
+					replayed = "no usable traffic pack: " + error.Message.TrimEnd('.');
+					return false;
+				}
+			}
+
+			replayed = $"traffic pack {pack.Date} (digest {pack.Digest})";
+			if (!string.Equals(pack.Digest, run.TrafficDigest, StringComparison.Ordinal))
+			{
+				return false;
+			}
+
+			try
+			{
+				traffic = new TrafficRun(pack, run.ScenarioStartUtc, run.TrafficLeaveOut, run.TrafficRemovedMmsi, folder);
+			}
+			catch (ArgumentException error)
+			{
+				replayed += ", " + error.Message.TrimEnd('.');
+				return false;
+			}
+
+			return true;
+		}
+
+		/// <summary>The alarm limits a run with traffic recorded in its event log's header, the alongside margin among them.</summary>
+		public static TrafficAlarmLimits Limits(RecordedRun run)
+		{
+			var log = run.TrafficEvents ?? throw new InvalidOperationException($"{Path.GetFileName(run.TelemetryPath)} has no traffic event log.");
+			double Value(string key) =>
+				log.Header.TryGetValue(key, out var text) && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+					? value
+					: throw new FormatException($"{Path.GetFileName(run.TelemetryPath)}: its traffic event log has no number for '{key}'.");
+			return new TrafficAlarmLimits(Value("cpa_alarm_m"), Value("tcpa_alarm_s"), Value("closing_speed_mps"), Value("alarm_clear_hold_s"), Value("collision_hold_s"), Value("alongside_margin_m"));
+		}
+	}
+
+	/// <summary>
+	/// Compares a replay's traffic events with a recording's, row for row, character for character, as they come, then the event
+	/// count, the open-episode snapshot (when the recording has one) and the encounter digest at the end (<see cref="Finish"/>).
+	/// </summary>
+	public sealed class TrafficEventVerifier : ITrafficEventSink
+	{
+		private readonly TrafficEventLogFile _recorded;
+		private readonly TrafficRun _traffic;
+		private bool _finished;
+
+		public TrafficEventVerifier(TrafficEventLogFile recorded, TrafficRun traffic)
+		{
+			_recorded = recorded ?? throw new ArgumentNullException(nameof(recorded));
+			_traffic = traffic ?? throw new ArgumentNullException(nameof(traffic));
+		}
+
+		/// <summary>Events the replay produced so far.</summary>
+		public int Compared { get; private set; }
+
+		/// <summary>Index of the first event that differs, or −1.</summary>
+		public int FirstMismatch { get; private set; } = -1;
+
+		public string Expected { get; private set; }
+
+		public string Actual { get; private set; }
+
+		/// <summary>The recorded and replayed encounter digests (the replayed one once finished).</summary>
+		public string RecordedDigest => _recorded.Digest;
+
+		public string ReplayedDigest { get; private set; }
+
+		/// <summary>Open-episode snapshot rows the replay produced at the end, compared when the recording has a snapshot.</summary>
+		public int OpenCompared { get; private set; }
+
+		/// <summary>Index of the first open-episode row that differs, or −1.</summary>
+		public int FirstOpenMismatch { get; private set; } = -1;
+
+		public string ExpectedOpen { get; private set; }
+
+		public string ActualOpen { get; private set; }
+
+		/// <summary>
+		/// Every event equal, as many as recorded, the open-episode snapshot equal when the recording has one, and the same digest;
+		/// false until <see cref="Finish"/>.
+		/// </summary>
+		public bool Matches => _finished && FirstMismatch < 0 && FirstOpenMismatch < 0 && Compared == _recorded.Records.Count &&
+			string.Equals(RecordedDigest, ReplayedDigest, StringComparison.Ordinal);
+
+		public void OnTrafficEvent(in TrafficEvent trafficEvent)
+		{
+			var index = Compared++;
+			if (FirstMismatch >= 0)
+			{
+				return;
+			}
+
+			var actual = TrafficEventLog.FormatRow(trafficEvent, _traffic.Pack.Vessels[trafficEvent.Vessel]);
+			var expected = index < _recorded.Records.Count ? _recorded.Records[index].Line : "(no event)";
+			if (!string.Equals(expected, actual, StringComparison.Ordinal))
+			{
+				FirstMismatch = index;
+				Expected = expected;
+				Actual = actual;
+			}
+		}
+
+		/// <summary>Ends the comparison after <paramref name="stepCount"/> steps of <paramref name="monitor"/>.</summary>
+		public void Finish(TrafficMonitor monitor, long stepCount)
+		{
+			if (_finished)
+			{
+				return;
+			}
+
+			_finished = true;
+			ReplayedDigest = monitor.Digest;
+			if (FirstMismatch < 0 && Compared != _recorded.Records.Count)
+			{
+				FirstMismatch = Compared;
+				Expected = $"{_recorded.Records.Count} traffic events";
+				Actual = $"{Compared} after {stepCount} steps";
+			}
+
+			if (_recorded.HasOpenSnapshot)
+			{
+				var open = new List<string>();
+				monitor.ReportOpen(new RowCollector(open, _traffic));
+				OpenCompared = open.Count;
+				for (var i = 0; i < Math.Max(open.Count, _recorded.Open.Count) && FirstOpenMismatch < 0; i++)
+				{
+					var expected = i < _recorded.Open.Count ? _recorded.Open[i].Line : "(no open episode)";
+					var actual = i < open.Count ? open[i] : "(no open episode)";
+					if (!string.Equals(expected, actual, StringComparison.Ordinal))
+					{
+						FirstOpenMismatch = i;
+						ExpectedOpen = expected;
+						ActualOpen = actual;
+					}
+				}
+			}
+		}
+
+		public override string ToString()
+		{
+			if (FirstMismatch >= 0)
+			{
+				return $"traffic event {FirstMismatch} differs:\n  recorded {Expected}\n  replayed {Actual}";
+			}
+
+			if (FirstOpenMismatch >= 0)
+			{
+				return $"open episode {FirstOpenMismatch} at the end differs:\n  recorded {ExpectedOpen}\n  replayed {ActualOpen}";
+			}
+
+			if (!string.Equals(RecordedDigest, ReplayedDigest, StringComparison.Ordinal))
+			{
+				return $"every traffic event matches but the encounters differ: recorded {RecordedDigest}, replayed {ReplayedDigest}";
+			}
+
+			return _recorded.HasOpenSnapshot
+				? $"all {Compared} traffic events and the {OpenCompared} episodes open at the end match ({ReplayedDigest})"
+				: $"all {Compared} traffic events match ({ReplayedDigest}); the recording has no open-episode snapshot";
+		}
+
+		/// <summary>Formats the replay's open-episode snapshot rows as the recorder writes them.</summary>
+		private sealed class RowCollector : ITrafficEventSink
+		{
+			private readonly List<string> _rows;
+			private readonly TrafficRun _traffic;
+
+			public RowCollector(List<string> rows, TrafficRun traffic)
+			{
+				_rows = rows;
+				_traffic = traffic;
+			}
+
+			public void OnTrafficEvent(in TrafficEvent trafficEvent) => _rows.Add(TrafficEventLog.FormatRow(trafficEvent, _traffic.Pack.Vessels[trafficEvent.Vessel]));
 		}
 	}
 }

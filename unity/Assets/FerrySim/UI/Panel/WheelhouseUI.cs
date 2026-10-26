@@ -12,7 +12,8 @@ namespace FerrySim.UI
 	/// from code, else the first source found in the scene (the simulation bridge in preference to a fake).
 	/// The water and the air come from an <see cref="IEnvironmentReadoutSource"/> and the scenario picker uses an
 	/// <see cref="IScenarioCatalog"/> and <see cref="IScenarioLauncher"/>, found the same way unless
-	/// <see cref="ConnectScenario"/> sets them. Other systems drive it through the public members (palette, units,
+	/// <see cref="ConnectScenario"/> sets them. The run's light (<see cref="IDaylightSource"/>, found the same way) offers the
+	/// panel its night palette at night. Other systems drive it through the public members (palette, units,
 	/// HUD toggle, acknowledge, picker); the development toolbar is only for the dev scene.
 	/// </summary>
 	[DisallowMultipleComponent]
@@ -33,6 +34,10 @@ namespace FerrySim.UI
 		[Tooltip("A component implementing IScenarioLauncher. Empty: the catalog if it is one, else found in the scene at startup.")]
 		[SerializeField]
 		private MonoBehaviour scenarioLauncher;
+
+		[Tooltip("A component implementing IDaylightSource (the world's sky). Empty: found in the scene at startup; none leaves the palette to the captain.")]
+		[SerializeField]
+		private MonoBehaviour daylightSource;
 
 		[Tooltip("Optional. Empty: runtime panel settings scaled from a 1280x720 design.")]
 		[SerializeField]
@@ -76,6 +81,12 @@ namespace FerrySim.UI
 		public IScenarioCatalog ScenarioCatalog { get; private set; }
 
 		public IScenarioLauncher ScenarioLauncher { get; private set; }
+
+		/// <summary>
+		/// The run's light (Sim/IDaylightSource.cs): each frame the panel is offered the night palette when it is night and
+		/// the day palette when it is not (<see cref="WheelhouseView.SuggestPalette"/>). Null leaves the palette alone.
+		/// </summary>
+		public IDaylightSource DaylightSource { get; set; }
 
 		public WheelhouseView View { get; private set; }
 
@@ -131,6 +142,8 @@ namespace FerrySim.UI
 				ScenarioLauncher ??= scenarioLauncher as IScenarioLauncher ?? ScenarioCatalog as IScenarioLauncher ?? Find<IScenarioLauncher>(typeof(FakeScenarioHost));
 			}
 
+			DaylightSource ??= daylightSource as IDaylightSource ?? FindDaylight();
+
 			if (panelSettings == null && _ownedSettings == null)
 			{
 				_ownedSettings = WheelhousePanelSettings.Create();
@@ -180,6 +193,26 @@ namespace FerrySim.UI
 			{
 				UpdateToolbarStatus();
 			}
+
+			// The panel follows the run's light; a palette the captain chose by hand holds until the light changes.
+			var daylight = DaylightSource is Object sky && sky == null ? null : DaylightSource;
+			if (View != null && daylight != null)
+			{
+				View.SuggestPalette(daylight.IsNight ? PaletteKind.Night : PaletteKind.Day);
+			}
+		}
+
+		private static IDaylightSource FindDaylight()
+		{
+			foreach (var behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.InstanceID))
+			{
+				if (behaviour is IDaylightSource daylight)
+				{
+					return daylight;
+				}
+			}
+
+			return null;
 		}
 
 		private void BuildView()

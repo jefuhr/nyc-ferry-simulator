@@ -291,6 +291,8 @@ namespace FerrySim.Core.Serialization
 					values[i] = BitConverter.Int32BitsToSingle(bytes[4 * i] | bytes[4 * i + 1] << 8 | bytes[4 * i + 2] << 16 | bytes[4 * i + 3] << 24);
 				}
 
+				// Only the values are kept: a harbor set's grid files are tens of megabytes.
+				files[g] = null;
 				try
 				{
 					grids.Add(new DepthGrid(node.Text("id"), originNorth, originEast, cell, rows, columns, values));

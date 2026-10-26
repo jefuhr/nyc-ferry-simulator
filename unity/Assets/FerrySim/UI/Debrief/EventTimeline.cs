@@ -7,8 +7,9 @@ namespace FerrySim.UI
 {
 	/// <summary>
 	/// The scrub bar under the debrief plots: the whole recording as one bar, events as marks (diamond for
-	/// gear shifts, circle for contact, triangle for depth alarms, so kinds differ by shape as well as
-	/// color) and a handle at the cursor. Press or drag anywhere on it to scrub.
+	/// gear shifts, circle for contact, triangle for depth alarms, square for traffic CPA alarms and a cross for
+	/// collisions with traffic, so kinds differ by shape as well as color) and a handle at the cursor. Press or
+	/// drag anywhere on it to scrub.
 	/// </summary>
 	public sealed class EventTimeline : InstrumentElement
 	{
@@ -70,6 +71,18 @@ namespace FerrySim.UI
 						break;
 					case DebriefEventKind.Contact:
 						VectorDraw.Circle(painter, new Vector2(x, y), 5.5f, color);
+						break;
+					case DebriefEventKind.TrafficAlarm:
+						VectorDraw.Rect(painter, new Rect(x - 5f, y - 5f, 10f, 10f), color);
+						break;
+					case DebriefEventKind.TrafficCollision:
+						VectorDraw.Line(painter, new Vector2(x - 6f, y - 6f), new Vector2(x + 6f, y + 6f), color, 3f);
+						VectorDraw.Line(painter, new Vector2(x - 6f, y + 6f), new Vector2(x + 6f, y - 6f), color, 3f);
+						break;
+					case DebriefEventKind.TrafficAlongside:
+						// Two hulls side by side.
+						VectorDraw.Rect(painter, new Rect(x - 6f, y - 6f, 4f, 12f), color);
+						VectorDraw.Rect(painter, new Rect(x + 2f, y - 6f, 4f, 12f), color);
 						break;
 					default:
 						VectorDraw.Triangle(painter, new Vector2(x, y + 6f), new Vector2(x - 6.5f, y - 6f), new Vector2(x + 6.5f, y - 6f), color);

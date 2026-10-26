@@ -15,6 +15,7 @@ namespace FerrySim.UI
 		public const string StyleSheetResource = "FerrySimUI/Wheelhouse";
 
 		private PaletteKind _palette = PaletteKind.Day;
+		private PaletteKind? _suggestedPalette;
 		private DistanceUnit _distanceUnit = DistanceUnit.Feet;
 		private double _depthAlarmThreshold = DepthAlarm.DefaultThresholdMetres;
 		private IScenarioCatalog _catalog;
@@ -208,6 +209,25 @@ namespace FerrySim.UI
 		}
 
 		public void TogglePalette() => Palette = Palette == PaletteKind.Day ? PaletteKind.Night : PaletteKind.Day;
+
+		/// <summary>
+		/// The palette the run's time of day suggests (the sun-altitude rule in World/Sky/Daylight.cs). It is applied only
+		/// when the suggestion changes, at dusk, at dawn or at a run in another light, so a palette the captain chose by hand
+		/// in between holds until then.
+		/// </summary>
+		public void SuggestPalette(PaletteKind palette)
+		{
+			if (_suggestedPalette == palette)
+			{
+				return;
+			}
+
+			_suggestedPalette = palette;
+			if (Palette != palette)
+			{
+				Palette = palette;
+			}
+		}
 
 		public void ToggleDistanceUnit() => DistanceUnit = DistanceUnit == DistanceUnit.Feet ? DistanceUnit.Metres : DistanceUnit.Feet;
 

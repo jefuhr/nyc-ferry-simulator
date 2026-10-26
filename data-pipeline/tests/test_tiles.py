@@ -111,9 +111,10 @@ def test_cli_harbor_dispatches_without_slice(monkeypatch, verb):
 
 
 def test_cli_rejects_ambiguous_scope_and_slice_tile_filter():
+	# export-unity --harbor is valid since harbor-environment (the harbor's contacts.json); test_export_unity_harbor.py
+	# covers it and its ambiguous form.
 	for args in (["build", "--harbor", "--slice", "lower-east-river"],
-		["build", "--slice", "lower-east-river", "--tiles", "tile_0_0"],
-		["export-unity", "--harbor"]):
+		["build", "--slice", "lower-east-river", "--tiles", "tile_0_0"]):
 		with pytest.raises(SystemExit):
 			cli.main(args)
 

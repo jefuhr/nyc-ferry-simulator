@@ -58,8 +58,8 @@ def main(argv=None) -> int:
 		p = sub.add_parser(verb, help=help_text)
 		scope = p.add_mutually_exclusive_group(required=True)
 		scope.add_argument("--slice", help="slice name, e.g. lower-east-river")
-		if verb != "export-unity":
-			scope.add_argument("--harbor", action="store_true", help="the 4 km harbor tile grid")
+		scope.add_argument("--harbor", action="store_true",
+			help="the harbor's contacts.json from the tiles' landing files" if verb == "export-unity" else "the 4 km harbor tile grid")
 		if verb == "build":
 			p.add_argument("--tiles", help="comma-separated harbor tile ids (requires --harbor)")
 		if verb not in ("validate", "export-unity"):
@@ -70,6 +70,9 @@ def main(argv=None) -> int:
 	args = parser.parse_args(argv)
 	if getattr(args, "tiles", None) and not getattr(args, "harbor", False):
 		parser.error("--tiles requires --harbor")
+	if args.command == "export-unity" and args.harbor:
+		from ferrydata import export_unity
+		return export_unity.run_harbor()
 	if getattr(args, "harbor", False):
 		if getattr(args, "only", None) or getattr(args, "skip", None) or getattr(args, "force", False):
 			parser.error("harbor commands build all v1 sources and never replace pinned downloads")

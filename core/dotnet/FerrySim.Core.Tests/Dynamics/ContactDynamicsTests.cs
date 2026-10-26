@@ -197,13 +197,27 @@ namespace FerrySim.Core.Tests.Dynamics
 			var hold = Hold(new ControlInputs(idle, 0.0, -HalfHelm), 5.0);
 			var simulation = hold.Simulation;
 			Assert.That(simulation.ContactCount, Is.GreaterThan(0));
-			var before = GC.GetAllocatedBytesForCurrentThread();
-			for (var step = 0; step < 2000; step++)
+			// An allocation per step shows in every window. The runtime's tiered JIT can allocate once while it recompiles
+			// hot methods early in a test run (seen as about 6 kB under load, never with tiering off), so up to four
+			// windows are measured and one must be clean.
+			var allocated = 0L;
+			for (var window = 0; window < 4; window++)
 			{
-				simulation.Step(new ControlInputs(idle, 0.0, -HalfHelm));
+				var before = GC.GetAllocatedBytesForCurrentThread();
+				for (var step = 0; step < 2000; step++)
+				{
+					simulation.Step(new ControlInputs(idle, 0.0, -HalfHelm));
+				}
+
+				allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+				if (allocated == 0)
+				{
+					break;
+				}
 			}
 
-			Assert.That(GC.GetAllocatedBytesForCurrentThread() - before, Is.EqualTo(0));
+			Assert.That(simulation.ContactCount, Is.GreaterThan(0), "still in contact");
+			Assert.That(allocated, Is.EqualTo(0), "steps in contact allocate nothing once the runtime has settled");
 		}
 
 		[Test]

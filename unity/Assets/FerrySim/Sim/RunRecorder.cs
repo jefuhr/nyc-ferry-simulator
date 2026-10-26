@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using FerrySim.Core.Contracts;
+using FerrySim.Core.Traffic;
 
 namespace FerrySim.Sim
 {
@@ -15,17 +16,39 @@ namespace FerrySim.Sim
 	/// </list>
 	/// The telemetry header also carries the exact initial state and environment (the uniform values, or the pack and its
 	/// digest), so <see cref="ReplayPlayer"/> can rebuild the run. Rows follow the CLI's semantics: the state at <c>time_s</c> and the controls that start
-	/// applying then, with a final row at the end of the run. Both files stream to disk as the run goes.
+	/// applying then, with a final row at the end of the run. Both files stream to disk as the run goes. A run with traffic
+	/// also writes <c>&lt;name&gt;.traffic.csv</c>, its traffic events and, when it ends, the snapshot of the episodes still open
+	/// (<see cref="TrafficEventLog"/>), and its header names the traffic pack (<see cref="TrafficHeader"/>); a run without traffic
+	/// writes exactly the two files above.
 	/// </summary>
-	public sealed class RunRecorder : IStepObserver, IDisposable
+	public sealed class RunRecorder : IStepObserver, ITrafficEventSink, IDisposable
 	{
 		public const string InputsSuffix = ".inputs.csv";
 		public const string StepsKey = "steps";
 		public const string DigestKey = "state_digest";
 		public const string EndStateKey = "end_state";
 
+		/// <summary>The recording header keys of a run with traffic.</summary>
+		public const string TrafficKey = "traffic";
+
+		public const string TrafficPackKey = "traffic_pack";
+
+		public const string TrafficDigestKey = "traffic_digest";
+
+		public const string TrafficEpochKey = "traffic_epoch_utc";
+
+		public const string TrafficLeaveOutKey = "traffic_leave_out";
+
+		public const string TrafficRemovedKey = "traffic_removed_mmsi";
+
+		/// <summary>The header key naming the traffic event log beside the telemetry.</summary>
+		public const string TrafficEventsKey = "traffic_events";
+
 		private readonly TextWriter _telemetry;
 		private readonly TextWriter _inputs;
+		private TextWriter _traffic;
+		private TrafficRun _trafficRun;
+		private TrafficMonitor _trafficMonitor;
 		private readonly StateDigest _digest = new StateDigest();
 		private readonly int _stepsPerSample;
 		private readonly int _stepsPerFlush;
@@ -81,33 +104,114 @@ namespace FerrySim.Sim
 		/// <summary>Digest of every state so far, written to the control trace when the run ends.</summary>
 		public StateDigest Digest => _digest;
 
+		/// <summary>Path of the traffic event log when created with <see cref="Create"/> for a run with traffic; null otherwise.</summary>
+		public string TrafficPath { get; private set; }
+
 		/// <summary>Opens <c>&lt;directory&gt;/&lt;baseName&gt;.csv</c> and its <c>.inputs.csv</c> companion.</summary>
-		public static RunRecorder Create(string directory, string baseName, int sampleHz, List<KeyValuePair<string, string>> header)
+		public static RunRecorder Create(string directory, string baseName, int sampleHz, List<KeyValuePair<string, string>> header) =>
+			Create(directory, baseName, sampleHz, header, null, null);
+
+		/// <summary>
+		/// As <see cref="Create(string, string, int, List{KeyValuePair{string, string}})"/>; with <paramref name="traffic"/>, also
+		/// <c>&lt;baseName&gt;.traffic.csv</c>, named in the header as <c>traffic_events</c>, for the events of
+		/// <paramref name="monitor"/> (which this recorder receives as their sink).
+		/// </summary>
+		public static RunRecorder Create(string directory, string baseName, int sampleHz, List<KeyValuePair<string, string>> header, TrafficRun traffic, TrafficMonitor monitor)
 		{
 			Directory.CreateDirectory(directory);
 			var telemetryPath = Path.Combine(directory, baseName + ".csv");
 			var inputsPath = Path.Combine(directory, baseName + InputsSuffix);
+			var trafficPath = traffic != null ? Path.Combine(directory, baseName + TrafficEventLog.Suffix) : null;
 			var fullHeader = new List<KeyValuePair<string, string>>(header) { Pair("param.inputs", Path.GetFileName(inputsPath)) };
+			if (trafficPath != null)
+			{
+				fullHeader.Add(Pair(TrafficEventsKey, Path.GetFileName(trafficPath)));
+			}
+
 			var encoding = new UTF8Encoding(false);
 			var telemetry = new StreamWriter(telemetryPath, false, encoding) { NewLine = "\n" };
 			StreamWriter inputs = null;
+			StreamWriter events = null;
 			try
 			{
 				inputs = new StreamWriter(inputsPath, false, encoding) { NewLine = "\n" };
 				var comments = new[] { "ferrysim control trace recorded by Unity, for " + Path.GetFileName(telemetryPath) };
-				return new RunRecorder(telemetry, inputs, sampleHz, fullHeader, comments)
+				var recorder = new RunRecorder(telemetry, inputs, sampleHz, fullHeader, comments)
 				{
 					TelemetryPath = telemetryPath,
 					InputsPath = inputsPath,
 				};
+				if (trafficPath != null)
+				{
+					events = new StreamWriter(trafficPath, false, encoding) { NewLine = "\n" };
+					recorder.AttachTraffic(events, traffic, monitor, Path.GetFileName(telemetryPath));
+					recorder.TrafficPath = trafficPath;
+				}
+
+				return recorder;
 			}
 			catch
 			{
 				try { telemetry.Dispose(); }
-				finally { inputs?.Dispose(); }
+				finally
+				{
+					try { inputs?.Dispose(); }
+					finally { events?.Dispose(); }
+				}
+
 				throw;
 			}
 		}
+
+		/// <summary>
+		/// The header lines of a run with traffic, after the world geometry: <c>traffic</c> = <c>pack</c>, the pack's day, its
+		/// digest and epoch, the leave-out and the MMSI it left out (<c>none</c> for none).
+		/// </summary>
+		public static List<KeyValuePair<string, string>> TrafficHeader(TrafficRun traffic) => new List<KeyValuePair<string, string>>
+		{
+			Pair(TrafficKey, TrafficRun.PackText),
+			Pair(TrafficPackKey, traffic.Pack.Date),
+			Pair(TrafficDigestKey, traffic.Pack.Digest),
+			Pair(TrafficEpochKey, EnvironmentPacks.Iso(traffic.Pack.EpochUtc)),
+			Pair(TrafficLeaveOutKey, ScenarioTraffic.LeaveOutText(traffic.LeaveOut)),
+			Pair(TrafficRemovedKey, traffic.RemovedText),
+		};
+
+		/// <summary>Writes the traffic event log's header and takes the monitor's events from now on.</summary>
+		private void AttachTraffic(TextWriter writer, TrafficRun traffic, TrafficMonitor monitor, string telemetryName)
+		{
+			_traffic = writer ?? throw new ArgumentNullException(nameof(writer));
+			_trafficRun = traffic ?? throw new ArgumentNullException(nameof(traffic));
+			_trafficMonitor = monitor ?? throw new ArgumentNullException(nameof(monitor));
+			var header = TrafficHeader(traffic);
+			header.Insert(0, Pair("telemetry", telemetryName));
+			header.AddRange(TrafficEventLog.LimitsHeader(monitor.Limits));
+			_traffic.Write(TrafficEventLog.FormatHeader(header));
+		}
+
+		/// <summary>Writes one traffic event's row. A failure ends the recording, as a telemetry failure does; physics goes on.</summary>
+		public void OnTrafficEvent(in TrafficEvent trafficEvent)
+		{
+			if (_finished || _traffic == null)
+			{
+				return;
+			}
+
+			try
+			{
+				_traffic.Write(TrafficEventLog.FormatRow(trafficEvent, _trafficRun.Pack.Vessels[trafficEvent.Vessel]));
+				_traffic.Write('\n');
+				TrafficRowCount++;
+			}
+			catch (Exception exception)
+			{
+				Failure = exception;
+				Dispose();
+			}
+		}
+
+		/// <summary>Traffic event rows written so far.</summary>
+		public int TrafficRowCount { get; private set; }
 
 		/// <summary>
 		/// The header for a Unity run: the keys the CLI writes for a trace replay plus what a replay needs to
@@ -145,7 +249,7 @@ namespace FerrySim.Sim
 		private static List<KeyValuePair<string, string>> CommonHeader(ScenarioSettings scenario, VesselParameters vessel, ISimulation simulation, string factoryName, in VesselState initial, int sampleHz)
 		{
 			var invariant = CultureInfo.InvariantCulture;
-			return new List<KeyValuePair<string, string>>
+			var header = new List<KeyValuePair<string, string>>
 			{
 				Pair("vessel", vessel.Id),
 				Pair("maneuver", "unity-run"),
@@ -170,6 +274,14 @@ namespace FerrySim.Sim
 				Pair("initial.sway_mps", ControlTrace.FormatValue(initial.Sway)),
 				Pair("initial.yaw_rate_radps", ControlTrace.FormatValue(initial.YawRate)),
 			};
+
+			// Only a run that asked for fog says so: one that did not records the same bytes as before the setting existed.
+			if (scenario.visibilityMetres > 0.0)
+			{
+				header.Add(Pair(ScenarioSettings.VisibilityKey, ControlTrace.FormatValue(scenario.visibilityMetres)));
+			}
+
+			return header;
 		}
 
 		public void BeforeStep(long step, in VesselState state, in VesselTelemetry telemetry, in ControlInputs controls)
@@ -197,6 +309,7 @@ namespace FerrySim.Sim
 				{
 					_telemetry.Flush();
 					_inputs.Flush();
+					_traffic?.Flush();
 				}
 			}
 			catch (Exception exception)
@@ -245,6 +358,12 @@ namespace FerrySim.Sim
 				_inputs.Write("# " + DigestKey + ": " + _digest.Text + "\n");
 				_inputs.Write("# " + EndStateKey + ": " + StateDigest.Describe(state) + "\n");
 				WriteRow(state, telemetry, _lastControls);
+				if (_traffic != null)
+				{
+					// Episodes still open keep their least range and CPA so far, as a snapshot after the events, not as ends.
+					var open = _trafficMonitor.ReportOpen(new SnapshotWriter(_traffic, _trafficRun));
+					_traffic.Write(TrafficEventLog.FormatTrailer(_trafficMonitor.EventCount, open, stepCount, _trafficMonitor.Digest));
+				}
 			}
 			catch (Exception exception)
 			{
@@ -263,6 +382,10 @@ namespace FerrySim.Sim
 			_finished = true;
 			Close(_telemetry);
 			Close(_inputs);
+			if (_traffic != null)
+			{
+				Close(_traffic);
+			}
 		}
 
 		private void Close(TextWriter writer)
@@ -287,5 +410,24 @@ namespace FerrySim.Sim
 		}
 
 		private static KeyValuePair<string, string> Pair(string key, string value) => new KeyValuePair<string, string>(key, value);
+
+		/// <summary>Writes the traffic log's open-episode snapshot rows when the run ends.</summary>
+		private sealed class SnapshotWriter : ITrafficEventSink
+		{
+			private readonly TextWriter _writer;
+			private readonly TrafficRun _traffic;
+
+			public SnapshotWriter(TextWriter writer, TrafficRun traffic)
+			{
+				_writer = writer;
+				_traffic = traffic;
+			}
+
+			public void OnTrafficEvent(in TrafficEvent trafficEvent)
+			{
+				_writer.Write(TrafficEventLog.FormatRow(trafficEvent, _traffic.Pack.Vessels[trafficEvent.Vessel]));
+				_writer.Write('\n');
+			}
+		}
 	}
 }

@@ -97,3 +97,147 @@ def run(slice_):
 	count = export_contacts(root / 'landing_structures.geojson', root / 'unity' / 'contacts.json')
 	print(f"Unity contacts: {count} segments, contacts.json version {CONTACTS_VERSION}")
 	return 0
+
+
+def harbor_structures(root):
+	"""The active harbor tiles' landing structures as one collection, each landing from the one tile that owns it (the
+	ownership validate --harbor checks); refuses a landing outside its owner, in two tiles, or missing."""
+	root = Path(root)
+	index = json.loads((root / 'index.json').read_text(encoding='utf-8'))
+	features, owners = [], {}
+	for entry in index['tiles']:
+		if not entry['active']:
+			continue
+		path = root / 'tiles' / entry['id'] / 'landing_structures.geojson'
+		if not path.is_file():
+			if entry['stop_ids']:
+				raise ValueError(f"{path}: missing, but {entry['id']} owns landings {entry['stop_ids']}; run build --harbor")
+			continue
+		for feature in json.loads(path.read_text(encoding='utf-8'))['features']:
+			stop = feature['properties']['stop_id']
+			if stop not in entry['stop_ids']:
+				raise ValueError(f"{path}: landing {stop} is not one {entry['id']} owns ({entry['stop_ids']})")
+			if owners.setdefault(stop, entry['id']) != entry['id']:
+				raise ValueError(f"landing {stop} is in {owners[stop]} and {entry['id']}")
+			features.append(feature)
+	missing = sorted({stop for e in index['tiles'] if e['active'] for stop in e['stop_ids']} - set(owners), key=lambda s: (len(s), s))
+	if missing:
+		raise ValueError(f'landings without structures: {missing}')
+	return dict(type='FeatureCollection', name='landing_structures', features=features), owners
+
+
+def check_unique(records):
+	"""Every contact id once, and every physical segment (its two WGS84 end points, either way round) once."""
+	ids, edges = {}, {}
+	for record in records:
+		if record['id'] in ids:
+			raise ValueError(f"contact id {record['id']} appears twice: {ids[record['id']]} and {record['stop_id']} {record['polyline_id']}")
+		ids[record['id']] = f"{record['stop_id']} {record['polyline_id']}"
+		edge = tuple(sorted((tuple(record['start_lonlat']), tuple(record['end_lonlat']))))
+		if edge in edges:
+			raise ValueError(f"segment {record['id']} ({record['stop_id']}) is the same edge as segment {edges[edge]}")
+		edges[edge] = record['id']
+
+
+def export_harbor_contacts(root, destination):
+	"""Writes the harbor's contacts.json version 2 from the 29 tiles' landing files: every landing, every id once, every
+	segment once. Records and their order are export_contacts's, over the whole harbor; returns the records."""
+	structures, _ = harbor_structures(root)
+	records = contact_records(structures)
+	check_unique(records)
+	destination = Path(destination)
+	destination.parent.mkdir(parents=True, exist_ok=True)
+	destination.write_text(json.dumps(records, indent='\t', ensure_ascii=False, allow_nan=False) + '\n', encoding='utf-8')
+	return records
+
+
+# Unity's LandingGeometry (unity/Assets/FerrySim/Slice/Landings/LandingGeometry.cs) reads contacts.json with these limits.
+GATE_REQUIRED = ('id', 'stop_id', 'stop_name', 'start_ne_m', 'end_ne_m', 'water_normal_ne', 'source', 'confidence', 'verification')
+GATE_NORMAL_TOLERANCE_DEG = 1.
+GATE_UNIT_NORMAL_TOLERANCE = 1e-3
+GATE_MINIMUM_LENGTH_M = 1e-3
+
+
+def landing_gate(record):
+	"""What LandingGeometry does with one contacts.json record, ported without C#: ('malformed', reason) for a record
+	that would stop the file loading, ('left out', reason), or ('kept', None). A segment is kept when the pipeline
+	verified its water side or crew reported it, or, off the primary face only, when its charted solid side is
+	verified; and its water_normal_ne is within 1 degree of the left-hand normal of start to end."""
+	def number(x):
+		return type(x) in (int, float) and math.isfinite(x)
+	def point(x):
+		return isinstance(x, list) and len(x) == 2 and all(number(v) for v in x)
+	def flag(key):
+		value = record.get(key)
+		if value is not None and type(value) is not bool:
+			raise TypeError(key)
+		return bool(value)
+	missing = [key for key in GATE_REQUIRED if key not in record]
+	if missing:
+		return 'malformed', f'{missing} missing'
+	if type(record['id']) is not int or not 1 <= record['id'] <= 2 ** 31 - 1:
+		return 'malformed', 'id must be a whole number from 1 to 2147483647'
+	for key in ('stop_id', 'source', 'confidence', 'verification'):
+		if not isinstance(record[key], str) or not record[key].strip():
+			return 'malformed', f'{key} must be non-empty text'
+	if not isinstance(record['stop_name'], str):
+		return 'malformed', 'stop_name must be text'
+	if not all(point(record[key]) for key in ('start_ne_m', 'end_ne_m', 'water_normal_ne')):
+		return 'malformed', 'start_ne_m, end_ne_m and water_normal_ne must be two finite numbers'
+	if abs(math.hypot(*record['water_normal_ne']) - 1) > GATE_UNIT_NORMAL_TOLERANCE:
+		return 'malformed', 'water_normal_ne must be a unit vector'
+	try:
+		verified, crew, primary = flag('water_side_verified_by_pipeline'), flag('water_side_crew_reported'), flag('primary_face')
+	except TypeError as error:
+		return 'malformed', f'{error} must be true or false'
+	for key, empty in (('kind', False), ('berth_id', True)):
+		if record.get(key) is not None and (not isinstance(record[key], str) or (not empty and not record[key].strip())):
+			return 'malformed', f'{key} must be text'
+	evidence = record.get('solid_side_evidence')
+	if evidence is not None and (not isinstance(evidence, dict) or type(evidence.get('verified')) is not bool):
+		return 'malformed', 'solid_side_evidence.verified must be true or false'
+	solid = bool(evidence and evidence['verified'])
+	(n0, e0), (n1, e1) = record['start_ne_m'], record['end_ne_m']
+	length = math.hypot(n1 - n0, e1 - e0)
+	if not math.isfinite(length) or length < GATE_MINIMUM_LENGTH_M:
+		return 'malformed', 'shorter than 1 mm'
+	if not verified and not crew and (primary or not solid):
+		return 'left out', 'water side unverified' + (', and a primary face is never kept on its solid side alone' if primary and solid else '')
+	normal = record['water_normal_ne']
+	cos = ((e1 - e0) / length * normal[0] - (n1 - n0) / length * normal[1]) / math.hypot(*normal)
+	if math.degrees(math.acos(max(-1., min(1., cos)))) > GATE_NORMAL_TOLERANCE_DEG:
+		return 'left out', 'water_normal_ne off the left-hand normal'
+	return 'kept', None
+
+
+def gate_counts(records, structures):
+	"""Per landing: segments, kept by the gate, kept by landings.runtime_contact (the pipeline's mark), and segments where
+	the two disagree. Refuses a malformed record."""
+	from ferrydata import landings
+	marks = {}
+	for feature in structures['features']:
+		for segment in feature['properties']['segments']:
+			marks[segment['id']] = landings.runtime_contact(segment)
+	counts = {}
+	for record in records:
+		verdict, reason = landing_gate(record)
+		if verdict == 'malformed':
+			raise ValueError(f"contacts.json segment {record.get('id')}: {reason}; LandingGeometry would refuse the file")
+		row = counts.setdefault(record['stop_id'], dict(stop_name=record['stop_name'], segments=0, gate=0, pipeline=0, disagree=[]))
+		row['segments'] += 1
+		row['gate'] += verdict == 'kept'
+		row['pipeline'] += marks[record['id']]
+		if (verdict == 'kept') != marks[record['id']]:
+			row['disagree'].append(record['id'])
+	return counts
+
+
+def run_harbor():
+	root = paths.processed_dir('harbor')
+	records = export_harbor_contacts(root, root / 'unity' / 'contacts.json')
+	counts = gate_counts(records, harbor_structures(root)[0])
+	disagree = sum(len(row['disagree']) for row in counts.values())
+	print(f"Unity harbor contacts: {len(records)} segments for {len(counts)} landings, contacts.json version {CONTACTS_VERSION}; "
+		f"LandingGeometry's gate keeps {sum(row['gate'] for row in counts.values())}, the pipeline marks {sum(row['pipeline'] for row in counts.values())} "
+		f"kept, {disagree} disagree")
+	return 0 if disagree == 0 else 1

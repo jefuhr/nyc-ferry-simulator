@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using FerrySim.Controls;
 using FerrySim.Sim;
+using FerrySim.Traffic;
 using FerrySim.UI;
 using FerrySim.World;
 using UnityEngine;
@@ -18,8 +19,8 @@ namespace FerrySim.Slice
 	/// contact geometry from the world importer's contacts.json and the slice's fender parameters
 	/// (<see cref="LandingGeometry"/>) and hands it to the runner; it puts the imported terrain under the world frame on
 	/// the water's datum (<see cref="ImportedTerrain"/>), keeps the drawn water at the run's tide (<see cref="TideFollower"/>),
-	/// lights the world for each run's scenario start, puts the wheelhouse eye aboard each run's vessel, checks every
-	/// run starts clear of the faces, switches the wheelhouse panel and the HUD with the camera view, and lets the helm's
+	/// lights the world for each run's scenario start, puts the wheelhouse eye aboard each run's vessel, draws the run's harbor
+	/// traffic when its scenario names a traffic day (<see cref="TrafficView"/>), checks every run starts clear of the faces, switches the wheelhouse panel and the HUD with the camera view, and lets the helm's
 	/// camera button swap the wheelhouse and chase views. It is the slice's hook point for a scenario picker: it is the
 	/// catalog and the launcher (<see cref="IScenarioCatalog"/> and <see cref="IScenarioLauncher"/>, through
 	/// <see cref="SliceScenarios"/>), and <see cref="EnvironmentSource"/> is the runner's environment readout. It connects
@@ -185,6 +186,9 @@ namespace FerrySim.Slice
 		/// <summary>The drawn water's tide driver, or null when the scene has no water surface.</summary>
 		public TideFollower Tide => _tide;
 
+		/// <summary>The run's traffic hulls (Traffic/README.md): drawn while the run's scenario names a traffic day.</summary>
+		public TrafficView TrafficView { get; private set; }
+
 		/// <summary>Why this player cannot run the slice (its vessel file is not packaged), or null.</summary>
 		public string PlayerError { get; private set; }
 
@@ -223,6 +227,15 @@ namespace FerrySim.Slice
 			{
 				_tide = new TideFollower(runner, water);
 			}
+
+			// The run's traffic, from the core's replay, on the drawn water in the world frame.
+			if (!TryGetComponent<TrafficView>(out var traffic))
+			{
+				traffic = gameObject.AddComponent<TrafficView>();
+			}
+
+			TrafficView = traffic;
+			traffic.Connect(runner, worldFrame != null ? worldFrame.transform : null, water, cameraRig != null ? cameraRig.GetComponent<Camera>() : null);
 
 			// The panel and the HUD read the run's water and air, and the picker chooses from this catalog and starts runs
 			// through this launcher, never a scene search's guess.

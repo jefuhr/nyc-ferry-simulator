@@ -5,6 +5,7 @@ using FerrySim.Core.Contracts;
 using FerrySim.Core.Dynamics;
 using FerrySim.Core.Env;
 using FerrySim.Core.Serialization;
+using FerrySim.Core.Traffic;
 using UnityEngine;
 
 namespace FerrySim.Sim
@@ -15,11 +16,13 @@ namespace FerrySim.Sim
 	/// <c>Update</c> (not Unity's 0.02 s <c>FixedUpdate</c>), then draws the vessel interpolated between the
 	/// last two physics states. Every run is recorded for replay and debrief. The water and air come from the scenario
 	/// (<see cref="RunEnvironment"/>: calm, uniform or an environment pack's day). UI and cameras read it through
-	/// <see cref="IVesselTelemetrySource"/> and <see cref="IEnvironmentReadoutSource"/>.
+	/// <see cref="IVesselTelemetrySource"/> and <see cref="IEnvironmentReadoutSource"/>. A scenario with a traffic day replays
+	/// that day's harbor traffic (<see cref="Traffic"/>): its CPA alarms and collisions are watched at every step, recorded and
+	/// replayed (Sim/README.md, Traffic), and read through <see cref="ITrafficReadoutSource"/>.
 	/// </summary>
 	[DefaultExecutionOrder(-100)]
 	[DisallowMultipleComponent]
-	public sealed class VesselSimulationRunner : MonoBehaviour, IVesselTelemetrySource, IEnvironmentReadoutSource
+	public sealed class VesselSimulationRunner : MonoBehaviour, IVesselTelemetrySource, IEnvironmentReadoutSource, ITrafficReadoutSource
 	{
 		private const double DropReportIntervalSeconds = 5.0;
 		private static long _nextRunId;
@@ -88,6 +91,12 @@ namespace FerrySim.Sim
 		private ReplayVerifier _replayVerifier;
 		private ReplayResult _lastReplayResult;
 		private readonly ContactObserver _contactObserver = new ContactObserver();
+		private TrafficPacks _trafficPacks;
+		private TrafficRun _traffic;
+		private HullOutline _trafficOutline;
+		private TrafficAlarmLimits _trafficLimits = TrafficAlarmLimits.Default;
+		private TrafficAlarmLimits _runTrafficLimits;
+		private TrafficStepObserver _trafficObserver;
 		private int _runNumber;
 		private bool _runActive;
 		private double _lastDropReportTime = double.NegativeInfinity;
@@ -162,6 +171,33 @@ namespace FerrySim.Sim
 			set => _packs = value;
 		}
 
+		/// <summary>Where scenarios and replays find traffic packs: StreamingAssets, then the repository, unless replaced.</summary>
+		public TrafficPacks TrafficPacks
+		{
+			get => _trafficPacks ?? ScenarioTraffic.DefaultPacks;
+			set => _trafficPacks = value;
+		}
+
+		/// <summary>The current scenario's traffic, or null for a run without traffic.</summary>
+		public TrafficRun Traffic => _traffic;
+
+		/// <summary>The current run's traffic monitor (alarms, collisions, the readout), or null without traffic.</summary>
+		public TrafficMonitor TrafficMonitor => _trafficObserver?.Monitor;
+
+		/// <summary>The CPA alarm's limits for new live runs (estimates, Core Traffic/README.md); a replay uses the ones it recorded.</summary>
+		public TrafficAlarmLimits TrafficLimits
+		{
+			get => _trafficLimits;
+			set => _trafficLimits = value;
+		}
+
+		public bool TrafficEnabled => _traffic != null;
+
+		public bool HasTraffic => HasTelemetry && _trafficObserver != null && _trafficObserver.Monitor.LastStep == _driver.StepCount;
+
+		/// <summary>The traffic at the most recent physics step: the alarm state and its target. Read it only while <see cref="HasTraffic"/>.</summary>
+		public TrafficAlarmReadout TrafficAlarm => _trafficObserver != null ? _trafficObserver.Monitor.Readout : default;
+
 		public bool IsInitialized => _driver != null;
 
 		public bool IsPaused { get; private set; }
@@ -171,6 +207,9 @@ namespace FerrySim.Sim
 
 		/// <summary>True while playing back a recorded run instead of live controls.</summary>
 		public bool IsReplaying => _replay != null;
+
+		/// <summary>The recording being replayed, or null.</summary>
+		public RecordedRun Replay => _replay;
 
 		public FixedStepDriver Driver => _driver;
 
@@ -262,9 +301,11 @@ namespace FerrySim.Sim
 				throw new ArgumentNullException(nameof(settings));
 			}
 
-			settings.Validate(EnvironmentPacks);
+			settings.Validate(EnvironmentPacks, TrafficPacks);
 			var vessel = parameters ?? LoadVessel(settings.vesselFile);
 			var environment = settings.CreateEnvironment(EnvironmentPacks);
+			var traffic = Verified(() => settings.CreateTraffic(TrafficPacks));
+			var outline = traffic != null ? TrafficOutline(vessel, settings.name) : null;
 			EndRun();
 			_replay = null;
 			_replayVerifier = null;
@@ -272,6 +313,9 @@ namespace FerrySim.Sim
 			Parameters = vessel;
 			ScenarioStartUtc = settings.StartUtc;
 			_environment = environment;
+			_traffic = traffic;
+			_trafficOutline = outline;
+			_runTrafficLimits = _trafficLimits;
 			_initialState = settings.InitialState(_environment.Observer);
 			StartRun(controls ?? FindControlSource());
 		}
@@ -280,9 +324,11 @@ namespace FerrySim.Sim
 		/// Plays back <paramref name="run"/> from its recorded start, checking every row as it goes. Not re-recorded. A pack
 		/// run plays against <paramref name="pack"/>, or the pack its header names from <see cref="EnvironmentPacks"/>; a pack
 		/// with another day digest is refused, naming both, before the current run ends, as are other world geometry and a
-		/// calm or uniform run given a pack.
+		/// calm or uniform run given a pack. A run with traffic plays against <paramref name="traffic"/>, or the traffic pack its
+		/// header names from <see cref="TrafficPacks"/>, refused the same way for another digest, leaving out the recorded MMSI,
+		/// with its recorded alarm limits; its events are checked as they come.
 		/// </summary>
-		public void InitializeReplay(RecordedRun run, VesselParameters parameters = null, EnvironmentPack pack = null)
+		public void InitializeReplay(RecordedRun run, VesselParameters parameters = null, EnvironmentPack pack = null, TrafficPack traffic = null)
 		{
 			if (run == null)
 			{
@@ -298,12 +344,22 @@ namespace FerrySim.Sim
 			}
 
 			var environment = RunEnvironment.ForRecording(run, pack, EnvironmentPacks);
+			if (!RecordedTraffic.TryForRecording(run, traffic, TrafficPacks, out var trafficRun, out var recordedTraffic, out var replayedTraffic))
+			{
+				throw new InvalidOperationException($"{Path.GetFileName(run.TelemetryPath)} was recorded against {recordedTraffic}, but the replay has {replayedTraffic}; replay it against the same traffic.");
+			}
+
 			var vessel = parameters ?? LoadVessel(run.VesselFile);
+			var outline = trafficRun != null ? TrafficOutline(vessel, Path.GetFileName(run.TelemetryPath)) : null;
+			var limits = trafficRun != null ? RecordedTraffic.Limits(run) : _trafficLimits;
 			EndRun();
 			Scenario = null;
 			Parameters = vessel;
 			ScenarioStartUtc = run.ScenarioStartUtc;
 			_environment = environment;
+			_traffic = trafficRun;
+			_trafficOutline = outline;
+			_runTrafficLimits = limits;
 			_initialState = run.InitialState;
 			_replay = run;
 			StartRun(run.Inputs);
@@ -344,6 +400,11 @@ namespace FerrySim.Sim
 			{
 				// Detach after the observer loop so other observers still see every step in this frame.
 				_driver.RemoveObserver(_recorder);
+				if (_trafficObserver != null)
+				{
+					_trafficObserver.Recorder = null;
+				}
+
 				ReportRecordingFailure(_recorder.Failure);
 				_recorder = null;
 			}
@@ -376,6 +437,12 @@ namespace FerrySim.Sim
 
 			var wasActive = _runActive;
 			_runActive = false;
+			if (_trafficObserver != null)
+			{
+				// The monitor stays readable (its last readout and counts) until the next run starts; it sees no more steps.
+				_driver.RemoveObserver(_trafficObserver);
+			}
+
 			if (_replayVerifier != null)
 			{
 				_driver.RemoveObserver(_replayVerifier);
@@ -511,14 +578,32 @@ namespace FerrySim.Sim
 			_runNumber++;
 			_unreportedDrop = 0.0;
 			_unreportedDropFrames = 0;
+			if (_trafficObserver != null)
+			{
+				_driver.RemoveObserver(_trafficObserver);
+			}
+
+			_trafficObserver = _traffic != null ? new TrafficStepObserver(_traffic.StartRun(_trafficOutline, _runTrafficLimits)) : null;
 			if (_replay != null)
 			{
 				_replayVerifier = new ReplayVerifier(_replay);
 				_driver.AddObserver(_replayVerifier);
+				if (_trafficObserver != null)
+				{
+					var events = new TrafficEventVerifier(_replay.TrafficEvents, _traffic);
+					_replayVerifier.AttachTraffic(events, _trafficObserver.Monitor);
+					_trafficObserver.Verifier = events;
+				}
 			}
 			else if (recordRuns)
 			{
 				StartRecording(simulation);
+			}
+
+			if (_trafficObserver != null)
+			{
+				_trafficObserver.Recorder = _recorder;
+				_driver.AddObserver(_trafficObserver);
 			}
 
 			_runActive = true;
@@ -538,7 +623,13 @@ namespace FerrySim.Sim
 				{
 					header.Add(new System.Collections.Generic.KeyValuePair<string, string>(WorldGeometryDigest.HeaderKey, geometryDigest));
 				}
-				_recorder = RunRecorder.Create(RecordingDirectory, UniqueRunName(), telemetrySampleHz, header);
+				if (_traffic != null)
+				{
+					header.AddRange(RunRecorder.TrafficHeader(_traffic));
+				}
+				_recorder = _traffic != null
+					? RunRecorder.Create(RecordingDirectory, UniqueRunName(), telemetrySampleHz, header, _traffic, _trafficObserver.Monitor)
+					: RunRecorder.Create(RecordingDirectory, UniqueRunName(), telemetrySampleHz, header);
 				_driver.AddObserver(_recorder);
 			}
 			catch (Exception exception)
@@ -659,6 +750,32 @@ namespace FerrySim.Sim
 			}
 		}
 
+		/// <summary>The vessel's contact outline for collisions with traffic; a vessel file without one cannot run with traffic.</summary>
+		private static HullOutline TrafficOutline(VesselParameters vessel, string label)
+		{
+			try
+			{
+				return HullOutline.FromContact(vessel);
+			}
+			catch (ArgumentException error)
+			{
+				throw new ArgumentException($"Scenario '{label}': traffic needs the vessel's contact outline for collisions ({error.Message}).", error);
+			}
+		}
+
+		/// <summary>A traffic pack that does not verify, as the refusal a scenario start reports (its message names the file).</summary>
+		private static TrafficRun Verified(Func<TrafficRun> load)
+		{
+			try
+			{
+				return load();
+			}
+			catch (TrafficPackException error)
+			{
+				throw new InvalidOperationException(error.Message, error);
+			}
+		}
+
 		private static VesselParameters LoadVessel(string vesselFile)
 		{
 			var path = SimPaths.Resolve(vesselFile);
@@ -668,6 +785,38 @@ namespace FerrySim.Sim
 			}
 
 			return VesselParametersJson.Load(path);
+		}
+	}
+
+	/// <summary>
+	/// Steps a run's <see cref="TrafficMonitor"/> after every physics step (the state the step ended at) and hands its events to
+	/// the run's recorder and, in a replay, its verifier. Allocation-free per step.
+	/// </summary>
+	public sealed class TrafficStepObserver : IStepObserver, ITrafficEventSink
+	{
+		public TrafficStepObserver(TrafficMonitor monitor)
+		{
+			Monitor = monitor ?? throw new ArgumentNullException(nameof(monitor));
+		}
+
+		public TrafficMonitor Monitor { get; }
+
+		/// <summary>The run's recorder, or null when the run is not recorded.</summary>
+		public ITrafficEventSink Recorder { get; set; }
+
+		/// <summary>A replay's verifier, or null for a live run.</summary>
+		public ITrafficEventSink Verifier { get; set; }
+
+		public void BeforeStep(long step, in VesselState state, in VesselTelemetry telemetry, in ControlInputs controls)
+		{
+		}
+
+		public void AfterStep(long stepCount, in VesselState state, in VesselTelemetry telemetry) => Monitor.Update(stepCount, state, this);
+
+		public void OnTrafficEvent(in TrafficEvent trafficEvent)
+		{
+			Recorder?.OnTrafficEvent(trafficEvent);
+			Verifier?.OnTrafficEvent(trafficEvent);
 		}
 	}
 }

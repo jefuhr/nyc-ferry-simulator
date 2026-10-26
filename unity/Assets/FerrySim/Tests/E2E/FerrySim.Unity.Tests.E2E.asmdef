@@ -3,7 +3,7 @@
 	"rootNamespace": "FerrySim.E2E",
 	"references": [
 		"FerrySim.Core", "FerrySim.Core.Serialization", "FerrySim.Unity.Sim",
-		"FerrySim.Unity.Slice", "FerrySim.Unity.World", "FerrySim.Unity.UI",
+		"FerrySim.Unity.Slice", "FerrySim.Unity.World", "FerrySim.Unity.UI", "FerrySim.Unity.Traffic",
 		"UnityEngine.TestRunner", "UnityEditor.TestRunner"
 	],
 	"includePlatforms": [],

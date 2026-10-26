@@ -15,7 +15,9 @@ uv run tools/plot_maneuver.py artifacts/maneuvers/t-turning-circle.csv --out art
 
 1. For maneuvers that start under way, the CLI bisects on a common lever position (both engines, helm amidships) until the vessel settles at the requested speed **through water**. Each trial starts at the target speed and runs until the speed has changed by no more than 0.005 m/s over 20 s (at least 30 s, at most 900 s). The target is met within 0.01 m/s. If full ahead cannot reach the speed, the command fails with exit code 1.
 2. The vessel then settles at that lever position and the maneuver inputs start on a whole second. `maneuver_start_s` in the CSV header says when; `--lead-in-s` (default 10) keeps the last seconds of steady running in the CSV so plots show the approach.
-3. Maneuvers that start at rest (`pivot`, `acceleration`) begin dead in the water, that is, drifting with the current, with the machinery at rest in neutral.
+3. Maneuvers that start at rest (`pivot`, `acceleration`, `transit`) begin dead in the water, that is, drifting with the current, with the machinery at rest in neutral.
+
+Every simulation of a run starts where the start options say, the lever search's trials included: `--start-north-m` with `--start-east-m` (world metres), or `--start-lat` with `--start-lon` (WGS84 degrees, converted through the world frame), and `--start-heading-deg` (`--heading-deg` is its older name; give one). A settled start adds the current at the start position. Without them a run starts at the world origin (north 0, east 0, near The Battery) heading north, and writes exactly the same bytes as before the options existed: the 12 calm manoeuvres (the six below for the T-class and the K-class) are pinned by their SHA-256 in `CalmManeuverBitIdentityTests`. With them the header gains `start_north_m` and `start_east_m` (and `start_lat` and `start_lon` when given) after `initial_heading_deg`. The origin is aground next to The Battery in a real pack, so pack runs normally give a start.
 
 The default test speed is the vessel's `performance.serviceSpeed`. All metrics are measured from the maneuver start, over the ground, along and across the heading at that instant (lateral is positive to starboard).
 
@@ -29,8 +31,13 @@ The default test speed is the vessel's `performance.serviceSpeed`. All metrics a
 | `stopping` | Both levers to neutral, helm amidships | 5 s after the stop (cap 1800 s) | Same as `crash-stop` |
 | `pivot` | Port ahead, starboard astern at `--lever` (0.5); `--direction port` mirrors it | `--duration-s` (default 90 s) | Yaw rate (mean over the last quarter), heading change, drift (largest distance from the start point), net displacement |
 | `acceleration` | Both levers to full ahead from rest | Speed steady to 0.02 m/s over 60 s (at least 120 s, cap 900 s) | Steady speed through water, time and distance to 90% of it |
+| `transit` | From rest, both levers at the lever that gives the test speed (`--speed-kn`, default the service speed) through water in calm deep water, found before the run; the helm steers `--waypoints` in turn | The last waypoint reached (cap 3600 s) | Arrival (1 or 0) and the time to it, closest approach to each waypoint, largest distance off the route, least depth under the keel, distance, mean speed through water |
 
 `--duration-s` replaces the end condition with a fixed length. Metrics a short record cannot reach are reported as "not reached" (`null` in JSON), never as zero.
+
+### Transit
+
+`--waypoints <file.csv>` holds rows of `north_m,east_m` (world metres, a `north_m,east_m` header, `#` lines skipped). The first leg runs from the start position to the first waypoint. Line-of-sight guidance turns the leg's bearing toward the leg by atan(cross-track error / 200 m), so a cross current that sets the vessel off is steered back, and a heading hold follows that course: helm = 2 × heading error (rad) − 8 s × yaw rate (rad/s), within ±1. A waypoint is reached within `--arrive-m` (default 50 m) or once the vessel is past the line through it square to its leg. The header records the route (`param.waypoints`), the gains, the lever (`settle.lever`, `settle.stw_kn`, `settle.environment: calm`) and, after the run, `result.waypoints_reached`, `result.arrived` and `result.arrived_s`. Holding a lever rather than a speed is how a ferry runs: in shallow water or in a current the speed through water differs from the calm-water figure, and the CSV shows by how much.
 
 ## CSV
 
@@ -61,8 +68,15 @@ dotnet run --project core/dotnet/FerrySim.Cli -- maneuver turning-circle --vesse
 
 - The day folder is `…/<region>/env/days/<date>`; the depth set is read from `…/<region>/env/depth`. Both are verified (file hashes and DIGEST files) before anything runs, and a pack that does not match fails with exit code 1 naming the file.
 - `--start-utc` is the scenario's start, simulation time zero, as ISO 8601 (`Z`, an offset, or neither for UTC, as Unity's `scenario_start_utc` reads it). It must lie inside the pack's time coverage. `--env-pack` needs it, it needs `--env-pack`, and `--env-pack` cannot be combined with `--env` (exit code 2 otherwise).
-- Runs start at the world origin (north 0, east 0, near The Battery) at `--heading-deg`, as calm runs do.
+- Runs start at the world origin unless the start options place them (above): the origin is aground next to The Battery.
 - The CSV header's `environment` line says `pack`, followed by `environment_pack` (region/date), `environment_digest` (the day digest), `environment_epoch_utc` (the pack's local midnight), `scenario_start_utc`, `environment_wind_station` (or `none (still air)`), and `environment_depth_misses` and `environment_time_holds`: how many depth samples fell off the depth grids and how many samples fell outside the pack's time window during the recorded run. The console says so too when either is not zero.
+- Then `environment_current_field`: `channel-harmonic/1` and the field's digest when the day names a current field, or `station-blend` when it does not (the harbor's packs, for now). With a channel field, `environment_current_outside_samples` counts the current samples of the recorded run that fell outside the field's grids and used the station blend (`ChannelCurrentField.OutsideSamples`).
+
+```
+dotnet run --project core/dotnet/FerrySim.Cli -- maneuver transit --vessel vessels/t-class.json --out transit.csv \
+  --env-pack data/processed/harbor/env/days/2025-07-14 --start-utc 2025-07-14T16:00:00Z \
+  --start-north-m 122 --start-east-m 733 --start-heading-deg 225 --waypoints route.csv
+```
 
 Calm runs, and runs with `--env`, write exactly the same bytes as before.
 

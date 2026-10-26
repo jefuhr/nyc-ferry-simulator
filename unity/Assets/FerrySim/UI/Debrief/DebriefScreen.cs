@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using FerrySim.Core.Contracts;
+using FerrySim.Core.Traffic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -13,7 +14,8 @@ namespace FerrySim.UI
 	/// marked where they happened, and a cursor that can be scrubbed from any plot, the track or the
 	/// timeline, with every value at the cursor listed beside the track. A note under the events says
 	/// whether the depth alarms are the recorded ones or a retrospective reconstruction at the current
-	/// threshold, and when that threshold is the unconfirmed default.
+	/// threshold, and when that threshold is the unconfirmed default. A run with traffic also shows its CPA alarms and
+	/// collisions with traffic, and the vessels it started alongside, from the traffic event log beside its telemetry.
 	/// </summary>
 	public sealed class DebriefScreen : VisualElement, IPaletteAware
 	{
@@ -34,6 +36,7 @@ namespace FerrySim.UI
 		private DistanceUnit _unit = DistanceUnit.Feet;
 		private double _threshold = DepthAlarm.DefaultThresholdMetres;
 		private List<DebriefEvent> _events = new List<DebriefEvent>();
+		private TrafficEventLogFile _traffic;
 
 		public DebriefScreen()
 		{
@@ -105,6 +108,9 @@ namespace FerrySim.UI
 		public event Action CloseRequested;
 
 		public TelemetryRecording Recording { get; private set; }
+
+		/// <summary>The recording's traffic event log, or null for a run without traffic.</summary>
+		public TrafficEventLogFile Traffic => _traffic;
 
 		public VesselParameters Parameters { get; private set; }
 
@@ -178,10 +184,14 @@ namespace FerrySim.UI
 		}
 
 		/// <summary>Shows a recording; <paramref name="parameters"/> may be null (the boat is then drawn at a minimum size).</summary>
-		public void Show(TelemetryRecording recording, VesselParameters parameters)
+		public void Show(TelemetryRecording recording, VesselParameters parameters) => Show(recording, parameters, null);
+
+		/// <summary>Shows a recording with its traffic events (<paramref name="traffic"/> null for a run without traffic).</summary>
+		public void Show(TelemetryRecording recording, VesselParameters parameters, TrafficEventLogFile traffic)
 		{
 			Recording = recording ?? throw new ArgumentNullException(nameof(recording));
 			Parameters = parameters;
+			_traffic = traffic;
 			_error.style.display = DisplayStyle.None;
 			var timeRange = new AxisRange(recording.StartTime, recording.StartTime + Math.Max(recording.Duration, 1e-3));
 			var count = recording.Count;
@@ -261,10 +271,12 @@ namespace FerrySim.UI
 		{
 			try
 			{
-				var recording = TelemetryCsv.Load(UIRepoPaths.Resolve(path ?? string.Empty));
+				var resolved = UIRepoPaths.Resolve(path ?? string.Empty);
+				var recording = TelemetryCsv.Load(resolved);
 				var parameters = VesselFiles.TryLoad(recording.VesselId, out _);
+				var traffic = TrafficLog(resolved, recording);
 				_path.SetValueWithoutNotify(path);
-				Show(recording, parameters);
+				Show(recording, parameters, traffic);
 				return true;
 			}
 			catch (Exception error) when (error is TelemetryCsvException || error is System.IO.IOException || error is UnauthorizedAccessException || error is ArgumentException)
@@ -272,6 +284,35 @@ namespace FerrySim.UI
 				PaletteRoles.SetText(_error, error.Message);
 				_error.style.display = DisplayStyle.Flex;
 				return false;
+			}
+		}
+
+		/// <summary>
+		/// The traffic event log a recording's header names (<c>traffic_events</c>, beside the telemetry CSV), or null when it names
+		/// none. Throws <see cref="System.IO.IOException"/>, naming the log, when it is missing or malformed.
+		/// </summary>
+		public static TrafficEventLogFile TrafficLog(string telemetryPath, TelemetryRecording recording)
+		{
+			var name = recording?.HeaderValue("traffic_events");
+			if (string.IsNullOrEmpty(name))
+			{
+				return null;
+			}
+
+			var folder = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(telemetryPath)) ?? string.Empty;
+			var path = System.IO.Path.Combine(folder, name);
+			if (!System.IO.File.Exists(path))
+			{
+				throw new System.IO.FileNotFoundException($"{System.IO.Path.GetFileName(telemetryPath)}: its traffic event log {name} is missing (looked at {path}).", path);
+			}
+
+			try
+			{
+				return TrafficEventLog.Parse(System.IO.File.ReadAllLines(path), path);
+			}
+			catch (FormatException error)
+			{
+				throw new System.IO.IOException(error.Message, error);
 			}
 		}
 
@@ -308,7 +349,7 @@ namespace FerrySim.UI
 
 		private void DetectEvents()
 		{
-			_events = Recording != null ? DebriefEvents.Detect(Recording, _threshold) : new List<DebriefEvent>();
+			_events = Recording != null ? DebriefEvents.Detect(Recording, _threshold, _traffic) : new List<DebriefEvent>();
 			foreach (var plot in new[] { _speed, _heading, _controls, _rudder })
 			{
 				plot.SetEvents(_events);
@@ -350,16 +391,23 @@ namespace FerrySim.UI
 					(DepthAlarm.IsDefaultThreshold(_threshold) ? $" ({DepthAlarm.PlaceholderNote})." : ".");
 			}
 
+			if (_traffic != null && Recording != null)
+			{
+				text += $" Traffic alarms as recorded: a vessel closing to a CPA of {TrafficNumber("cpa_alarm_m")} m or less within {TrafficNumber("tcpa_alarm_s")} s (estimates pending crew review); collisions are the hull overlapping a traffic vessel's AIS-sized rectangle, which never pushes it; a vessel within {TrafficNumber("alongside_margin_m")} m of the hull at the start is alongside, with no alarm or collision until they part.";
+			}
+
 			PaletteRoles.SetText(_eventsNote, text);
 			_eventsNote.style.display = text.Length > 0 ? DisplayStyle.Flex : DisplayStyle.None;
 		}
+
+		private string TrafficNumber(string key) => _traffic.Header.TryGetValue(key, out var value) ? value : "?";
 
 		private void RebuildEventList()
 		{
 			_eventList.Clear();
 			if (_events.Count == 0)
 			{
-				var none = PaletteRoles.Label(Recording == null ? string.Empty : "No gear shifts, contacts or depth alarms.", null, "fs-caption");
+				var none = PaletteRoles.Label(Recording == null ? string.Empty : _traffic != null ? "No gear shifts, contacts, depth alarms or traffic events." : "No gear shifts, contacts or depth alarms.", null, "fs-caption");
 				none.style.color = _palette.TextDim;
 				_eventList.Add(none);
 				return;

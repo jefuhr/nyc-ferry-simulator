@@ -13,7 +13,7 @@ from rasterio import features
 from shapely.geometry import shape
 from shapely.ops import unary_union
 
-from ferrydata import depth, geojsonio, landings, manifest, paths
+from ferrydata import depth, geojsonio, landings, manifest, operational_depth, paths
 
 BUFFER_M = 60.
 NODATA = -99999.
@@ -110,28 +110,32 @@ def build(slice_, log=print):
 		allowed = features.geometry_mask([buffer], out_shape=cudem.shape, transform=source.transform, invert=True)
 		if land:
 			allowed &= ~features.geometry_mask(land, out_shape=cudem.shape, transform=source.transform, invert=True)
-		merged, changed, flagged = merge_elevations(cudem, chart, allowed, source.nodata)
+		charted, changed, flagged = merge_elevations(cudem, chart, allowed, source.nodata)
+		from ferrydata import validate
+		required = validate.k_class_max_draft_m() + validate.UKC_MARGIN_M
+		levels = pd.read_csv(out / station['file'])
+		low = float(levels['water_level_navd88_m'].min())
+		# Where the fleet's T- and K-class boats were afloat, the bed goes no shallower than their AIS says it can be.
+		merged, operational = operational_depth.build_slice(slice_, out, charted, profile, low, required, log)
 		tags = {'vertical_datum': 'NAVD88', 'units': 'm', 'positive': 'up', 'datum_station': station['id'],
 			'mllw_zero_navd88_m': str(offset), 'datum_epoch': station['datum_epoch']}
-		_write_raster(out / 'depth_merged_navd88.tif', merged, profile, tags)
+		_write_raster(out / 'depth_merged_navd88.tif', merged, profile, {**tags, 'operational_floor': operational_depth.METHOD,
+			'operational_floor_file': operational_depth.FLOOR_FILE, 'operational_lowered_file': operational_depth.LOWERED_FILE})
 		chart_profile = {**profile, 'dtype': 'float32', 'nodata': NODATA}
 		_write_raster(out / 'depth_chart_navd88.tif', np.where(np.isfinite(chart), chart, NODATA).astype('float32'), chart_profile, tags)
 		flag_profile = {**profile, 'dtype': 'uint8', 'nodata': None, 'predictor': 1}
 		_write_raster(out / 'depth_disagreement_gt1m.tif', flagged.astype('uint8'), flag_profile,
 			{'meaning': '1 = chart/CUDEM absolute elevation difference > 1 m inside water/structure buffer; 0 = not flagged'})
-		from ferrydata import validate
-		required = validate.k_class_max_draft_m() + validate.UKC_MARGIN_M
 		rows = []
-		levels = pd.read_csv(out / station['file'])
-		low = float(levels['water_level_navd88_m'].min())
 		for f in faces:
 			p = f['properties']; mid = p['face_midpoint']
 			polygon = depth.landing_box_polygon((mid['north_m'], mid['east_m']), p['outward_normal_ne'])
 			cs = depth.sample_polygon(cudem, source.transform, polygon, source.nodata)
+			bs = depth.sample_polygon(charted, source.transform, polygon, source.nodata)
 			ms = depth.sample_polygon(merged, source.transform, polygon, source.nodata)
 			chs = depth.sample_polygon(np.where(np.isfinite(chart), chart, NODATA), source.transform, polygon, NODATA)
 			fs = depth.sample_polygon(flagged.astype('float32'), source.transform, polygon, NODATA)
-			cstats, mstats, chstats = [depth.depth_stats(sample.values, low) for sample in (cs, ms, chs)]
+			cstats, bstats, mstats, chstats = [depth.depth_stats(sample.values, low) for sample in (cs, bs, ms, chs)]
 			fraction = len(ms.values) / ms.cell_count if ms.cell_count else 0
 			rows.append({'stop_id': p['stop_id'], 'landing': p['stop_name'], 'face_source': p['source'],
 				'confidence': p['confidence'], 'verification': p['verification'], 'water_side': p['water_side'],
@@ -141,16 +145,20 @@ def build(slice_, log=print):
 				'cudem_verdict': 'pass' if validate.depth_verdict({**cstats, 'valid_fraction': fraction}, required) else 'FAIL',
 				'merged_verdict': 'pass' if validate.depth_verdict({**mstats, 'valid_fraction': fraction}, required) else 'FAIL',
 				'cells_diff_gt1m': int(fs.values.sum()), 'datum_station': station['id'],
-				'mllw_zero_navd88_m': offset, 'lowest_water_navd88_m': low})
+				'mllw_zero_navd88_m': offset, 'lowest_water_navd88_m': low,
+				'merged_before_floor_min_depth_m': bstats['min_depth_m'],
+				'merged_before_floor_verdict': 'pass' if validate.depth_verdict({**bstats, 'valid_fraction': fraction}, required) else 'FAIL'})
 		pd.DataFrame(rows).to_csv(out / 'landing_depth_diff.csv', index=False)
 	metadata = {'source_cudem': 'depth_navd88.tif', 'source_chart': ['depth_areas.geojson', 'soundings.geojson'],
 		'buffer_m': BUFFER_M, 'datum_station': station, 'mllw_zero_navd88_m': offset,
 		'source_manifest_sha256': {name: manifest.sha256_file(paths.MANIFEST_DIR / f'{name}.json') for name in ('noaa-enc', 'coops', 'cudem')},
 		'changed_cells': int(changed.sum()), 'cells_diff_gt1m': int(flagged.sum()),
-		'rules': 'Keep valid CUDEM unless supported chart elevation is lower within 60 m of construction/face and outside ENC LNDARE. Use shallowest DEPARE DRVAL1 per cell; SOUNDG measurements override area bounds only in their sampled cells, with shallowest sounding on overlap. SOUNDG is never extrapolated. Never fill CUDEM nodata or deepen past chart. Existing CUDEM deeper than chart is retained and flagged.',
-		'uncertainty': 'Station datum offset is spatially constant for this slice; no VDatum surface transformation. Chart minima are conservative bounds, not bathymetric surveys. Face placement requires crew verification.'}
+		'rules': 'Keep valid CUDEM unless supported chart elevation is lower within 60 m of construction/face and outside ENC LNDARE. Use shallowest DEPARE DRVAL1 per cell; SOUNDG measurements override area bounds only in their sampled cells, with shallowest sounding on overlap. SOUNDG is never extrapolated. Never fill CUDEM nodata or deepen past chart. Existing CUDEM deeper than chart is retained and flagged. Then the operational-ais floor (operational_ais): where T- and K-class boats were afloat (AIS within 200 m of a primary-face midpoint at SOG at most 2.5 m/s on the 28 scenario days), each water cell within half the class length of a report is lowered to at most the simulated water level then minus the class maxDraft minus a 0.3 m keel margin; never raised, never on ENC LNDARE or dry SLCONS areas, never into nodata.',
+		'uncertainty': 'Station datum offset is spatially constant for this slice; no VDatum surface transformation. Chart minima are conservative bounds, not bathymetric surveys. Face placement requires crew verification. The operational floor is AIS evidence of boats afloat, not a survey; its keel margin is an estimate and AIS antenna offsets are unknown.',
+		'operational_ais': operational}
 	(out / 'depth_merged_navd88.json').write_text(json.dumps(metadata, indent='\t') + '\n')
-	log(f"  depth_merged_navd88.tif: {changed.sum()} cells deepened; {flagged.sum()} chart/CUDEM differences > 1 m")
+	log(f"  depth_merged_navd88.tif: {changed.sum()} cells deepened by the chart; {operational['cells_lowered']} lowered by the "
+		f"operational-ais floor (largest {operational['max_lowering_m']:.2f} m); {flagged.sum()} chart/CUDEM differences > 1 m")
 	log('  landing_depth_diff.csv; depth_chart_navd88.tif; depth_disagreement_gt1m.tif')
 
 

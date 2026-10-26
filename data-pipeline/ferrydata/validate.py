@@ -6,16 +6,18 @@ Thresholds come from the data-pipeline brief and are not relaxed here; a failing
 import functools
 import json
 import re
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
 import rasterio
+from rasterio.io import MemoryFile
 from shapely.geometry import LineString, MultiLineString, MultiPolygon, Point, Polygon, shape
 from shapely.ops import nearest_points
 
-from ferrydata import crew_notes, depth, geodesy, landings as landing_module, paths
+from ferrydata import crew_notes, depth, geodesy, landings as landing_module, operational_depth, paths
 
 SHORE_MAX_M = 50.0
 UKC_MARGIN_M = 0.5
@@ -34,6 +36,7 @@ REQUIRED_OUTPUTS = (
 	"shoreline_constructions.geojson", "bridges.geojson", "coops_stations.json", "geoid_offset.json",
 	"landing_faces.geojson", "land_areas.geojson", "soundings.geojson", "depth_merged_navd88.tif", "depth_merged_navd88.json",
 	"landing_depth_diff.csv", "depth_disagreement_gt1m.tif", "depth_chart_navd88.tif",
+	operational_depth.FLOOR_FILE, operational_depth.LOWERED_FILE, operational_depth.REPORT_FILE,
 )
 
 
@@ -475,16 +478,22 @@ def depth_verdict(stats, required):
 	return stats["min_depth_m"] is not None and np.isfinite(stats["min_depth_m"]) and stats["valid_fraction"] >= MIN_VALID_FRACTION and stats["min_depth_m"] >= required
 
 
-def approach_depth(merged, chart, polygon, low, required, offset, areas, soundings):
+def approach_depth(merged, chart, polygon, low, required, offset, areas, soundings, before_floor=None, operational=None):
 	"""One approach box on merged data and on charted data, with the unchanged depth and coverage rules.
 
 	Charted data is the merge's own chart raster: the shallowest DEPARE/DRGARE DRVAL1 per cell, a SOUNDG
 	measurement in its own cell, MLLW converted to NAVD88 through the datum offset. The box passes when
 	either column does: charted depth can settle a failure only CUDEM shows, and never undoes a merged
 	pass. areas and soundings ([(local geometry, props)]) explain the verdict.
+
+	With before_floor, the merged bed before the operational-ais floor, the basis is the strongest evidence that
+	passes: the CUDEM and chart merge alone ('merged'), then the chart ('charted'), then the merged bed with the
+	fleet's AIS floor ('operational-ais'). operational, the build's per-landing box record, explains a box the
+	floor cannot settle.
 	"""
 	result = {}
-	for name, dataset in (('merged', merged), ('charted', chart)):
+	columns = (('merged', merged), ('charted', chart)) + ((('before_floor', before_floor),) if before_floor is not None else ())
+	for name, dataset in columns:
 		sample = depth.read_polygon(dataset, polygon)
 		stats = depth.depth_stats(sample.values, low)
 		stats['valid_fraction'] = len(sample.values) / sample.cell_count if sample.cell_count else 0.
@@ -506,13 +515,31 @@ def approach_depth(merged, chart, polygon, low, required, offset, areas, soundin
 		result['governing'] += [s for s in result['soundings_in_box'] if abs(s['depth_m'] - bound) < 1e-3]
 	merged_pass, charted_pass = result['merged']['verdict'] == 'PASS', charted['verdict'] == 'PASS'
 	result['verdict'] = 'PASS' if merged_pass or charted_pass else 'FAIL'
-	result['decided_by'] = 'merged' if merged_pass else 'charted' if charted_pass else 'neither'
+	if before_floor is None:
+		result['decided_by'] = 'merged' if merged_pass else 'charted' if charted_pass else 'neither'
+	else:
+		before_pass = result['before_floor']['verdict'] == 'PASS'
+		result['decided_by'] = ('merged' if before_pass else 'charted' if charted_pass else 'operational-ais' if merged_pass else 'neither')
+	result['operational'] = operational
 	result['explanation'] = approach_explanation(result, low, required, offset)
 	return result
 
 
 def _band(area):
 	return f"{area['min_depth_m']:g}-{area['max_depth_m']:g} m" if area['max_depth_m'] is not None else f">={area['min_depth_m']:g} m"
+
+
+def operational_explanation(result, required):
+	"""What the operational-ais floor did to a box it could not settle, from the rasters and the build's box record."""
+	before, after, record = result['before_floor'], result['merged'], result.get('operational')
+	text = (f"The operational-ais floor takes the merged minimum from {_fmt(before['min_depth_m'], 3)} m to "
+		f"{_fmt(after['min_depth_m'], 3)} m, short of {required:.2f} m")
+	if record:
+		level = record['lowest_covering_level_navd88_m']
+		text += (f"; {record['covered_cells']} of {record['cells']} box cells lie within a T/K report's footprint ({record['uncovered_cells']} uncovered), "
+			f"and the lowest level any report covering the box saw is {_fmt(level)} m NAVD88"
+			+ (f"; {record['failing_cells']} cells stay short, {record['failing_uncovered_cells']} of them uncovered" if record['failing_cells'] else ''))
+	return text + '. The floor deepens only where the fleet was seen afloat, and only for the levels it was seen at.'
 
 
 def approach_explanation(result, low, required, offset):
@@ -523,6 +550,11 @@ def approach_explanation(result, low, required, offset):
 	if result['decided_by'] == 'charted':
 		return (f"PASS settled by charted depths: every charted cell is at least {charted['min_depth_m']:.3f} m deep at the lowest water over "
 			f"{charted['valid_fraction']:.0%} of the box, while the {merged_text} comes from CUDEM where the chart is silent or shallower than CUDEM claims.")
+	if result['decided_by'] == 'operational-ais':
+		before = result['before_floor']
+		return (f"PASS settled by the operational-ais floor: every cell is at least {merged['min_depth_m']:.3f} m deep at the lowest water over "
+			f"{merged['valid_fraction']:.0%} of the box after the fleet's AIS floor, against {_fmt(before['min_depth_m'], 3)} m from the CUDEM and chart "
+			f"merge alone; charted minimum {_fmt(charted['min_depth_m'], 3)} m ({charted['verdict']}).")
 	lines = []
 	if charted['valid_fraction'] < MIN_VALID_FRACTION:
 		lines.append(f"FAIL on charted data: only {charted['valid_fraction']:.0%} of the box is charted ({MIN_VALID_FRACTION:.0%} needed), so the chart cannot settle it; {merged_text}.")
@@ -546,6 +578,8 @@ def approach_explanation(result, low, required, offset):
 			lines.append('The rest of the box: ' + '; '.join(f"{a['feature_class']} {a['id']} {_band(a)} over {a['box_fraction']:.0%} ({deep(a)})" for a in others) + '.')
 	lines.append('Soundings in the box: ' + (', '.join(f"{s['id']} {s['depth_m']:g} m" for s in result['soundings_in_box']) or 'none') + '. '
 		+ f"Within {NEARBY_SOUNDING_M:g} m of it: " + (', '.join(f"{s['depth_m']:g} m at {s['distance_m']:.1f} m" for s in result['soundings_nearby']) or 'none') + '.')
+	if 'before_floor' in result:
+		lines.append(operational_explanation(result, required))
 	lines.append(f"A chart depth band is a conservative lower bound, not a measurement: only a survey or crew evidence can show the berth is deeper. The {required:.2f} m requirement is unchanged.")
 	return ' '.join(lines)
 
@@ -557,22 +591,50 @@ def chart_features(name):
 	return areas, soundings
 
 
+@contextmanager
+def before_floor_dataset(merged, lowered):
+	"""The merged bed before the operational-ais floor, in memory: depth_merged_navd88.tif plus the exact lowering."""
+	values, amounts = merged.read(1), lowered.read(1)
+	if lowered.shape != merged.shape or lowered.transform != merged.transform:
+		raise ValueError("operational floor and merged grids differ")
+	finite = np.isfinite(amounts)
+	if np.any(amounts[finite] < 0):
+		raise ValueError(f"the operational floor raised {int((amounts[finite] < 0).sum())} beds")
+	nodata = values == merged.nodata if merged.nodata is not None else ~np.isfinite(values)
+	if np.any(finite == nodata):
+		raise ValueError("the operational lowering does not leave exactly the merged bed's nodata cells empty")
+	restored = np.where(finite, values.astype("float64") + np.where(finite, amounts, 0.), values).astype(values.dtype)
+	with MemoryFile() as memory:
+		with memory.open(**merged.profile) as dataset:
+			dataset.write(restored, 1)
+		with memory.open() as dataset:
+			yield dataset
+
+
 def check_depth(slice_):
 	out = paths.processed_dir(slice_.name)
 	required = k_class_max_draft_m() + UKC_MARGIN_M
 	station, min_level, min_time = reference_water_level(slice_)
 	shore = [local_geometry(f) for f in _load_json(slice_.name, "shoreline_constructions.geojson")["features"]]
-	offset = _load_json(slice_.name, "depth_merged_navd88.json")["mllw_zero_navd88_m"]
+	metadata = _load_json(slice_.name, "depth_merged_navd88.json")
+	offset, floor = metadata["mllw_zero_navd88_m"], metadata["operational_ais"]
+	if floor.get("method") != operational_depth.METHOD or not floor.get("applied"):
+		raise ValueError("depth_merged_navd88.json does not record the operational-ais floor")
+	records = {row["stop_id"]: row["box"] for row in _load_json(slice_.name, operational_depth.REPORT_FILE)["landings"]}
 	areas, soundings = chart_features(slice_.name)
-	with rasterio.open(out / "depth_merged_navd88.tif") as merged, rasterio.open(out / "depth_navd88.tif") as cudem, rasterio.open(out / "depth_chart_navd88.tif") as chart:
+	with rasterio.open(out / "depth_merged_navd88.tif") as merged, rasterio.open(out / "depth_navd88.tif") as cudem, rasterio.open(out / "depth_chart_navd88.tif") as chart, \
+		rasterio.open(out / operational_depth.LOWERED_FILE) as lowered:
 		if merged.shape != cudem.shape or merged.transform != cudem.transform or merged.crs != cudem.crs:
 			raise ValueError("merged and CUDEM grids differ")
-		approaches = compute_approaches(slice_, merged, min_level)
-		baseline = compute_approaches(slice_, cudem, min_level)
-		charted = [approach_depth(merged, chart, depth.landing_box_polygon(item.anchor_ne, item.boxes[0]["direction"], APPROACH_BOX_M),
-			min_level, required, offset, areas, soundings) for item in approaches]
+		if merged.tags().get("operational_floor") != operational_depth.METHOD:
+			raise ValueError("depth_merged_navd88.tif does not name the operational-ais floor")
+		with before_floor_dataset(merged, lowered) as before:
+			approaches = compute_approaches(slice_, merged, min_level)
+			baseline = compute_approaches(slice_, cudem, min_level)
+			charted = [approach_depth(merged, chart, depth.landing_box_polygon(item.anchor_ne, item.boxes[0]["direction"], APPROACH_BOX_M),
+				min_level, required, offset, areas, soundings, before_floor=before, operational=records.get(item.props["stop_id"])) for item in approaches]
 		write_approach_figure(slice_, approaches, merged, min_level, out / "landing_approaches.png", shore)
-	failures, cudem_failures, settled, rows, explanations = [], [], [], [], []
+	failures, cudem_failures, settled, floored, rows, explanations = [], [], [], [], [], []
 	for item, original, result in zip(approaches, baseline, charted):
 		stats, cs = item.boxes[0]["stats"], original.boxes[0]["stats"]
 		ok, c_ok = depth_verdict(stats, required), depth_verdict(cs, required)
@@ -580,29 +642,39 @@ def check_depth(slice_):
 			failures.append(item.props["stop_name"])
 		if result['decided_by'] == 'charted':
 			settled.append(item.props["stop_name"])
+		if result['decided_by'] == 'operational-ais':
+			floored.append(item.props["stop_name"])
 		if not c_ok:
 			cudem_failures.append(item.props["stop_name"])
 		if not ok or result['charted']['verdict'] != 'PASS':
 			explanations += [f"- **{item.props['stop_name']}** (stop {item.props['stop_id']}): {result['explanation']}"]
 		rows.append((item.props["stop_id"], item.props["stop_name"], item.props["face_source"], item.props["face_confidence"],
-			_fmt(cs["min_depth_m"]), "pass" if c_ok else "FAIL", _fmt(stats["min_depth_m"]),
+			_fmt(cs["min_depth_m"]), "pass" if c_ok else "FAIL", _fmt(result['before_floor']['min_depth_m']), _fmt(stats["min_depth_m"]),
 			_fmt(stats["p5_depth_m"]), f"{stats['valid_fraction']:.0%}", "pass" if ok else "FAIL",
 			_fmt(result['charted']['min_depth_m']), f"{result['charted']['valid_fraction']:.0%}", result['charted']['verdict'].lower().replace('fail', 'FAIL'),
-			result['verdict'].lower().replace('fail', 'FAIL')))
-	details = _md_table(["stop_id", "landing", "face source", "confidence", "CUDEM min depth (m)", "CUDEM verdict", "merged min depth (m)", "merged p5 (m)", "valid cells", "merged verdict",
-		"charted min depth (m)", "charted cells", "charted verdict", "verdict"], rows)
+			result['verdict'].lower().replace('fail', 'FAIL'), result['decided_by']))
+	parameters = floor["parameters"]
+	details = _md_table(["stop_id", "landing", "face source", "confidence", "CUDEM min depth (m)", "CUDEM verdict", "merged before floor (m)", "merged min depth (m)", "merged p5 (m)", "valid cells", "merged verdict",
+		"charted min depth (m)", "charted cells", "charted verdict", "verdict", "basis"], rows)
 	details += ["", f"Minimum water level: {min_level:.3f} m NAVD88 at gauge {station} ({min_time} UTC). Required depth: K-class max draft {k_class_max_draft_m():.2f} m + {UKC_MARGIN_M:g} m = {required:.2f} m.",
 		f"Each {APPROACH_BOX_M:g} m square starts at the berthing face and extends along its outward normal. The shallowest valid merged cell must meet the depth requirement with at least {MIN_VALID_FRACTION:.0%} coverage. CUDEM-only results use the identical face and box.",
 		f"Charted data: the same box and cell rule on depth_chart_navd88.tif, the merge's own chart support (shallowest DEPARE/DRGARE DRVAL1 per cell, a SOUNDG measurement in its own cell, MLLW = {offset:.3f} m NAVD88 at The Battery). A box passes when the merged or the charted column passes with the same {required:.2f} m and {MIN_VALID_FRACTION:.0%} coverage rules: charted depth can settle a failure only CUDEM shows and never undoes a merged pass.",
+		f"Operational-ais floor: {floor['reports']['total']} T/K AIS reports (" + ", ".join(f"{k} {v}" for k, v in floor['reports']['by_class'].items())
+		+ f") within {parameters['radius_m']:g} m of a primary-face midpoint at SOG at most {parameters['max_sog_mps']:g} m/s on the 28 scenario days lowered {floor['cells_lowered']} cells, "
+		f"largest {floor['max_lowering_m']:.2f} m: each water cell within half the class length overall of a report (T {parameters['footprint_radius_m']['T']:.2f} m, K {parameters['footprint_radius_m']['K']:.2f} m) "
+		f"goes no shallower than the simulated level then less the class maxDraft (T {parameters['max_draft_m']['T']:g} m, K {parameters['max_draft_m']['K']:g} m) and a {parameters['keel_margin_m']:g} m keel margin, an estimate. "
+		"'merged before floor' is the CUDEM and chart merge alone (depth_merged_navd88.tif plus depth_operational_lowered_m.tif); 'basis' names the strongest evidence that passes a box: merged, then charted, then operational-ais. "
+		"The floor never raised a bed and left exactly the bed's nodata cells empty (checked here); depth_operational_floor.json reports each landing.",
 		f"CUDEM-only: {len(cudem_failures)} of {len(approaches)} fail" + (": " + ", ".join(cudem_failures) if cudem_failures else ""),
 		f"Settled by charted depths: {len(settled)}" + (": " + ", ".join(settled) if settled else ""),
-		"The merge only deepens valid CUDEM cells within 60 m of structures/faces, outside ENC land, and no farther than conservative chart support. See landing_depth_diff.csv, depth_merged_navd88.json and depth_disagreement_gt1m.tif for datum provenance and differences. A chart/derived face is not operational berth verification.",
+		f"Settled by the operational-ais floor: {len(floored)}" + (": " + ", ".join(floored) if floored else ""),
+		"The chart merge only deepens valid CUDEM cells within 60 m of structures/faces, outside ENC land, and no farther than conservative chart support; the operational-ais floor then deepens water cells only where T/K boats were seen afloat, and only for the levels they were seen at. See landing_depth_diff.csv, depth_merged_navd88.json and depth_disagreement_gt1m.tif for datum provenance and differences. A chart/derived face is not operational berth verification.",
 		"", "### Verdicts on charted data", ""] + (explanations or ["Every box passes on merged and charted data."]) + [
 		"", "![approach boxes over merged elevation](landing_approaches.png)", "",
 		"Figure: merged elevation (m NAVD88), lowest-water contour, ENC shoreline (magenta), GTFS stop (red star), face midpoint (white dot) and approach box (red)."]
 	summary = (f"all {len(approaches)} approach boxes at least {required:.2f} m deep at {min_level:.2f} m NAVD88" if not failures
 		else f"{len(failures)} of {len(approaches)} approach boxes fail on merged and charted data: " + ", ".join(failures))
-	summary += f"; CUDEM-only {len(cudem_failures)} of {len(approaches)} fail; {len(settled)} settled by charted depths"
+	summary += f"; CUDEM-only {len(cudem_failures)} of {len(approaches)} fail; {len(settled)} settled by charted depths; {len(floored)} by the operational-ais floor"
 	from ferrydata import landing_audit
 	details += ['', '## Per-landing source and depth diagnosis', ''] + landing_audit.write(slice_, approaches, baseline, min_level, required)
 	return CheckResult(f"Landing approach depth >= {required:.2f} m at the window's lowest water level", not failures, summary, details)
@@ -951,14 +1023,21 @@ def harbor_bridge_clearances(bridges_by_tile, routes_by_tile, ferry_route_ids):
 	return CheckResult('Ferry-route bridge vertical clearances', not failures, summary), audit
 
 
+def harbor_tile_required_outputs():
+	"""The files every harbor tile must hold: the slice's, less its slice-only ones, plus the tile's own. The operational-ais
+	depth floor is applied to the slice only so far, so harbor tiles don't carry its outputs."""
+	slice_only = ('landing_faces.geojson', 'landing_depth_diff.csv', operational_depth.FLOOR_FILE, operational_depth.LOWERED_FILE,
+		operational_depth.REPORT_FILE)
+	return [name for name in REQUIRED_OUTPUTS if name not in slice_only] + ['raw_sources.json', 'depth_chart_navd88.tif']
+
+
 def _harbor_tile_checks(tile, entry):
 	from ferrydata import enc, manifest, tiles
 	out = paths.processed_dir(tile.name)
 	checks = []
 	def check(name, passed, detail):
 		checks.append(CheckResult(f"{tile.id}: {name}", bool(passed), str(detail)))
-	required = [name for name in REQUIRED_OUTPUTS if name not in
-		('landing_faces.geojson', 'landing_depth_diff.csv')] + ['raw_sources.json', 'depth_chart_navd88.tif']
+	required = harbor_tile_required_outputs()
 	missing = sorted({name for name in required if not (out / name).is_file()})
 	check('outputs', not missing and not entry.get('build_error'), entry.get('build_error') or f"missing: {missing}")
 	if missing:

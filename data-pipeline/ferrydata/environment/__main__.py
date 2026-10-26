@@ -10,13 +10,22 @@ from ferrydata.environment import pack, series
 def main(argv=None):
 	parser = argparse.ArgumentParser(description=__doc__)
 	sub = parser.add_subparsers(dest='command', required=True)
-	for verb in ('build', 'verify', 'validate'):
+	for verb in ('build', 'verify', 'validate', 'transit-route', 'transit-check'):
 		p = sub.add_parser(verb)
-		p.add_argument('--region', required=True, choices=['lower-east-river'])
+		p.add_argument('--region', required=True, choices=['harbor'] if verb.startswith('transit') else ['lower-east-river', 'harbor'])
+		if verb == 'transit-route':
+			p.add_argument('--start', required=True, help='north,east of the start, world metres')
+			p.add_argument('--end', required=True, help='north,east of the end, world metres')
+			p.add_argument('--deep', type=float, default=-6., help='the route keeps to water whose bed is below this, m NAVD88')
+			p.add_argument('--clear', type=float, default=25., help='and plans its path at least this far from shallower water, m')
+			p.add_argument('--out', required=True, help='the waypoints CSV for ferrysim maneuver transit')
 		if verb == 'build':
 			group = p.add_mutually_exclusive_group(required=True)
 			group.add_argument('--all', action='store_true')
 			group.add_argument('--days', help='comma-separated scenario dates')
+		if verb == 'transit-check':
+			p.add_argument('--out', required=True, help='folder for the table and the plots')
+			p.add_argument('csv', nargs='+', help='ferrysim transit CSVs run on a harbor pack')
 	args = parser.parse_args(argv)
 	if args.command == 'build':
 		from ferrydata.environment.build import build
@@ -30,6 +39,21 @@ def main(argv=None):
 		for directory, digest in zip(sorted(p for p in (root / 'days').iterdir() if p.is_dir()), digests):
 			print(f'{directory.name} {digest}')
 		print(f'verified {len(digests)} packs')
+	elif args.command == 'transit-route':
+		from ferrydata.environment import harbor, harbor_transit
+		start, end = [tuple(float(x) for x in text.split(',')) for text in (args.start, args.end)]
+		waypoints = harbor_transit.plan(pack.load_depth(harbor.tiles_root() / 'env' / 'depth'), start, end, args.deep, args.clear)
+		harbor_transit.write_route(args.out, waypoints)
+		print(f'[transit-route] {len(waypoints)} waypoints to {args.out}: ' + '; '.join(f'{n:.1f},{e:.1f}' for n, e in waypoints), flush=True)
+	elif args.command == 'transit-check':
+		from ferrydata.environment import harbor_transit
+		passed = harbor_transit.run(args.csv, args.out)
+		print(f'[transit-check] {"PASS" if passed else "FAIL"}; written to {args.out}', flush=True)
+		return 0 if passed else 1
+	elif args.region == 'harbor':
+		from ferrydata.environment import harbor_validation
+		summary = harbor_validation.run(paths.REPO_ROOT / 'artifacts' / 'environment-pack' / 'harbor')
+		print(f'[validate] harbor depth: cell-size evidence and {summary["seams"]} seams; written to {summary["destination"]}', flush=True)
 	else:
 		from ferrydata.environment import build as build_module, region_field, validation
 		from ferrydata.environment.sources import Inputs

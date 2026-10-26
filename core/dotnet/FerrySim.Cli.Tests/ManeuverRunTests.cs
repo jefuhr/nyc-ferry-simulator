@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -257,10 +258,19 @@ namespace FerrySim.Cli.Tests
 		{
 			using (var scratch = new TestSupport.ScratchDirectory())
 			{
+				// The transit needs its route: two legs of a kilometre.
+				var route = scratch.File("route.csv");
+				File.WriteAllText(route, "north_m,east_m\n1000,0\n1000,1000\n");
 				foreach (var spec in Maneuvers.All)
 				{
 					var csv = scratch.File(spec.Name + ".csv");
-					var run = TestSupport.Run(new VesselDynamicsFactory(), "maneuver", spec.Name, "--vessel", TestSupport.Vessel(vesselFile), "--out", csv);
+					var args = new List<string> { "maneuver", spec.Name, "--vessel", TestSupport.Vessel(vesselFile), "--out", csv };
+					if (spec.Name == "transit")
+					{
+						args.AddRange(new[] { "--waypoints", route });
+					}
+
+					var run = TestSupport.Run(new VesselDynamicsFactory(), args.ToArray());
 					Assert.That(run.Code, Is.EqualTo(0), spec.Name + ": " + run.Err);
 
 					var summary = TestSupport.Run(new VesselDynamicsFactory(), "summarize", csv, "--json");

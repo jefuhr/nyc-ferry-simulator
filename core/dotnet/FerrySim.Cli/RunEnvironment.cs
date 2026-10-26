@@ -121,7 +121,7 @@ namespace FerrySim.Cli
 			return new DataEnvironment(Pack, StartUtc);
 		}
 
-		/// <summary>Forgets what earlier simulations sampled, so the header reports only the recorded run.</summary>
+		/// <summary>Forgets what earlier simulations sampled, the current field's count included, so the header reports only the recorded run.</summary>
 		public static void ResetCounters(IEnvironment environment)
 		{
 			if (environment is DataEnvironment data)
@@ -147,6 +147,16 @@ namespace FerrySim.Cli
 			header.Add(Maneuvers.Pair("environment_wind_station", Pack.WindStations.Count > 0 ? Pack.WindStations[0].Id : "none (still air)"));
 			header.Add(Maneuvers.Pair("environment_depth_misses", coverage.DepthMisses.ToString(CultureInfo.InvariantCulture)));
 			header.Add(Maneuvers.Pair("environment_time_holds", coverage.TimeHolds.ToString(CultureInfo.InvariantCulture)));
+			if (data.CurrentField is ChannelCurrentField channel)
+			{
+				header.Add(Maneuvers.Pair("environment_current_field", CurrentFieldBasis.Method + " " + channel.Basis.Digest));
+				header.Add(Maneuvers.Pair("environment_current_outside_samples", channel.OutsideSamples.ToString(CultureInfo.InvariantCulture)));
+			}
+			else
+			{
+				header.Add(Maneuvers.Pair("environment_current_field", data.CurrentField is StationBlendCurrentField ? "station-blend" : data.CurrentField.GetType().Name));
+			}
+
 			return header;
 		}
 

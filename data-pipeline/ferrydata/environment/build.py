@@ -16,15 +16,18 @@ def subordinate_ids(source_dir):
 
 
 def build(region, days, log=print):
+	if region == 'harbor':
+		from ferrydata.environment import harbor
+		return harbor.build(days, log)
 	if region != 'lower-east-river':
-		raise ValueError('environment v1 currently supports lower-east-river only')
+		raise ValueError('environment v1 supports lower-east-river and harbor')
 	if not days or any(day not in series.DAYS for day in days):
 		raise ValueError('choose one or more of the 28 AIS scenario days')
 	slice_ = slices.get_slice(region)
 	source_dir = paths.processed_dir(region)
 	root = source_dir / 'env'
 	if not (source_dir / 'depth_merged_navd88.tif').exists():
-		raise ValueError('missing slice depth; run python data-pipeline/ferrydata build --slice lower-east-river --skip ais first')
+		raise ValueError('missing slice depth; run python data-pipeline/ferrydata build --slice lower-east-river first (the full build: the operational-ais depth floor reads the AIS extract)')
 	inputs = Inputs(log)
 	subordinates = subordinate_ids(source_dir)
 	water_stations, skipped_datums = [], []
