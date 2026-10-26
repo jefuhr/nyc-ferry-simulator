@@ -1,0 +1,32 @@
+{
+	"name": "FerrySim.Unity.Traffic.Tests.EditMode",
+	"rootNamespace": "FerrySim.Traffic.Tests",
+	"references": [
+		"FerrySim.Core",
+		"FerrySim.Core.Serialization",
+		"FerrySim.Unity.Sim",
+		"FerrySim.Unity.Traffic",
+		"FerrySim.Unity.World",
+		"FerrySim.Unity.UI",
+		"CesiumForUnity",
+		"Unity.Mathematics",
+		"UnityEngine.TestRunner",
+		"UnityEditor.TestRunner"
+	],
+	"includePlatforms": [
+		"Editor"
+	],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"nunit.framework.dll",
+		"Newtonsoft.Json.dll"
+	],
+	"autoReferenced": false,
+	"defineConstraints": [
+		"UNITY_INCLUDE_TESTS"
+	],
+	"versionDefines": [],
+	"noEngineReferences": false
+}

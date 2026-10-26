@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using FerrySim.Core.Contracts;
 using FerrySim.Core.Contracts.Geodesy;
+using FerrySim.Core.Serialization;
+using FerrySim.Core.Traffic;
 
 namespace FerrySim.Sim
 {
@@ -49,6 +51,9 @@ namespace FerrySim.Sim
 		/// </summary>
 		public double visibilityMetres;
 
+		/// <summary>The harbor's real traffic on the scenario's day, and which vessel to leave out; no traffic when its day is empty.</summary>
+		public ScenarioTraffic traffic = new ScenarioTraffic();
+
 		public DateTimeOffset StartUtc
 		{
 			get
@@ -85,15 +90,30 @@ namespace FerrySim.Sim
 			return VesselState.Planar(0.0, position.North, position.East, heading, surge, sway);
 		}
 
-		/// <summary>Checks the scenario, finding any environment pack it names in StreamingAssets and then the repository.</summary>
-		public void Validate() => Validate(null);
+		/// <summary>Checks the scenario, finding any environment and traffic pack it names in StreamingAssets and then the repository.</summary>
+		public void Validate() => Validate(null, null);
+
+		/// <summary>
+		/// As <see cref="Validate(EnvironmentPacks)"/>, and also refuses a traffic day whose pack <paramref name="trafficPacks"/>
+		/// (StreamingAssets, then the repository, when null) does not have, naming every place looked.
+		/// </summary>
+		public void Validate(EnvironmentPacks packs, TrafficPacks trafficPacks)
+		{
+			Validate(packs);
+			var problem = traffic?.StartProblem(trafficPacks);
+			if (problem != null)
+			{
+				throw new ArgumentException($"Scenario '{name}': {problem}.");
+			}
+		}
 
 		/// <summary>
 		/// Throws <see cref="ArgumentException"/> naming every problem: an empty vessel file, a start position, heading or
 		/// speed out of range, a visibility that is neither 0 nor a distance of at least 10 m, bad uniform values, a pack
 		/// name that is not region/date, a pack <paramref name="packs"/> does not have (StreamingAssets, then the
-		/// repository, when null), or a start outside the pack's coverage. A start time that is not ISO 8601 throws
-		/// <see cref="FormatException"/>.
+		/// repository, when null), or a start outside the pack's coverage; a traffic day that is not yyyy-MM-dd or not the
+		/// environment pack's day, or a leave-out that does not parse (<see cref="ScenarioTraffic.Validate"/>). A start time
+		/// that is not ISO 8601 throws <see cref="FormatException"/>.
 		/// </summary>
 		public void Validate(EnvironmentPacks packs)
 		{
@@ -137,6 +157,8 @@ namespace FerrySim.Sim
 				environment.Validate(problems);
 			}
 
+			traffic?.Validate(problems, environment);
+
 			if (problems.Count > 0)
 			{
 				throw new ArgumentException($"Scenario '{name}': " + string.Join("; ", problems) + ".");
@@ -167,6 +189,23 @@ namespace FerrySim.Sim
 
 			var pack = (packs ?? EnvironmentPacks.Default).Load(environment.pack, out var folder);
 			return RunEnvironment.ForPack(pack, StartUtc, folder);
+		}
+
+		/// <summary>
+		/// The scenario's traffic, or null without a traffic day: the day's pack loaded and verified from <paramref name="packs"/>
+		/// (StreamingAssets, then the repository, when null), the leave-out resolved at the start. Throws when the pack is not
+		/// found or does not verify, or the MMSI to leave out is not in it.
+		/// </summary>
+		public TrafficRun CreateTraffic(TrafficPacks packs = null)
+		{
+			if (traffic == null || !traffic.IsOn)
+			{
+				return null;
+			}
+
+			var pack = (packs ?? ScenarioTraffic.DefaultPacks).Load(traffic.day, out var folder);
+			var start = StartPosition;
+			return TrafficRun.ForScenario(pack, StartUtc, traffic.LeaveOutMode, traffic.leaveOutMmsi, start.North, start.East, folder);
 		}
 
 		private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
@@ -284,5 +323,87 @@ namespace FerrySim.Sim
 		}
 
 		private static bool InCircle(double degrees) => degrees >= 0.0 && degrees <= 360.0;
+	}
+
+	/// <summary>
+	/// The scenario's traffic (Sim/README.md, Traffic): one real day of harbor AIS traffic from a traffic pack
+	/// (ferrysim-traffic/1), replayed on the run's clock, which must be the environment pack's day. <see cref="leaveOut"/> can
+	/// leave out one vessel: none (<c>off</c>), the vessel with <see cref="leaveOutMmsi"/> (<c>mmsi</c>), or the ferry that ran
+	/// the learner's trip (<c>auto</c>: the ferry candidate nearest the start at the start time, within
+	/// <see cref="OwnFerryFinder.Distance"/> m and <see cref="OwnFerryFinder.Window"/> s; none when no candidate is that near).
+	/// </summary>
+	[Serializable]
+	public sealed class ScenarioTraffic
+	{
+		/// <summary>The <see cref="leaveOut"/> values.</summary>
+		public const string Off = "off";
+
+		public const string ByMmsi = "mmsi";
+
+		public const string Automatic = "auto";
+
+		/// <summary>The traffic pack's day, yyyy-MM-dd (for example <c>2025-07-14</c>); empty for no traffic.</summary>
+		public string day = string.Empty;
+
+		/// <summary>Which vessel to leave out: <c>off</c>, <c>mmsi</c> or <c>auto</c>.</summary>
+		public string leaveOut = Off;
+
+		/// <summary>The MMSI to leave out when <see cref="leaveOut"/> is <c>mmsi</c>.</summary>
+		public int leaveOutMmsi;
+
+		/// <summary>True when the scenario has traffic.</summary>
+		public bool IsOn => !string.IsNullOrEmpty(day);
+
+		public TrafficLeaveOut LeaveOutMode => leaveOut == ByMmsi ? TrafficLeaveOut.Mmsi : leaveOut == Automatic ? TrafficLeaveOut.Automatic : TrafficLeaveOut.Off;
+
+		/// <summary>StreamingAssets' <c>data/processed</c> first, then the repository's, as environment packs are found.</summary>
+		public static TrafficPacks DefaultPacks =>
+			new TrafficPacks(System.IO.Path.Combine(UnityEngine.Application.streamingAssetsPath, EnvironmentPacks.ProcessedFolder), System.IO.Path.Combine(SimPaths.RepoRoot, EnvironmentPacks.ProcessedFolder));
+
+		/// <summary>The leave-out's text for a mode, as <see cref="leaveOut"/> and recordings write it.</summary>
+		public static string LeaveOutText(TrafficLeaveOut mode) => mode == TrafficLeaveOut.Mmsi ? ByMmsi : mode == TrafficLeaveOut.Automatic ? Automatic : Off;
+
+		/// <summary>Adds what is wrong: a day that is not yyyy-MM-dd or not the environment pack's day, or a leave-out that does not parse.</summary>
+		public void Validate(List<string> problems, ScenarioEnvironment environment)
+		{
+			if (!IsOn)
+			{
+				return;
+			}
+
+			if (!TrafficPacks.IsDay(day))
+			{
+				problems.Add($"traffic day '{day}' is not yyyy-MM-dd, for example 2025-07-14");
+			}
+			else if (environment == null || !environment.IsPack)
+			{
+				problems.Add($"traffic day {day} needs the environment pack of the same day, but the scenario's water and air are {(environment == null ? "missing" : environment.Kind.ToString().ToLowerInvariant())}");
+			}
+			else if (EnvironmentPacks.TryParseName(environment.pack, out _, out var date, out _) && date != day)
+			{
+				problems.Add($"traffic day {day} is not the environment pack's day ({environment.pack}); a run's tide, current, wind and traffic are one real day");
+			}
+
+			if (leaveOut != Off && leaveOut != ByMmsi && leaveOut != Automatic)
+			{
+				problems.Add($"traffic leaveOut '{leaveOut}' must be off, mmsi or auto");
+			}
+			else if (leaveOut == ByMmsi && (leaveOutMmsi < 1 || leaveOutMmsi > 999999999))
+			{
+				problems.Add($"traffic leaveOutMmsi {leaveOutMmsi} must be an MMSI, 1 to 999999999");
+			}
+		}
+
+		/// <summary>Why the traffic cannot start, or null: its pack is not found in <paramref name="packs"/> (StreamingAssets, then the repository, when null).</summary>
+		public string StartProblem(TrafficPacks packs)
+		{
+			if (!IsOn || !TrafficPacks.IsDay(day))
+			{
+				return null;
+			}
+
+			packs ??= DefaultPacks;
+			return packs.DayFolder(day) == null ? packs.NotFound(day) : null;
+		}
 	}
 }

@@ -1,4 +1,5 @@
 using FerrySim.Core.Contracts;
+using FerrySim.Core.Traffic;
 using FerrySim.Sim;
 using UnityEngine.UIElements;
 
@@ -17,6 +18,8 @@ namespace FerrySim.UI
 	/// Per-run state (the depth alarm and its acknowledgement, the contact episode, the coverage warnings) starts
 	/// over whenever the source or its <see cref="IVesselTelemetrySource.RunId"/> changes, but not on a dropout
 	/// within a run. Contact comes from the source's per-step latch, so a touch between two frames is never missed.
+	/// A source that is also an <see cref="ITrafficReadoutSource"/> with traffic in its run gets the CPA alarm, one line docked to
+	/// the panel's top edge (<see cref="TrafficReadout"/>); runs without traffic show the panel exactly as before.
 	/// </para>
 	/// </summary>
 	public sealed class WheelhousePanel : VisualElement, IPaletteAware
@@ -120,6 +123,10 @@ namespace FerrySim.UI
 			console.Add(Starboard);
 			Add(console);
 
+			// On runs with traffic, the CPA alarm: one line docked to the panel's top edge, so no instrument below moves.
+			Traffic = new TrafficReadout();
+			Add(Traffic);
+
 			ShowNoData();
 		}
 
@@ -142,6 +149,9 @@ namespace FerrySim.UI
 		public DepthReadout Depth { get; }
 
 		public ContactReadout Contact { get; }
+
+		/// <summary>The CPA alarm, shown only while the source's run has traffic.</summary>
+		public TrafficReadout Traffic { get; }
 
 		public Label Clock => _clock;
 
@@ -195,10 +205,22 @@ namespace FerrySim.UI
 			// The water, the air and the clock change on their own, so they are checked every frame; unchanged text costs nothing.
 			EnvironmentDisplay.Update(source, environment, unit);
 			ShowEnvironment(source);
+			var traffic = source as ITrafficReadoutSource;
+			Traffic.SetShown(traffic != null && traffic.TrafficEnabled);
 			if (source == null || !source.HasTelemetry)
 			{
 				ShowNoData();
 				return;
+			}
+
+			// Traffic moves on its own between the learner's samples, so it is checked every frame too.
+			if (traffic != null && traffic.HasTraffic)
+			{
+				Traffic.Show(traffic.TrafficAlarm, unit);
+			}
+			else
+			{
+				Traffic.ShowNoData();
 			}
 
 			if (ShowingNoData)
@@ -242,6 +264,7 @@ namespace FerrySim.UI
 			Depth.ShowValue(InstrumentFormat.NoValue, _unit);
 			Depth.SetAlarm(AlarmState.Normal, false);
 			Contact.ShowNoData();
+			Traffic.ShowNoData();
 			PaletteRoles.SetText(_elapsed, InstrumentFormat.NoValue);
 		}
 

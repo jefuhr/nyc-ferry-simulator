@@ -9,6 +9,7 @@
 		"FerrySim.Unity.Input",
 		"FerrySim.Unity.World",
 		"FerrySim.Unity.UI",
+		"FerrySim.Unity.Traffic",
 		"CesiumForUnity",
 		"Unity.Mathematics"
 	],

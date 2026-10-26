@@ -424,6 +424,36 @@
 	height: 52px;
 }
 
+/* The CPA alarm on runs with traffic: one line docked to the panel's top edge, right-aligned above the starboard column. */
+.fs-traffic {
+	position: absolute;
+	right: 8px;
+	bottom: 100%;
+	height: 26px;
+	margin-bottom: 4px;
+	padding: 0 10px;
+	flex-direction: row;
+	align-items: center;
+	border-width: 2px;
+	border-radius: 5px;
+}
+
+.fs-traffic > Label {
+	margin-left: 12px;
+	white-space: nowrap;
+}
+
+.fs-traffic > .fs-traffic-state {
+	margin-left: 0;
+	min-width: 72px;
+}
+
+.fs-traffic > .fs-traffic-name {
+	max-width: 170px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 .fs-rudder {
 	flex-direction: row;
 	height: 74px;

@@ -323,6 +323,8 @@ namespace FerrySim.UI
 		internal static Color EventColor(InstrumentPalette palette, DebriefEventKind kind) =>
 			kind == DebriefEventKind.GearShift ? palette.Shifting :
 			kind == DebriefEventKind.Contact ? palette.Caution :
+			kind == DebriefEventKind.TrafficCollision ? palette.Redline :
+			kind == DebriefEventKind.TrafficAlongside ? palette.TextDim :
 			palette.Alarm;
 
 		private sealed class SeriesLayer : InstrumentElement
