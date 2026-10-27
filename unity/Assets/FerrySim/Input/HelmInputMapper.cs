@@ -2,6 +2,7 @@ using System;
 using FerrySim.Core.Contracts;
 using FerrySim.Controls.Profiles;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 namespace FerrySim.Controls
 {
@@ -18,12 +19,19 @@ namespace FerrySim.Controls
 
 		/// <summary>Notches each way from neutral: five gives 0.2 per press.</summary>
 		public const int DefaultLeverNotches = 5;
+		public const int HelmNotches = 4;
+		public const double HelmRepeatDelay = 0.4;
+		public const double HelmRepeatInterval = 0.2;
 
 		private readonly InputActionMap _map;
 		private readonly InputAction _port;
 		private readonly InputAction _starboard;
 		private readonly InputAction _both;
 		private readonly InputAction _helm;
+		private readonly InputAction _helmStep;
+		private readonly InputAction _midships;
+		private int _helmStepHeld;
+		private double _helmRepeatRemaining;
 		private readonly InputAction _portStep;
 		private readonly InputAction _starboardStep;
 		private readonly InputAction _bothStep;
@@ -62,6 +70,8 @@ namespace FerrySim.Controls
 			_starboard = Find("StarboardLever");
 			_both = Find("BothLevers");
 			_helm = Find("Helm");
+			_helmStep = Find("HelmStep");
+			_midships = Find("Midships");
 			_portStep = Find("PortLeverStep");
 			_starboardStep = Find("StarboardLeverStep");
 			_bothStep = Find("BothLeversStep");
@@ -79,6 +89,9 @@ namespace FerrySim.Controls
 			_both.canceled += OnBoth;
 			_helm.performed += OnHelm;
 			_helm.canceled += OnHelm;
+			_helmStep.performed += OnHelmStep;
+			_helmStep.canceled += OnHelmStep;
+			_midships.performed += OnMidships;
 			_portStep.performed += OnPortStep;
 			_portStep.canceled += OnPortStep;
 			_starboardStep.performed += OnStarboardStep;
@@ -148,6 +161,8 @@ namespace FerrySim.Controls
 				if (_profileRouter?.OwnsInput(_both.activeControl, ProfileTarget.StarboardLever) != true) _starboardLever = Clamp(both);
 			}
 
+			_helmStepHeld = 0;
+			_helmRepeatRemaining = 0;
 			_helmOrder = ReadAbsolute(_helm, ProfileTarget.Helm);
 			_profileRouter?.Resync();
 		}
@@ -184,6 +199,9 @@ namespace FerrySim.Controls
 			_both.canceled -= OnBoth;
 			_helm.performed -= OnHelm;
 			_helm.canceled -= OnHelm;
+			_helmStep.performed -= OnHelmStep;
+			_helmStep.canceled -= OnHelmStep;
+			_midships.performed -= OnMidships;
 			_portStep.performed -= OnPortStep;
 			_portStep.canceled -= OnPortStep;
 			_starboardStep.performed -= OnStarboardStep;
@@ -235,7 +253,11 @@ namespace FerrySim.Controls
 		{
 			if (target == ProfileTarget.PortLever || target == ProfileTarget.BothLevers) _targetOwners[0] = owner;
 			if (target == ProfileTarget.StarboardLever || target == ProfileTarget.BothLevers) _targetOwners[1] = owner;
-			if (target == ProfileTarget.Helm) _targetOwners[2] = owner;
+			if (target == ProfileTarget.Helm)
+			{
+				_targetOwners[2] = owner;
+				if (!ReferenceEquals(owner, _helmStep)) _helmStepHeld = 0;
+			}
 		}
 		internal void ReleaseProfileInput(object owner)
 		{
@@ -281,6 +303,36 @@ namespace FerrySim.Controls
 		private void OnHelm(InputAction.CallbackContext context)
 		{
 			if (!ProfileOwns(context, ProfileTarget.Helm)) { _helmOrder = Clamp(context.ReadValue<float>()); SetOwner(ProfileTarget.Helm, context.control); }
+		}
+
+		/// <summary>Render-time button repeat only; recorded controls remain the actual fixed-step orders.</summary>
+		public void AdvanceHelmRepeat(double elapsedSeconds)
+		{
+			if (!Enabled || _helmStepHeld == 0 || elapsedSeconds <= 0 || double.IsNaN(elapsedSeconds)) return;
+			_helmRepeatRemaining -= elapsedSeconds;
+			// At most the whole eight-detent travel after a stalled frame; no unbounded catch-up loop.
+			for (var i = 0; _helmRepeatRemaining <= 0 && i < 8; i++)
+			{
+				_helmOrder = StepNotch(_helmOrder, _helmStepHeld, HelmNotches);
+				_helmRepeatRemaining += HelmRepeatInterval;
+			}
+			if (_helmRepeatRemaining <= 0) _helmRepeatRemaining = HelmRepeatInterval;
+		}
+
+		private void OnHelmStep(InputAction.CallbackContext context)
+		{
+			// Releasing an opposing button can expose the other side of a 1D composite; it is not a new press.
+			if (context.control is ButtonControl button && !button.isPressed) { _helmStepHeld = 0; return; }
+			if (!TryStep(context, ref _helmStepHeld, out var direction)) return;
+			_helmOrder = StepNotch(_helmOrder, direction, HelmNotches);
+			_helmRepeatRemaining = HelmRepeatDelay;
+			SetOwner(ProfileTarget.Helm, _helmStep);
+		}
+
+		private void OnMidships(InputAction.CallbackContext context)
+		{
+			_helmOrder = 0;
+			SetOwner(ProfileTarget.Helm, context.control);
 		}
 
 		private void OnPortStep(InputAction.CallbackContext context)

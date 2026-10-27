@@ -1,0 +1,5473 @@
+{
+	"schema": "harbor-building-raw-v1",
+	"nyc_dataset": "5zhs-2jue",
+	"active": [
+		[
+			-2,
+			-2
+		],
+		[
+			-2,
+			-1
+		],
+		[
+			-2,
+			0
+		],
+		[
+			-2,
+			2
+		],
+		[
+			-2,
+			3
+		],
+		[
+			-1,
+			-2
+		],
+		[
+			-1,
+			-1
+		],
+		[
+			-1,
+			0
+		],
+		[
+			0,
+			-2
+		],
+		[
+			0,
+			-1
+		],
+		[
+			0,
+			0
+		],
+		[
+			0,
+			1
+		],
+		[
+			1,
+			-2
+		],
+		[
+			1,
+			-1
+		],
+		[
+			1,
+			0
+		],
+		[
+			1,
+			1
+		],
+		[
+			1,
+			3
+		],
+		[
+			2,
+			-2
+		],
+		[
+			2,
+			-1
+		],
+		[
+			2,
+			0
+		],
+		[
+			2,
+			1
+		],
+		[
+			2,
+			2
+		],
+		[
+			2,
+			3
+		],
+		[
+			3,
+			-2
+		],
+		[
+			3,
+			-1
+		],
+		[
+			3,
+			0
+		],
+		[
+			3,
+			1
+		],
+		[
+			3,
+			2
+		],
+		[
+			3,
+			3
+		]
+	],
+	"files": [
+		{
+			"file": "nyc_-2_-2_0000.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_-2_-2_0001.json",
+			"source": "nyc",
+			"rows": 3338
+		},
+		{
+			"file": "nyc_-2_-1_0000.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_-2_-1_0001.json",
+			"source": "nyc",
+			"rows": 3741
+		},
+		{
+			"file": "nyc_-2_0_0000.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_-2_0_0001.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_-2_0_0002.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_-2_0_0003.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_-2_0_0004.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_-2_0_0005.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_-2_0_0006.json",
+			"source": "nyc",
+			"rows": 999
+		},
+		{
+			"file": "nyc_-2_2_0000.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_-2_2_0001.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_-2_2_0002.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_-2_2_0003.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_-2_2_0004.json",
+			"source": "nyc",
+			"rows": 4285
+		},
+		{
+			"file": "nyc_-2_3_0000.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_-2_3_0001.json",
+			"source": "nyc",
+			"rows": 1323
+		},
+		{
+			"file": "nyc_-1_-2_0000.json",
+			"source": "nyc",
+			"rows": 0
+		},
+		{
+			"file": "nyc_-1_-1_0000.json",
+			"source": "nyc",
+			"rows": 249
+		},
+		{
+			"file": "nyc_-1_0_0000.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_-1_0_0001.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_-1_0_0002.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_-1_0_0003.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_-1_0_0004.json",
+			"source": "nyc",
+			"rows": 915
+		},
+		{
+			"file": "nyc_0_-2_0000.json",
+			"source": "nyc",
+			"rows": 0
+		},
+		{
+			"file": "nyc_0_-1_0000.json",
+			"source": "nyc",
+			"rows": 66
+		},
+		{
+			"file": "nyc_0_0_0000.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_0_0_0001.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_0_0_0002.json",
+			"source": "nyc",
+			"rows": 1415
+		},
+		{
+			"file": "nyc_0_1_0000.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_0_1_0001.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_0_1_0002.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_0_1_0003.json",
+			"source": "nyc",
+			"rows": 2861
+		},
+		{
+			"file": "nyc_1_-2_0000.json",
+			"source": "nyc",
+			"rows": 0
+		},
+		{
+			"file": "nyc_1_-1_0000.json",
+			"source": "nyc",
+			"rows": 0
+		},
+		{
+			"file": "nyc_1_0_0000.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_1_0_0001.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_1_0_0002.json",
+			"source": "nyc",
+			"rows": 63
+		},
+		{
+			"file": "nyc_1_1_0000.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_1_1_0001.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_1_1_0002.json",
+			"source": "nyc",
+			"rows": 3125
+		},
+		{
+			"file": "nyc_1_3_0000.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_1_3_0001.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_1_3_0002.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_1_3_0003.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_1_3_0004.json",
+			"source": "nyc",
+			"rows": 546
+		},
+		{
+			"file": "nyc_2_-2_0000.json",
+			"source": "nyc",
+			"rows": 0
+		},
+		{
+			"file": "nyc_2_-1_0000.json",
+			"source": "nyc",
+			"rows": 0
+		},
+		{
+			"file": "nyc_2_0_0000.json",
+			"source": "nyc",
+			"rows": 3951
+		},
+		{
+			"file": "nyc_2_1_0000.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_2_1_0001.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_2_1_0002.json",
+			"source": "nyc",
+			"rows": 716
+		},
+		{
+			"file": "nyc_2_2_0000.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_2_2_0001.json",
+			"source": "nyc",
+			"rows": 2712
+		},
+		{
+			"file": "nyc_2_3_0000.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_2_3_0001.json",
+			"source": "nyc",
+			"rows": 3364
+		},
+		{
+			"file": "nyc_3_-2_0000.json",
+			"source": "nyc",
+			"rows": 0
+		},
+		{
+			"file": "nyc_3_-1_0000.json",
+			"source": "nyc",
+			"rows": 0
+		},
+		{
+			"file": "nyc_3_0_0000.json",
+			"source": "nyc",
+			"rows": 0
+		},
+		{
+			"file": "nyc_3_1_0000.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_3_1_0001.json",
+			"source": "nyc",
+			"rows": 3447
+		},
+		{
+			"file": "nyc_3_2_0000.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_3_2_0001.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_3_2_0002.json",
+			"source": "nyc",
+			"rows": 3806
+		},
+		{
+			"file": "nyc_3_3_0000.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_3_3_0001.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_3_3_0002.json",
+			"source": "nyc",
+			"rows": 5000
+		},
+		{
+			"file": "nyc_3_3_0003.json",
+			"source": "nyc",
+			"rows": 2892
+		},
+		{
+			"file": "geofabrik/new-jersey-latest.osm.pbf",
+			"source": "osm-nj",
+			"format": "osm-pbf",
+			"read_bbox": [
+				-74.11401676021435,
+				40.62464494720733,
+				-73.82111695914179,
+				40.8472236603813
+			],
+			"rows": 88607
+		}
+	],
+	"support_files": [
+		"nyc-metadata.json",
+		"geofabrik/new-jersey-latest.osm.pbf.md5",
+		"osm_nj_-1_-1_2_0.json",
+		"osm_nj_-1_-1_2_1.json",
+		"osm_nj_-1_-1_3_0.json",
+		"osm_nj_-1_-1_3_1.json",
+		"osm_nj_-1_-1_3_2.json",
+		"osm_nj_-1_-2.json",
+		"osm_nj_-2_-2.json"
+	],
+	"coverage": {
+		"complete": true,
+		"nj_source": "One Geofabrik PBF snapshot, MD5 and SHA-256 verified, same-snapshot NJ state boundary",
+		"last_modified": "Mon, 26 Oct 2026 05:21:09 GMT",
+		"nj_subchunk_size_m": 1000,
+		"chunks": [
+			{
+				"id": "tile_-2_-2/c2_0",
+				"bbox": [
+					-74.10959350960584,
+					40.645930329689755,
+					-74.09775819740516,
+					40.65494460009182
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-2_-2/c2_1",
+				"bbox": [
+					-74.09776932332444,
+					40.64593941747296,
+					-74.08593559957082,
+					40.65495247721569
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-2_-2/c2_2",
+				"bbox": [
+					-74.08594513607532,
+					40.645947293551366,
+					-74.07411300090804,
+					40.65495914247408
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-2_-2/c3_0",
+				"bbox": [
+					-74.10960623068475,
+					40.65493551110232,
+					-74.09776932332444,
+					40.66394976750677
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-2_-2/c3_1",
+				"bbox": [
+					-74.09778045427153,
+					40.65494460009182,
+					-74.08594513607532,
+					40.66395764567676
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-2_-2/c3_2",
+				"bbox": [
+					-74.08595467688937,
+					40.65495247721569,
+					-74.07412094799672,
+					40.66396431182033
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-2_-2/c3_3",
+				"bbox": [
+					-74.07412889867666,
+					40.65495914247408,
+					-74.06229675922687,
+					40.66396976593763
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-2/c0_0",
+				"bbox": [
+					-74.10961895751296,
+					40.663940677310194,
+					-74.09778045427153,
+					40.672954919939585
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-2/c0_1",
+				"bbox": [
+					-74.09779159024923,
+					40.66394976750677,
+					-74.08595467688937,
+					40.672962799156366
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-2/c0_2",
+				"bbox": [
+					-74.08596422201536,
+					40.66395764567676,
+					-74.07412889867666,
+					40.6729694661857
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-2/c0_3",
+				"bbox": [
+					-74.07413685294992,
+					40.66396431182033,
+					-74.06230311977185,
+					40.6729749210277
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-2/c1_0",
+				"bbox": [
+					-74.10963169009372,
+					40.67294582853518,
+					-74.09779159024923,
+					40.681960057612095
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-2/c1_1",
+				"bbox": [
+					-74.09780273126044,
+					40.672954919939585,
+					-74.08596422201536,
+					40.68196793787635
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-2/c1_2",
+				"bbox": [
+					-74.0859737714558,
+					40.672962799156366,
+					-74.07413685294992,
+					40.68197460579199
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-2/c1_3",
+				"bbox": [
+					-74.07414481081855,
+					40.6729694661857,
+					-74.06230948319151,
+					40.681980061359155
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-2/c2_0",
+				"bbox": [
+					-74.10964442843027,
+					40.68195096499907,
+					-74.09780273126044,
+					40.69096518074611
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-2/c2_1",
+				"bbox": [
+					-74.09781387730797,
+					40.681960057612095,
+					-74.0859737714558,
+					40.6909730620585
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-2/c2_2",
+				"bbox": [
+					-74.08598332521308,
+					40.68196793787635,
+					-74.07414481081855,
+					40.690979730861024
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-2/c2_3",
+				"bbox": [
+					-74.07415277228453,
+					40.68197460579199,
+					-74.06231584948745,
+					40.69098518715382
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-2/c3_0",
+				"bbox": [
+					-74.1096571725259,
+					40.69095608692371,
+					-74.09781387730797,
+					40.69997028956343
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-2/c3_1",
+				"bbox": [
+					-74.09782502839468,
+					40.69096518074611,
+					-74.08598332521308,
+					40.69997817192462
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-2/c3_2",
+				"bbox": [
+					-74.08599288328966,
+					40.6909730620585,
+					-74.07415277228453,
+					40.69998484161459
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-2/c3_3",
+				"bbox": [
+					-74.07416073734994,
+					40.690979730861024,
+					-74.06232221866128,
+					40.69999029863348
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-1/c2_0",
+				"bbox": [
+					-74.06232221866128,
+					40.681980061359155,
+					-74.05048688760128,
+					40.690989430936995
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-1/c2_1",
+				"bbox": [
+					-74.05049166448225,
+					40.68198430457794,
+					-74.03865792529879,
+					40.69099246221063
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-1/c3_0",
+				"bbox": [
+					-74.06232859071466,
+					40.69098518715382,
+					-74.05049166448225,
+					40.69999454298139
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-1/c3_1",
+				"bbox": [
+					-74.05049644352289,
+					40.690989430936995,
+					-74.03866110988642,
+					40.699997574658425
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_-1_-1/c3_2",
+				"bbox": [
+					-74.03866429591379,
+					40.69099246221063,
+					-74.02683055501268,
+					40.69999939366461
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-2/c0_0",
+				"bbox": [
+					-74.10966992238386,
+					40.69996119453086,
+					-74.09782502839468,
+					40.70897538428585
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-2/c0_1",
+				"bbox": [
+					-74.09783618452344,
+					40.69997028956343,
+					-74.08599288328966,
+					40.70898326769652
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-2/c0_2",
+				"bbox": [
+					-74.086002445688,
+					40.69997817192462,
+					-74.07416073734994,
+					40.708989938274506
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-2/c0_3",
+				"bbox": [
+					-74.07416870601682,
+					40.69998484161459,
+					-74.06232859071466,
+					40.70899539601996
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-2/c1_0",
+				"bbox": [
+					-74.10968267800742,
+					40.70896628804236,
+					-74.09783618452344,
+					40.71798046513518
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-2/c1_1",
+				"bbox": [
+					-74.0978473456971,
+					40.70897538428585,
+					-74.086002445688,
+					40.717988349595984
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-2/c1_2",
+				"bbox": [
+					-74.08601201241054,
+					40.70898326769652,
+					-74.07416870601682,
+					40.71799502106256
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-2/c1_3",
+				"bbox": [
+					-74.0741766782872,
+					40.708989938274506,
+					-74.0623349656492,
+					40.718000479535036
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-2/c2_0",
+				"bbox": [
+					-74.10969543939984,
+					40.71797136767997,
+					-74.0978473456971,
+					40.726985532333195
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-2/c2_1",
+				"bbox": [
+					-74.09785851191852,
+					40.71798046513518,
+					-74.08601201241054,
+					40.72699341784483
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-2/c2_2",
+				"bbox": [
+					-74.08602158345974,
+					40.717988349595984,
+					-74.0741766782872,
+					40.72700009020056
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-2/c2_3",
+				"bbox": [
+					-74.07418465416313,
+					40.71799502106256,
+					-74.06234134346656,
+					40.72700554940053
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-2/c3_0",
+				"bbox": [
+					-74.1097082065644,
+					40.72697643366552,
+					-74.09785851191852,
+					40.73599058610174
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-2/c3_1",
+				"bbox": [
+					-74.09786968319057,
+					40.726985532333195,
+					-74.08602158345974,
+					40.73599847266486
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-2/c3_2",
+				"bbox": [
+					-74.08603115883805,
+					40.72699341784483,
+					-74.07418465416313,
+					40.73600514591031
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-2/c3_3",
+				"bbox": [
+					-74.07419263364665,
+					40.72700009020056,
+					-74.06234772416833,
+					40.73601060583824
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-1/c0_0",
+				"bbox": [
+					-74.0623349656492,
+					40.69999029863348,
+					-74.05049644352289,
+					40.70899964093298
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-1/c0_1",
+				"bbox": [
+					-74.05050122472441,
+					40.69999454298139,
+					-74.03866429591379,
+					40.70900267301364
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-1/c0_2",
+				"bbox": [
+					-74.03866748338177,
+					40.699997574658425,
+					-74.02683214802646,
+					40.70900449226202
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-1/c1_0",
+				"bbox": [
+					-74.06234134346656,
+					40.70899539601996,
+					-74.05050122472441,
+					40.71800472501352
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-1/c1_1",
+				"bbox": [
+					-74.05050600808804,
+					40.70899964093298,
+					-74.03866748338177,
+					40.71800775749809
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-1/c1_2",
+				"bbox": [
+					-74.03867067229113,
+					40.70900267301364,
+					-74.02683374176053,
+					40.718009576988806
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-1/c2_0",
+				"bbox": [
+					-74.06234772416833,
+					40.718000479535036,
+					-74.05050600808804,
+					40.727009795444836
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-1/c2_1",
+				"bbox": [
+					-74.05051079361499,
+					40.71800472501352,
+					-74.03867067229113,
+					40.72701282833357
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-1/c2_2",
+				"bbox": [
+					-74.03867386264272,
+					40.71800775749809,
+					-74.0268353362153,
+					40.72701464806678
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-1/c3_0",
+				"bbox": [
+					-74.06235410775619,
+					40.72700554940053,
+					-74.05051079361499,
+					40.736014852448726
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-1/c3_1",
+				"bbox": [
+					-74.0505155813065,
+					40.727009795444836,
+					-74.03867386264272,
+					40.73601788574188
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-1/c3_2",
+				"bbox": [
+					-74.03867705443736,
+					40.72701282833357,
+					-74.02683693139119,
+					40.73601970571774
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_0_-1/c3_3",
+				"bbox": [
+					-74.02683852728858,
+					40.72701464806678,
+					-74.015,
+					40.736020312376354
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-2/c0_0",
+				"bbox": [
+					-74.10972097950439,
+					40.7359814862208,
+					-74.09786968319057,
+					40.744995626662586
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-2/c0_1",
+				"bbox": [
+					-74.0978808595161,
+					40.73599058610174,
+					-74.08603115883805,
+					40.74500351427786
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-2/c0_2",
+				"bbox": [
+					-74.08604073854791,
+					40.73599847266486,
+					-74.07419263364665,
+					40.74501018841361
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-2/c0_3",
+				"bbox": [
+					-74.0742006167398,
+					40.73600514591031,
+					-74.06235410775619,
+					40.74501564906995
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-2/c1_0",
+				"bbox": [
+					-74.10973375822306,
+					40.74498652556762,
+					-74.0978808595161,
+					40.75400065423754
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-2/c1_1",
+				"bbox": [
+					-74.097892040898,
+					40.744995626662586,
+					-74.08604073854791,
+					40.754008542905645
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-2/c1_2",
+				"bbox": [
+					-74.0860503225918,
+					40.74500351427786,
+					-74.0742006167398,
+					40.754015217932256
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-2/c1_3",
+				"bbox": [
+					-74.07420860344465,
+					40.74501018841361,
+					-74.06236049423177,
+					40.754020679317485
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-2/c2_0",
+				"bbox": [
+					-74.1097465427237,
+					40.75399155192775,
+					-74.097892040898,
+					40.76300566904839
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-2/c2_1",
+				"bbox": [
+					-74.09790322733912,
+					40.75400065423754,
+					-74.0860503225918,
+					40.763013558770005
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-2/c2_2",
+				"bbox": [
+					-74.08605991097218,
+					40.754008542905645,
+					-74.07420860344465,
+					40.76302023468804
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-2/c2_3",
+				"bbox": [
+					-74.07421659376323,
+					40.754015217932256,
+					-74.0623668835967,
+					40.763025696802615
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-2/c3_0",
+				"bbox": [
+					-74.1097593330096,
+					40.76299656552302,
+					-74.09790322733912,
+					40.772010671316934
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-2/c3_1",
+				"bbox": [
+					-74.09791441884234,
+					40.76300566904839,
+					-74.08605991097218,
+					40.77201856209274
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-2/c3_2",
+				"bbox": [
+					-74.0860695036915,
+					40.763013558770005,
+					-74.07421659376323,
+					40.77202523890277
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-2/c3_3",
+				"bbox": [
+					-74.0742245876976,
+					40.76302023468804,
+					-74.06237327585261,
+					40.77203070174716
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-1/c0_0",
+				"bbox": [
+					-74.06236049423177,
+					40.73601060583824,
+					-74.0505155813065,
+					40.74501989624699
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-1/c0_1",
+				"bbox": [
+					-74.05052037116378,
+					40.736014852448726,
+					-74.03867705443736,
+					40.74502292994483
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-1/c0_2",
+				"bbox": [
+					-74.03868024767583,
+					40.73601788574188,
+					-74.02683852728858,
+					40.745024750163495
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-1/c0_3",
+				"bbox": [
+					-74.0268401239079,
+					40.73601970571774,
+					-74.015,
+					40.74502535690305
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-1/c1_0",
+				"bbox": [
+					-74.0623668835967,
+					40.74501564906995,
+					-74.05052037116378,
+					40.75402492706144
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-1/c1_1",
+				"bbox": [
+					-74.05052516318808,
+					40.74501989624699,
+					-74.03868024767583,
+					40.7540279611642
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-1/c1_2",
+				"bbox": [
+					-74.038683442359,
+					40.74502292994483,
+					-74.0268401239079,
+					40.75402978162583
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-1/c1_3",
+				"bbox": [
+					-74.02684172124958,
+					40.745024750163495,
+					-74.015,
+					40.754030388446374
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-1/c2_0",
+				"bbox": [
+					-74.06237327585261,
+					40.754020679317485,
+					-74.05052516318808,
+					40.76302994511385
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-1/c2_1",
+				"bbox": [
+					-74.05052995738063,
+					40.75402492706144,
+					-74.038683442359,
+					40.763032979621805
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-1/c2_2",
+				"bbox": [
+					-74.03868663848765,
+					40.7540279611642,
+					-74.02684172124958,
+					40.763034800326565
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-1/c2_3",
+				"bbox": [
+					-74.02684331931398,
+					40.75402978162583,
+					-74.015,
+					40.76303540722814
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-1/c3_0",
+				"bbox": [
+					-74.06237967100114,
+					40.763025696802615,
+					-74.05052995738063,
+					40.77203495062602
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-1/c3_1",
+				"bbox": [
+					-74.05053475374264,
+					40.76302994511385,
+					-74.03868663848765,
+					40.772037985539434
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-1/c3_2",
+				"bbox": [
+					-74.03868983606262,
+					40.763032979621805,
+					-74.02684331931398,
+					40.77203980648746
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_-1/c3_3",
+				"bbox": [
+					-74.02684491810156,
+					40.763034800326565,
+					-74.015,
+					40.77204041347013
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_1_0/c3_0",
+				"bbox": [
+					-74.01500000000001,
+					40.76303480032656,
+					-74.00315508189844,
+					40.77204041347013
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-2/c0_0",
+				"bbox": [
+					-74.10977212908405,
+					40.772001566575206,
+					-74.09791441884234,
+					40.78101566126497
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-2/c0_1",
+				"bbox": [
+					-74.09792561541055,
+					40.772010671316934,
+					-74.0860695036915,
+					40.78102355309563
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-2/c0_2",
+				"bbox": [
+					-74.08607910075224,
+					40.77201856209274,
+					-74.0742245876976,
+					40.78103023079823
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-2/c0_3",
+				"bbox": [
+					-74.07423258524982,
+					40.77202523890277,
+					-74.06237967100114,
+					40.78103569437291
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-2/c1_0",
+				"bbox": [
+					-74.10978493095034,
+					40.78100655530612,
+					-74.09792561541055,
+					40.79002063911431
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-2/c1_1",
+				"bbox": [
+					-74.0979368170466,
+					40.78101566126497,
+					-74.08607910075224,
+					40.7900285320005
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-2/c1_2",
+				"bbox": [
+					-74.08608870215684,
+					40.78102355309563,
+					-74.07423258524982,
+					40.79003521059624
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-2/c1_3",
+				"bbox": [
+					-74.07424058642194,
+					40.78103023079823,
+					-74.06238606904397,
+					40.790040674901654
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-2/c2_0",
+				"bbox": [
+					-74.10979773861173,
+					40.79001153193753,
+					-74.0979368170466,
+					40.79902560508673
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-2/c2_1",
+				"bbox": [
+					-74.09794802375339,
+					40.79002063911431,
+					-74.08608870215684,
+					40.799033499029115
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-2/c2_2",
+				"bbox": [
+					-74.0860983079078,
+					40.7900285320005,
+					-74.07424058642194,
+					40.79904017851857
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-2/c2_3",
+				"bbox": [
+					-74.07424859121599,
+					40.79003521059624,
+					-74.06239246998273,
+					40.7990456435552
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-2/c3_0",
+				"bbox": [
+					-74.10981055207155,
+					40.79901649669125,
+					-74.09794802375339,
+					40.808030559404024
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-2/c3_1",
+				"bbox": [
+					-74.0979592355338,
+					40.79902560508673,
+					-74.0860983079078,
+					40.80803845440328
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-2/c3_2",
+				"bbox": [
+					-74.08610791800758,
+					40.799033499029115,
+					-74.07424859121599,
+					40.808045134787015
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-2/c3_3",
+				"bbox": [
+					-74.0742565996341,
+					40.79904017851857,
+					-74.06239887381902,
+					40.80805060055535
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-1/c0_0",
+				"bbox": [
+					-74.06238606904397,
+					40.77203070174716,
+					-74.05053475374264,
+					40.78103994381978
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-1/c0_1",
+				"bbox": [
+					-74.05053955227538,
+					40.77203495062602,
+					-74.03868983606262,
+					40.781042979138896
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-1/c0_2",
+				"bbox": [
+					-74.03869303508473,
+					40.772037985539434,
+					-74.02684491810156,
+					40.78104480033034
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-1/c0_3",
+				"bbox": [
+					-74.02684651761271,
+					40.77203980648746,
+					-74.015,
+					40.78104540739416
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-1/c1_0",
+				"bbox": [
+					-74.06239246998273,
+					40.78103569437291,
+					-74.05053955227538,
+					40.790044924916884
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-1/c1_1",
+				"bbox": [
+					-74.05054435298004,
+					40.78103994381978,
+					-74.03869303508473,
+					40.79004796064198
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-1/c1_2",
+				"bbox": [
+					-74.03869623555481,
+					40.781042979138896,
+					-74.02684651761271,
+					40.790049782077006
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-1/c1_3",
+				"bbox": [
+					-74.02684811784783,
+					40.78104480033034,
+					-74.015,
+					40.790050389222024
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-1/c2_0",
+				"bbox": [
+					-74.06239887381902,
+					40.790040674901654,
+					-74.05054435298004,
+					40.79904989413915
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-1/c2_1",
+				"bbox": [
+					-74.0505491558579,
+					40.790044924916884,
+					-74.03869623555481,
+					40.799052930270484
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-1/c2_2",
+				"bbox": [
+					-74.03869943747367,
+					40.79004796064198,
+					-74.02684811784783,
+					40.79905475194925
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-1/c2_3",
+				"bbox": [
+					-74.02684971880736,
+					40.790049782077006,
+					-74.015,
+					40.79905535917551
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-1/c3_0",
+				"bbox": [
+					-74.06240528055454,
+					40.7990456435552,
+					-74.0505491558579,
+					40.808054851708384
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-1/c3_1",
+				"bbox": [
+					-74.05055396091015,
+					40.79904989413915,
+					-74.03869943747367,
+					40.808057888246196
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-1/c3_2",
+				"bbox": [
+					-74.03870264084212,
+					40.799052930270484,
+					-74.02684971880736,
+					40.80805971016886
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_-1/c3_3",
+				"bbox": [
+					-74.02685132049166,
+					40.79905475194925,
+					-74.015,
+					40.80806031747642
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_0/c0_0",
+				"bbox": [
+					-74.015,
+					40.77203980648746,
+					-74.0031534823873,
+					40.78104540739416
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_0/c0_1",
+				"bbox": [
+					-74.00315508189844,
+					40.772037985539434,
+					-73.99130696491528,
+					40.781044800330356
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_0/c1_0",
+				"bbox": [
+					-74.015,
+					40.781044800330356,
+					-74.00315188215218,
+					40.790050389222024
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_0/c1_1",
+				"bbox": [
+					-74.0031534823873,
+					40.781042979138896,
+					-73.9913037644452,
+					40.79004978207701
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_0/c2_0",
+				"bbox": [
+					-74.015,
+					40.79004978207701,
+					-74.00315028119266,
+					40.79905535917551
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_0/c2_1",
+				"bbox": [
+					-74.00315188215218,
+					40.790047960641985,
+					-73.99130056252635,
+					40.79905475194925
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_0/c3_0",
+				"bbox": [
+					-74.015,
+					40.79905475194925,
+					-74.00314867950834,
+					40.80806031747642
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_0/c3_1",
+				"bbox": [
+					-74.00315028119266,
+					40.79905293027049,
+					-73.99129735915788,
+					40.80805971016886
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_2_0/c3_2",
+				"bbox": [
+					-73.99130056252635,
+					40.79904989413915,
+					-73.97944603908986,
+					40.808057888246196
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-2/c0_0",
+				"bbox": [
+					-74.10982337133309,
+					40.80802144978908,
+					-74.0979592355338,
+					40.81703550228799
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-2/c0_1",
+				"bbox": [
+					-74.09797045239073,
+					40.808030559404024,
+					-74.08610791800758,
+					40.8170433983448
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-2/c0_2",
+				"bbox": [
+					-74.08611753245864,
+					40.80803845440328,
+					-74.0742565996341,
+					40.81705007962338
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-2/c0_3",
+				"bbox": [
+					-74.07426461167825,
+					40.808045134787015,
+					-74.06240528055454,
+					40.81705554612386
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-2/c1_0",
+				"bbox": [
+					-74.10983619639963,
+					40.8170263914528,
+					-74.09797045239073,
+					40.826040433960436
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-2/c1_1",
+				"bbox": [
+					-74.09798167432702,
+					40.81703550228799,
+					-74.08611753245864,
+					40.82604833107547
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-2/c1_2",
+				"bbox": [
+					-74.08612715126348,
+					40.8170433983448,
+					-74.07426461167825,
+					40.826055013249466
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-2/c1_3",
+				"bbox": [
+					-74.07427262735055,
+					40.81705007962338,
+					-74.06241169019093,
+					40.82606048048256
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-2/c2_0",
+				"bbox": [
+					-74.1098490272745,
+					40.8260313219042,
+					-74.09798167432702,
+					40.83504535464312
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-2/c2_1",
+				"bbox": [
+					-74.09799290134562,
+					40.826040433960436,
+					-74.08612715126348,
+					40.83505325281706
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-2/c2_2",
+				"bbox": [
+					-74.08613677442456,
+					40.82604833107547,
+					-74.07427262735055,
+					40.835059935887045
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-2/c2_3",
+				"bbox": [
+					-74.07428064665307,
+					40.826055013249466,
+					-74.06241810272982,
+					40.83506540385323
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-2/c3_0",
+				"bbox": [
+					-74.109861863961,
+					40.83503624136509,
+					-74.09799290134562,
+					40.844050264557865
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-2/c3_1",
+				"bbox": [
+					-74.09800413344938,
+					40.83504535464312,
+					-74.08613677442456,
+					40.84405816379138
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-2/c3_2",
+				"bbox": [
+					-74.08614640194435,
+					40.83505325281706,
+					-74.07428064665307,
+					40.84406484775794
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-2/c3_3",
+				"bbox": [
+					-74.07428866958784,
+					40.835059935887045,
+					-74.06242451817289,
+					40.844070316457675
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-1/c0_0",
+				"bbox": [
+					-74.06241169019093,
+					40.80805060055535,
+					-74.05055396091015,
+					40.817059797846355
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-1/c0_1",
+				"bbox": [
+					-74.05055876813806,
+					40.808054851708384,
+					-74.03870264084212,
+					40.817062834790924
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-1/c0_2",
+				"bbox": [
+					-74.03870584566101,
+					40.808057888246196,
+					-74.02685132049166,
+					40.81706465695763
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-1/c0_3",
+				"bbox": [
+					-74.0268529229012,
+					40.80805971016886,
+					-74.015,
+					40.817065264346546
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-1/c1_0",
+				"bbox": [
+					-74.06241810272982,
+					40.81705554612386,
+					-74.05055876813806,
+					40.82606473277487
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-1/c1_1",
+				"bbox": [
+					-74.05056357754285,
+					40.817059797846355,
+					-74.03870584566101,
+					40.82606777012644
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-1/c1_2",
+				"bbox": [
+					-74.03870905193116,
+					40.817062834790924,
+					-74.0268529229012,
+					40.82606959253737
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-1/c1_3",
+				"bbox": [
+					-74.02685452603636,
+					40.81706465695763,
+					-74.015,
+					40.82607020000767
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-1/c2_0",
+				"bbox": [
+					-74.06242451817289,
+					40.82606048048256,
+					-74.05056357754285,
+					40.83506965671571
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-1/c2_1",
+				"bbox": [
+					-74.05056838912574,
+					40.82606473277487,
+					-74.03870905193116,
+					40.83507269447456
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-1/c2_2",
+				"bbox": [
+					-74.0387122596534,
+					40.82606777012644,
+					-74.02685452603636,
+					40.83507451712985
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-1/c2_3",
+				"bbox": [
+					-74.02685612989757,
+					40.82606959253737,
+					-74.015,
+					40.83507512468161
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-1/c3_0",
+				"bbox": [
+					-74.06243093652176,
+					40.83506540385323,
+					-74.05056838912574,
+					40.844074569890694
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-1/c3_1",
+				"bbox": [
+					-74.05057320288803,
+					40.83506965671571,
+					-74.0387122596534,
+					40.84407760805708
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-1/c3_2",
+				"bbox": [
+					-74.03871546882854,
+					40.83507269447456,
+					-74.02685612989757,
+					40.844079430956874
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_-1/c3_3",
+				"bbox": [
+					-74.02685773448523,
+					40.83507451712985,
+					-74.015,
+					40.84408003859014
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_0/c0_0",
+				"bbox": [
+					-74.015,
+					40.80805971016886,
+					-74.0031470770988,
+					40.817065264346546
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_0/c0_1",
+				"bbox": [
+					-74.00314867950834,
+					40.808057888246196,
+					-73.99129415433899,
+					40.81706465695763
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_0/c0_2",
+				"bbox": [
+					-73.99129735915788,
+					40.808054851708384,
+					-73.97944123186195,
+					40.817062834790924
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_0/c0_3",
+				"bbox": [
+					-73.97944603908986,
+					40.80805060055535,
+					-73.96758830980907,
+					40.81705979784635
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_0/c1_0",
+				"bbox": [
+					-74.015,
+					40.81706465695763,
+					-74.00314547396364,
+					40.82607020000767
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_0/c1_1",
+				"bbox": [
+					-74.0031470770988,
+					40.817062834790924,
+					-73.99129094806884,
+					40.82606959253737
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_0/c1_2",
+				"bbox": [
+					-73.99129415433899,
+					40.81705979784635,
+					-73.97943642245717,
+					40.82606777012644
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_0/c1_3",
+				"bbox": [
+					-73.97944123186195,
+					40.81705554612386,
+					-73.96758189727018,
+					40.82606473277487
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_0/c2_0",
+				"bbox": [
+					-74.015,
+					40.82606959253737,
+					-74.00314387010243,
+					40.83507512468161
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_0/c2_1",
+				"bbox": [
+					-74.00314547396364,
+					40.82606777012644,
+					-73.9912877403466,
+					40.83507451712985
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_0/c2_2",
+				"bbox": [
+					-73.99129094806884,
+					40.82606473277487,
+					-73.97943161087426,
+					40.83507269447456
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_0/c2_3",
+				"bbox": [
+					-73.97943642245717,
+					40.82606048048256,
+					-73.96757548182713,
+					40.83506965671571
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_0/c3_0",
+				"bbox": [
+					-74.015,
+					40.83507451712985,
+					-74.00314226551478,
+					40.84408003859014
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_0/c3_1",
+				"bbox": [
+					-74.00314387010243,
+					40.83507269447456,
+					-73.99128453117146,
+					40.84407943095688
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_0/c3_2",
+				"bbox": [
+					-73.9912877403466,
+					40.83506965671571,
+					-73.97942679711198,
+					40.84407760805708
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_0/c3_3",
+				"bbox": [
+					-73.97943161087426,
+					40.83506540385323,
+					-73.96756906347825,
+					40.844074569890694
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			},
+			{
+				"id": "tile_3_1/c3_0",
+				"bbox": [
+					-73.96757548182713,
+					40.835059935887045,
+					-73.95571133041217,
+					40.844070316457675
+				],
+				"file": "geofabrik/new-jersey-latest.osm.pbf",
+				"status": "available"
+			}
+		],
+		"missing": [],
+		"failure": null
+	},
+	"overpass_crosscheck": {
+		"rule": "Original footprints with positive area overlap of each exact 1 km core, filtered by the uniform bulk NJ state boundary; heights use common fallbacks.",
+		"notes": "Different snapshots, regional-extract completeness and Overpass node/bbox selection may affect counts; differences are reported, never hidden.",
+		"chunks": [
+			{
+				"id": "tile_-2_-2/c2_0",
+				"overpass_file": "osm_nj_-2_-2.json",
+				"overpass_osm_base": "2026-10-26T17:20:58Z",
+				"overpass_count": 404,
+				"bulk_count": 404,
+				"count_delta": 0,
+				"common_ids": 404,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-2_-2/c2_1",
+				"overpass_file": "osm_nj_-2_-2.json",
+				"overpass_osm_base": "2026-10-26T17:20:58Z",
+				"overpass_count": 176,
+				"bulk_count": 176,
+				"count_delta": 0,
+				"common_ids": 176,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-2_-2/c2_2",
+				"overpass_file": "osm_nj_-2_-2.json",
+				"overpass_osm_base": "2026-10-26T17:20:58Z",
+				"overpass_count": 0,
+				"bulk_count": 0,
+				"count_delta": 0,
+				"common_ids": 0,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-2_-2/c3_0",
+				"overpass_file": "osm_nj_-2_-2.json",
+				"overpass_osm_base": "2026-10-26T17:20:58Z",
+				"overpass_count": 104,
+				"bulk_count": 104,
+				"count_delta": 0,
+				"common_ids": 104,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-2_-2/c3_1",
+				"overpass_file": "osm_nj_-2_-2.json",
+				"overpass_osm_base": "2026-10-26T17:20:58Z",
+				"overpass_count": 51,
+				"bulk_count": 51,
+				"count_delta": 0,
+				"common_ids": 51,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-2_-2/c3_2",
+				"overpass_file": "osm_nj_-2_-2.json",
+				"overpass_osm_base": "2026-10-26T17:20:58Z",
+				"overpass_count": 1,
+				"bulk_count": 1,
+				"count_delta": 0,
+				"common_ids": 1,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-2_-2/c3_3",
+				"overpass_file": "osm_nj_-2_-2.json",
+				"overpass_osm_base": "2026-10-26T17:20:58Z",
+				"overpass_count": 1,
+				"bulk_count": 1,
+				"count_delta": 0,
+				"common_ids": 1,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-2/c0_0",
+				"overpass_file": "osm_nj_-1_-2.json",
+				"overpass_osm_base": "2026-10-26T17:29:01Z",
+				"overpass_count": 161,
+				"bulk_count": 161,
+				"count_delta": 0,
+				"common_ids": 161,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-2/c0_1",
+				"overpass_file": "osm_nj_-1_-2.json",
+				"overpass_osm_base": "2026-10-26T17:29:01Z",
+				"overpass_count": 43,
+				"bulk_count": 43,
+				"count_delta": 0,
+				"common_ids": 43,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-2/c0_2",
+				"overpass_file": "osm_nj_-1_-2.json",
+				"overpass_osm_base": "2026-10-26T17:29:01Z",
+				"overpass_count": 12,
+				"bulk_count": 12,
+				"count_delta": 0,
+				"common_ids": 12,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-2/c0_3",
+				"overpass_file": "osm_nj_-1_-2.json",
+				"overpass_osm_base": "2026-10-26T17:29:01Z",
+				"overpass_count": 25,
+				"bulk_count": 25,
+				"count_delta": 0,
+				"common_ids": 25,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-2/c1_0",
+				"overpass_file": "osm_nj_-1_-2.json",
+				"overpass_osm_base": "2026-10-26T17:29:01Z",
+				"overpass_count": 1436,
+				"bulk_count": 1436,
+				"count_delta": 0,
+				"common_ids": 1436,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-2/c1_1",
+				"overpass_file": "osm_nj_-1_-2.json",
+				"overpass_osm_base": "2026-10-26T17:29:01Z",
+				"overpass_count": 22,
+				"bulk_count": 22,
+				"count_delta": 0,
+				"common_ids": 22,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-2/c1_2",
+				"overpass_file": "osm_nj_-1_-2.json",
+				"overpass_osm_base": "2026-10-26T17:29:01Z",
+				"overpass_count": 18,
+				"bulk_count": 18,
+				"count_delta": 0,
+				"common_ids": 18,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-2/c1_3",
+				"overpass_file": "osm_nj_-1_-2.json",
+				"overpass_osm_base": "2026-10-26T17:29:01Z",
+				"overpass_count": 1,
+				"bulk_count": 1,
+				"count_delta": 0,
+				"common_ids": 1,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-2/c2_0",
+				"overpass_file": "osm_nj_-1_-2.json",
+				"overpass_osm_base": "2026-10-26T17:29:01Z",
+				"overpass_count": 1583,
+				"bulk_count": 1583,
+				"count_delta": 0,
+				"common_ids": 1583,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-2/c2_1",
+				"overpass_file": "osm_nj_-1_-2.json",
+				"overpass_osm_base": "2026-10-26T17:29:01Z",
+				"overpass_count": 372,
+				"bulk_count": 372,
+				"count_delta": 0,
+				"common_ids": 372,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-2/c2_2",
+				"overpass_file": "osm_nj_-1_-2.json",
+				"overpass_osm_base": "2026-10-26T17:29:01Z",
+				"overpass_count": 28,
+				"bulk_count": 28,
+				"count_delta": 0,
+				"common_ids": 28,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-2/c2_3",
+				"overpass_file": "osm_nj_-1_-2.json",
+				"overpass_osm_base": "2026-10-26T17:29:01Z",
+				"overpass_count": 93,
+				"bulk_count": 93,
+				"count_delta": 0,
+				"common_ids": 93,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-2/c3_0",
+				"overpass_file": "osm_nj_-1_-2.json",
+				"overpass_osm_base": "2026-10-26T17:29:01Z",
+				"overpass_count": 1048,
+				"bulk_count": 1048,
+				"count_delta": 0,
+				"common_ids": 1048,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-2/c3_1",
+				"overpass_file": "osm_nj_-1_-2.json",
+				"overpass_osm_base": "2026-10-26T17:29:01Z",
+				"overpass_count": 1875,
+				"bulk_count": 1875,
+				"count_delta": 0,
+				"common_ids": 1875,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-2/c3_2",
+				"overpass_file": "osm_nj_-1_-2.json",
+				"overpass_osm_base": "2026-10-26T17:29:01Z",
+				"overpass_count": 272,
+				"bulk_count": 272,
+				"count_delta": 0,
+				"common_ids": 272,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-2/c3_3",
+				"overpass_file": "osm_nj_-1_-2.json",
+				"overpass_osm_base": "2026-10-26T17:29:01Z",
+				"overpass_count": 41,
+				"bulk_count": 41,
+				"count_delta": 0,
+				"common_ids": 41,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-1/c2_0",
+				"overpass_file": "osm_nj_-1_-1_2_0.json",
+				"overpass_osm_base": "2026-10-26T17:53:51Z",
+				"overpass_count": 0,
+				"bulk_count": 0,
+				"count_delta": 0,
+				"common_ids": 0,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-1/c2_1",
+				"overpass_file": "osm_nj_-1_-1_2_1.json",
+				"overpass_osm_base": "2026-10-26T17:54:51Z",
+				"overpass_count": 2,
+				"bulk_count": 2,
+				"count_delta": 0,
+				"common_ids": 2,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-1/c3_0",
+				"overpass_file": "osm_nj_-1_-1_3_0.json",
+				"overpass_osm_base": "2026-10-26T17:54:51Z",
+				"overpass_count": 15,
+				"bulk_count": 15,
+				"count_delta": 0,
+				"common_ids": 15,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-1/c3_1",
+				"overpass_file": "osm_nj_-1_-1_3_1.json",
+				"overpass_osm_base": "2026-10-26T17:55:51Z",
+				"overpass_count": 37,
+				"bulk_count": 37,
+				"count_delta": 0,
+				"common_ids": 37,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			},
+			{
+				"id": "tile_-1_-1/c3_2",
+				"overpass_file": "osm_nj_-1_-1_3_2.json",
+				"overpass_osm_base": "2026-10-26T17:56:51Z",
+				"overpass_count": 0,
+				"bulk_count": 0,
+				"count_delta": 0,
+				"common_ids": 0,
+				"height_changes": [],
+				"only_overpass": [],
+				"only_bulk": []
+			}
+		]
+	},
+	"overpass_inventory": {
+		"schema": "harbor-building-raw-v1",
+		"nyc_dataset": "5zhs-2jue",
+		"active": [
+			[
+				-2,
+				-2
+			],
+			[
+				-2,
+				-1
+			],
+			[
+				-2,
+				0
+			],
+			[
+				-2,
+				2
+			],
+			[
+				-2,
+				3
+			],
+			[
+				-1,
+				-2
+			],
+			[
+				-1,
+				-1
+			],
+			[
+				-1,
+				0
+			],
+			[
+				0,
+				-2
+			],
+			[
+				0,
+				-1
+			],
+			[
+				0,
+				0
+			],
+			[
+				0,
+				1
+			],
+			[
+				1,
+				-2
+			],
+			[
+				1,
+				-1
+			],
+			[
+				1,
+				0
+			],
+			[
+				1,
+				1
+			],
+			[
+				1,
+				3
+			],
+			[
+				2,
+				-2
+			],
+			[
+				2,
+				-1
+			],
+			[
+				2,
+				0
+			],
+			[
+				2,
+				1
+			],
+			[
+				2,
+				2
+			],
+			[
+				2,
+				3
+			],
+			[
+				3,
+				-2
+			],
+			[
+				3,
+				-1
+			],
+			[
+				3,
+				0
+			],
+			[
+				3,
+				1
+			],
+			[
+				3,
+				2
+			],
+			[
+				3,
+				3
+			]
+		],
+		"files": [
+			{
+				"file": "nyc_-2_-2_0000.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_-2_-2_0001.json",
+				"source": "nyc",
+				"rows": 3338
+			},
+			{
+				"file": "nyc_-2_-1_0000.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_-2_-1_0001.json",
+				"source": "nyc",
+				"rows": 3741
+			},
+			{
+				"file": "nyc_-2_0_0000.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_-2_0_0001.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_-2_0_0002.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_-2_0_0003.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_-2_0_0004.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_-2_0_0005.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_-2_0_0006.json",
+				"source": "nyc",
+				"rows": 999
+			},
+			{
+				"file": "nyc_-2_2_0000.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_-2_2_0001.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_-2_2_0002.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_-2_2_0003.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_-2_2_0004.json",
+				"source": "nyc",
+				"rows": 4285
+			},
+			{
+				"file": "nyc_-2_3_0000.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_-2_3_0001.json",
+				"source": "nyc",
+				"rows": 1323
+			},
+			{
+				"file": "nyc_-1_-2_0000.json",
+				"source": "nyc",
+				"rows": 0
+			},
+			{
+				"file": "nyc_-1_-1_0000.json",
+				"source": "nyc",
+				"rows": 249
+			},
+			{
+				"file": "nyc_-1_0_0000.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_-1_0_0001.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_-1_0_0002.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_-1_0_0003.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_-1_0_0004.json",
+				"source": "nyc",
+				"rows": 915
+			},
+			{
+				"file": "nyc_0_-2_0000.json",
+				"source": "nyc",
+				"rows": 0
+			},
+			{
+				"file": "nyc_0_-1_0000.json",
+				"source": "nyc",
+				"rows": 66
+			},
+			{
+				"file": "nyc_0_0_0000.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_0_0_0001.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_0_0_0002.json",
+				"source": "nyc",
+				"rows": 1415
+			},
+			{
+				"file": "nyc_0_1_0000.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_0_1_0001.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_0_1_0002.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_0_1_0003.json",
+				"source": "nyc",
+				"rows": 2861
+			},
+			{
+				"file": "nyc_1_-2_0000.json",
+				"source": "nyc",
+				"rows": 0
+			},
+			{
+				"file": "nyc_1_-1_0000.json",
+				"source": "nyc",
+				"rows": 0
+			},
+			{
+				"file": "nyc_1_0_0000.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_1_0_0001.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_1_0_0002.json",
+				"source": "nyc",
+				"rows": 63
+			},
+			{
+				"file": "nyc_1_1_0000.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_1_1_0001.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_1_1_0002.json",
+				"source": "nyc",
+				"rows": 3125
+			},
+			{
+				"file": "nyc_1_3_0000.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_1_3_0001.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_1_3_0002.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_1_3_0003.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_1_3_0004.json",
+				"source": "nyc",
+				"rows": 546
+			},
+			{
+				"file": "nyc_2_-2_0000.json",
+				"source": "nyc",
+				"rows": 0
+			},
+			{
+				"file": "nyc_2_-1_0000.json",
+				"source": "nyc",
+				"rows": 0
+			},
+			{
+				"file": "nyc_2_0_0000.json",
+				"source": "nyc",
+				"rows": 3951
+			},
+			{
+				"file": "nyc_2_1_0000.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_2_1_0001.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_2_1_0002.json",
+				"source": "nyc",
+				"rows": 716
+			},
+			{
+				"file": "nyc_2_2_0000.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_2_2_0001.json",
+				"source": "nyc",
+				"rows": 2712
+			},
+			{
+				"file": "nyc_2_3_0000.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_2_3_0001.json",
+				"source": "nyc",
+				"rows": 3364
+			},
+			{
+				"file": "nyc_3_-2_0000.json",
+				"source": "nyc",
+				"rows": 0
+			},
+			{
+				"file": "nyc_3_-1_0000.json",
+				"source": "nyc",
+				"rows": 0
+			},
+			{
+				"file": "nyc_3_0_0000.json",
+				"source": "nyc",
+				"rows": 0
+			},
+			{
+				"file": "nyc_3_1_0000.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_3_1_0001.json",
+				"source": "nyc",
+				"rows": 3447
+			},
+			{
+				"file": "nyc_3_2_0000.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_3_2_0001.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_3_2_0002.json",
+				"source": "nyc",
+				"rows": 3806
+			},
+			{
+				"file": "nyc_3_3_0000.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_3_3_0001.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_3_3_0002.json",
+				"source": "nyc",
+				"rows": 5000
+			},
+			{
+				"file": "nyc_3_3_0003.json",
+				"source": "nyc",
+				"rows": 2892
+			},
+			{
+				"file": "osm_nj_-1_-1_2_0.json",
+				"source": "osm-nj",
+				"rows": 0
+			},
+			{
+				"file": "osm_nj_-1_-1_2_1.json",
+				"source": "osm-nj",
+				"rows": 2
+			},
+			{
+				"file": "osm_nj_-1_-1_3_0.json",
+				"source": "osm-nj",
+				"rows": 15
+			},
+			{
+				"file": "osm_nj_-1_-1_3_1.json",
+				"source": "osm-nj",
+				"rows": 39
+			},
+			{
+				"file": "osm_nj_-1_-1_3_2.json",
+				"source": "osm-nj",
+				"rows": 0
+			},
+			{
+				"file": "osm_nj_-1_-2.json",
+				"source": "osm-nj",
+				"rows": 6908
+			},
+			{
+				"file": "osm_nj_-2_-2.json",
+				"source": "osm-nj",
+				"rows": 717
+			}
+		],
+		"support_files": [
+			"nyc-metadata.json",
+			"osm-nj-boundary.json"
+		],
+		"coverage": {
+			"complete": false,
+			"nj_subchunk_size_m": 1000,
+			"chunks": [
+				{
+					"id": "tile_-2_-2/c2_0",
+					"bbox": [
+						-74.10959350960584,
+						40.645930329689755,
+						-74.09775819740516,
+						40.65494460009182
+					],
+					"file": "osm_nj_-2_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-2_-2/c2_1",
+					"bbox": [
+						-74.09776932332444,
+						40.64593941747296,
+						-74.08593559957082,
+						40.65495247721569
+					],
+					"file": "osm_nj_-2_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-2_-2/c2_2",
+					"bbox": [
+						-74.08594513607532,
+						40.645947293551366,
+						-74.07411300090804,
+						40.65495914247408
+					],
+					"file": "osm_nj_-2_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-2_-2/c3_0",
+					"bbox": [
+						-74.10960623068475,
+						40.65493551110232,
+						-74.09776932332444,
+						40.66394976750677
+					],
+					"file": "osm_nj_-2_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-2_-2/c3_1",
+					"bbox": [
+						-74.09778045427153,
+						40.65494460009182,
+						-74.08594513607532,
+						40.66395764567676
+					],
+					"file": "osm_nj_-2_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-2_-2/c3_2",
+					"bbox": [
+						-74.08595467688937,
+						40.65495247721569,
+						-74.07412094799672,
+						40.66396431182033
+					],
+					"file": "osm_nj_-2_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-2_-2/c3_3",
+					"bbox": [
+						-74.07412889867666,
+						40.65495914247408,
+						-74.06229675922687,
+						40.66396976593763
+					],
+					"file": "osm_nj_-2_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-1_-2/c0_0",
+					"bbox": [
+						-74.10961895751296,
+						40.663940677310194,
+						-74.09778045427153,
+						40.672954919939585
+					],
+					"file": "osm_nj_-1_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-1_-2/c0_1",
+					"bbox": [
+						-74.09779159024923,
+						40.66394976750677,
+						-74.08595467688937,
+						40.672962799156366
+					],
+					"file": "osm_nj_-1_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-1_-2/c0_2",
+					"bbox": [
+						-74.08596422201536,
+						40.66395764567676,
+						-74.07412889867666,
+						40.6729694661857
+					],
+					"file": "osm_nj_-1_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-1_-2/c0_3",
+					"bbox": [
+						-74.07413685294992,
+						40.66396431182033,
+						-74.06230311977185,
+						40.6729749210277
+					],
+					"file": "osm_nj_-1_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-1_-2/c1_0",
+					"bbox": [
+						-74.10963169009372,
+						40.67294582853518,
+						-74.09779159024923,
+						40.681960057612095
+					],
+					"file": "osm_nj_-1_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-1_-2/c1_1",
+					"bbox": [
+						-74.09780273126044,
+						40.672954919939585,
+						-74.08596422201536,
+						40.68196793787635
+					],
+					"file": "osm_nj_-1_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-1_-2/c1_2",
+					"bbox": [
+						-74.0859737714558,
+						40.672962799156366,
+						-74.07413685294992,
+						40.68197460579199
+					],
+					"file": "osm_nj_-1_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-1_-2/c1_3",
+					"bbox": [
+						-74.07414481081855,
+						40.6729694661857,
+						-74.06230948319151,
+						40.681980061359155
+					],
+					"file": "osm_nj_-1_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-1_-2/c2_0",
+					"bbox": [
+						-74.10964442843027,
+						40.68195096499907,
+						-74.09780273126044,
+						40.69096518074611
+					],
+					"file": "osm_nj_-1_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-1_-2/c2_1",
+					"bbox": [
+						-74.09781387730797,
+						40.681960057612095,
+						-74.0859737714558,
+						40.6909730620585
+					],
+					"file": "osm_nj_-1_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-1_-2/c2_2",
+					"bbox": [
+						-74.08598332521308,
+						40.68196793787635,
+						-74.07414481081855,
+						40.690979730861024
+					],
+					"file": "osm_nj_-1_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-1_-2/c2_3",
+					"bbox": [
+						-74.07415277228453,
+						40.68197460579199,
+						-74.06231584948745,
+						40.69098518715382
+					],
+					"file": "osm_nj_-1_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-1_-2/c3_0",
+					"bbox": [
+						-74.1096571725259,
+						40.69095608692371,
+						-74.09781387730797,
+						40.69997028956343
+					],
+					"file": "osm_nj_-1_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-1_-2/c3_1",
+					"bbox": [
+						-74.09782502839468,
+						40.69096518074611,
+						-74.08598332521308,
+						40.69997817192462
+					],
+					"file": "osm_nj_-1_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-1_-2/c3_2",
+					"bbox": [
+						-74.08599288328966,
+						40.6909730620585,
+						-74.07415277228453,
+						40.69998484161459
+					],
+					"file": "osm_nj_-1_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-1_-2/c3_3",
+					"bbox": [
+						-74.07416073734994,
+						40.690979730861024,
+						-74.06232221866128,
+						40.69999029863348
+					],
+					"file": "osm_nj_-1_-2.json",
+					"status": "cached"
+				},
+				{
+					"id": "tile_-1_-1/c2_0",
+					"bbox": [
+						-74.06232221866128,
+						40.681980061359155,
+						-74.05048688760128,
+						40.690989430936995
+					],
+					"file": "osm_nj_-1_-1_2_0.json",
+					"status": "downloaded"
+				},
+				{
+					"id": "tile_-1_-1/c2_1",
+					"bbox": [
+						-74.05049166448225,
+						40.68198430457794,
+						-74.03865792529879,
+						40.69099246221063
+					],
+					"file": "osm_nj_-1_-1_2_1.json",
+					"status": "downloaded"
+				},
+				{
+					"id": "tile_-1_-1/c3_0",
+					"bbox": [
+						-74.06232859071466,
+						40.69098518715382,
+						-74.05049166448225,
+						40.69999454298139
+					],
+					"file": "osm_nj_-1_-1_3_0.json",
+					"status": "downloaded"
+				},
+				{
+					"id": "tile_-1_-1/c3_1",
+					"bbox": [
+						-74.05049644352289,
+						40.690989430936995,
+						-74.03866110988642,
+						40.699997574658425
+					],
+					"file": "osm_nj_-1_-1_3_1.json",
+					"status": "downloaded"
+				},
+				{
+					"id": "tile_-1_-1/c3_2",
+					"bbox": [
+						-74.03866429591379,
+						40.69099246221063,
+						-74.02683055501268,
+						40.69999939366461
+					],
+					"file": "osm_nj_-1_-1_3_2.json",
+					"status": "downloaded"
+				},
+				{
+					"id": "tile_0_-2/c0_0",
+					"bbox": [
+						-74.10966992238386,
+						40.69996119453086,
+						-74.09782502839468,
+						40.70897538428585
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-2/c0_1",
+					"bbox": [
+						-74.09783618452344,
+						40.69997028956343,
+						-74.08599288328966,
+						40.70898326769652
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-2/c0_2",
+					"bbox": [
+						-74.086002445688,
+						40.69997817192462,
+						-74.07416073734994,
+						40.708989938274506
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-2/c0_3",
+					"bbox": [
+						-74.07416870601682,
+						40.69998484161459,
+						-74.06232859071466,
+						40.70899539601996
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-2/c1_0",
+					"bbox": [
+						-74.10968267800742,
+						40.70896628804236,
+						-74.09783618452344,
+						40.71798046513518
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-2/c1_1",
+					"bbox": [
+						-74.0978473456971,
+						40.70897538428585,
+						-74.086002445688,
+						40.717988349595984
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-2/c1_2",
+					"bbox": [
+						-74.08601201241054,
+						40.70898326769652,
+						-74.07416870601682,
+						40.71799502106256
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-2/c1_3",
+					"bbox": [
+						-74.0741766782872,
+						40.708989938274506,
+						-74.0623349656492,
+						40.718000479535036
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-2/c2_0",
+					"bbox": [
+						-74.10969543939984,
+						40.71797136767997,
+						-74.0978473456971,
+						40.726985532333195
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-2/c2_1",
+					"bbox": [
+						-74.09785851191852,
+						40.71798046513518,
+						-74.08601201241054,
+						40.72699341784483
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-2/c2_2",
+					"bbox": [
+						-74.08602158345974,
+						40.717988349595984,
+						-74.0741766782872,
+						40.72700009020056
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-2/c2_3",
+					"bbox": [
+						-74.07418465416313,
+						40.71799502106256,
+						-74.06234134346656,
+						40.72700554940053
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-2/c3_0",
+					"bbox": [
+						-74.1097082065644,
+						40.72697643366552,
+						-74.09785851191852,
+						40.73599058610174
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-2/c3_1",
+					"bbox": [
+						-74.09786968319057,
+						40.726985532333195,
+						-74.08602158345974,
+						40.73599847266486
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-2/c3_2",
+					"bbox": [
+						-74.08603115883805,
+						40.72699341784483,
+						-74.07418465416313,
+						40.73600514591031
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-2/c3_3",
+					"bbox": [
+						-74.07419263364665,
+						40.72700009020056,
+						-74.06234772416833,
+						40.73601060583824
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-1/c0_0",
+					"bbox": [
+						-74.0623349656492,
+						40.69999029863348,
+						-74.05049644352289,
+						40.70899964093298
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-1/c0_1",
+					"bbox": [
+						-74.05050122472441,
+						40.69999454298139,
+						-74.03866429591379,
+						40.70900267301364
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-1/c0_2",
+					"bbox": [
+						-74.03866748338177,
+						40.699997574658425,
+						-74.02683214802646,
+						40.70900449226202
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-1/c1_0",
+					"bbox": [
+						-74.06234134346656,
+						40.70899539601996,
+						-74.05050122472441,
+						40.71800472501352
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-1/c1_1",
+					"bbox": [
+						-74.05050600808804,
+						40.70899964093298,
+						-74.03866748338177,
+						40.71800775749809
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-1/c1_2",
+					"bbox": [
+						-74.03867067229113,
+						40.70900267301364,
+						-74.02683374176053,
+						40.718009576988806
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-1/c2_0",
+					"bbox": [
+						-74.06234772416833,
+						40.718000479535036,
+						-74.05050600808804,
+						40.727009795444836
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-1/c2_1",
+					"bbox": [
+						-74.05051079361499,
+						40.71800472501352,
+						-74.03867067229113,
+						40.72701282833357
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-1/c2_2",
+					"bbox": [
+						-74.03867386264272,
+						40.71800775749809,
+						-74.0268353362153,
+						40.72701464806678
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-1/c3_0",
+					"bbox": [
+						-74.06235410775619,
+						40.72700554940053,
+						-74.05051079361499,
+						40.736014852448726
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-1/c3_1",
+					"bbox": [
+						-74.0505155813065,
+						40.727009795444836,
+						-74.03867386264272,
+						40.73601788574188
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-1/c3_2",
+					"bbox": [
+						-74.03867705443736,
+						40.72701282833357,
+						-74.02683693139119,
+						40.73601970571774
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_0_-1/c3_3",
+					"bbox": [
+						-74.02683852728858,
+						40.72701464806678,
+						-74.015,
+						40.736020312376354
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-2/c0_0",
+					"bbox": [
+						-74.10972097950439,
+						40.7359814862208,
+						-74.09786968319057,
+						40.744995626662586
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-2/c0_1",
+					"bbox": [
+						-74.0978808595161,
+						40.73599058610174,
+						-74.08603115883805,
+						40.74500351427786
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-2/c0_2",
+					"bbox": [
+						-74.08604073854791,
+						40.73599847266486,
+						-74.07419263364665,
+						40.74501018841361
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-2/c0_3",
+					"bbox": [
+						-74.0742006167398,
+						40.73600514591031,
+						-74.06235410775619,
+						40.74501564906995
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-2/c1_0",
+					"bbox": [
+						-74.10973375822306,
+						40.74498652556762,
+						-74.0978808595161,
+						40.75400065423754
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-2/c1_1",
+					"bbox": [
+						-74.097892040898,
+						40.744995626662586,
+						-74.08604073854791,
+						40.754008542905645
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-2/c1_2",
+					"bbox": [
+						-74.0860503225918,
+						40.74500351427786,
+						-74.0742006167398,
+						40.754015217932256
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-2/c1_3",
+					"bbox": [
+						-74.07420860344465,
+						40.74501018841361,
+						-74.06236049423177,
+						40.754020679317485
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-2/c2_0",
+					"bbox": [
+						-74.1097465427237,
+						40.75399155192775,
+						-74.097892040898,
+						40.76300566904839
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-2/c2_1",
+					"bbox": [
+						-74.09790322733912,
+						40.75400065423754,
+						-74.0860503225918,
+						40.763013558770005
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-2/c2_2",
+					"bbox": [
+						-74.08605991097218,
+						40.754008542905645,
+						-74.07420860344465,
+						40.76302023468804
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-2/c2_3",
+					"bbox": [
+						-74.07421659376323,
+						40.754015217932256,
+						-74.0623668835967,
+						40.763025696802615
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-2/c3_0",
+					"bbox": [
+						-74.1097593330096,
+						40.76299656552302,
+						-74.09790322733912,
+						40.772010671316934
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-2/c3_1",
+					"bbox": [
+						-74.09791441884234,
+						40.76300566904839,
+						-74.08605991097218,
+						40.77201856209274
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-2/c3_2",
+					"bbox": [
+						-74.0860695036915,
+						40.763013558770005,
+						-74.07421659376323,
+						40.77202523890277
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-2/c3_3",
+					"bbox": [
+						-74.0742245876976,
+						40.76302023468804,
+						-74.06237327585261,
+						40.77203070174716
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-1/c0_0",
+					"bbox": [
+						-74.06236049423177,
+						40.73601060583824,
+						-74.0505155813065,
+						40.74501989624699
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-1/c0_1",
+					"bbox": [
+						-74.05052037116378,
+						40.736014852448726,
+						-74.03867705443736,
+						40.74502292994483
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-1/c0_2",
+					"bbox": [
+						-74.03868024767583,
+						40.73601788574188,
+						-74.02683852728858,
+						40.745024750163495
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-1/c0_3",
+					"bbox": [
+						-74.0268401239079,
+						40.73601970571774,
+						-74.015,
+						40.74502535690305
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-1/c1_0",
+					"bbox": [
+						-74.0623668835967,
+						40.74501564906995,
+						-74.05052037116378,
+						40.75402492706144
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-1/c1_1",
+					"bbox": [
+						-74.05052516318808,
+						40.74501989624699,
+						-74.03868024767583,
+						40.7540279611642
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-1/c1_2",
+					"bbox": [
+						-74.038683442359,
+						40.74502292994483,
+						-74.0268401239079,
+						40.75402978162583
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-1/c1_3",
+					"bbox": [
+						-74.02684172124958,
+						40.745024750163495,
+						-74.015,
+						40.754030388446374
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-1/c2_0",
+					"bbox": [
+						-74.06237327585261,
+						40.754020679317485,
+						-74.05052516318808,
+						40.76302994511385
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-1/c2_1",
+					"bbox": [
+						-74.05052995738063,
+						40.75402492706144,
+						-74.038683442359,
+						40.763032979621805
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-1/c2_2",
+					"bbox": [
+						-74.03868663848765,
+						40.7540279611642,
+						-74.02684172124958,
+						40.763034800326565
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-1/c2_3",
+					"bbox": [
+						-74.02684331931398,
+						40.75402978162583,
+						-74.015,
+						40.76303540722814
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-1/c3_0",
+					"bbox": [
+						-74.06237967100114,
+						40.763025696802615,
+						-74.05052995738063,
+						40.77203495062602
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-1/c3_1",
+					"bbox": [
+						-74.05053475374264,
+						40.76302994511385,
+						-74.03868663848765,
+						40.772037985539434
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-1/c3_2",
+					"bbox": [
+						-74.03868983606262,
+						40.763032979621805,
+						-74.02684331931398,
+						40.77203980648746
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_-1/c3_3",
+					"bbox": [
+						-74.02684491810156,
+						40.763034800326565,
+						-74.015,
+						40.77204041347013
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_1_0/c3_0",
+					"bbox": [
+						-74.01500000000001,
+						40.76303480032656,
+						-74.00315508189844,
+						40.77204041347013
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-2/c0_0",
+					"bbox": [
+						-74.10977212908405,
+						40.772001566575206,
+						-74.09791441884234,
+						40.78101566126497
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-2/c0_1",
+					"bbox": [
+						-74.09792561541055,
+						40.772010671316934,
+						-74.0860695036915,
+						40.78102355309563
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-2/c0_2",
+					"bbox": [
+						-74.08607910075224,
+						40.77201856209274,
+						-74.0742245876976,
+						40.78103023079823
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-2/c0_3",
+					"bbox": [
+						-74.07423258524982,
+						40.77202523890277,
+						-74.06237967100114,
+						40.78103569437291
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-2/c1_0",
+					"bbox": [
+						-74.10978493095034,
+						40.78100655530612,
+						-74.09792561541055,
+						40.79002063911431
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-2/c1_1",
+					"bbox": [
+						-74.0979368170466,
+						40.78101566126497,
+						-74.08607910075224,
+						40.7900285320005
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-2/c1_2",
+					"bbox": [
+						-74.08608870215684,
+						40.78102355309563,
+						-74.07423258524982,
+						40.79003521059624
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-2/c1_3",
+					"bbox": [
+						-74.07424058642194,
+						40.78103023079823,
+						-74.06238606904397,
+						40.790040674901654
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-2/c2_0",
+					"bbox": [
+						-74.10979773861173,
+						40.79001153193753,
+						-74.0979368170466,
+						40.79902560508673
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-2/c2_1",
+					"bbox": [
+						-74.09794802375339,
+						40.79002063911431,
+						-74.08608870215684,
+						40.799033499029115
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-2/c2_2",
+					"bbox": [
+						-74.0860983079078,
+						40.7900285320005,
+						-74.07424058642194,
+						40.79904017851857
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-2/c2_3",
+					"bbox": [
+						-74.07424859121599,
+						40.79003521059624,
+						-74.06239246998273,
+						40.7990456435552
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-2/c3_0",
+					"bbox": [
+						-74.10981055207155,
+						40.79901649669125,
+						-74.09794802375339,
+						40.808030559404024
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-2/c3_1",
+					"bbox": [
+						-74.0979592355338,
+						40.79902560508673,
+						-74.0860983079078,
+						40.80803845440328
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-2/c3_2",
+					"bbox": [
+						-74.08610791800758,
+						40.799033499029115,
+						-74.07424859121599,
+						40.808045134787015
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-2/c3_3",
+					"bbox": [
+						-74.0742565996341,
+						40.79904017851857,
+						-74.06239887381902,
+						40.80805060055535
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-1/c0_0",
+					"bbox": [
+						-74.06238606904397,
+						40.77203070174716,
+						-74.05053475374264,
+						40.78103994381978
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-1/c0_1",
+					"bbox": [
+						-74.05053955227538,
+						40.77203495062602,
+						-74.03868983606262,
+						40.781042979138896
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-1/c0_2",
+					"bbox": [
+						-74.03869303508473,
+						40.772037985539434,
+						-74.02684491810156,
+						40.78104480033034
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-1/c0_3",
+					"bbox": [
+						-74.02684651761271,
+						40.77203980648746,
+						-74.015,
+						40.78104540739416
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-1/c1_0",
+					"bbox": [
+						-74.06239246998273,
+						40.78103569437291,
+						-74.05053955227538,
+						40.790044924916884
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-1/c1_1",
+					"bbox": [
+						-74.05054435298004,
+						40.78103994381978,
+						-74.03869303508473,
+						40.79004796064198
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-1/c1_2",
+					"bbox": [
+						-74.03869623555481,
+						40.781042979138896,
+						-74.02684651761271,
+						40.790049782077006
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-1/c1_3",
+					"bbox": [
+						-74.02684811784783,
+						40.78104480033034,
+						-74.015,
+						40.790050389222024
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-1/c2_0",
+					"bbox": [
+						-74.06239887381902,
+						40.790040674901654,
+						-74.05054435298004,
+						40.79904989413915
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-1/c2_1",
+					"bbox": [
+						-74.0505491558579,
+						40.790044924916884,
+						-74.03869623555481,
+						40.799052930270484
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-1/c2_2",
+					"bbox": [
+						-74.03869943747367,
+						40.79004796064198,
+						-74.02684811784783,
+						40.79905475194925
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-1/c2_3",
+					"bbox": [
+						-74.02684971880736,
+						40.790049782077006,
+						-74.015,
+						40.79905535917551
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-1/c3_0",
+					"bbox": [
+						-74.06240528055454,
+						40.7990456435552,
+						-74.0505491558579,
+						40.808054851708384
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-1/c3_1",
+					"bbox": [
+						-74.05055396091015,
+						40.79904989413915,
+						-74.03869943747367,
+						40.808057888246196
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-1/c3_2",
+					"bbox": [
+						-74.03870264084212,
+						40.799052930270484,
+						-74.02684971880736,
+						40.80805971016886
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_-1/c3_3",
+					"bbox": [
+						-74.02685132049166,
+						40.79905475194925,
+						-74.015,
+						40.80806031747642
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_0/c0_0",
+					"bbox": [
+						-74.015,
+						40.77203980648746,
+						-74.0031534823873,
+						40.78104540739416
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_0/c0_1",
+					"bbox": [
+						-74.00315508189844,
+						40.772037985539434,
+						-73.99130696491528,
+						40.781044800330356
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_0/c1_0",
+					"bbox": [
+						-74.015,
+						40.781044800330356,
+						-74.00315188215218,
+						40.790050389222024
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_0/c1_1",
+					"bbox": [
+						-74.0031534823873,
+						40.781042979138896,
+						-73.9913037644452,
+						40.79004978207701
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_0/c2_0",
+					"bbox": [
+						-74.015,
+						40.79004978207701,
+						-74.00315028119266,
+						40.79905535917551
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_0/c2_1",
+					"bbox": [
+						-74.00315188215218,
+						40.790047960641985,
+						-73.99130056252635,
+						40.79905475194925
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_0/c3_0",
+					"bbox": [
+						-74.015,
+						40.79905475194925,
+						-74.00314867950834,
+						40.80806031747642
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_0/c3_1",
+					"bbox": [
+						-74.00315028119266,
+						40.79905293027049,
+						-73.99129735915788,
+						40.80805971016886
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_2_0/c3_2",
+					"bbox": [
+						-73.99130056252635,
+						40.79904989413915,
+						-73.97944603908986,
+						40.808057888246196
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-2/c0_0",
+					"bbox": [
+						-74.10982337133309,
+						40.80802144978908,
+						-74.0979592355338,
+						40.81703550228799
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-2/c0_1",
+					"bbox": [
+						-74.09797045239073,
+						40.808030559404024,
+						-74.08610791800758,
+						40.8170433983448
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-2/c0_2",
+					"bbox": [
+						-74.08611753245864,
+						40.80803845440328,
+						-74.0742565996341,
+						40.81705007962338
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-2/c0_3",
+					"bbox": [
+						-74.07426461167825,
+						40.808045134787015,
+						-74.06240528055454,
+						40.81705554612386
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-2/c1_0",
+					"bbox": [
+						-74.10983619639963,
+						40.8170263914528,
+						-74.09797045239073,
+						40.826040433960436
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-2/c1_1",
+					"bbox": [
+						-74.09798167432702,
+						40.81703550228799,
+						-74.08611753245864,
+						40.82604833107547
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-2/c1_2",
+					"bbox": [
+						-74.08612715126348,
+						40.8170433983448,
+						-74.07426461167825,
+						40.826055013249466
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-2/c1_3",
+					"bbox": [
+						-74.07427262735055,
+						40.81705007962338,
+						-74.06241169019093,
+						40.82606048048256
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-2/c2_0",
+					"bbox": [
+						-74.1098490272745,
+						40.8260313219042,
+						-74.09798167432702,
+						40.83504535464312
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-2/c2_1",
+					"bbox": [
+						-74.09799290134562,
+						40.826040433960436,
+						-74.08612715126348,
+						40.83505325281706
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-2/c2_2",
+					"bbox": [
+						-74.08613677442456,
+						40.82604833107547,
+						-74.07427262735055,
+						40.835059935887045
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-2/c2_3",
+					"bbox": [
+						-74.07428064665307,
+						40.826055013249466,
+						-74.06241810272982,
+						40.83506540385323
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-2/c3_0",
+					"bbox": [
+						-74.109861863961,
+						40.83503624136509,
+						-74.09799290134562,
+						40.844050264557865
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-2/c3_1",
+					"bbox": [
+						-74.09800413344938,
+						40.83504535464312,
+						-74.08613677442456,
+						40.84405816379138
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-2/c3_2",
+					"bbox": [
+						-74.08614640194435,
+						40.83505325281706,
+						-74.07428064665307,
+						40.84406484775794
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-2/c3_3",
+					"bbox": [
+						-74.07428866958784,
+						40.835059935887045,
+						-74.06242451817289,
+						40.844070316457675
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-1/c0_0",
+					"bbox": [
+						-74.06241169019093,
+						40.80805060055535,
+						-74.05055396091015,
+						40.817059797846355
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-1/c0_1",
+					"bbox": [
+						-74.05055876813806,
+						40.808054851708384,
+						-74.03870264084212,
+						40.817062834790924
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-1/c0_2",
+					"bbox": [
+						-74.03870584566101,
+						40.808057888246196,
+						-74.02685132049166,
+						40.81706465695763
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-1/c0_3",
+					"bbox": [
+						-74.0268529229012,
+						40.80805971016886,
+						-74.015,
+						40.817065264346546
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-1/c1_0",
+					"bbox": [
+						-74.06241810272982,
+						40.81705554612386,
+						-74.05055876813806,
+						40.82606473277487
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-1/c1_1",
+					"bbox": [
+						-74.05056357754285,
+						40.817059797846355,
+						-74.03870584566101,
+						40.82606777012644
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-1/c1_2",
+					"bbox": [
+						-74.03870905193116,
+						40.817062834790924,
+						-74.0268529229012,
+						40.82606959253737
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-1/c1_3",
+					"bbox": [
+						-74.02685452603636,
+						40.81706465695763,
+						-74.015,
+						40.82607020000767
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-1/c2_0",
+					"bbox": [
+						-74.06242451817289,
+						40.82606048048256,
+						-74.05056357754285,
+						40.83506965671571
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-1/c2_1",
+					"bbox": [
+						-74.05056838912574,
+						40.82606473277487,
+						-74.03870905193116,
+						40.83507269447456
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-1/c2_2",
+					"bbox": [
+						-74.0387122596534,
+						40.82606777012644,
+						-74.02685452603636,
+						40.83507451712985
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-1/c2_3",
+					"bbox": [
+						-74.02685612989757,
+						40.82606959253737,
+						-74.015,
+						40.83507512468161
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-1/c3_0",
+					"bbox": [
+						-74.06243093652176,
+						40.83506540385323,
+						-74.05056838912574,
+						40.844074569890694
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-1/c3_1",
+					"bbox": [
+						-74.05057320288803,
+						40.83506965671571,
+						-74.0387122596534,
+						40.84407760805708
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-1/c3_2",
+					"bbox": [
+						-74.03871546882854,
+						40.83507269447456,
+						-74.02685612989757,
+						40.844079430956874
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_-1/c3_3",
+					"bbox": [
+						-74.02685773448523,
+						40.83507451712985,
+						-74.015,
+						40.84408003859014
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_0/c0_0",
+					"bbox": [
+						-74.015,
+						40.80805971016886,
+						-74.0031470770988,
+						40.817065264346546
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_0/c0_1",
+					"bbox": [
+						-74.00314867950834,
+						40.808057888246196,
+						-73.99129415433899,
+						40.81706465695763
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_0/c0_2",
+					"bbox": [
+						-73.99129735915788,
+						40.808054851708384,
+						-73.97944123186195,
+						40.817062834790924
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_0/c0_3",
+					"bbox": [
+						-73.97944603908986,
+						40.80805060055535,
+						-73.96758830980907,
+						40.81705979784635
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_0/c1_0",
+					"bbox": [
+						-74.015,
+						40.81706465695763,
+						-74.00314547396364,
+						40.82607020000767
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_0/c1_1",
+					"bbox": [
+						-74.0031470770988,
+						40.817062834790924,
+						-73.99129094806884,
+						40.82606959253737
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_0/c1_2",
+					"bbox": [
+						-73.99129415433899,
+						40.81705979784635,
+						-73.97943642245717,
+						40.82606777012644
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_0/c1_3",
+					"bbox": [
+						-73.97944123186195,
+						40.81705554612386,
+						-73.96758189727018,
+						40.82606473277487
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_0/c2_0",
+					"bbox": [
+						-74.015,
+						40.82606959253737,
+						-74.00314387010243,
+						40.83507512468161
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_0/c2_1",
+					"bbox": [
+						-74.00314547396364,
+						40.82606777012644,
+						-73.9912877403466,
+						40.83507451712985
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_0/c2_2",
+					"bbox": [
+						-73.99129094806884,
+						40.82606473277487,
+						-73.97943161087426,
+						40.83507269447456
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_0/c2_3",
+					"bbox": [
+						-73.97943642245717,
+						40.82606048048256,
+						-73.96757548182713,
+						40.83506965671571
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_0/c3_0",
+					"bbox": [
+						-74.015,
+						40.83507451712985,
+						-74.00314226551478,
+						40.84408003859014
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_0/c3_1",
+					"bbox": [
+						-74.00314387010243,
+						40.83507269447456,
+						-73.99128453117146,
+						40.84407943095688
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_0/c3_2",
+					"bbox": [
+						-73.9912877403466,
+						40.83506965671571,
+						-73.97942679711198,
+						40.84407760805708
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_0/c3_3",
+					"bbox": [
+						-73.97943161087426,
+						40.83506540385323,
+						-73.96756906347825,
+						40.844074569890694
+					],
+					"file": null,
+					"status": "missing"
+				},
+				{
+					"id": "tile_3_1/c3_0",
+					"bbox": [
+						-73.96757548182713,
+						40.835059935887045,
+						-73.95571133041217,
+						40.844070316457675
+					],
+					"file": null,
+					"status": "missing"
+				}
+			],
+			"missing": [
+				"tile_0_-2/c0_0",
+				"tile_0_-2/c0_1",
+				"tile_0_-2/c0_2",
+				"tile_0_-2/c0_3",
+				"tile_0_-2/c1_0",
+				"tile_0_-2/c1_1",
+				"tile_0_-2/c1_2",
+				"tile_0_-2/c1_3",
+				"tile_0_-2/c2_0",
+				"tile_0_-2/c2_1",
+				"tile_0_-2/c2_2",
+				"tile_0_-2/c2_3",
+				"tile_0_-2/c3_0",
+				"tile_0_-2/c3_1",
+				"tile_0_-2/c3_2",
+				"tile_0_-2/c3_3",
+				"tile_0_-1/c0_0",
+				"tile_0_-1/c0_1",
+				"tile_0_-1/c0_2",
+				"tile_0_-1/c1_0",
+				"tile_0_-1/c1_1",
+				"tile_0_-1/c1_2",
+				"tile_0_-1/c2_0",
+				"tile_0_-1/c2_1",
+				"tile_0_-1/c2_2",
+				"tile_0_-1/c3_0",
+				"tile_0_-1/c3_1",
+				"tile_0_-1/c3_2",
+				"tile_0_-1/c3_3",
+				"tile_1_-2/c0_0",
+				"tile_1_-2/c0_1",
+				"tile_1_-2/c0_2",
+				"tile_1_-2/c0_3",
+				"tile_1_-2/c1_0",
+				"tile_1_-2/c1_1",
+				"tile_1_-2/c1_2",
+				"tile_1_-2/c1_3",
+				"tile_1_-2/c2_0",
+				"tile_1_-2/c2_1",
+				"tile_1_-2/c2_2",
+				"tile_1_-2/c2_3",
+				"tile_1_-2/c3_0",
+				"tile_1_-2/c3_1",
+				"tile_1_-2/c3_2",
+				"tile_1_-2/c3_3",
+				"tile_1_-1/c0_0",
+				"tile_1_-1/c0_1",
+				"tile_1_-1/c0_2",
+				"tile_1_-1/c0_3",
+				"tile_1_-1/c1_0",
+				"tile_1_-1/c1_1",
+				"tile_1_-1/c1_2",
+				"tile_1_-1/c1_3",
+				"tile_1_-1/c2_0",
+				"tile_1_-1/c2_1",
+				"tile_1_-1/c2_2",
+				"tile_1_-1/c2_3",
+				"tile_1_-1/c3_0",
+				"tile_1_-1/c3_1",
+				"tile_1_-1/c3_2",
+				"tile_1_-1/c3_3",
+				"tile_1_0/c3_0",
+				"tile_2_-2/c0_0",
+				"tile_2_-2/c0_1",
+				"tile_2_-2/c0_2",
+				"tile_2_-2/c0_3",
+				"tile_2_-2/c1_0",
+				"tile_2_-2/c1_1",
+				"tile_2_-2/c1_2",
+				"tile_2_-2/c1_3",
+				"tile_2_-2/c2_0",
+				"tile_2_-2/c2_1",
+				"tile_2_-2/c2_2",
+				"tile_2_-2/c2_3",
+				"tile_2_-2/c3_0",
+				"tile_2_-2/c3_1",
+				"tile_2_-2/c3_2",
+				"tile_2_-2/c3_3",
+				"tile_2_-1/c0_0",
+				"tile_2_-1/c0_1",
+				"tile_2_-1/c0_2",
+				"tile_2_-1/c0_3",
+				"tile_2_-1/c1_0",
+				"tile_2_-1/c1_1",
+				"tile_2_-1/c1_2",
+				"tile_2_-1/c1_3",
+				"tile_2_-1/c2_0",
+				"tile_2_-1/c2_1",
+				"tile_2_-1/c2_2",
+				"tile_2_-1/c2_3",
+				"tile_2_-1/c3_0",
+				"tile_2_-1/c3_1",
+				"tile_2_-1/c3_2",
+				"tile_2_-1/c3_3",
+				"tile_2_0/c0_0",
+				"tile_2_0/c0_1",
+				"tile_2_0/c1_0",
+				"tile_2_0/c1_1",
+				"tile_2_0/c2_0",
+				"tile_2_0/c2_1",
+				"tile_2_0/c3_0",
+				"tile_2_0/c3_1",
+				"tile_2_0/c3_2",
+				"tile_3_-2/c0_0",
+				"tile_3_-2/c0_1",
+				"tile_3_-2/c0_2",
+				"tile_3_-2/c0_3",
+				"tile_3_-2/c1_0",
+				"tile_3_-2/c1_1",
+				"tile_3_-2/c1_2",
+				"tile_3_-2/c1_3",
+				"tile_3_-2/c2_0",
+				"tile_3_-2/c2_1",
+				"tile_3_-2/c2_2",
+				"tile_3_-2/c2_3",
+				"tile_3_-2/c3_0",
+				"tile_3_-2/c3_1",
+				"tile_3_-2/c3_2",
+				"tile_3_-2/c3_3",
+				"tile_3_-1/c0_0",
+				"tile_3_-1/c0_1",
+				"tile_3_-1/c0_2",
+				"tile_3_-1/c0_3",
+				"tile_3_-1/c1_0",
+				"tile_3_-1/c1_1",
+				"tile_3_-1/c1_2",
+				"tile_3_-1/c1_3",
+				"tile_3_-1/c2_0",
+				"tile_3_-1/c2_1",
+				"tile_3_-1/c2_2",
+				"tile_3_-1/c2_3",
+				"tile_3_-1/c3_0",
+				"tile_3_-1/c3_1",
+				"tile_3_-1/c3_2",
+				"tile_3_-1/c3_3",
+				"tile_3_0/c0_0",
+				"tile_3_0/c0_1",
+				"tile_3_0/c0_2",
+				"tile_3_0/c0_3",
+				"tile_3_0/c1_0",
+				"tile_3_0/c1_1",
+				"tile_3_0/c1_2",
+				"tile_3_0/c1_3",
+				"tile_3_0/c2_0",
+				"tile_3_0/c2_1",
+				"tile_3_0/c2_2",
+				"tile_3_0/c2_3",
+				"tile_3_0/c3_0",
+				"tile_3_0/c3_1",
+				"tile_3_0/c3_2",
+				"tile_3_0/c3_3",
+				"tile_3_1/c3_0"
+			],
+			"failure": "request failed after 3 bounded attempts: download of https://overpass.private.coffee/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A180%5D%3Barea%5B%22ISO3166-2%22%3D%22US-NJ%22%5D%5Badmin_level%3D4%5D-%3E.nj%3B%28way%5Bbuilding%5D%28area.nj%29%2840.69996119453086%2C-74.10966992238386%2C40.70897538428585%2C-74.09782502839468%29%3Brelation%5Bbuilding%5D%5Btype%3Dmultipolygon%5D%28area.nj%29%2840.69996119453086%2C-74.10966992238386%2C40.70897538428585%2C-74.09782502839468%29%3B%29%3Bout+geom%3B failed after 1 attempts: The read operation timed out"
+		}
+	}
+}

@@ -1,7 +1,7 @@
 {
 	"name": "FerrySim.Unity.Sim",
 	"rootNamespace": "FerrySim.Sim",
-	"references": ["FerrySim.Core", "FerrySim.Core.Serialization"],
+	"references": ["FerrySim.Unity.Vessels", "FerrySim.Core", "FerrySim.Core.Serialization"],
 	"includePlatforms": [],
 	"excludePlatforms": [],
 	"allowUnsafeCode": false,

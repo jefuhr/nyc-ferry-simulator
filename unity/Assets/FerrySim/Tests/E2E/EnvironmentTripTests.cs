@@ -120,6 +120,14 @@ namespace FerrySim.E2E
 			Assert.That(bootstrap.StartRefusal, Is.Null);
 			Assert.That(_runner.WorldGeometry, Is.SameAs(bootstrap.Landings.Geometry), "real slice landing geometry");
 			Assert.That(_runner.RunEnvironment.Pack.Name, Is.EqualTo(Region + "/" + choice.Date));
+			var startPosition = settings.StartPosition;
+			var startDepth = SliceScenarioCatalog.MinimumStartDepth(new DataEnvironment(_runner.EnvironmentPacks.Load(settings.environment.pack), _runner.ScenarioStartUtc),
+				FaceClearance.WorldOutline(_runner.Parameters, startPosition.North, startPosition.East, settings.StartHeading), 0);
+			Directory.CreateDirectory(folder);
+			File.WriteAllText(Path.Combine(folder, "start-depth.json"), new JObject {
+				["start_utc"] = settings.scenarioStartUtc, ["minimum_depth_m"] = startDepth,
+				["maximum_draft_m"] = _runner.Parameters.Particulars.MaxDraft.Value,
+				["under_keel_m"] = startDepth - _runner.Parameters.Particulars.MaxDraft.Value }.ToString() + "\n");
 			return settings;
 		}
 
@@ -273,7 +281,7 @@ namespace FerrySim.E2E
 			var levels = new Dictionary<string, double>();
 			foreach (var (name, minute) in new[] { ("high", high), ("low", low) })
 			{
-				var settings = Start(new ScenarioChoice("87", date, minute, "t-class", berthId: "enc:0226015B0512B198"), new ConstantControls(ControlInputs.Neutral), Path.Combine(folder, name));
+				var settings = Start(new ScenarioChoice("87", date, minute, "t-class", berthId: "enc:02261FA117EFB198"), new ConstantControls(ControlInputs.Neutral), Path.Combine(folder, name));
 				yield return Drive(() => _runner.Driver.StepCount >= 100, 100);
 				// Placement and the tide again after the last step, and a frame for the barge (FloatOnWater follows in LateUpdate).
 				_runner.ApplyRenderPose();
@@ -493,9 +501,9 @@ namespace FerrySim.E2E
 			yield return LoadScene();
 			var folder = Artifacts("replay");
 			var bootstrap = Bootstrap;
-			var face = bootstrap.Landings.BerthFace("87", "enc:0226015B0512B198");
+			var face = bootstrap.Landings.BerthFace("87", "enc:02261FA117EFB198");
 			var controls = new PackLandingControls(_runner, face);
-			Start(new ScenarioChoice("87", "2025-04-14", 15 * 60 + 12, "t-class", berthId: "enc:0226015B0512B198"), controls, folder);
+			Start(new ScenarioChoice("87", "2025-04-14", 15 * 60 + 12, "t-class", berthId: "enc:02261FA117EFB198"), controls, folder);
 			var live = new StateDigest();
 			var digest = new StepWatch((step, state, telemetry) => live.Add(state));
 			_runner.Driver.AddObserver(digest);

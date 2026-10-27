@@ -69,6 +69,53 @@ namespace FerrySim.E2E
 		}
 
 		[UnityTest]
+		public IEnumerator CrewBowView_KeyPresetAndAutomatic_DayAndNight_OnlyInWheelhouse()
+		{
+			var wheelhouse = _bootstrap.CameraRig.Wheelhouse;
+			var previous = WheelhouseCameraController.AutomaticBowEnabled;
+			try
+			{
+				foreach (var minute in new[] { 12 * 60, 22 * 60 })
+				{
+					var palette = minute == 12 * 60 ? PaletteKind.Day : PaletteKind.Night;
+					Choose("enc:02261FA117EFB198", minute);
+					Assert.That(Picker.TryStartRun(), Is.True, Picker.Problem);
+					Runner.Resume(); Runner.AdvanceFrame(.01); Runner.Pause();
+					WheelhouseCameraController.AutomaticBowEnabled = false;
+					_bootstrap.CameraRig.CurrentMode = CameraRig.Mode.Wheelhouse;
+					wheelhouse.ToggleBowView();
+					yield return new WaitForSecondsRealtime(1.5f);
+					Assert.That(wheelhouse.ShowingBow, Is.True);
+					Assert.That(wheelhouse.BowPitch, Is.InRange(10, 45));
+					yield return Capture("bow-key-" + palette, 1280, 720, false, palette, crew: true);
+					Runner.ResetRun(); Runner.Resume(); Runner.AdvanceFrame(.01); Runner.Pause();
+					WheelhouseCameraController.AutomaticBowEnabled = true;
+					yield return new WaitForSecondsRealtime(1.5f);
+					Assert.That(wheelhouse.ShowingBow, Is.True, "east berth approach enters automatically");
+					yield return Capture("bow-auto-" + palette, 1280, 720, false, palette, crew: true);
+					wheelhouse.HeadLook = new Vector2(10, 0);
+					yield return null;
+					Assert.That(wheelhouse.ShowingBow, Is.False, "hand look suppresses this approach");
+					_bootstrap.CameraRig.CurrentMode = CameraRig.Mode.Chase;
+					Assert.That(wheelhouse.enabled, Is.False);
+				}
+			}
+			finally { WheelhouseCameraController.AutomaticBowEnabled = previous; }
+		}
+
+		[UnityTest]
+		public IEnumerator CrewPicker_RefusesAgroundSouthStart_AndPreservesShallowWarning()
+		{
+			Choose("enc:0226015B0512B198", 6 * 60);
+			Assert.That(Picker.TryStartRun(), Is.False);
+			Assert.That(Picker.Problem, Does.Contain("aground").And.Contain("depth").And.Contain("draft"));
+			yield return Capture("picker-aground-south", 1280, 720, true, PaletteKind.Day, crew: true);
+			Choose("enc:0226015B0512B198", 15 * 60);
+			Assert.That(Picker.DepthWarning.text, Does.Contain("Low under-keel clearance"));
+			Assert.That(Picker.TryStartRun(), Is.True, Picker.Problem);
+		}
+
+		[UnityTest]
 		public IEnumerator NorthBerth_StartsBowOnAndClear_FromThePicker()
 		{
 			Choose("enc:0226111D16AAB198", 12 * 60);
@@ -85,7 +132,7 @@ namespace FerrySim.E2E
 		[UnityTest]
 		public IEnumerator TrafficLeaveOut_AndQuarterMileFog_AreDrivenByThePickerAndRecorded()
 		{
-			Choose("enc:0226015B0512B198", 18 * 60, true, 3);
+			Choose("enc:0226015B0512B198", 9 * 60 + 30, true, 3);
 			Assert.That(Picker.LeaveOut.Value, Is.True);
 			Assert.That(Picker.TryStartRun(), Is.True, Picker.Problem);
 			Runner.Driver.Controls = new ConstantControls(ControlInputs.Neutral);
@@ -240,9 +287,10 @@ namespace FerrySim.E2E
 			}
 		}
 
-		private IEnumerator Capture(string name, int width, int height, bool picker, PaletteKind palette, float distance = 250, float heightAbove = 100)
+		private IEnumerator Capture(string name, int width, int height, bool picker, PaletteKind palette, float distance = 250, float heightAbove = 100, bool crew = false)
 		{
 			var ui = _bootstrap.WheelhouseUI;
+			if (crew && !picker) Assert.That(Runner.HasTelemetry, Is.True, "bow captures include a live vessel panel");
 			var target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB); target.Create();
 			var settings = WheelhousePanelSettings.Create(target, Color.clear);
 			ui.enabled = false; ui.Configure(Runner, settings); ui.enabled = true;
@@ -250,9 +298,17 @@ namespace FerrySim.E2E
 			ui.DaylightSource = null;
 			ui.View.Palette = palette;
 			ui.View.PickerVisible = picker;
-			if (picker) Choose("enc:02261FA117EFB198", 22 * 60, true);
-			_bootstrap.CameraRig.CurrentMode = CameraRig.Mode.Chase;
-			_bootstrap.CameraRig.Chase.Distance = distance; _bootstrap.CameraRig.Chase.Height = heightAbove; _bootstrap.CameraRig.Chase.Snap();
+			if (picker && !crew) Choose("enc:02261FA117EFB198", 22 * 60, true);
+			if (!crew) _bootstrap.CameraRig.CurrentMode = CameraRig.Mode.Chase;
+			if (!crew)
+			{
+				_bootstrap.CameraRig.Chase.Distance = distance; _bootstrap.CameraRig.Chase.Height = heightAbove; _bootstrap.CameraRig.Chase.Snap();
+			}
+			if (crew && picker)
+			{
+				Choose("enc:0226015B0512B198", 6 * 60);
+				Assert.That(Picker.TryStartRun(), Is.False);
+			}
 			for (var i = 0; i < 5; i++) yield return null;
 			if (picker)
 			{
@@ -270,7 +326,10 @@ namespace FerrySim.E2E
 				var a = top[i].a / 255f;
 				pixels[i] = new Color32((byte)Mathf.Min(255, top[i].r + pixels[i].r * (1-a)), (byte)Mathf.Min(255, top[i].g + pixels[i].g * (1-a)), (byte)Mathf.Min(255, top[i].b + pixels[i].b * (1-a)), 255);
 			}
-			image.SetPixels32(pixels); image.Apply(); File.WriteAllBytes(Path.Combine(Folder, name + ".png"), image.EncodeToPNG());
+			image.SetPixels32(pixels); image.Apply();
+			var captureFolder = crew ? Path.Combine(TripData.Root, "artifacts/crew-fixes") : Folder;
+			Directory.CreateDirectory(captureFolder);
+			File.WriteAllBytes(Path.Combine(captureFolder, name + ".png"), image.EncodeToPNG());
 			camera.targetTexture = old; camera.aspect = aspect; RenderTexture.active = active;
 			Object.Destroy(image); Object.Destroy(overlay); RenderTexture.ReleaseTemporary(world);
 			ui.enabled = false; ui.Configure(Runner, null); ui.enabled = true;

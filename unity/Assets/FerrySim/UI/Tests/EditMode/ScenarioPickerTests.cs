@@ -73,11 +73,12 @@ namespace FerrySim.UI.Tests.EditMode
 			Assert.That(picker.Choice.VisibilityMetres, Is.Zero);
 		}
 
-		// A shallow/grounded start warns but never disables Start; adequate and unknown depths clear the warning.
-		[TestCase(1.5, 1.9, "Start aground")]
+		// Preview text distinguishes aground refusal and shallow warning; the catalog owns the start verdict.
+		// This text-only stub accepts starts. The real refusal path is covered by catalog and picker E2E tests.
+		[TestCase(1.5, 1.9, "Start refused: aground")]
 		[TestCase(2.0, 1.9, "Low under-keel clearance")]
 		[TestCase(2.5, 1.9, "")]
-		public void StartDepth_WarnsWithoutRefusing(double water, double draft, string expected)
+		public void StartDepth_ShowsRefusalOrWarning_AndDelegatesTheStartVerdict(double water, double draft, string expected)
 		{
 			var catalog = new DepthCatalog(Catalog()) { Depth = new ScenarioStartDepth(water, draft) };
 			var picker = new ScenarioPicker(); picker.Bind(catalog, catalog.Inner);

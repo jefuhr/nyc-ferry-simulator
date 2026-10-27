@@ -13,7 +13,7 @@ The northbound East River stop order is **Pier 11 → DUMBO → South Williamsbu
 
 Faces are selected through `LandingGeometry.PrimaryFace(stop_id)`, which reads `primary_face`; no physical segment ID chooses a berth. South Williamsburg's current selected face has ID 149111046. Its separate crew water-side evidence permits runtime contact while the pipeline's chart verification remains false.
 
-**Whole structures.** The contact geometry is contacts.json version 2 (Slice/README.md, Landing contact from data): each landing's barge with its every side and end, its berths, and the piers, bulkheads and shoreline within 150 m, 445 segments in all. "Only the arrival primary face touched" now covers all of them. Pier 11's charted pier (LNAM `0226359E630A1C82`) runs 37 m past the barge's south-east end, and the original leg 1 trace, authored when only faces were contact, turned for DUMBO straight across it: at 41.43 s the hull hit the pier's south-west side at 12.2 kn (7.42 MN, a fender bottomed; `reds/old-pier11-dumbo-*`). The geometry stays as charted. The trace was re-authored to leave the slip round the pier's outer end, with no assertion, threshold or limit changed.
+**Whole structures.** The contact geometry is contacts.json version 2 (Slice/README.md, Landing contact from data): each landing's barge with its every side and end, its berths, and the piers, bulkheads and shoreline within 150 m, 446 segments in all. "Only the arrival primary face touched" now covers all of them. Pier 11's charted pier (LNAM `0226359E630A1C82`) runs 37 m past the barge's south-east end, and the original leg 1 trace, authored when only faces were contact, turned for DUMBO straight across it: at 41.43 s the hull hit the pier's south-west side at 12.2 kn (7.42 MN, a fender bottomed; `reds/old-pier11-dumbo-*`). The geometry stays as charted. The trace was re-authored to leave the slip round the pier's outer end, with no assertion, threshold or limit changed.
 
 The charted dry mooring point **MORFAC `022646E95F81764B`** lies 11.2 m off South Williamsburg's NW face and 2.1 m off its centre line. Its role and clearance remain unverified. It is **not contact geometry**, so the trace does not steer around a phantom obstacle; this real-world caveat remains unresolved by software acceptance.
 
@@ -44,12 +44,12 @@ The peak-force limit remains **estimated**: computed on every run with `ContactS
 `TraceAuthoring.Generate` makes both traces offline with the real core dynamics, T-class file and loaded contact geometry; `GeneratePier11Dumbo` and `GenerateDumboSouthWilliamsburg` make one each. The start and arrival follow selected faces. River waypoints, transit speeds and feedback gains are authoring estimates. Commands are sampled every 0.1 s and rounded to hundredths; both levers hold ahead idle for 60 s after first contact, allowing initial fender rebounds. Continuous positive contact is required throughout the final ten seconds. Regenerate only the leg whose fixture you are deliberately changing:
 
 ```sh
-lockf -k "$HOME/FerrySim-cache/heavy.lock" lockf -k "$HOME/FerrySim-cache/unity.lock" /Applications/Unity/Hub/Editor/6000.3.27f1/Unity.app/Contents/MacOS/Unity \
+lockf -k "$HOME/FerrySim-cache/heavy.lock" lockf -k "$HOME/FerrySim-cache/heavy.lock" lockf -k "$HOME/FerrySim-cache/unity.lock" /Applications/Unity/Hub/Editor/6000.3.27f1/Unity.app/Contents/MacOS/Unity \
   -batchmode -projectPath "$PWD/unity" -executeMethod FerrySim.E2E.TraceAuthoring.GeneratePier11Dumbo -quit \
   -logFile "$PWD/artifacts/e2e/trace-authoring.log"
 ```
 
-Leg 1 was re-authored in M3 wave 2a for the whole-structure geometry: after backing 25 m clear it runs to a point 31 m south of Pier 11's outer end before turning for DUMBO, so its departure stays at least 19.8 m off the pier. Two regenerations give the same bytes (`leg1-authoring/`). Leg 2's trace is unchanged.
+Leg 1 was re-authored in M3 wave 2a for the whole-structure geometry: after backing 25 m clear it runs to a point 31 m south of Pier 11's outer end before turning for DUMBO, so its departure stays at least 19.8 m off the pier. Two regenerations give the same bytes (`leg1-authoring/`). Both legs were subsequently re-authored in wave 3a for the 20° stops and the crew-approved 4.5 L effective area/span/yaw-damping calibration; the waypoints, controller, acceptance assertions and limits are unchanged. The paired authoring outputs and hashes are retained under `artifacts/crew-fixes/`.
 
 Authoring writes a diagnostic track per leg under ignored `artifacts/e2e/`. It uses no new packages, live services or inputs beyond the repository's existing data. The waypoints and controls are not operating guidance.
 
@@ -67,7 +67,7 @@ mkdir -p artifacts/e2e
 Run from the repository root. Every Unity invocation takes the shared lock. PlayMode renders, so omit `-nographics`:
 
 ```sh
-lockf -k "$HOME/FerrySim-cache/unity.lock" /Applications/Unity/Hub/Editor/6000.3.27f1/Unity.app/Contents/MacOS/Unity \
+lockf -k "$HOME/FerrySim-cache/heavy.lock" lockf -k "$HOME/FerrySim-cache/unity.lock" /Applications/Unity/Hub/Editor/6000.3.27f1/Unity.app/Contents/MacOS/Unity \
   -batchmode -projectPath "$PWD/unity" -runTests -testPlatform PlayMode \
   -assemblyNames FerrySim.Unity.Tests.E2E \
   -testResults "$PWD/artifacts/e2e/green-two-legs.xml" -logFile "$PWD/artifacts/e2e/green-two-legs.log"
@@ -118,10 +118,22 @@ Only loaded contact segments obstruct the vessel: the landings' whole structures
 
 `PickerBerthTripTests` drives the real picker to start at the north berth bow-on and clear of every contact segment; enables actual traffic with automatic leave-out; selects ¼ nm fog and checks the Rule 35 audio and recorded `visibility_m`; models a build without traffic and checks the disabled control and explanation; and captures night traffic hull lights. It writes the day/night picker at 720p/1440p, a night traffic image, paired light-cost measurements, and the night-hour inventory under `artifacts/pier11-and-picker/`.
 
-`ScenarioCatalogTests.Pier11_StartDepthMatrix_CoversEveryBerthDayHourAndVessel` writes the three berths × 28 days × 24 local hours × T/K matrix (4,032 starts), including sampled minimum water depth, maximum draft, under-keel clearance and aground flag. It also records warm-query timings. This preview warns below 0.3 m under the keel without refusing an aground start.
+`ScenarioCatalogTests.Pier11_StartDepthMatrix_CoversEveryBerthDayHourAndVessel` writes the three berths × 28 days × 24 local hours × T/K matrix (4,032 starts), including sampled minimum water depth, maximum draft, under-keel clearance and aground flag. It also records warm-query timings. Every matrix row also calls the shipped `TryCreate` refusal path and records its verdict, warning and water level at the start. The preview warns from zero to below 0.3 m under the keel; the catalog and picker refuse negative clearance, naming sampled minimum depth and maximum draft.
 
-Existing Pier 11 traffic, night/fog, launcher and water-height evidence is explicitly pinned to `BerthId = enc:0226015B0512B198` (the south pontoon). The flood/ebb landings and calm leg 1 use the new default. The exact pinned tests, trace-regeneration hashes and validation results are listed in the task report.
+Most existing Pier 11 traffic, night/fog, launcher and water-height evidence is explicitly pinned to `BerthId = enc:0226015B0512B198` (the south pontoon). The flood/ebb landings and calm leg 1 use the new default. The exact pinned tests, trace-regeneration hashes and validation results are listed in the task report.
 
 ### Captain review: Mooring points off the new faces
 
 The unchanged east-face 8 × 30 m corridor meets dry MORFAC points `022630EA6B161558` (9.49 m outward, 0.29 m along from the face midpoint) and `02260A6923D81558` (20.26 m outward, 0.42 m along). The north-face corridor meets `02261D74DBD91558` (9.84 m outward, 0.01 m along). Their role and clearance are unverified. All are point-only chart objects with no contact extent; they remain outside runtime contact geometry. The importer skips point-only shoreline structures, the greybox uses the exported landing polylines, and these IDs are not in `aids.geojson`, so night-fog adds no lights or posts there. The east-berth chase capture and exact positions are retained in the task artifacts. Software acceptance does not resolve whether a real hull clears these objects.
+
+## Wave 3a: Crew helm and bow view
+
+Both vessel stops are 20°, from crew evidence on 2026-10-26. The selected blend fits a 4.5 LWL tactical diameter at service speed: effective areas T 1.2 / K 1.5 m², span fraction 0.3, and Nr -0.04886162 / -0.04929324, with Nv unchanged. T-class is crew-based calibration; K-class is estimated by analogy. Effective area and span preserve A × span at the same physical rudder angle and are not measured blade geometry. One-engine core hold fixtures and the steady-fender check preserve ±17.5° with normalized ±0.875 instead of ±0.5. The two approved core limit changes are the seed-11 random-fender compression bound (full compression +0.10 m) and the 600 s current-advection upper bound (1.01 →1.03 times station current). Finite-state/contact-duration and the other advection assertions remain unchanged. Every changed CLI maneuver CSV and both input traces are generated twice with identical bytes. See the Dynamics README for the before/after measurements and provenance.
+
+`SteppedHelmTests` exercises discrete orders, release hold, repeat timing, M midships, run reset, gamepad shoulders and continuous axes. `BowLookTests` covers approach hysteresis, hand override, geometry direction and allocations; camera input tests exercise B and Shift+B. `PickerBerthTripTests` captures the bow preset and automatic east-berth tilt by day and night, and the inline south-berth aground refusal. The panel test captures both 20° stops with 5° markings. Images are in `artifacts/crew-fixes/`.
+
+`SteeringReplayTests` recreates the d769106 T-class model (35° stop, area 0.4 m², span 0.9, Nr -0.09, Nv -0.187), records its steering run, and verifies it with old and new parameters. This base has geometry/environment/traffic digests but no vessel-parameter digest: an old recording is rejected by row/state divergence, not an upfront vessel digest. No replay checks are weakened. A vessel digest is deferred to wave 3b.
+
+Aground fixture moves preserve the original acceptance limits. The traffic cost test keeps its independently selected busiest minute and uses the east berth; the lowest-water test keeps its minimum tide and checks every barge from the east berth. Ordinary traffic playback moves from 17:00 to 15:00, and leave-out/picker fog from 18:00 to the afloat 09:30 south-berth start with a literal qualifying own-ferry candidate. The environment high/low pair and April 14 replay keep their original times and move to the east berth. Exact moved fixtures, measured clearances and suite outcomes are listed in `artifacts/crew-fixes/report.md`.
+
+The alongside fixture uses MMSI 367496240 at 08:20:40 on 2025-07-14, with the original automatic leave-out mode. Its literal slow interval lasts only 71 s (08:20:35–08:21:46), so the test adds 40 s to the catalog’s minute-resolution 08:20 choice and independently samples depth at that exact epoch. The unchanged 60 s run stays within the moored interval; all heading, alongside, alarm, collision and replay assertions are preserved.

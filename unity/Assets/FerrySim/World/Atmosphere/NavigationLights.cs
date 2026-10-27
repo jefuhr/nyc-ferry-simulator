@@ -64,7 +64,7 @@ namespace FerrySim.World
 
 		/// <summary>Places the lights for plain particulars, metres (<see cref="VesselLightLayout.Generic"/>): for traffic hulls.</summary>
 		public void ConfigureGeneric(double lengthOverall, double beam, double mastheadHeight, double freeboard, VesselLightStatus status) =>
-			Configure(VesselLightLayout.Generic(lengthOverall, beam, mastheadHeight, freeboard), status);
+			Configure(VesselLightLayout.FromModel(transform, VesselLightLayout.Generic(lengthOverall, beam, mastheadHeight, freeboard)), status);
 
 		/// <summary>Replaces the lights with those <paramref name="status"/> shows at <paramref name="layout"/>.</summary>
 		public void Configure(in VesselLightLayout layout, VesselLightStatus status)

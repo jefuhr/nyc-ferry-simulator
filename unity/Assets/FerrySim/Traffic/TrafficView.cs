@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using FerrySim.Core.Contracts;
 using FerrySim.Core.Traffic;
+using FerrySim.Vessels;
 using FerrySim.Sim;
 using FerrySim.World;
 using UnityEngine;
@@ -204,12 +205,22 @@ namespace FerrySim.Traffic
 					continue;
 				}
 
-				var mesh = TrafficHullMesh.Build(vessel.Class, vessel.Hull, out var height);
-				_meshes.Add(mesh);
 				var hull = new GameObject($"Traffic {vessel.Mmsi} {vessel.Name}".TrimEnd());
 				hull.transform.SetParent(parent, false);
-				hull.AddComponent<MeshFilter>().sharedMesh = mesh;
-				hull.AddComponent<MeshRenderer>().sharedMaterial = MaterialFor(vessel.Class);
+				var classId = FerryModels.ClassForMmsi(vessel.Mmsi);
+				var model = FerryModels.Create(hull.transform, classId, 1, vessel.Hull.Length, vessel.Hull.Beam);
+				double height;
+				if (model != null)
+				{
+					height = model.Height * model.transform.localScale.y;
+				}
+				else
+				{
+					var mesh = TrafficHullMesh.Build(vessel.Class, vessel.Hull, out height);
+					_meshes.Add(mesh);
+					hull.AddComponent<MeshFilter>().sharedMesh = mesh;
+					hull.AddComponent<MeshRenderer>().sharedMaterial = MaterialFor(vessel.Class);
+				}
 				var component = hull.AddComponent<TrafficHull>();
 				component.Describe(vessel, height);
 				hull.SetActive(false);

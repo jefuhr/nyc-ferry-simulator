@@ -137,6 +137,14 @@ namespace FerrySim.E2E
 			Assert.That(_runner.Driver.StepCount, Is.Zero);
 			Assert.That(bootstrap.StartRefusal, Is.Null);
 			Assert.That(_runner.WorldGeometry, Is.SameAs(bootstrap.Landings.Geometry), "real slice landing geometry");
+			var startPosition = settings.StartPosition;
+			var startDepth = SliceScenarioCatalog.MinimumStartDepth(new DataEnvironment(_runner.EnvironmentPacks.Load(settings.environment.pack), _runner.ScenarioStartUtc),
+				FaceClearance.WorldOutline(_runner.Parameters, startPosition.North, startPosition.East, settings.StartHeading), 0);
+			Directory.CreateDirectory(folder);
+			File.WriteAllText(Path.Combine(folder, "start-depth.json"), new JObject {
+				["start_utc"] = settings.scenarioStartUtc, ["minimum_depth_m"] = startDepth,
+				["maximum_draft_m"] = _runner.Parameters.Particulars.MaxDraft.Value,
+				["under_keel_m"] = startDepth - _runner.Parameters.Particulars.MaxDraft.Value }.ToString() + "\n");
 			return settings;
 		}
 
@@ -301,16 +309,16 @@ namespace FerrySim.E2E
 		[UnityTest]
 		public IEnumerator Replay_OnABusyDayAtPier11_EveryHullIsWhereTheCoreReplaySays()
 		{
-			// Pier 11 on Monday 2025-07-14 at 17:00 EDT, the evening rush: about 60 of the day's vessels in the slice at once.
+			// Pier 11 on Monday 2025-07-14 at 15:00 EDT, while the south berth is afloat; the same busy-day position assertions apply.
 			yield return LoadScene();
 			var folder = Artifacts("replay-positions");
 			var pack = Pack(Day);
 			var independent = new TrafficReplay(pack);
-			var settings = Start(new ScenarioChoice("87", Day, 17 * 60, "t-class", berthId: "enc:0226015B0512B198"), new ConstantControls(ControlInputs.Neutral), folder, new ScenarioTraffic { day = Day });
+			var settings = Start(new ScenarioChoice("87", Day, 15 * 60, "t-class", berthId: "enc:0226015B0512B198"), new ConstantControls(ControlInputs.Neutral), folder, new ScenarioTraffic { day = Day });
 			var bootstrap = Bootstrap;
 			var view = bootstrap.TrafficView;
 			var offset = _runner.Traffic.EpochOffset;
-			Assert.That(offset, Is.EqualTo(17 * 3600.0), "pack time = run time + 17:00 local");
+			Assert.That(offset, Is.EqualTo(15 * 3600.0), "pack time = run time + 15:00 local");
 			Assert.That(_runner.Traffic.Pack.Digest, Is.EqualTo(pack.Digest));
 			bootstrap.CameraRig.CurrentMode = CameraRig.Mode.Chase;
 			var samples = new JArray();
@@ -364,12 +372,12 @@ namespace FerrySim.E2E
 		[UnityTest]
 		public IEnumerator LeaveOut_TheLearnersOwnFerryIsAbsent_AndEveryOtherVesselIsThere()
 		{
-			// Pier 11 at 18:00 EDT on 2025-07-14: one of the fleet's ferries lies at the landing, 44 m from the catalog's start.
+			// Pier 11 at 09:30 EDT on 2025-07-14: the learner's ferry is selected independently from the real replay near the afloat start.
 			yield return LoadScene();
 			var folder = Artifacts("leave-out");
 			var pack = Pack(Day);
 			var independent = new TrafficReplay(pack);
-			var settings = Start(new ScenarioChoice("87", Day, 18 * 60, "t-class", berthId: "enc:0226015B0512B198"), new ConstantControls(ControlInputs.Neutral), folder,
+			var settings = Start(new ScenarioChoice("87", Day, 9 * 60 + 30, "t-class", berthId: "enc:0226015B0512B198"), new ConstantControls(ControlInputs.Neutral), folder,
 				new ScenarioTraffic { day = Day, leaveOut = ScenarioTraffic.Automatic });
 			var bootstrap = Bootstrap;
 			var offset = _runner.Traffic.EpochOffset;
@@ -405,7 +413,7 @@ namespace FerrySim.E2E
 				}
 			}
 
-			Assert.That(expected, Is.Not.Null, "a ferry candidate lies at Pier 11 at 18:00");
+			Assert.That(expected, Is.Not.Null, "a ferry candidate lies at Pier 11 at 09:30");
 			var removed = _runner.Traffic.Removed;
 			Assert.That(removed, Is.Not.Null);
 			Assert.That(removed.Mmsi, Is.EqualTo(expected.Mmsi), "the nearest ferry candidate to the start");
@@ -452,11 +460,11 @@ namespace FerrySim.E2E
 			Assert.That(log.Records.Any(r => r.Mmsi == removed.Mmsi), Is.False, "it raised no alarm and no collision");
 		}
 
-		/// <summary>Another operator's 25 m passenger ferry that never sends an AIS heading, berthed at Pier 11 at 18:00 EDT on 2025-07-14.</summary>
-		private const int BerthedMmsi = 367434220;
+		/// <summary>Another operator's 26 m passenger ferry that never sends an AIS heading, berthed at Pier 11 at 08:20 EDT on 2025-07-14.</summary>
+		private const int BerthedMmsi = 367496240;
 
 		/// <summary>
-		/// Pier 11 at 18:00 EDT on 2025-07-14, the leave-out's scenario: MMSI 367434220 lies berthed 16.5 m from the catalog's start,
+		/// Pier 11 at 08:20 EDT on 2025-07-14, the leave-out's scenario: MMSI 367496240 lies berthed beside the catalog's start,
 		/// its rectangle within the 5 m alongside margin of the learner's hull. The run starts alongside it: no alarm and no
 		/// collision for it at the start (before the rule its rectangle, turned by GPS jitter, overlapped the hull at 0.01 s). While
 		/// it lies moored its drawn hull holds one heading, its segment's median COG at speed, where the jitter used to swing it;
@@ -468,8 +476,18 @@ namespace FerrySim.E2E
 			yield return LoadScene();
 			var folder = Artifacts("alongside");
 			var pack = Pack(Day);
-			var settings = Start(new ScenarioChoice("87", Day, 18 * 60, "t-class", berthId: "enc:0226015B0512B198"), new ConstantControls(ControlInputs.Neutral), folder,
-				new ScenarioTraffic { day = Day, leaveOut = ScenarioTraffic.Automatic });
+			var settings = Start(new ScenarioChoice("87", Day, 8 * 60 + 20, "t-class", berthId: "enc:0226015B0512B198"), new ConstantControls(ControlInputs.Neutral), folder,
+				new ScenarioTraffic { day = Day, leaveOut = ScenarioTraffic.Automatic }, scenario =>
+				{
+					// The literal slow interval is 08:20:35–08:21:46. The minute-resolution catalog's afloat
+					// 08:20 choice advances 40 s so all 60 s of unchanged alongside checks lie inside it.
+					scenario.scenarioStartUtc = DateTimeOffset.Parse(scenario.scenarioStartUtc, CultureInfo.InvariantCulture).AddSeconds(40).ToString("O", CultureInfo.InvariantCulture);
+				});
+			var position = settings.StartPosition;
+			var minimumDepth = SliceScenarioCatalog.MinimumStartDepth(new DataEnvironment(_runner.EnvironmentPacks.Load(settings.environment.pack), _runner.ScenarioStartUtc),
+				FaceClearance.WorldOutline(_runner.Parameters, position.North, position.East, settings.StartHeading), 0);
+			var maximumDraft = _runner.Parameters.Particulars.MaxDraft.Value;
+			Assert.That(minimumDepth - maximumDraft, Is.GreaterThanOrEqualTo(0), "08:20:40 is afloat over the complete sampled hull");
 			var bootstrap = Bootstrap;
 			Assert.That(pack.Vessel(BerthedMmsi), Is.Not.Null);
 			Assert.That(_runner.Traffic.RemovedMmsi, Is.Not.EqualTo(BerthedMmsi), "not the learner's own ferry: another operator's");
@@ -497,7 +515,8 @@ namespace FerrySim.E2E
 			var summary = new JObject
 			{
 				["pack"] = pack.Date, ["pack_digest"] = pack.Digest, ["start_utc"] = settings.scenarioStartUtc, ["landing"] = "87 Wall St/Pier 11",
-				["berthed_mmsi"] = BerthedMmsi, ["removed_mmsi"] = _runner.Traffic.RemovedMmsi, ["alongside_margin_m"] = log.Header["alongside_margin_m"],
+				["minimum_start_depth_m"] = minimumDepth, ["maximum_draft_m"] = maximumDraft, ["under_keel_m"] = minimumDepth - maximumDraft,
+				["leave_out_mode"] = ScenarioTraffic.Automatic, ["berthed_mmsi"] = BerthedMmsi, ["removed_mmsi"] = _runner.Traffic.RemovedMmsi, ["alongside_margin_m"] = log.Header["alongside_margin_m"],
 				["berthed_events"] = new JArray(berthed.Select(r => r.Line)), ["parted_at_s"] = parted?.Time,
 				["other_events"] = new JArray(log.Records.Where(r => r.Mmsi != BerthedMmsi).Select(r => r.Line)),
 				["frames_with_the_berthed_hull_drawn"] = headings.Count, ["berthed_heading_deg"] = headings.Count > 0 ? Angles.ToDegrees(headings[0]) : double.NaN,
@@ -759,7 +778,9 @@ namespace FerrySim.E2E
 			var kept = pack.Vessels.Where(v => replay.MayEnter(v.Index, minNorth, maxNorth, minEast, maxEast)).ToList();
 			var linesOnly = pack.Vessels.Where(v => ReportsOrLinesInside(pack, v, minNorth, maxNorth, minEast, maxEast)).ToList();
 
-			var choice = new ScenarioChoice("87", Day, busiest, "t-class", berthId: "enc:0226015B0512B198");
+			var choice = new ScenarioChoice("87", Day, busiest, "t-class", berthId: "enc:02261FA117EFB198");
+			bootstrap.Scenarios.TryGetStartDepth(new ScenarioChoice("87", Day, busiest, "t-class", berthId: "enc:0226015B0512B198"), out var formerDepth);
+			bootstrap.Scenarios.TryGetStartDepth(choice, out var movedDepth);
 			var withTraffic = new Measurement();
 			yield return Measure(choice, new ScenarioTraffic { day = Day }, folder, withTraffic);
 			yield return Capture(Path.Combine(folder, "busiest-minute.png"), 300f, 220f);
@@ -768,6 +789,8 @@ namespace FerrySim.E2E
 			var view = bootstrap.TrafficView;
 			var stats = new JObject
 			{
+				["former_south_under_keel_m"] = formerDepth.UnderKeel, ["east_under_keel_m"] = movedDepth.UnderKeel,
+				["retained_mmsi"] = new JArray(kept.Select(v => v.Mmsi)), ["inside_mmsi_at_busiest"] = new JArray(insideAtBusiest.Select(v => v.Mmsi)),
 				["day"] = Day, ["busiest_minute_local"] = $"{busiest / 60:D2}:{busiest % 60:D2}", ["vessels_in_area_then"] = most, ["hulls_built"] = withTraffic.Hulls,
 				["hulls_by_the_old_reports_and_lines_filter"] = linesOnly.Count, ["hulls_by_the_curve_bound"] = kept.Count,
 				["kept_only_by_the_curve_bound"] = kept.Count(v => !linesOnly.Contains(v)),

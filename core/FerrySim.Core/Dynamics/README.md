@@ -263,7 +263,7 @@ Steering gear:
 - **Follow-up** (shipped): the helm orders δ = helm × `hardOverAngle`.
 - **Non-follow-up**: the helm moves the rudder at the steering rate in its direction, and the rudder stays put when the helm is centred.
 
-Either way the rudder slews at `steeringRate` (7°/s) to ±`hardOverAngle` (35°). Both rudders move together. Whether the real helm is follow-up or a jog lever is still open (docs/conventions.md); `controls.steeringMode` selects it.
+Either way the rudder slews at `steeringRate` (7°/s) to ±`hardOverAngle` (20°, crew-reported: project crew reviewer, 2026-10-26). Both rudders move together. Whether the real helm is follow-up or a jog lever is still open (docs/conventions.md); `controls.steeringMode` selects it.
 
 ## Rudders
 
@@ -484,22 +484,39 @@ If `pitchRatio`, `expandedAreaRatio` or the blade count changes, the four-quadra
 
 ## Results and plausibility bands
 
-`StandardManeuverTests` runs the standard manoeuvres in calm deep water and writes `artifacts/core/dynamics-report.md`. Standard approach: steady straight running at service speed, reached from rest.
+`StandardManeuverTests` runs the standard manoeuvres in calm deep water and writes `artifacts/core/dynamics-report.md`. Standard approach: steady straight running at service speed, reached from rest. On 2026-10-26 the crew approved a 4.5 LWL tactical-diameter target within the reported approximately 3–5 boat lengths, at 20° rudder and equal ahead levers. T-class is effective calibration to that crew evidence (project crew reviewer); K-class remains estimated by analogy, not K-class trial data.
 
-| Result | T-class | K-class |
-|---|---|---|
-| Full ahead, calm deep water | 26.0 kn at 2097 rpm | 30.0 kn at 2096 rpm (published 30.0, ±5% required) |
-| Service speed (lever) | 25.0 kn (0.96) | 24.0 kn (0.79) |
-| Idle in gear (lever 0.2) | 8.0 kn | 9.1 kn |
-| Turn, hard over at service speed: advance / transfer / tactical diameter | 4.90 / 2.76 / 5.75 L | 4.35 / 2.41 / 5.14 L |
-| Time to 90° / 180° | 13.4 / 24.6 s | 14.3 / 25.6 s |
-| Steady turn: speed loss / heel outward | 29% / 1.5° | 22% / 1.9° |
-| 10/10 zig-zag: first / second overshoot | 5.3° / 5.5° | 5.1° / 5.4° |
-| Crash stop from service speed: head reach / time | 3.72 L / 16.0 s | 3.40 L / 17.1 s |
-| Pivot, ahead idle and astern idle: yaw rate / walk | 2.4 °/s / 1.2 m/s | 2.3 °/s / 1.3 m/s |
-| Rest to service speed, full ahead | 24.4 s | 16.0 s |
+The selected blend triples effective rudder area (T 0.4 → 1.2 m²; K 0.5 → 1.5 m²), divides slipstream span fraction by three (0.9 → 0.3), and fits yaw derivative Nr to the 4.5 L target with the existing `ManeuverRunner`, rounding Nr to eight decimal places. T Nr changes from the original Clarke/d769106 -0.09 to -0.04886162 (0.542907×); K changes from -0.081 to -0.04929324 (0.608558×). Nv stays -0.187 / -0.157 and all other hull/rudder coefficients remain unchanged. Area and span are effective coefficients, not measured geometry. Their product preserves the old zero-advance wash-force law at the same physical rudder angle; free-stream forces and linear damping still change, so low-speed trajectories are not claimed identical.
 
-The report has the full speed-against-lever table in 0.1 steps.
+The table compares d769106's 35° stop with the final 20° parameters. One-engine holds and the steady-fender fixture preserve the original physical ±17.5° order by moving normalized helm from ±0.5 to ±0.875. Their assertions remain unchanged. The crew approved two limit changes. In the seed-11 random-fender test, crew decision 2026-10-26 permits a hard oblique re-hit to bottom a fender, bounded at 10 cm beyond full compression (≤0.455 m); finite states and >6000 contact steps remain required. In `FromRestNextToAStation_TheBoatIsCarriedTowardThatStationsCurrent`, the 600 s upper bound changes from 1.01 to 1.03 times the station current, retaining the 300 s >150 s and final >0.75 assertions. The calibrated yaw damping enlarges a transient overshoot: T peaks at 1.027318 m/s and K at 1.016448 m/s in the 1 m/s station fixture. This is a crew-approved tolerance, not proof of real-vessel drift fidelity. All other maneuver limits below are unchanged. The 20/20 overshoots have no existing numerical acceptance band and are reported as measurements.
+
+| Metric | T d769106 (35°) | T final (20°) | K d769106 (35°) | K final (20°) |
+|---|---|---|---|---|
+| Advance / transfer / tactical diameter L | 4.896230 / 2.758125 / 5.749334 | 3.482262 / 2.133986 / 4.500000 | 4.348862 / 2.407961 / 5.144396 | 3.339852 / 2.085434 / 4.500000 |
+| Time to 180° s | 24.610000 | 17.520000 | 25.600000 | 20.460000 |
+| 10/10 overshoots ° | 5.265762 / 5.482239 | 9.223813 / 9.466643 | 5.122237 / 5.389091 | 7.636959 / 7.809967 |
+| 20/20 overshoots ° (reported) | 15.202679 / 15.237883 | 26.660932 / 25.438014 | 14.468000 / 14.626539 | 22.100822 / 21.436746 |
+| Crash stop m / s | 88.936765 / 16.020000 | 88.936765 / 16.020000 | 95.624280 / 17.130000 | 95.624280 / 17.130000 |
+| Port engine hold SOG m/s | 0.000150373885544 | 0.000264941543497 | 0.000271330619514 | 1.3854087094e-05 |
+| Port engine hold force N / 10-s drift m | 8894.865007 / 0.00217837399432 | 8894.285577 / 0.000602116435989 | 13675.740053 / 0.00923160998419 | 13674.500330 / 0.00740640264518 |
+| Starboard engine hold SOG m/s | 0.000150373885458 | 0.000264941543417 | 0.000271330619506 | 1.38540870722e-05 |
+| Starboard engine hold force N / 10-s drift m | 8894.865007 / 0.00217837399495 | 8894.285577 / 0.000602116436523 | 13675.740053 / 0.00923160998374 | 13674.500330 / 0.00740640264555 |
+| Both engines crew hold SOG m/s | 2.69167879938e-15 | 2.69167363574e-15 | 3.30787626687e-15 | 3.30787505204e-15 |
+| Both engines crew hold force N / 10-s drift m | 18126.389605 / 2.95240823352e-18 | 18126.389605 / 3.57376983361e-18 | 27888.081120 / 2.24449609587e-19 | 27888.081120 / 3.14022970737e-19 |
+| Steady fender maximum force jump N / limit N | 0.020372 / 0.888968 | 0.014091 / 0.889117 | 0.023211 / 1.367437 | 0.015934 / 1.367351 |
+| Idle pivot yaw °/s / walk m/s | 2.378070 / 1.215137 | 2.144999 / 1.319812 | 2.252891 / 1.340445 | 1.893906 / 1.453233 |
+| Split engines +0.15/-0.15, -0.15/+0.15, +0.3/-0.3 yaw rad/s | 0.042968 / -0.042968 / 0.053596 | 0.038881 / -0.038881 / 0.048363 | 0.040685 / -0.040685 / 0.050790 | 0.034454 / -0.034454 / 0.042774 |
+| 15 m/s westerly, 120 s drift north / east m | -10.776983 / 100.629042 | -8.782468 / 100.246634 | -12.380916 / 109.810106 | -10.503351 / 109.510768 |
+| Random fender max compression m / contact steps | 0.279024430 / 14589 | 0.357316553 / 13757 | 0.306563675 / 14450 | 0.401364093 / 13934 |
+| Stability determinant s⁻² | 0.946184 | 1.230969 | 0.617361 | 0.940834 |
+| Normalized determinant / trace² | 0.178735 | 0.239187 | 0.168202 | 0.218156 |
+| Stability trace / largest real eigenvalue s⁻¹ | -2.300821 / -0.536195 | -2.268586 / -0.898388 | -1.915817 / -0.409978 | -2.076695 / -0.667764 |
+| Current advection SOG at 150 / 300 / 450 / 600 s, m/s | 0.977209 / 1.001968 / 1.004302 / 1.001550 | 1.010170 / 1.027251 / 1.024392 / 1.017959 | 0.952628 / 0.988022 / 0.995013 / 0.994885 | 0.985973 / 1.014202 / 1.016104 / 1.012319 |
+| Current advection peak SOG m/s @ s | 1.004418706 @ 418.06 | 1.027318254 @ 315.80 | 0.995485088 @ 515.85 | 1.016447727 @ 400.57 |
+
+The stability probe perturbs the private sway/yaw integration state by 1e-5 at settled service speed. Both determinants remain positive with margin, both traces negative, and the largest real eigenvalues negative; the invalid initial public-snapshot probe was discarded. Exact measurements and commands are in `artifacts/crew-fixes/calibration/final/`. The full-speed table, including 26.0 / 30.0 kn maximum speeds, is in the standard dynamics report.
+
+History: area-only, large-area/span, and hull-only candidates were rejected after their low-speed regressions; none of those coefficients is shipped.
 
 **T-class maximum speed.** Only a 25 kn running speed is published. The model takes 25 kn at about 90% of rated power, with power rising as speed to the 2.7 power above the hump. That gives 26.0 kn at full power, and the resistance scale is set to reach it. The deep-draft Rockaway variant makes 27 kn on 1380 hp, so a River-class boat on 803 bhp stays below that.
 

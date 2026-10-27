@@ -179,11 +179,11 @@ namespace FerrySim.Slice.PlayModeTests
 			// 2025-01-14 has the packs' lowest water; the run starts at Pier 11 at that day's lowest minute there.
 			const string date = "2025-01-14";
 			var pack = EnvironmentPackJson.Load(Path.Combine(SliceScene.RepoRoot, EnvironmentPacks.RegionFolder("lower-east-river"), "days", date));
-			Assert.That(_scene.Bootstrap.ScenarioCatalog.TryCreate(new ScenarioChoice("87", date, 0, "t-class", berthId: "enc:0226015B0512B198"), out var probe, out var problem), Is.True, problem);
+			Assert.That(_scene.Bootstrap.ScenarioCatalog.TryCreate(new ScenarioChoice("87", date, 0, "t-class", berthId: "enc:02261FA117EFB198"), out var probe, out var problem), Is.True, problem);
 			var at = probe.StartPosition;
 			var day = new DataEnvironment(pack, pack.EpochUtc);
 			var lowest = Enumerable.Range(0, 24 * 60).Where(m => m * 60.0 >= pack.CoverageStart && m * 60.0 <= pack.CoverageEnd).OrderBy(m => day.SampleWaterLevel(at.North, at.East, m * 60.0)).First();
-			Assert.That(_scene.Bootstrap.ScenarioCatalog.TryCreate(new ScenarioChoice("87", date, lowest, "t-class", berthId: "enc:0226015B0512B198"), out var scenario, out problem), Is.True, problem);
+			Assert.That(_scene.Bootstrap.ScenarioCatalog.TryCreate(new ScenarioChoice("87", date, lowest, "t-class", berthId: "enc:02261FA117EFB198"), out var scenario, out problem), Is.True, problem);
 			_scene.Restart(scenario, new ConstantControls(ControlInputs.Neutral));
 			_scene.StepsPerFrame(2);
 			yield return SliceScene.Frames(6);
@@ -286,9 +286,12 @@ namespace FerrySim.Slice.PlayModeTests
 			}
 
 			var folder = SliceScene.FreshFolder("low-water");
+			_scene.Bootstrap.Scenarios.TryGetStartDepth(new ScenarioChoice("87", date, lowest, "t-class", berthId: "enc:0226015B0512B198"), out var formerDepth);
+			_scene.Bootstrap.Scenarios.TryGetStartDepth(new ScenarioChoice("87", date, lowest, "t-class", berthId: "enc:02261FA117EFB198"), out var movedDepth);
 			File.WriteAllLines(Path.Combine(folder, "over-decks.txt"), new[]
 			{
 				$"Pier 11, {date} {lowest / 60:D2}:{lowest % 60:D2} local, drawn level {level:F3} m NAVD88; {decks.Count} floating decks; inset {DeckInset} m.",
+				$"Same low-water time: former south under-keel {formerDepth.UnderKeel:F6} m; east under-keel {movedDepth.UnderKeel:F6} m. All floating decks remain checked.",
 				$"Checked (contact strips, floating chart structures, greybox walls): {checkedFixed.Length} meshes, {overDecks.Count} over a deck.",
 			}.Concat(overDecks).Concat(new[] { $"Other fixed chart structures, not checked: {otherFixed.Length} meshes, {otherOverDecks.Count} over a deck." }).Concat(otherOverDecks));
 

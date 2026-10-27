@@ -107,15 +107,29 @@ namespace FerrySim.Core.Tests.Dynamics
 		[TestCase(-1)]
 		public void OneEngineAhead_WithHelmOver_HoldsTheBowAgainstTheBarge(int side)
 		{
-			// A bow-on push-up: one engine at the ahead idle detent, helm half over against its twist. Hard over
-			// over-corrects the idle twist with the estimated rudders (see the contact report).
+			// Preserve the d769106 physical 17.5° holding order: 0.5 of 35° becomes 0.875 of 20°.
+			// Crew decision 2026-10-26; the holding assertions are unchanged.
+			const double holdingHelm = 0.875;
 			var idle = ContactScenarios.IdleLever(_parameters);
-			var controls = side > 0 ? new ControlInputs(idle, 0.0, -HalfHelm) : new ControlInputs(0.0, idle, HalfHelm);
+			var controls = side > 0 ? new ControlInputs(idle, 0.0, -holdingHelm) : new ControlInputs(0.0, idle, holdingHelm);
 			var hold = Hold(controls, 60.0);
 
 			TestContext.Out.WriteLine($"{_vesselFile} side {side}: holding force {hold.MeanForce / 1000.0:F2} kN, " +
 				$"range {hold.ForceRange:F1} N, compression {hold.Compression * 1000.0:F1} mm, heading {Angles.ToDegrees(Angles.WrapPi(hold.Simulation.State.Heading)):F2} deg, " +
 				$"SOG {hold.Simulation.Telemetry.SpeedOverGround * 1000.0:F2} mm/s");
+			AssertHeld(hold);
+		}
+
+		// Failure mode: the service-speed steering calibration must not unpin the normal boarding hold.
+		// Crew-reported: project crew reviewer, 2026-10-26 — both engines slow ahead, rudder about midships.
+		[Test]
+		public void CrewReported_BothEnginesSlowAhead_RudderMidships_StayPinnedAtTheBarge()
+		{
+			var idle = ContactScenarios.IdleLever(_parameters);
+			var hold = Hold(new ControlInputs(idle, idle, 0.0), 60.0);
+			TestContext.Out.WriteLine($"crew-reported: project crew reviewer, 2026-10-26; {_vesselFile}, both levers {idle:R}, helm 0: " +
+				$"force {hold.MeanForce:R} N, range {hold.ForceRange:R} N, SOG {hold.Simulation.Telemetry.SpeedOverGround:R} m/s, " +
+				$"yaw {hold.Simulation.State.YawRate:R} rad/s, final-ten-second drift {(hold.Simulation.State.Position - hold.StartOfWindow.Position).Magnitude:R} m");
 			AssertHeld(hold);
 		}
 

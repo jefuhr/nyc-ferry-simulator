@@ -14,19 +14,20 @@ namespace FerrySim.UI.Tests.EditMode
 	{
 		private static string RepoRoot => UIRepoPaths.Root;
 
-		[Test]
-		public void TClass_UsesRatedSpeedAndHardOverAngle()
+		[TestCase("t-class")]
+		[TestCase("k-class")]
+		public void Vessel_UsesRatedSpeedAndHardOverAngle(string vessel)
 		{
-			var parameters = VesselParametersJson.Load(Path.Combine(RepoRoot, "vessels", "t-class.json"));
+			var parameters = VesselParametersJson.Load(Path.Combine(RepoRoot, "vessels", vessel + ".json"));
 
 			var scales = InstrumentScales.From(parameters);
 
 			Assert.That(scales.VesselName, Is.EqualTo(parameters.DisplayName));
 			Assert.That(scales.HasRedline, Is.True);
-			Assert.That(scales.RatedRpm, Is.EqualTo(2100.0).Within(0.01));
+			Assert.That(scales.RatedRpm, Is.EqualTo(DisplayUnits.Rpm(parameters.Machinery.RatedEngineSpeed.Value)).Within(0.01));
 			Assert.That(scales.TachMaxRpm, Is.EqualTo(2500.0));
-			Assert.That(scales.HardOverDegrees, Is.EqualTo(35.0).Within(0.01));
-			Assert.That(scales.RudderScaleDegrees, Is.EqualTo(45.0));
+			Assert.That(scales.HardOverDegrees, Is.EqualTo(20.0).Within(0.01));
+			Assert.That(scales.RudderScaleDegrees, Is.EqualTo(scales.HardOverDegrees));
 			Assert.That(scales.ClutchInLever, Is.EqualTo(0.12).Within(1e-9));
 		}
 
@@ -89,8 +90,8 @@ namespace FerrySim.UI.Tests.EditMode
 		[Test]
 		public void WideRudders_GetAWiderScale()
 		{
-			Assert.That(InstrumentScales.RudderScaleFor(35.0), Is.EqualTo(45.0));
-			Assert.That(InstrumentScales.RudderScaleFor(45.0), Is.EqualTo(50.0));
+			Assert.That(InstrumentScales.RudderScaleFor(35.0), Is.EqualTo(35.0));
+			Assert.That(InstrumentScales.RudderScaleFor(45.0), Is.EqualTo(45.0));
 			Assert.That(InstrumentScales.RudderScaleFor(double.NaN), Is.EqualTo(45.0));
 		}
 	}

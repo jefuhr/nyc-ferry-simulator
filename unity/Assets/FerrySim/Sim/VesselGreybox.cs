@@ -1,5 +1,6 @@
 using System;
 using FerrySim.Core.Contracts;
+using FerrySim.Vessels;
 using UnityEngine;
 
 namespace FerrySim.Sim
@@ -77,8 +78,8 @@ namespace FerrySim.Sim
 	}
 
 	/// <summary>
-	/// Builds the greybox catamaran under this transform from the running vessel's parameters, so it always
-	/// matches the vessel file the scenario loaded.
+	/// Shows the authored catamaran for the running vessel and keeps its parameter-sized procedural
+	/// greybox available as a fallback. Both are visual only; contacts belong to the core.
 	/// </summary>
 	public sealed class VesselGreybox : MonoBehaviour
 	{
@@ -93,7 +94,17 @@ namespace FerrySim.Sim
 		[SerializeField]
 		private Material cabinMaterial;
 
+		[SerializeField, Tooltip("Use the procedural greybox instead of the authored ferry model.")]
+		private bool useGreybox;
+
+		public bool UseGreybox
+		{
+			get => useGreybox;
+			set { useGreybox = value; Rebuild(); }
+		}
+
 		public GreyboxDimensions Dimensions { get; private set; }
+		private string _modelClass;
 
 		private void Start()
 		{
@@ -131,13 +142,27 @@ namespace FerrySim.Sim
 			}
 
 			var dimensions = GreyboxDimensions.From(runner.Parameters);
-			if (transform.Find(RootName) != null && dimensions.Equals(Dimensions))
+			var greybox = transform.Find(RootName);
+			var model = transform.Find(FerryModels.RootName);
+			var id = runner.Parameters.Id;
+			if (greybox == null || !dimensions.Equals(Dimensions) || _modelClass != id)
 			{
-				return;
+				Dimensions = dimensions;
+				greybox = Build(transform, dimensions, hullMaterial, cabinMaterial).transform;
+				if (model != null)
+				{
+					model.gameObject.SetActive(false);
+					model.name += " (replaced)";
+					DestroySafely(model.gameObject);
+				}
+
+				var created = FerryModels.Create(transform, id, 0, dimensions.LengthOverall, dimensions.Beam);
+				model = created != null ? created.transform : null;
+				_modelClass = id;
 			}
 
-			Dimensions = dimensions;
-			Build(transform, dimensions, hullMaterial, cabinMaterial);
+			greybox.gameObject.SetActive(useGreybox || model == null);
+			if (model != null) { model.gameObject.SetActive(!useGreybox); }
 		}
 
 		/// <summary>Replaces any existing greybox under <paramref name="parent"/> with one of the given size.</summary>

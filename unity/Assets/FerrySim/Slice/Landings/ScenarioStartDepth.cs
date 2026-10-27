@@ -14,7 +14,14 @@ namespace FerrySim.Slice
 		public bool TryGetStartDepth(ScenarioChoice choice, out ScenarioStartDepth depth)
 		{
 			depth = default;
-			if (!TryCreate(choice, out var settings, out _) || !settings.environment.IsPack) return false;
+			if (!TryCreateCandidate(choice, out var settings, out _)) return false;
+			return TryGetStartDepth(choice, settings, out depth);
+		}
+
+		private bool TryGetStartDepth(ScenarioChoice choice, ScenarioSettings settings, out ScenarioStartDepth depth)
+		{
+			depth = default;
+			if (!settings.environment.IsPack) return false;
 			if (!_depthDays.TryGetValue(choice.Date, out var environment))
 			{
 				var pack = _packs.Load(settings.environment.pack);

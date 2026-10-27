@@ -291,7 +291,7 @@ namespace FerrySim.UI.Tests.PlayMode
 		/// The T-class from rest: both levers at 60% for 60 s, then the helm hard over to starboard for 20 s,
 		/// in calm water, recorded at 10 Hz like the CLI.
 		/// </summary>
-		public static TelemetryRecording HardOverToStarboard()
+		public static TelemetryRecording HardOverToStarboard(double helm = 1.0)
 		{
 			var parameters = VesselFiles.TryLoad("t-class", out var problem);
 			Assert.That(parameters, Is.Not.Null, problem);
@@ -300,7 +300,7 @@ namespace FerrySim.UI.Tests.PlayMode
 			{
 				new KeyValuePair<string, string>("ferrysim-csv", "1"),
 				new KeyValuePair<string, string>("vessel", "t-class"),
-				new KeyValuePair<string, string>("maneuver", "in-test turn (levers 0.6 for 60 s, then helm 1 for 20 s)"),
+				new KeyValuePair<string, string>("maneuver", "in-test turn (levers 0.6 for 60 s, then signed hard-over helm for 20 s)"),
 				new KeyValuePair<string, string>("environment", "calm"),
 			};
 			var builder = new TelemetryRecordingBuilder("in-test turn", header);
@@ -308,7 +308,7 @@ namespace FerrySim.UI.Tests.PlayMode
 			for (var step = 0; step <= steps; step++)
 			{
 				var time = SimulationClock.TimeAtStep(step);
-				var controls = new ControlInputs(0.6, 0.6, time >= 60.0 ? 1.0 : 0.0);
+				var controls = new ControlInputs(0.6, 0.6, time >= 60.0 ? helm : 0.0);
 				if (step % 10 == 0)
 				{
 					builder.Add(simulation.State, simulation.Telemetry, controls);

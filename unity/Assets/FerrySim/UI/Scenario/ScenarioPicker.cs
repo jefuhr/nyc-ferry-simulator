@@ -357,7 +357,7 @@ namespace FerrySim.UI
 				{
 					if (source.TryGetStartDepth(Choice, out var depth) && depth.UnderKeel < 0.3)
 						text = string.Format(CultureInfo.InvariantCulture, "{0}: depth {1:F2} m, draft {2:F2} m, under keel {3:F2} m.",
-							depth.UnderKeel < 0 ? "Start aground" : "Low under-keel clearance", depth.MinimumDepth, depth.MaximumDraft, depth.UnderKeel);
+							depth.UnderKeel < 0 ? "Start refused: aground" : "Low under-keel clearance", depth.MinimumDepth, depth.MaximumDraft, depth.UnderKeel);
 				}
 				catch (Exception error) { Debug.LogWarning("[FerrySim] Start depth unavailable: " + error.Message); }
 			}

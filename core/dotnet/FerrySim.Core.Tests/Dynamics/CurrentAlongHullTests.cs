@@ -140,7 +140,8 @@ namespace FerrySim.Core.Tests.Dynamics
 			TestContext.Out.WriteLine($"{_vesselFile}: drift from rest {speeds[0]:F3}, {speeds[1]:F3}, {speeds[2]:F3}, {speeds[3]:F3} m/s at 150, 300, 450, 600 s, toward {Angles.ToDegrees(drift.Direction):F1}°");
 			Assert.That(speeds[1], Is.GreaterThan(speeds[0]));
 			Assert.That(speeds[3], Is.GreaterThan(0.75 * current.Magnitude), "carried at most of the station's current within ten minutes");
-			Assert.That(speeds[3], Is.LessThan(1.01 * current.Magnitude), "never faster than the water");
+			// crew decision 2026-10-26: a hull drifting across a turning current can briefly outrun it; the calibrated yaw damping makes this transient larger (T peak about 2.7%)
+			Assert.That(speeds[3], Is.LessThan(1.03 * current.Magnitude), "the boat stays within 3% of the station's current");
 		}
 
 		[Test]

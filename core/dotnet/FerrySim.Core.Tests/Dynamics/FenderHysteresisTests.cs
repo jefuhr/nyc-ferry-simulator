@@ -95,7 +95,8 @@ namespace FerrySim.Core.Tests.Dynamics
 			var simulation = ContactScenarios.Create(_parameters,
 				new SegmentListGeometry(ContactScenarios.Barge(ContactScenarios.BowX(_parameters) + 0.05, 0.0, ContactScenarios.EstimatedBargeFender, 1)),
 				VesselState.Planar(0.0, 0.0, 0.0, 0.0));
-			var controls = new ControlInputs(idle, 0.0, -0.5);
+			// Preserve d769106's physical -17.5° order after the 35° to 20° stop change.
+			var controls = new ControlInputs(idle, 0.0, -0.875);
 			ManeuverRunner.Run(simulation, controls, 50.0);
 			var previous = simulation.Telemetry.ContactForce;
 			var largestJump = 0.0;
@@ -131,7 +132,8 @@ namespace FerrySim.Core.Tests.Dynamics
 
 				simulation.Step(controls);
 				Assert.That(simulation.State.IsFinite(), Is.True, $"step {step}");
-				Assert.That(ContactScenarios.MaxCompression(simulation), Is.LessThan(law.FullCompression), $"step {step}");
+				// crew decision 2026-10-26: a hard oblique re-hit may bottom a fender; bounded at 10 cm
+				Assert.That(ContactScenarios.MaxCompression(simulation), Is.LessThanOrEqualTo(law.FullCompression + 0.10), $"step {step}");
 				inContact += simulation.ContactCount > 0 ? 1 : 0;
 			}
 

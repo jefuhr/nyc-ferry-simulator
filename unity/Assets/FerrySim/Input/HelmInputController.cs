@@ -16,7 +16,7 @@ namespace FerrySim.Controls
 	[DisallowMultipleComponent]
 	public sealed class HelmInputController : MonoBehaviour, IControlInputSource, IDebugReadoutSource
 	{
-		private const string KeyHelp = "keys: Q/A port  E/D stbd  W/S both  ←/→ helm  H horn  P pause  hold R reset  C camera";
+		private const string KeyHelp = "keys: Q/A port  E/D stbd  W/S both  ←/→ helm steps  M midships  B bow  Shift+B auto bow  H horn  P pause  hold R reset  C camera";
 
 		[Tooltip("The FerrySimControls asset (Helm map). A private copy is enabled at runtime.")]
 		[SerializeField]
@@ -152,6 +152,8 @@ namespace FerrySim.Controls
 				_smoother.TimeConstant = Math.Max(0f, smoothingTimeConstant);
 			}
 		}
+
+		private void Update() => _mapper?.AdvanceHelmRepeat(Time.unscaledDeltaTime);
 
 		private void OnRunStarted() => _mapper?.ResyncWithDevices();
 

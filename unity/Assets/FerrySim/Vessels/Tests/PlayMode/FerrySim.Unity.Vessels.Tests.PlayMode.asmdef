@@ -1,0 +1,10 @@
+{
+	"name": "FerrySim.Unity.Vessels.Tests.PlayMode",
+	"rootNamespace": "FerrySim.Vessels.Tests",
+	"references": ["FerrySim.Unity.Vessels", "FerrySim.Core", "FerrySim.Unity.Sim", "FerrySim.Unity.World", "FerrySim.Unity.Slice", "FerrySim.Unity.Traffic", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
+	"includePlatforms": [],
+	"overrideReferences": true,
+	"precompiledReferences": ["nunit.framework.dll"],
+	"autoReferenced": false,
+	"defineConstraints": ["UNITY_INCLUDE_TESTS"]
+}
