@@ -113,6 +113,24 @@
 					"processors": "",
 					"interactions": "",
 					"initialStateCheck": false
+				},
+				{
+					"name": "HelmStep",
+					"type": "Value",
+					"id": "85c57eb0-64cc-40bc-ab07-90d07d082a25",
+					"expectedControlType": "Axis",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "Midships",
+					"type": "Button",
+					"id": "54b78856-c4b4-4055-bbcd-3baa89a7c624",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
 				}
 			],
 			"bindings": [
@@ -189,7 +207,7 @@
 					"interactions": "",
 					"processors": "",
 					"groups": "",
-					"action": "Helm",
+					"action": "HelmStep",
 					"isComposite": true,
 					"isPartOfComposite": false
 				},
@@ -200,7 +218,7 @@
 					"interactions": "",
 					"processors": "",
 					"groups": "Keyboard",
-					"action": "Helm",
+					"action": "HelmStep",
 					"isComposite": false,
 					"isPartOfComposite": true
 				},
@@ -211,7 +229,7 @@
 					"interactions": "",
 					"processors": "",
 					"groups": "Keyboard",
-					"action": "Helm",
+					"action": "HelmStep",
 					"isComposite": false,
 					"isPartOfComposite": true
 				},
@@ -222,7 +240,7 @@
 					"interactions": "",
 					"processors": "",
 					"groups": "",
-					"action": "Helm",
+					"action": "HelmStep",
 					"isComposite": true,
 					"isPartOfComposite": false
 				},
@@ -233,7 +251,7 @@
 					"interactions": "",
 					"processors": "",
 					"groups": "Gamepad",
-					"action": "Helm",
+					"action": "HelmStep",
 					"isComposite": false,
 					"isPartOfComposite": true
 				},
@@ -244,7 +262,7 @@
 					"interactions": "",
 					"processors": "",
 					"groups": "Gamepad",
-					"action": "Helm",
+					"action": "HelmStep",
 					"isComposite": false,
 					"isPartOfComposite": true
 				},
@@ -509,6 +527,17 @@
 					"processors": "",
 					"groups": "Keyboard",
 					"action": "NewRun",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "78ad8169-ee2d-47ae-849f-710448fb6b18",
+					"path": "<Keyboard>/m",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Midships",
 					"isComposite": false,
 					"isPartOfComposite": false
 				}

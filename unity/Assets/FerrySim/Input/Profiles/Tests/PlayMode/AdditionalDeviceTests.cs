@@ -120,7 +120,7 @@ namespace FerrySim.Controls.ProfileTests
 			Set(gamepad.rightStick, new Vector2(0, 1f));
 			Assert.That(_mapper.StarboardLever, Is.EqualTo(1), "unassigned action keeps its original binding");
 			Press(gamepad.rightShoulder);
-			Assert.That(_mapper.Helm, Is.EqualTo(1));
+			Assert.That(_mapper.Helm, Is.EqualTo(.25));
 			Set(gamepad.rightTrigger, 1f);
 			Assert.That(_mapper.PortLever, Is.EqualTo(0.5).Within(1e-6), "BothLevers must not overwrite this device's assigned port axis");
 			Assert.That(_mapper.StarboardLever, Is.EqualTo(1));

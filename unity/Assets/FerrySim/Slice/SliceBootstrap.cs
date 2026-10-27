@@ -462,6 +462,8 @@ namespace FerrySim.Slice
 			}
 
 			PlaceWheelhouseEye();
+			if (cameraRig != null && cameraRig.WheelhouseMount != null)
+				cameraRig.WheelhouseMount.ApproachFaces = BowApproachFaces.From(Landings);
 
 			if (runner.IsReplaying)
 			{

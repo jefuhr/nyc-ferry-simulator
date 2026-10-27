@@ -136,11 +136,11 @@ namespace FerrySim.Sim.PlayModeTests
 			var keyboard = InputSystem.AddDevice<Keyboard>();
 
 			Press(keyboard.rightArrowKey);
-			Assert.That(_mapper.Helm, Is.EqualTo(1.0), "right arrow is starboard");
+			Assert.That(_mapper.Helm, Is.EqualTo(.25), "right arrow is starboard");
 			Release(keyboard.rightArrowKey);
-			Assert.That(_mapper.Helm, Is.EqualTo(0.0));
+			Assert.That(_mapper.Helm, Is.EqualTo(.25));
 			Press(keyboard.leftArrowKey);
-			Assert.That(_mapper.Helm, Is.EqualTo(-1.0), "left arrow is port");
+			Assert.That(_mapper.Helm, Is.EqualTo(0.0), "left arrow is port");
 			Release(keyboard.leftArrowKey);
 			Assert.That(_mapper.Helm, Is.EqualTo(0.0));
 		}
@@ -218,10 +218,10 @@ namespace FerrySim.Sim.PlayModeTests
 			var gamepad = InputSystem.AddDevice<Gamepad>();
 
 			Press(gamepad.rightShoulder);
-			Assert.That(_mapper.Helm, Is.EqualTo(1.0), "right shoulder is starboard");
+			Assert.That(_mapper.Helm, Is.EqualTo(.25), "right shoulder is starboard");
 			Release(gamepad.rightShoulder);
 			Press(gamepad.leftShoulder);
-			Assert.That(_mapper.Helm, Is.EqualTo(-1.0), "left shoulder is port");
+			Assert.That(_mapper.Helm, Is.EqualTo(0.0), "left shoulder is port");
 		}
 
 		[Test]

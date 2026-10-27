@@ -23,7 +23,7 @@ namespace FerrySim.Cli
 	/// <summary>One standard maneuver: its name, options and how its command line becomes a controller.</summary>
 	internal sealed class ManeuverSpec
 	{
-		public ManeuverSpec(string name, string summary, bool startsAtRest, string[] options, Func<ParsedArguments, double?, ManeuverPlan> build,
+		public ManeuverSpec(string name, string summary, bool startsAtRest, string[] options, Func<ParsedArguments, double?, double, ManeuverPlan> build,
 			bool calmWaterLever = false)
 		{
 			Name = name;
@@ -51,13 +51,12 @@ namespace FerrySim.Cli
 		public string[] Options { get; }
 
 		/// <summary>Takes the arguments and the fixed duration (if any) and returns the plan.</summary>
-		public Func<ParsedArguments, double?, ManeuverPlan> Build { get; }
+		public Func<ParsedArguments, double?, double, ManeuverPlan> Build { get; }
 	}
 
 	internal static class Maneuvers
 	{
 		public const double DefaultRudderDegrees = 10.0;
-		public const double DefaultMaxRudderDegrees = 35.0;
 		public const double DefaultPivotLever = 0.5;
 
 		public static readonly ManeuverSpec[] All =
@@ -79,7 +78,7 @@ namespace FerrySim.Cli
 				"both levers to full astern from the test speed, helm amidships",
 				false,
 				Array.Empty<string>(),
-				(args, duration) => BuildStop(-1.0, duration)),
+				(args, duration, hardOver) => BuildStop(-1.0, duration)),
 			new ManeuverSpec(
 				"pivot",
 				"split engines at rest: port ahead and starboard astern by default",
@@ -97,7 +96,7 @@ namespace FerrySim.Cli
 				"both levers to neutral from the test speed, helm amidships",
 				false,
 				Array.Empty<string>(),
-				(args, duration) => BuildStop(0.0, duration)),
+				(args, duration, hardOver) => BuildStop(0.0, duration)),
 			new ManeuverSpec(
 				"transit",
 				"from rest through --waypoints in turn, both levers at the test speed's calm-water lever, steered by a heading hold",
@@ -122,7 +121,7 @@ namespace FerrySim.Cli
 			return null;
 		}
 
-		private static ManeuverPlan BuildTurningCircle(ParsedArguments args, double? duration)
+		private static ManeuverPlan BuildTurningCircle(ParsedArguments args, double? duration, double hardOverDegrees)
 		{
 			var direction = args.GetChoice("direction", "starboard", "starboard", "port");
 			var helm = args.GetDouble("helm", 1.0, 0.0, 1.0);
@@ -135,12 +134,12 @@ namespace FerrySim.Cli
 			return new ManeuverPlan(parameters, hold => new TurningCircleController(hold, sign * helm, duration));
 		}
 
-		private static ManeuverPlan BuildZigzag(ParsedArguments args, double? duration)
+		private static ManeuverPlan BuildZigzag(ParsedArguments args, double? duration, double hardOverDegrees)
 		{
 			var first = args.GetChoice("first", "starboard", "starboard", "port");
 			var angle = args.GetDouble("angle-deg", 10.0, 1.0, 90.0);
 			var rudder = args.GetDouble("rudder-deg", DefaultRudderDegrees, 1.0, 90.0);
-			var maxRudder = args.GetDouble("max-rudder-deg", DefaultMaxRudderDegrees, 1.0, 90.0);
+			var maxRudder = args.GetDouble("max-rudder-deg", hardOverDegrees, 1.0, 90.0);
 			if (rudder > maxRudder)
 			{
 				throw new UsageException($"--rudder-deg ({Number(rudder)}) cannot exceed --max-rudder-deg ({Number(maxRudder)}).");
@@ -170,7 +169,7 @@ namespace FerrySim.Cli
 			return new ManeuverPlan(parameters, hold => new StopController(lever, duration));
 		}
 
-		private static ManeuverPlan BuildPivot(ParsedArguments args, double? duration)
+		private static ManeuverPlan BuildPivot(ParsedArguments args, double? duration, double hardOverDegrees)
 		{
 			var direction = args.GetChoice("direction", "starboard", "starboard", "port");
 			var lever = args.GetDouble("lever", DefaultPivotLever, 0.05, 1.0);
@@ -187,14 +186,14 @@ namespace FerrySim.Cli
 			return new ManeuverPlan(parameters, hold => new HoldController(controls, length, false, length));
 		}
 
-		private static ManeuverPlan BuildAcceleration(ParsedArguments args, double? duration)
+		private static ManeuverPlan BuildAcceleration(ParsedArguments args, double? duration, double hardOverDegrees)
 		{
 			var controls = new ControlInputs(1.0, 1.0, 0.0);
 			var parameters = new List<KeyValuePair<string, string>> { Pair("lever", "1") };
 			return new ManeuverPlan(parameters, hold => new HoldController(controls, duration, true, HoldController.AccelerationCap));
 		}
 
-		private static ManeuverPlan BuildTransit(ParsedArguments args, double? duration)
+		private static ManeuverPlan BuildTransit(ParsedArguments args, double? duration, double hardOverDegrees)
 		{
 			var file = args.GetString("waypoints");
 			if (file == null)

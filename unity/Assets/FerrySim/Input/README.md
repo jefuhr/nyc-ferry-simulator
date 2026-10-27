@@ -18,7 +18,9 @@ Owner: **unity-sim-bridge-controls**. Assembly `FerrySim.Unity.Input` (namespace
 | `PortLever` | axis, −1..1 | | left stick Y | |
 | `StarboardLever` | axis, −1..1 | | right stick Y | |
 | `BothLevers` | axis, −1..1 | | right trigger ahead, left trigger astern | stick Y |
-| `Helm` | axis, −1..1 | ←/→ held | left/right shoulder | stick X, twist (`{Twist}`) |
+| `Helm` | axis, −1..1 | | | stick X, twist (`{Twist}`) |
+| `HelmStep` | step and hold | ←/→ | left/right shoulder | |
+| `Midships` | button | M | | |
 | `PortLeverStep` | step | Q ahead, A astern | | |
 | `StarboardLeverStep` | step | E ahead, D astern | | |
 | `BothLeversStep` | step | W ahead, S astern | d-pad up/down | |
@@ -36,11 +38,13 @@ Signs follow `ControlInputs`: +1 is full ahead, −1 full astern, and +1 helm is
 
 **Step actions** move a lever one notch per press: 5 notches each way by default (`leverNotches`), so 0.2 per press. They click through −1 … −0.2, 0, 0.2 … 1. Neutral is exactly 0, the ends are exactly ±1, and the levers clamp there. A lever left between notches by an analog device steps to the next notch in that direction.
 
+**Helm steps** order four detents each way: −20, −15, −10, −5, 0, 5, 10, 15, 20 degrees with the crew-reported T/K 20° hard-over. Each press moves to the next 0.25 normalized detent, releasing holds it, and M orders exact midships. Holding repeats after 0.4 s, then every 0.2 s (5 steps/s); a stalled render frame catches up by at most eight steps. These timing choices are UI estimates, not crew measurements. Run start and M cancel the repeat until a fresh press. The last moved absolute axis takes ownership and cancels held-button repeat.
+
 **Absolute axes** set a lever or the helm to the device's position. When the device returns to rest, so does the control.
 
 **Device priority:** the device that moved a control last wins. A gamepad lying idle does not override levers set from the keyboard.
 
-**Run start:** when a run starts or is reset, stepped levers return to neutral and absolute axes are read again. A throttle quadrant left at half ahead stays at half ahead.
+**Run start:** when a run starts or is reset, stepped levers and helm return to neutral and absolute axes are read again. A throttle quadrant left at half ahead stays at half ahead.
 
 ## Smoothing
 
@@ -78,3 +82,7 @@ The existing `ferryNeutralDeadzone(min=0.05)` trigger/twist bindings are unchang
 the band, unchanged magnitude outside it. A user-calibrated axis instead maps each side of its captured
 neutral band continuously to the corresponding full-travel endpoint. Calibration does not implement
 gear detents, clutch timing or shift interlocks; those remain in the simulation control model.
+
+## Bow view
+
+In the wheelhouse only, B toggles a smooth bow-deck look and Shift+B toggles automatic approach tilt (on by default, remembered for the session). Right-mouse head look overrides automatic tilt until the next approach; middle mouse recentres. See [camera behavior](../World/Cameras/README.md) for geometry, thresholds and hysteresis. These camera choices are render-only and never recorded.

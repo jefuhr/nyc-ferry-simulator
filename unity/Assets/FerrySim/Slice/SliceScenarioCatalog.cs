@@ -79,6 +79,19 @@ namespace FerrySim.Slice
 
 		public bool TryCreate(ScenarioChoice choice, out ScenarioSettings settings, out string problem)
 		{
+			if (!TryCreateCandidate(choice, out settings, out problem)) return false;
+			if (TryGetStartDepth(choice, settings, out var depth) && depth.UnderKeel < 0)
+			{
+				settings = null;
+				problem = string.Format(CultureInfo.InvariantCulture,
+					"This start would be aground: minimum depth is {0:F2} m and vessel draft is {1:F2} m.", depth.MinimumDepth, depth.MaximumDraft);
+				return false;
+			}
+			return true;
+		}
+
+		private bool TryCreateCandidate(ScenarioChoice choice, out ScenarioSettings settings, out string problem)
+		{
 			settings = null;
 			if (LandingError != null)
 			{

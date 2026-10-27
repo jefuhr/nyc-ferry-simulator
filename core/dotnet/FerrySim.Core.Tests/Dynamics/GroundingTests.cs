@@ -229,7 +229,10 @@ namespace FerrySim.Core.Tests.Dynamics
 			for (var step = 0; step < 90 * SimulationClock.StepsPerSecond; step++)
 			{
 				var t = step / (double)SimulationClock.StepsPerSecond;
-				var inputs = new ControlInputs(0.5 + 0.5 * Math.Sin(0.11 * t), 0.5 * Math.Cos(0.07 * t), Math.Sin(0.05 * t));
+				// Re-authored for the 20-degree/effective-area calibration: first make a straight 20 s
+				// run-up to the shoal, then retain the original varying thrust and helm sequence.
+				var inputs = t < 20.0 ? new ControlInputs(0.5, 0.5, 0.0) :
+					new ControlInputs(0.5 + 0.5 * Math.Sin(0.11 * t), 0.5 * Math.Cos(0.07 * t), Math.Sin(0.05 * t));
 				first.Step(inputs);
 				second.Step(inputs);
 				var differences = BitIdentity.Differences(first, second);
@@ -239,6 +242,7 @@ namespace FerrySim.Core.Tests.Dynamics
 				}
 			}
 
+			TestContext.Out.WriteLine($"{_vesselFile}: 90 s, final north {first.State.North:R} m, shoal starts {ShoalStart:R} m, grounded {first.Grounding.Grounded}; all 9000 step comparisons bit-identical.");
 			Assert.That(first.Grounding.Grounded || first.State.North > ShoalStart, Is.True, "the run reached the shoal");
 		}
 

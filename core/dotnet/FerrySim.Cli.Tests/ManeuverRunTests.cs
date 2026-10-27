@@ -128,10 +128,10 @@ namespace FerrySim.Cli.Tests
 				var (code, _, stderr, table, _) = Maneuver(scratch, 15.0, "zigzag", "--speed-kn", "12");
 
 				Assert.That(code, Is.EqualTo(0), stderr);
-				var helm = 10.0 / 35.0;
+				var helm = 10.0 / (FerrySim.Core.Serialization.VesselParametersJson.Load(Vessel).Controls.HardOverAngle.Value * 180.0 / Math.PI);
 				var start = Array.FindIndex(table.Time, t => t >= table.HeaderDouble("maneuver_start_s", 0.0) - 1e-9);
 				var signs = table.Helm.Skip(start).Select(h => Math.Sign(h)).ToArray();
-				Assert.That(table.Helm[start], Is.EqualTo(helm).Within(1e-4), "10 deg of a 35 deg maximum");
+				Assert.That(table.Helm[start], Is.EqualTo(helm).Within(1e-4), "10 deg divided by the vessel hard-over parameter");
 				Assert.That(signs.Distinct().ToArray(), Is.EquivalentTo(new[] { 1, -1 }));
 				var changes = Enumerable.Range(1, signs.Length - 1).Count(i => signs[i] != signs[i - 1]);
 				Assert.That(changes, Is.EqualTo(3), "starboard, port, starboard, port");

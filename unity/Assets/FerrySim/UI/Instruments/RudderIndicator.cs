@@ -128,7 +128,7 @@ namespace FerrySim.UI
 				var bandTop = topTrack.yMax + 4f;
 				VectorDraw.Rect(painter, new Rect(topTrack.xMin, bandTop, zero - topTrack.xMin, 3f), Palette.Port);
 				VectorDraw.Rect(painter, new Rect(zero, bandTop, topTrack.xMax - zero, 3f), Palette.Starboard);
-				for (var degrees = -scale; degrees <= scale + 1e-3f; degrees += 5f)
+				for (var degrees = -Mathf.Floor((scale + 1e-3f) / 5f) * 5f; degrees <= scale + 1e-3f; degrees += 5f)
 				{
 					var x = X(rect, degrees);
 					var major = Mathf.Abs(degrees % 10f) < 1e-3f;
@@ -182,8 +182,8 @@ namespace FerrySim.UI
 
 				_numerals.Clear();
 				_numeralAngles.Clear();
-				var limit = Math.Floor(_scales.RudderScaleDegrees / 10.0) * 10.0;
-				for (var degrees = -limit; degrees <= limit + 1e-6; degrees += 10.0)
+				var limit = Math.Floor((_scales.RudderScaleDegrees + 1e-3) / 5.0) * 5.0;
+				for (var degrees = -limit; degrees <= limit + 1e-6; degrees += 5.0)
 				{
 					var numeral = PaletteRoles.Label(Math.Abs(degrees).ToString("0", CultureInfo.InvariantCulture), PaletteRoles.Scale, "fs-rudder-numeral");
 					// Rebuilt after the palette walk (when the vessel's scale arrives), so color it here.
@@ -208,8 +208,8 @@ namespace FerrySim.UI
 					Place(_numerals[i], X(rect, _numeralAngles[i]), y);
 				}
 
-				Place(_portSide, X(rect, -_scales.RudderScaleDegrees), y);
-				Place(_starboardSide, X(rect, _scales.RudderScaleDegrees), y);
+				Place(_portSide, rect.xMin + 3f, y);
+				Place(_starboardSide, rect.xMax - 3f, y);
 			}
 
 			private static void Place(VisualElement label, float x, float y)

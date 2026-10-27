@@ -118,9 +118,15 @@ namespace FerrySim.Cli
 			var start = StartPosition.Parse(parsed);
 			var leadIn = parsed.GetDouble("lead-in-s", ManeuverRunner.DefaultLeadInSeconds, 0.0, 600.0);
 			var speedKnots = parsed.GetOptionalDouble("speed-kn", 0.1, 100.0);
-			var plan = spec.Build(parsed, duration);
+			// Validate supplied options before opening files. 90 is the option's upper bound, not a vessel default.
+			spec.Build(parsed, duration, 90.0);
 
 			var vessel = VesselParametersJson.Load(vesselPath);
+			var hardOver = vessel.Controls?.HardOverAngle;
+			if (spec.Name == "zigzag" && !parsed.Has("max-rudder-deg") &&
+				(hardOver == null || hardOver.Unit != "rad" || !double.IsFinite(hardOver.Value) || hardOver.Value <= 0))
+				throw new UsageException("The vessel has no valid controls.hardOverAngle; supply --max-rudder-deg.");
+			var plan = spec.Build(parsed, duration, hardOver != null ? Angles.ToDegrees(hardOver.Value) : double.NaN);
 			environment.Load();
 			double? speed = null;
 			if (!spec.StartsAtRest || spec.CalmWaterLever)
@@ -243,7 +249,7 @@ namespace FerrySim.Cli
 				"  --helm <n>            turning-circle: helm in [0, 1] (default 1); zigzag: helm override",
 				"  --first <side>        zigzag: side of the first helm order (default starboard)",
 				"  --angle-deg <n>       zigzag: heading change that reverses the helm (default 10)",
-				"  --rudder-deg <n>      zigzag: rudder angle (default 10), with --max-rudder-deg (default 35) giving helm",
+				"  --rudder-deg <n>      zigzag: rudder angle (default 10), with --max-rudder-deg (default: vessel hard-over) giving helm",
 				"  --lever <n>           pivot: lever magnitude in (0, 1] (default 0.5)",
 				"  --waypoints <file>    transit: rows of north_m,east_m, steered in turn from the start",
 				"  --arrive-m <n>        transit: a waypoint is reached within this distance, or once passed (default 50)",

@@ -83,9 +83,11 @@ Calm runs, and runs with `--env`, write exactly the same bytes as before.
 ## Deviations from IMO MSC.137(76) and MSC/Circ.1053
 
 - **Test speed:** the standard asks for at least 90% of the speed at 85% of maximum engine output. The default here is the vessel's published service speed through water, and `--speed-kn` overrides it.
-- **Rudder:** the turning circle uses helm 1.0 (hard over), which is the 35 degree rudder only if the control model maps it that way. The zigzag converts `--rudder-deg` to helm by dividing by `--max-rudder-deg` (35), which assumes a linear follow-up steering model. Whether the real steering is follow-up or non-follow-up is still open (docs/conventions.md); `--helm` overrides the conversion.
+- **Rudder:** the turning circle uses helm 1.0 (hard over), which maps to the vessel `controls.hardOverAngle` in follow-up mode (20° in both shipped crew-reviewed vessels). The zigzag converts `--rudder-deg` to helm by dividing by `--max-rudder-deg` (by default, the vessel hard-over angle), which assumes a linear follow-up steering model. Whether the real steering is follow-up or non-follow-up is still open (docs/conventions.md); `--helm` overrides the conversion.
 - **Stopped:** the standard measures to "dead in the water". Here stopped means speed through water at or below 0.1 m/s, because a coasting vessel only approaches zero. Reach is over the ground and is only comparable with the IMO criteria in calm water.
 - **Stopping test:** `crash-stop` goes to full astern on both levers. `stopping` (levers to neutral) is not an IMO test.
 - **Turning circle length:** it runs to 370 degrees, not 540, and does not report the steady turning diameter.
 - **Zigzag:** the 10/10 test is run to the third helm order, which is enough for both overshoots. The 20/20 test is `--angle-deg 20 --rudder-deg 20`.
 - **Pivot and acceleration** are not IMO maneuvers. The pivot lever (0.5) is an arbitrary default.
+
+The calm maneuver CSV hashes were regenerated for the crew-reported 20° T/K steering stops (2026-10-26), the crew-approved 4.5 L effective area/span/yaw-damping calibration, and the parameter-derived zigzag divisor. Explicit `--max-rudder-deg` remains a conversion override; requested rudder degrees above that chosen maximum are refused, while the core still enforces the vessel physical stop. No maneuver acceptance limit changed.

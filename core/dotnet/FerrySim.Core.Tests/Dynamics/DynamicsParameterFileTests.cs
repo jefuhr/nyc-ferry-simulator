@@ -44,15 +44,23 @@ namespace FerrySim.Core.Tests.Dynamics
 		}
 
 		[Test]
-		public void ModelCoefficients_AreAllMarkedEstimated_WithABasis()
+		public void ModelCoefficients_KeepEstimatesExceptExplicitCrewSteeringCalibration()
 		{
 			var parameters = VesselParametersJson.Load(RepoPaths.Vessel(_vesselFile));
 			foreach (var section in Sections(parameters))
 			{
 				foreach (var leaf in Leaves(section))
 				{
-					Assert.That(leaf.Confidence, Is.EqualTo(ParameterConfidence.Estimated), leaf.Source);
-					Assert.That(leaf.Source.Length, Is.GreaterThan(20), "an estimate states its basis");
+					var crew = ReferenceEquals(leaf.Identity, parameters.Controls.HardOverAngle) ||
+						(_vesselFile == "t-class.json" && (ReferenceEquals(leaf.Identity, parameters.Rudders.Area) ||
+						ReferenceEquals(leaf.Identity, parameters.Rudders.SlipstreamSpanFraction) || ReferenceEquals(leaf.Identity, parameters.Hull.DerivativeNr)));
+					Assert.That(leaf.Confidence, Is.EqualTo(crew ? ParameterConfidence.CrewReported : ParameterConfidence.Estimated), leaf.Source);
+					if (crew)
+					{
+						Assert.That(parameters.Sources.ContainsKey(leaf.Source), Is.True, "crew evidence is cited");
+						Assert.That(parameters.Sources[leaf.Source], Does.Contain("crew-reported: project crew reviewer, 2026-10-26"));
+					}
+					else Assert.That(leaf.Source.Length, Is.GreaterThan(20), "an estimate states its basis");
 				}
 			}
 		}
@@ -82,17 +90,17 @@ namespace FerrySim.Core.Tests.Dynamics
 			yield return parameters.MotionResponse;
 		}
 
-		private static IEnumerable<(string Source, string Confidence)> Leaves(object node)
+		private static IEnumerable<(object Identity, string Source, string Confidence, string Note)> Leaves(object node)
 		{
 			switch (node)
 			{
 				case null:
 					yield break;
 				case ParameterValue value:
-					yield return (value.Source, value.Confidence);
+					yield return (value, value.Source, value.Confidence, value.Note);
 					yield break;
 				case ParameterText text:
-					yield return (text.Source, text.Confidence);
+					yield return (text, text.Source, text.Confidence, null);
 					yield break;
 				case IEnumerable items:
 					foreach (var item in items)

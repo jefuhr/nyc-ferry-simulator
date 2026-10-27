@@ -1,4 +1,5 @@
 using UnityEngine;
+using FerrySim.Core.Contracts;
 
 namespace FerrySim.World
 {
@@ -16,6 +17,9 @@ namespace FerrySim.World
 		[SerializeField] private Vector2 yawLimits = new Vector2(-170f, 170f);
 		[Tooltip("Head-look pitch limits, degrees (up negative).")]
 		[SerializeField] private Vector2 pitchLimits = new Vector2(-60f, 45f);
+
+		/// <summary>Only the run's selectable landing faces; installed once at run start by the scene.</summary>
+		public IWorldGeometry ApproachFaces { get; set; } = EmptyWorldGeometry.Instance;
 
 		public float FieldOfView => fieldOfView;
 

@@ -74,7 +74,7 @@ namespace FerrySim.UI.Tests.PlayMode
 			var csv = new RawCsv(text);
 			var row = csv.Count - 1;
 			Assert.That(csv.Number(row, "helm"), Is.EqualTo(1.0), "the run ends with the helm hard over to starboard");
-			Assert.That(csv.Number(row, "port_rudder_deg"), Is.GreaterThan(30.0), "the rudders have reached hard over");
+			Assert.That(csv.Number(row, "port_rudder_deg"), Is.EqualTo(DisplayUnits.Degrees(VesselFiles.TryLoad("t-class", out _).Controls.HardOverAngle.Value)).Within(1e-4), "the rudders have reached the vessel hard-over parameter");
 
 			_rig = new UITestRig(1280, 720);
 			Assert.That(_rig.Source.TryLoadCsv(path), Is.True, _rig.Source.LoadError);
@@ -91,6 +91,27 @@ namespace FerrySim.UI.Tests.PlayMode
 				Assert.That(panel.Compass.CourseDegrees, Is.EqualTo(csv.Number(row, "cog_deg")).Within(1e-3), "COG vector shown");
 				var image = _rig.Screenshot($"ui-panel-{palette.ToString().ToLowerInvariant()}-turning.png");
 				UnityEngine.Object.Destroy(image);
+			}
+		}
+
+		[UnityTest]
+		public IEnumerator RudderScale_CapturesBothCrewReportedStops()
+		{
+			var folder = Path.Combine(UIRepoPaths.Root, "artifacts/crew-fixes");
+			Directory.CreateDirectory(folder);
+			foreach (var helm in new[] { -1.0, 1.0 })
+			{
+				var path = Path.Combine(folder, helm < 0 ? "rudder-port.csv" : "rudder-starboard.csv");
+				File.WriteAllText(path, TelemetryCsvWriter.Render(TurnRuns.HardOverToStarboard(helm)));
+				_rig = new UITestRig(1280, 720);
+				Assert.That(_rig.Source.TryLoadCsv(path), Is.True, _rig.Source.LoadError);
+				_rig.Source.Seek(80);
+				yield return UITestRig.Frames();
+				Assert.That(_rig.View.Panel.Rudder.PortDegrees, Is.EqualTo(helm * 20).Within(.001));
+				var image = _rig.Capture();
+				File.WriteAllBytes(Path.Combine(folder, helm < 0 ? "panel-minus20.png" : "panel-plus20.png"), image.EncodeToPNG());
+				UnityEngine.Object.Destroy(image);
+				_rig.Dispose(); _rig = null;
 			}
 		}
 

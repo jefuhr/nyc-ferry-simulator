@@ -1,0 +1,8 @@
+{
+	"name": "FerrySim.World.Cameras.Tests.PlayMode",
+	"references": ["FerrySim.Unity.World", "FerrySim.Core", "FerrySim.Unity.Sim", "FerrySim.Unity.Input", "Unity.InputSystem", "Unity.InputSystem.TestFramework", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
+	"overrideReferences": true,
+	"precompiledReferences": ["nunit.framework.dll"],
+	"autoReferenced": false,
+	"defineConstraints": ["UNITY_INCLUDE_TESTS"]
+}

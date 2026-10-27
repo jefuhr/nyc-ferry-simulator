@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using FerrySim.Core.Contracts;
+using FerrySim.Core.Env;
 using FerrySim.Core.Serialization;
 using FerrySim.Sim;
 using NUnit.Framework;
@@ -104,6 +105,49 @@ namespace FerrySim.Slice.Tests
 		}
 
 		[Test]
+		public void BowApproachFaces_ExcludeWallsAndPiers_AndIncludeEveryEligibleBerth()
+		{
+			var landings = LandingGeometry.Load(SliceTestData.ContactsPath, SliceTestData.SurfacesPath);
+			var selected = BowApproachFaces.From(landings);
+			var buffer = new ContactSegment[landings.Segments.Count];
+			var count = selected.QuerySegments(0, 0, 100000, buffer);
+			var expected = landings.Segments.Where(s => (s.Kind == "berth-face" || s.IsPrimary) && s.StartFaceEligible).Select(s => s.Id).ToArray();
+			Assert.That(buffer.Take(count).Select(s => s.Id), Is.EquivalentTo(expected));
+			Assert.That(count, Is.GreaterThan(0));
+			foreach (var excluded in landings.Segments.Where(s => s.Kind == "pier" || s.Kind == "bulkhead"))
+				Assert.That(buffer.Take(count).Any(s => s.Id == excluded.Id), Is.False, "a wall at any distance must not trigger bow look");
+		}
+
+		// Refusal must sample without recursively calling TryCreate; shallow but afloat remains selectable.
+		[Test]
+		public void SouthBerth_RefusesAgroundButKeepsTheWarningBand()
+		{
+			RequirePacks();
+			var catalog = Catalog();
+			var aground = false;
+			var warning = false;
+			for (var minute = 0; minute < 1440; minute += 15)
+			{
+				var choice = new ScenarioChoice("87", "2025-07-14", minute, "t-class", "enc:0226015B0512B198");
+				Assert.That(catalog.TryGetStartDepth(choice, out var depth), Is.True);
+				var accepted = catalog.TryCreate(choice, out var settings, out var problem);
+				if (depth.UnderKeel < 0)
+				{
+					aground = true;
+					Assert.That(accepted, Is.False);
+					Assert.That(settings, Is.Null);
+					Assert.That(problem, Does.Contain("depth").And.Contain("draft").And.Contain("aground"));
+				}
+				else if (depth.UnderKeel < .3)
+				{
+					warning = true;
+					Assert.That(accepted, Is.True, problem);
+				}
+			}
+			Assert.That(aground && warning, Is.True, "fixture must exercise both sides of zero clearance");
+		}
+
+		[Test]
 		public void Pier11_StartDepthMatrix_CoversEveryBerthDayHourAndVessel()
 		{
 			RequirePacks();
@@ -111,25 +155,35 @@ namespace FerrySim.Slice.Tests
 			var landing = catalog.Landings.Single(l => l.StopId == "87");
 			var folder = Path.Combine(SliceTestData.RepoRoot, "artifacts/pier11-and-picker");
 			Directory.CreateDirectory(folder);
+			var geometry = LandingGeometry.Load(SliceTestData.ContactsPath, SliceTestData.SurfacesPath);
+			var packs = RepositoryPacks;
+			var environments = catalog.Days.ToDictionary(d => d.Date, d => new DataEnvironment(packs.Load(d.PackName), catalog.Day(d.Date).EpochUtc));
 			var times = new List<double>();
 			var aground = 0;
 			var rows = 0;
 			using (var writer = new StreamWriter(Path.Combine(folder, "start-depth-matrix.csv")))
 			{
-				writer.WriteLine("berth_id,berth_name,day,local_hour,vessel,minimum_depth_m,maximum_draft_m,under_keel_m,aground");
+				writer.WriteLine("berth_id,berth_name,day,local_hour,vessel,minimum_depth_m,maximum_draft_m,under_keel_m,aground,startable,warning,water_level_navd88_m,refusal_reason");
 				foreach (var day in catalog.Days)
 				foreach (var berth in landing.Berths)
 				for (var hour = 0; hour < 24; hour++)
 				foreach (var vessel in catalog.Vessels)
 				{
 					var watch = System.Diagnostics.Stopwatch.StartNew();
-					Assert.That(catalog.TryGetStartDepth(new ScenarioChoice("87", day.Date, hour * 60, vessel.Id, berth.Id), out var depth), Is.True);
+					var choice = new ScenarioChoice("87", day.Date, hour * 60, vessel.Id, berth.Id);
+					Assert.That(catalog.TryGetStartDepth(choice, out var depth), Is.True);
 					watch.Stop();
 					if (hour > 0) times.Add(watch.Elapsed.TotalMilliseconds);
 					Assert.That(double.IsNaN(depth.MinimumDepth) || double.IsInfinity(depth.MinimumDepth), Is.False);
 					Assert.That(depth.MaximumDraft, Is.EqualTo(catalog.Vessel(vessel.Id).Particulars.MaxDraft.Value));
-					writer.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0},{1},{2},{3:00},{4},{5:F6},{6:F6},{7:F6},{8}",
-						berth.Id, berth.Name, day.Date, hour, vessel.Id, depth.MinimumDepth, depth.MaximumDraft, depth.UnderKeel, depth.UnderKeel < 0));
+					var accepted = catalog.TryCreate(choice, out var settings, out var refusal);
+					Assert.That(accepted, Is.EqualTo(depth.UnderKeel >= 0), refusal);
+					if (settings == null) settings = LandingApproach.BowOn(geometry.BerthFace("87", berth.Id), catalog.Vessel(vessel.Id),
+						SliceScenarioCatalog.StartBowClearance, "matrix refused pose", vessel.VesselFile, SliceScenarioCatalog.StartUtc(catalog.Day(day.Date), hour * 60).ToString("O"));
+					var at = settings.StartPosition;
+					var level = environments[day.Date].SampleWaterLevel(at.North, at.East, hour * 3600.0);
+					writer.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0},{1},{2},{3:00},{4},{5:F6},{6:F6},{7:F6},{8},{9},{10},{11:F6},{12}",
+						berth.Id, berth.Name, day.Date, hour, vessel.Id, depth.MinimumDepth, depth.MaximumDraft, depth.UnderKeel, depth.UnderKeel < 0, accepted, accepted && depth.UnderKeel < .3, level, refusal ?? ""));
 					if (depth.UnderKeel < 0) aground++;
 					rows++;
 				}

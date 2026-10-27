@@ -72,10 +72,10 @@ namespace FerrySim.UI
 				? Math.Ceiling(ratedRpm * 1.1 / 500.0) * 500.0
 				: GenericTachMaxRpm;
 
-		/// <summary>At least 45 degrees each side, and at least 5 degrees beyond hard over, in steps of 5.</summary>
+		/// <summary>The vessel hard-over angle each side; a generic 45 degree scale only when unknown.</summary>
 		public static double RudderScaleFor(double hardOverDegrees) =>
 			InstrumentFormat.IsFinite(hardOverDegrees) && hardOverDegrees > 0.0
-				? Math.Max(MinimumRudderScaleDegrees, Math.Ceiling((hardOverDegrees + 5.0) / 5.0) * 5.0)
+				? hardOverDegrees
 				: MinimumRudderScaleDegrees;
 
 		private static double Read(ParameterValue value, string unit, Func<double, double> toDisplay)
