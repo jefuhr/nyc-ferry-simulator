@@ -84,10 +84,17 @@ namespace FerrySim.Sim
 
 		/// <summary>A landing and its berths, the default first; null or empty berths for a landing with one unnamed berth.</summary>
 		public ScenarioLanding(string stopId, string name, IReadOnlyList<ScenarioBerth> berths)
+			: this(stopId, name, berths, null)
+		{
+		}
+
+		/// <summary>A landing, its berths and a note for the picker; null for no note.</summary>
+		public ScenarioLanding(string stopId, string name, IReadOnlyList<ScenarioBerth> berths, string note)
 		{
 			StopId = stopId ?? throw new ArgumentNullException(nameof(stopId));
 			Name = name ?? throw new ArgumentNullException(nameof(name));
 			Berths = berths ?? NoBerths;
+			Note = note ?? string.Empty;
 		}
 
 		/// <summary>The GTFS stop id, for example <c>87</c> for Wall St/Pier 11.</summary>
@@ -101,15 +108,29 @@ namespace FerrySim.Sim
 		/// null. A picker offers a berth choice only when there are two or more.
 		/// </summary>
 		public IReadOnlyList<ScenarioBerth> Berths { get; }
+
+		/// <summary>
+		/// What a picker shows beside the landing: its evidence or a crew restriction, for example that its landing side
+		/// is waiting for a crew answer. Empty when there is nothing to say; never null. A landing with a note may still
+		/// be refused by <see cref="IScenarioCatalog.TryCreate"/>, which gives the reason.
+		/// </summary>
+		public string Note { get; }
 	}
 
 	/// <summary>A berth at a landing: one landing face a run can start bow-on to.</summary>
 	public sealed class ScenarioBerth
 	{
 		public ScenarioBerth(string id, string name)
+			: this(id, name, null)
+		{
+		}
+
+		/// <summary>A berth and a note for the picker; null for no note.</summary>
+		public ScenarioBerth(string id, string name, string note)
 		{
 			Id = id ?? throw new ArgumentNullException(nameof(id));
 			Name = name ?? throw new ArgumentNullException(nameof(name));
+			Note = note ?? string.Empty;
 		}
 
 		/// <summary>A stable id, unique within its landing, for example <c>enc:02261FA117EFB198</c> for a barge's berth.</summary>
@@ -117,18 +138,26 @@ namespace FerrySim.Sim
 
 		/// <summary>The name a picker shows, for example <c>Outer pontoon (east)</c>.</summary>
 		public string Name { get; }
+
+		/// <summary>
+		/// What a picker shows beside the berth: its evidence or a crew restriction. Empty when there is nothing to say;
+		/// never null.
+		/// </summary>
+		public string Note { get; }
 	}
 
 	/// <summary>A scenario day: one real day of tide, current and wind, and the harbor's traffic when it has it.</summary>
 	public sealed class ScenarioDay
 	{
-		public ScenarioDay(string date, string packName, TimeSpan localUtcOffset, bool windMissing, bool hasTraffic = false)
+		public ScenarioDay(string date, string packName, TimeSpan localUtcOffset, bool windMissing, bool hasTraffic = false,
+			string currentMethod = null)
 		{
 			Date = date ?? throw new ArgumentNullException(nameof(date));
 			PackName = packName ?? throw new ArgumentNullException(nameof(packName));
 			LocalUtcOffset = localUtcOffset;
 			WindMissing = windMissing;
 			HasTraffic = hasTraffic;
+			CurrentMethod = currentMethod ?? string.Empty;
 		}
 
 		/// <summary>The local (America/New_York) date, yyyy-MM-dd.</summary>
@@ -145,6 +174,12 @@ namespace FerrySim.Sim
 
 		/// <summary>True when a run on this day can have the harbor's real traffic: the day's traffic pack is available to this build.</summary>
 		public bool HasTraffic { get; }
+
+		/// <summary>
+		/// How the day's currents are made, for the scenario information: <c>station blend</c> for the harbor's packs,
+		/// <c>channel field</c> for the slice's. Empty when the catalog does not say; never null.
+		/// </summary>
+		public string CurrentMethod { get; }
 	}
 
 	/// <summary>A vessel a run can use.</summary>
