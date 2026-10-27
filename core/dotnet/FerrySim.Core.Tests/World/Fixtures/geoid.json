@@ -1,0 +1,1 @@
+{"cell_m":250.0,"cols":3,"format":"ferrysim-harbor-geoid/1","layout":"row-major south-to-north; columns west-to-east","mask_file":"geoid_cells.u8","mask_shape":[2,2],"origin_east_m":0.0,"origin_north_m":0.0,"rows":3,"values_file":"geoid.f64","values_type":"little-endian float64"}
