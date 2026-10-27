@@ -1,7 +1,7 @@
 {
 	"name": "FerrySim.Unity.Traffic",
 	"rootNamespace": "FerrySim.Traffic",
-	"references": ["FerrySim.Core", "FerrySim.Core.Serialization", "FerrySim.Unity.Sim", "FerrySim.Unity.World", "CesiumForUnity", "Unity.Mathematics"],
+	"references": ["FerrySim.Unity.Vessels", "FerrySim.Core", "FerrySim.Core.Serialization", "FerrySim.Unity.Sim", "FerrySim.Unity.World", "CesiumForUnity", "Unity.Mathematics"],
 	"includePlatforms": [],
 	"excludePlatforms": [],
 	"allowUnsafeCode": false,

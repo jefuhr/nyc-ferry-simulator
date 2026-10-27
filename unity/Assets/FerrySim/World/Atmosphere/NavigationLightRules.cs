@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using FerrySim.Sim;
+using FerrySim.Vessels;
 using UnityEngine;
 
 namespace FerrySim.World
@@ -213,12 +214,13 @@ namespace FerrySim.World
 	/// </summary>
 	public readonly struct VesselLightLayout
 	{
-		public VesselLightLayout(double lengthOverall, Vector3 masthead, Vector3 afterMasthead, Vector3 starboardSidelight, Vector3 sternlight, Vector3 forwardAnchor, Vector3 afterAnchor)
+		public VesselLightLayout(double lengthOverall, Vector3 masthead, Vector3 afterMasthead, Vector3 starboardSidelight, Vector3 sternlight, Vector3 forwardAnchor, Vector3 afterAnchor, Vector3? portSidelight = null)
 		{
 			LengthOverall = lengthOverall;
 			Masthead = masthead;
 			AfterMasthead = afterMasthead;
 			StarboardSidelight = starboardSidelight;
+			PortSidelight = portSidelight ?? new Vector3(-starboardSidelight.x, starboardSidelight.y, starboardSidelight.z);
 			Sternlight = sternlight;
 			ForwardAnchor = forwardAnchor;
 			AfterAnchor = afterAnchor;
@@ -233,8 +235,8 @@ namespace FerrySim.World
 
 		public Vector3 StarboardSidelight { get; }
 
-		/// <summary>The starboard sidelight mirrored across the centreline.</summary>
-		public Vector3 PortSidelight => new Vector3(-StarboardSidelight.x, StarboardSidelight.y, StarboardSidelight.z);
+		/// <summary>The port mount, or the starboard sidelight mirrored across the centreline for a generic layout.</summary>
+		public Vector3 PortSidelight { get; }
 
 		public Vector3 Sternlight { get; }
 
@@ -304,6 +306,33 @@ namespace FerrySim.World
 			var anchor = masthead + new Vector3(0f, 0.6f, 0f);
 			return new VesselLightLayout(d.LengthOverall, masthead, masthead + new Vector3(0f, 4.5f, (float)(-0.5 * d.LengthOverall)), sidelight, stern, anchor, anchor);
 		}
+
+		/// <summary>Read an active model's mounts once at configuration. Missing models retain the documented fallback.</summary>
+		public static VesselLightLayout FromModel(Transform vessel, in VesselLightLayout fallback)
+		{
+			var model = vessel.GetComponentInChildren<FerryModel>();
+			if (model == null) { return fallback; }
+			Vector3 Point(string name, Vector3 otherwise)
+			{
+				var mount = model.Mount(name);
+				if (mount == null) { return otherwise; }
+				// Stay in local coordinates: a globe placement must not quantize a small lantern offset.
+				var point = mount.localPosition;
+				var parent = mount.parent;
+				while (parent != null && parent != vessel)
+				{
+					point = parent.localPosition + parent.localRotation * Vector3.Scale(point, parent.localScale);
+					parent = parent.parent;
+				}
+
+				return parent == vessel ? point : otherwise;
+			}
+
+			return new VesselLightLayout(fallback.LengthOverall, Point("Masthead", fallback.Masthead),
+				Point("AfterMasthead", fallback.AfterMasthead), Point("StarboardSidelight", fallback.StarboardSidelight),
+				Point("Sternlight", fallback.Sternlight), Point("ForwardAnchor", fallback.ForwardAnchor), Point("AfterAnchor", fallback.AfterAnchor), Point("PortSidelight", fallback.PortSidelight));
+		}
+
 	}
 
 	/// <summary>

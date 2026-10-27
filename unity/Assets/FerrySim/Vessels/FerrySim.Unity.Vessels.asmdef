@@ -1,0 +1,6 @@
+{
+	"name": "FerrySim.Unity.Vessels",
+	"rootNamespace": "FerrySim.Vessels",
+	"references": [],
+	"autoReferenced": true
+}

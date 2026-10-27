@@ -1,0 +1,7 @@
+{
+	"name": "FerrySim.Unity.Vessels.Editor",
+	"rootNamespace": "FerrySim.Vessels.Editor",
+	"references": ["FerrySim.Unity.Vessels", "FerrySim.Core", "FerrySim.Core.Serialization", "FerrySim.Unity.Sim", "FerrySim.Unity.World"],
+	"includePlatforms": ["Editor"],
+	"autoReferenced": true
+}

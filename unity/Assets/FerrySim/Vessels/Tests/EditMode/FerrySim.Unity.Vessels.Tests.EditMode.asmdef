@@ -1,0 +1,10 @@
+{
+	"name": "FerrySim.Unity.Vessels.Tests.EditMode",
+	"rootNamespace": "FerrySim.Vessels.Tests",
+	"references": ["FerrySim.Unity.Vessels", "FerrySim.Core", "FerrySim.Core.Serialization", "FerrySim.Unity.Sim", "FerrySim.Unity.World", "FerrySim.Unity.Traffic", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
+	"includePlatforms": ["Editor"],
+	"overrideReferences": true,
+	"precompiledReferences": ["nunit.framework.dll"],
+	"autoReferenced": false,
+	"defineConstraints": ["UNITY_INCLUDE_TESTS"]
+}

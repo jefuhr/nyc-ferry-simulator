@@ -148,7 +148,10 @@ namespace FerrySim.World
 				_ownLights = host.AddComponent<NavigationLights>();
 			}
 
-			var layout = VesselLightLayout.ForGreybox(GreyboxDimensions.From(_runner.Parameters));
+			// Resolve the visual before its mounts: RunStarted subscriber order is not a layout contract.
+			var visual = vessel.GetComponent<VesselGreybox>();
+			if (visual != null) { visual.Rebuild(); }
+			var layout = VesselLightLayout.FromModel(vessel, VesselLightLayout.ForGreybox(GreyboxDimensions.From(_runner.Parameters)));
 			_ownLights.Configure(layout, VesselLightStatus.Underway);
 
 			if (_fogSignal == null)
