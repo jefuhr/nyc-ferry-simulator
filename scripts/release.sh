@@ -3,38 +3,34 @@
 # zip, with SHA-256 checksums, in artifacts/release/<version>/ beside the build reports, the logs, the smoke run's
 # report and screenshots, and release-manifest.json. See docs/releasing.md.
 #
-# The Mac app is tested as a user gets it: copied out of the mounted disk image and launched with -ferrysim-smoke
-# (FerrySim.Slice.PlayerSmokeRun), which drives the slice and fails on any error; a window opens for about a minute.
-# The Windows player cannot run here: its package is checked for the executable, Unity's player, the Cesium native
-# plugin and the packaged data, and scripts/record-windows-smoke.sh records its smoke run on a PC afterwards.
-#
-# The players package the slice's processed data (docs/releasing.md, Before a release), so the environment packs must
-# verify before anything is built, and every pack file must reach each player. Traffic packs must not: players refuse
-# traffic for now.
-#
+# The only release scene is Harbor.unity. An installed DMG copy runs the offline harbor smoke route.
+# Cached harbor outputs must already exist; preflight verifies them before either build, without downloads.
 # Usage: scripts/release.sh [--allow-dirty]
-#   --allow-dirty  build from uncommitted changes; everything is labelled <version>-dirty and is not for publishing
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 UNITY_EDITOR="${UNITY_EDITOR:-/Applications/Unity/Hub/Editor/6000.3.27f1/Unity.app/Contents/MacOS/Unity}"
+HEAVY_LOCK="$HOME/FerrySim-cache/heavy.lock"
 UNITY_LOCK="$HOME/FerrySim-cache/unity.lock"
 SETTINGS="unity/ProjectSettings/ProjectSettings.asset"
 SMOKE_TIMEOUT_S=300
-REGION="lower-east-river"
+PAYLOAD_TOOLS="$ROOT/unity/Assets/FerrySim/Build/Editor"
 
 usage() { echo "usage: scripts/release.sh [--allow-dirty]" >&2; exit 2; }
 fail() { echo "release: $*" >&2; exit 1; }
 
 ALLOW_DIRTY=0
-case "${1:-}" in
-	"") ;;
-	--allow-dirty) ALLOW_DIRTY=1 ;;
-	*) usage ;;
-esac
-[[ $# -le 1 ]] || usage
+for option in "$@"; do
+	case "$option" in
+		--allow-dirty) ALLOW_DIRTY=1 ;;
+		*) usage ;;
+	esac
+done
+
+# BSD flock is not reentrant: do not wrap this script in heavy.lock.
+heavy() { lockf -k "$HEAVY_LOCK" "$@"; }
 
 # json_field <file> <key>: a top-level value from a JSON file.
 json_field() { python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$1" "$2"; }
@@ -77,7 +73,7 @@ SMOKE="$OUT/smoke"
 build() {
 	local target="$1" unity_target="$2"
 	echo "--- Building the $target player (log: $OUT/logs/build-$target.log)"
-	lockf -k "$UNITY_LOCK" "$UNITY_EDITOR" -batchmode -quit -projectPath "$ROOT/unity" -buildTarget "$unity_target" \
+	heavy lockf -k "$UNITY_LOCK" "$UNITY_EDITOR" -batchmode -quit -projectPath "$ROOT/unity" -buildTarget "$unity_target" \
 		-executeMethod FerrySim.Build.PlayerBuild.BuildFromCommandLine -ferrysimTarget "$target" -ferrysimOutput "$OUT/$target" \
 		-ferrysimVersion "$VERSION" -logFile "$OUT/logs/build-$target.log" \
 		|| fail "the $target build failed; see $OUT/logs/build-$target.log"
@@ -85,87 +81,24 @@ build() {
 		|| fail "the $target build did not succeed; see $OUT/$target/build-report.json"
 }
 
-# check_data: the processed data the players package is there, and the environment packs verify (their digests).
+# Preflight verifies indices, URI containment, schema/digests and all 28 day dependencies before any build.
 check_data() {
-	echo "--- Checking the processed data (log: $OUT/logs/environment-verify.log)"
-	[[ -f "data/processed/$REGION/geoid_offset.json" ]] \
-		|| fail "data/processed/$REGION/geoid_offset.json is missing; build the slice first (docs/releasing.md, Before a release)"
-	[[ -d "data/processed/$REGION/env/days" ]] \
-		|| fail "data/processed/$REGION/env has no packs; build them first (docs/releasing.md, Before a release)"
-	PYTHONPATH=data-pipeline uv run --project data-pipeline python -m ferrydata.environment verify --region "$REGION" \
-		> "$OUT/logs/environment-verify.log" 2>&1 \
-		|| fail "the environment packs do not verify; see $OUT/logs/environment-verify.log"
-	tail -1 "$OUT/logs/environment-verify.log"
+	echo "--- Verifying the exact offline harbor inventory"
+	heavy lockf -k "$UNITY_LOCK" "$UNITY_EDITOR" -batchmode -nographics -quit -projectPath "$ROOT/unity" \
+		-executeMethod FerrySim.Build.HarborPayload.PreflightFromCommandLine -ferrysimInventory "$OUT/payload-inventory.json" \
+		-logFile "$OUT/logs/harbor-preflight.log" || fail "harbor preflight failed; see $OUT/logs/harbor-preflight.log"
+	[[ -s "$OUT/payload-inventory.json" ]] || fail "harbor preflight wrote no inventory"
 }
 
-# verify_payload <StreamingAssets folder> <target>: the build record names this version, commit and tree state; both
-# vessel files, the slice's geoid offset and every file of its environment packs are packaged, and no traffic is; every
-# packaged file is there with the recorded hash and the repository's bytes; and StreamingAssets holds nothing else.
 verify_payload() {
-	python3 -I - "$1" "$ROOT" "$VERSION" "$COMMIT" "$DIRTY" "$2" "$REGION" <<'PY'
-import hashlib, json, os, sys
-streaming, root, version, commit, dirty, target, region = sys.argv[1:8]
-record = json.load(open(os.path.join(streaming, "build-info.json")))
-problems = []
-if record.get("version") != version:
-	problems.append(f"version {record.get('version')} is not {version}")
-if record.get("commit") != commit:
-	problems.append(f"commit {record.get('commit')} is not {commit}")
-if bool(record.get("dirty")) != (dirty == "1"):
-	problems.append(f"the build saw dirty={record.get('dirty')}, the script dirty={dirty == '1'}")
-paths = [entry["path"] for entry in record.get("payload", [])]
-for required in ("vessels/t-class.json", "vessels/k-class.json", f"data/processed/{region}/geoid_offset.json"):
-	if required not in paths:
-		problems.append(f"{required} is not packaged")
-# Every file of the environment packs, as FerrySim.Build.PlayerPayload walks a folder: no part of the path may start with a dot.
-env = f"data/processed/{region}/env"
-expected = set()
-for folder, _, files in os.walk(os.path.join(root, env)):
-	for name in files:
-		relative = os.path.relpath(os.path.join(folder, name), root).replace(os.sep, "/")
-		if not any(part.startswith(".") for part in relative.split("/")):
-			expected.add(relative)
-packaged_env = {path for path in paths if path.startswith(env + "/")}
-if not expected:
-	problems.append(f"{env} has no files")
-for label, names in (("not packaged", sorted(expected - packaged_env)), ("packaged but not in the repository", sorted(packaged_env - expected))):
-	if names:
-		problems.append(f"{len(names)} environment pack files are {label}, the first {names[0]}")
-# What the player really carries, not only what the build recorded: anything else in StreamingAssets is unvetted data.
-present = set()
-for folder, _, files in os.walk(streaming):
-	for name in files:
-		present.add(os.path.relpath(os.path.join(folder, name), streaming).replace(os.sep, "/"))
-unrecorded = sorted(path for path in present - set(paths) - {"build-info.json"} if not any(part.startswith(".") for part in path.split("/")))
-if unrecorded:
-	problems.append(f"{len(unrecorded)} files in StreamingAssets are not in the build record, the first {unrecorded[0]}")
-traffic = sorted(path for path in present | set(paths) if "traffic" in path.split("/"))
-if traffic:
-	problems.append(f"{len(traffic)} traffic files are in the player, the first {traffic[0]}; players refuse traffic for now")
-real_root = os.path.realpath(root)
-for entry in record.get("payload", []):
-	packaged = os.path.join(streaming, entry["path"])
-	# The repository's copy must really be inside the repository: no symbolic link out of it on the way.
-	real_source = os.path.realpath(os.path.join(root, entry["path"]))
-	if os.path.commonpath([real_source, real_root]) != real_root:
-		problems.append(f"{entry['path']} resolves outside the repository, to {real_source}")
-		continue
-	if os.path.islink(packaged) or not os.path.isfile(packaged):
-		problems.append(f"{entry['path']} is missing from the player, or is a link")
-		continue
-	data = open(packaged, "rb").read()
-	if hashlib.sha256(data).hexdigest() != entry["sha256"] or len(data) != entry["bytes"]:
-		problems.append(f"{entry['path']} does not match its recorded hash and size")
-	if data != open(os.path.join(root, entry["path"]), "rb").read():
-		problems.append(f"{entry['path']} differs from the repository's copy")
-if problems:
-	print(f"{target} payload problems:\n  " + "\n  ".join(problems))
-	sys.exit(1)
-size = sum(entry["bytes"] for entry in record.get("payload", []))
-others = ", ".join(path for path in paths if not path.startswith(env + "/"))
-print(f"{target} payload: {len(paths)} files, {size / 1e6:.1f} MB: {len(packaged_env)} environment pack files, {others}; "
-	f"build {record['version']} ({record['commit'][:7]}{'-dirty' if record.get('dirty') else ''})")
-PY
+	python3 -I "$PAYLOAD_TOOLS/verify_harbor_payload.py" "$1" "$ROOT" "$OUT/payload-inventory.json" \
+		"$VERSION" "$COMMIT" "$DIRTY" "$2" "$OUT/$2/build-report.json"
+}
+
+check_download_size() {
+	local bytes
+	bytes="$(stat -f %z "$1")"
+	[[ "$bytes" -le 500000000 ]] || fail "$(basename "$1") is $bytes bytes, above 500 MB; stop and ask before optimising"
 }
 
 package_windows() {
@@ -183,8 +116,10 @@ package_windows() {
 	kind="$(file -b "$cesium")"
 	[[ "$kind" == *x86-64* ]] || fail "the Cesium native plugin is not x64: $kind"
 	verify_payload "$WIN_DIR/${PRODUCT}_Data/StreamingAssets" windows || fail "the Windows player's data is wrong"
-	(cd "$OUT/windows" && zip -q -r -X "$WIN_ZIP" "$PRODUCT" -x '*_DoNotShip/*' -x '*_ButDontShipItWithYourGame/*')
+	(cd "$OUT/windows" && heavy zip -q -r -X "$WIN_ZIP" "$PRODUCT" -x '*_DoNotShip/*' -x '*_ButDontShipItWithYourGame/*')
+	check_download_size "$WIN_ZIP"
 	local listing="$OUT/logs/windows-zip-listing.txt"
+	heavy unzip -t "$WIN_ZIP" > "$OUT/logs/windows-zip-test.txt" || fail "Windows ZIP failed CRC verification"
 	unzip -l "$WIN_ZIP" > "$listing" || fail "$WIN_ZIP does not list"
 	grep -q -F "$PRODUCT/$PRODUCT.exe" "$listing" || fail "$WIN_ZIP does not hold $PRODUCT/$PRODUCT.exe"
 	! grep -q -i 'DoNotShip' "$listing" || fail "$WIN_ZIP holds Burst debug information"
@@ -211,27 +146,48 @@ package_mac() {
 	mkdir -p "$staging"
 	ditto "$MAC_APP" "$staging/$PRODUCT.app"
 	ln -s /Applications "$staging/Applications"
-	hdiutil create -volname "$PRODUCT $LABEL" -srcfolder "$staging" -ov -format UDZO "$MAC_DMG" > "$OUT/logs/hdiutil.log" 2>&1 \
+	heavy hdiutil create -volname "$PRODUCT $LABEL" -srcfolder "$staging" -ov -format UDZO "$MAC_DMG" > "$OUT/logs/hdiutil.log" 2>&1 \
 		|| fail "the disk image was not made; see $OUT/logs/hdiutil.log"
 	rm -rf "$staging"
-	hdiutil verify "$MAC_DMG" >> "$OUT/logs/hdiutil.log" 2>&1 || fail "the disk image does not verify; see $OUT/logs/hdiutil.log"
+	check_download_size "$MAC_DMG"
+	heavy hdiutil verify "$MAC_DMG" >> "$OUT/logs/hdiutil.log" 2>&1 || fail "the disk image does not verify; see $OUT/logs/hdiutil.log"
 }
 
 smoke_mac() {
-	echo "--- Smoke run of the app installed from the disk image (a window opens for about a minute)"
-	mkdir -p "$SMOKE/mount" "$SMOKE/Applications" "$SMOKE/result"
+	echo "--- Offline harbor smoke from the app installed from the DMG"
+	local installed
+	installed="$(mktemp -d "${TMPDIR:-/tmp}/ferrysim-harbor-smoke.XXXXXX")"
+	mkdir -p "$SMOKE/mount" "$SMOKE/result" "$installed/Applications" "$installed/empty-cwd"
 	hdiutil attach -nobrowse -readonly -mountpoint "$SMOKE/mount" "$MAC_DMG" >> "$OUT/logs/hdiutil.log" 2>&1 \
 		|| fail "the disk image does not mount; see $OUT/logs/hdiutil.log"
-	ditto "$SMOKE/mount/$PRODUCT.app" "$SMOKE/Applications/$PRODUCT.app"
+	ditto "$SMOKE/mount/$PRODUCT.app" "$installed/Applications/$PRODUCT.app"
 	hdiutil detach "$SMOKE/mount" -quiet || hdiutil detach "$SMOKE/mount" -force -quiet
+	verify_payload "$installed/Applications/$PRODUCT.app/Contents/Resources/Data/StreamingAssets" mac || fail "the installed DMG copy has an invalid harbor payload"
 	local status=0
-	# perl's alarm is the timeout: a hung player is killed after SMOKE_TIMEOUT_S seconds.
-	lockf -k "$UNITY_LOCK" perl -e 'alarm shift; exec @ARGV' "$SMOKE_TIMEOUT_S" "$SMOKE/Applications/$PRODUCT.app/Contents/MacOS/$PRODUCT" \
-		-ferrysim-smoke "$SMOKE/result" -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile "$OUT/logs/smoke-player.log" \
+	# No repository working directory, paths or inherited environment. The extracted app can read only its own payload.
+	(cd "$installed/empty-cwd" && heavy lockf -k "$UNITY_LOCK" env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin TMPDIR="${TMPDIR:-/tmp}" \
+		perl -e 'alarm shift; exec @ARGV' "$SMOKE_TIMEOUT_S" "$installed/Applications/$PRODUCT.app/Contents/MacOS/$PRODUCT" \
+		-ferrysim-smoke "$SMOKE/result" -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile "$OUT/logs/smoke-player.log") \
 		> "$OUT/logs/smoke-player.stdout.log" 2>&1 || status=$?
 	[[ -f "$SMOKE/result/smoke.json" ]] || fail "the smoke run wrote no report (exit $status); see $OUT/logs/smoke-player.log"
-	python3 -I -c 'import json, sys; r = json.load(open(sys.argv[1])); print("smoke run:", "passed" if r["passed"] else "FAILED", "; ".join(r["failures"]))' "$SMOKE/result/smoke.json"
-	[[ $status -eq 0 ]] || fail "the smoke run failed (exit $status); see $SMOKE/result/smoke.json and $OUT/logs/smoke-player.log"
+	python3 -I - "$SMOKE/result" <<'PYSMOKE'
+import json, pathlib, sys
+folder = pathlib.Path(sys.argv[1])
+r = json.loads((folder / 'smoke.json').read_text())
+h = r.get('harbor', {})
+assert r.get('passed') is True and not r.get('failures'), r.get('failures')
+assert r.get('scene') == 'Harbor' and h.get('tiles_ready') is True
+assert r.get('repository_fallback_available') is False
+assert h.get('landing_stop_id') == '89' and h.get('traffic_enabled') is True
+assert h.get('traffic_roster', 0) > 0 and h.get('traffic_active', 0) > 0
+assert r.get('environment_packaged') and r.get('vessel_file_packaged')
+assert len(h.get('layers', [])) == 2 and all(x['created_tiles'] > 0 for x in h['layers'])
+for name in ('smoke-wheelhouse.png', 'smoke-chase.png'):
+	assert (folder / name).stat().st_size > 0, name
+print('harbor installed-player smoke: passed, Astoria, real tiles + environment + traffic, both views')
+PYSMOKE
+	[[ $status -eq 0 ]] || fail "the smoke run failed (exit $status); see $SMOKE/result/smoke.json"
+	# Preserve the installed copy for review. Its location and cwd are in smoke.json.
 }
 
 write_manifest() {
@@ -245,7 +201,7 @@ def artifact(path):
 smoke = json.load(open(os.path.join(out, "smoke", "result", "smoke.json")))
 keys = ("passed", "failures", "build", "operating_system", "graphics_device", "drive_simulated_s", "displacement_m",
 	"max_speed_over_ground_mps", "landing_segments", "recording_bytes", "min_screenshot_colours", "errors", "warnings",
-	"average_fps", "persistent_data", "environment", "environment_pack", "environment_digest", "environment_packaged")
+	"average_fps", "persistent_data", "environment", "environment_pack", "environment_digest", "environment_packaged", "scene", "harbor", "working_directory", "screenshots")
 manifest = {
 	"product": product,
 	"version": version,
@@ -254,6 +210,7 @@ manifest = {
 	"dirty": dirty == "1",
 	"created_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
 	"artifacts": [artifact(dmg), artifact(archive)],
+	"harbor_payload": json.load(open(os.path.join(out, "payload-inventory.json"))),
 	"mac_smoke_run": {key: smoke.get(key) for key in keys},
 	"windows_run": "not run yet: built and inspected on macOS; scripts/record-windows-smoke.sh records a run on a PC",
 }

@@ -1,0 +1,20 @@
+{
+	"name": "FerrySim.Harbor.Player",
+	"references": [
+		"FerrySim.Harbor.Runtime",
+		"FerrySim.Harbor.Integration",
+		"FerrySim.Unity.Sim",
+		"FerrySim.Unity.Slice",
+		"FerrySim.Unity.UI",
+		"FerrySim.Unity.World",
+		"FerrySim.World.HarborTiles",
+		"FerrySim.Unity.Traffic",
+		"FerrySim.Core",
+		"FerrySim.Unity.Harbor.Scenarios"
+	],
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"Newtonsoft.Json.dll"
+	],
+	"autoReferenced": true
+}

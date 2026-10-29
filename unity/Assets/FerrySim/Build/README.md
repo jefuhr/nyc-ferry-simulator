@@ -1,40 +1,13 @@
-# Build
+# Player Builds
 
-Owner: **release-build**. This folder holds the editor-only assembly `FerrySim.Unity.Build.Editor` (namespace `FerrySim.Build`), which builds and packages players. The release process, its checks and the install steps are in [docs/releasing.md](../../../../docs/releasing.md). The player-side pieces are in `Slice/Player/` ([Slice/README.md](../Slice/README.md), Players).
+`FerrySim.Unity.Build.Editor` builds standalone candidates and packages offline data. See [Releasing](../../../../docs/releasing.md) for commands, platform checks, locking and installed-player smoke evidence.
 
-## Pieces
+The enabled player scene is `Harbor.unity` only. Slice fixtures remain in the repository. `PlayerBuild` writes `build-report.json` with exact built scenes, packed asset paths, size, timing, warnings and errors. The `-ferrysimBothScenesEvidence` switch builds the explicit S5 comparison variant without changing the shipping scene list.
 
-| File | Role |
-|---|---|
-| `PlayerBuild` | The command-line build (`-executeMethod FerrySim.Build.PlayerBuild.BuildFromCommandLine -ferrysimTarget mac\|windows -ferrysimOutput <absolute folder> [-ferrysimVersion <x.y.z>]`): see below |
-| `PlayerPayload` | Finds the repository files a player reads at run time and packages them into its StreamingAssets with `build-info.json` |
-| `PlayerPayloadBuildStep` | Runs `PlayerPayload` in every standalone build, scripted or from the Build menu |
-| `GitState` | The commit a build comes from, and whether the tree was dirty. The build step runs first of all build steps (`int.MinValue`), so it reads the tree before other steps write into it; the performance-testing package, for one, adds files under `Assets/Resources` for the length of every player build |
+`HarborPayload` reads the root array in `Editor/harbor-payload.json`, validates the source index, render indices and local URIs, then uses the existing core readers for shared depth, environment, traffic and runtime validation. All 28 traffic date folders are explicit, excluding their sibling `_sources/`. Surface parameters, landing audit and canonical runtime geoid files are included. Add the future chart pack with one new `"data/processed/harbor/chart"` line in the root array.
 
-### `PlayerBuild`
+`PlayerPayloadBuildStep` resolves and validates the requested scenes before a build, packages the explicit harbor inventory plus files named by those scenes, and enriches `build-info.json` with schemas, source digests, roots, exclusions and scene identities. The release verifier compares intended files against source bytes, copies and the build record, and rejects unrecorded data or slice dependencies in a shipping candidate.
 
-- **Players.** On the Mac a universal .app sits at the top of the folder; on Windows an x64 .exe sits in a folder named after the product.
-- **Strict mode.** Any error fails the build.
-- **Report.** It writes `build-report.json` beside the player.
-- **Exit codes.** 0 for success, 1 for a failure or a throw, 2 for an unusable command line.
+The general `PlayerPayload` scanner stays available for slice regression builds. It discovers serialized `*File`/`*Files` and `*Folder`/`*Folders` fields in scenes and their referenced project assets, with existing containment and dependency restrictions. Its existing fixture tests remain unchanged.
 
-## Packaged files
-
-`PlayerPayload` reads serialized string fields, or arrays of them, whose names end in `File` or `Files` (a file each) or `Folder` or `Folders` (every file in the folder and its subfolders). It reads them on the components of the built scenes and on the project assets those components reference under `Assets/`: ScriptableObjects, prefabs, and prefabs behind component references. Each field is a repository-relative path with forward slashes, as `SimPaths.Resolve` reads it. Every file is copied to the same relative path under StreamingAssets.
-
-A folder travels whole, whatever is in it, so an environment pack keeps every file a later pipeline adds: the slice's `SliceBootstrap.environmentFolder` is `data/processed/lower-east-river/env`, the region's depth set and all its days (about 8.3 MB). Names starting with a dot (`.DS_Store`) are not data and are left out.
-
-These fail the build:
-- a path that is absolute, climbs out of the repository, passes through a symbolic link (one inside a folder included), or is written with backslashes or surrounding spaces
-- a missing file, a missing folder, or a folder with no files
-- a scenario JSON file or a replay in a built scene, because each names further files the build would not package
-
-Scenes the build did not process are opened from the build settings and read too.
-
-## Tests
-
-| Test | What |
-|---|---|
-| `PlayerPayloadTests` | The slice scene names exactly the geoid file, both vessel files and every file of its environment packs (all 28 days and the depth set). Also covered: field names and arrays, folder fields (every file at any depth, dot files left out), prefabs behind component references, unprocessed scenes, and every rejected path (missing, empty folder, a file named as a folder, absolute, `..`, symbolic links including one inside a folder, backslashes, padding, scenario files and replays). Each platform's StreamingAssets layout, and the copies and their hashes, are checked as well |
-| `PlayerBuildTests` | The command line, the player layout and the exit codes |
-| `ReleaseSettingsTests` | The version is major.minor.patch, and the bundle identifier, build scenes and product name are the release's |
+`InstalledPathTests` covers packaged files/folders and unchanged missing-path fallbacks, and `PlayerShaderDependenciesTests` requires explicit player dependencies for runtime navigation shader lookups. `HarborPayloadTests` covers missing roots, forbidden intermediates/dot files, escaping URI, stale index hash, duplicate roots, scene selection and copied real-data preflight. `Harbor/Player/Tests` covers startup selection, installed-path containment and a calibrated allocation-free drive poll. `Tests/test_release_tools.py` covers the independent release verifier and Windows recorder.

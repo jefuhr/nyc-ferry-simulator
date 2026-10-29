@@ -2,13 +2,19 @@
 	"name": "FerrySim.Unity.Build.Editor",
 	"rootNamespace": "FerrySim.Build",
 	"references": [
-		"FerrySim.Unity.Slice"
+		"FerrySim.Unity.Slice",
+		"FerrySim.Core",
+		"FerrySim.Core.Serialization"
 	],
-	"includePlatforms": ["Editor"],
+	"includePlatforms": [
+		"Editor"
+	],
 	"excludePlatforms": [],
 	"allowUnsafeCode": false,
-	"overrideReferences": false,
-	"precompiledReferences": [],
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"Newtonsoft.Json.dll"
+	],
 	"autoReferenced": false,
 	"defineConstraints": [],
 	"versionDefines": [],

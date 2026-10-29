@@ -32,14 +32,32 @@ if smoke.get("platform") != "WindowsPlayer":
 	problems.append(f"the run is from {smoke.get('platform')}, not the Windows player")
 if smoke.get("build") != expected:
 	problems.append(f"the run's build is {smoke.get('build')}, not this release's {expected}")
+if smoke.get("passed"):
+	harbor = smoke.get("harbor", {})
+	if smoke.get("scene") != "Harbor" or not harbor.get("tiles_ready") or harbor.get("landing_stop_id") != "89" or smoke.get("repository_fallback_available") is not False:
+		problems.append("the passing run is not the Astoria harbor route with actual tiles ready")
+	if not smoke.get("environment_packaged") or not smoke.get("vessel_file_packaged") or not harbor.get("traffic_enabled") or harbor.get("traffic_active", 0) <= 0:
+		problems.append("the passing run has no installed environment/vessel/active traffic evidence")
+	payload = manifest["harbor_payload"]["source_digests"]
+	day = next((day for day in payload["days"] if day["date"] == harbor.get("date")), {})
+	if smoke.get("environment_digest") != day.get("environment_digest") or harbor.get("traffic_digest") != day.get("traffic_digest"):
+		problems.append("the run used different environment/traffic day digests")
+	if harbor.get("runtime_digest") != payload["runtime"] or harbor.get("depth_digest") != payload["depth"]:
+		problems.append("the run used different harbor/depth digests")
+	if smoke.get("failures") or smoke.get("errors", 0) or smoke.get("min_screenshot_colours", 0) <= 50:
+		problems.append("the passing run contains failures/errors or blank screenshot evidence")
+	for name in ("smoke-wheelhouse.png", "smoke-chase.png"):
+		path = os.path.join(source, name)
+		if not os.path.isfile(path) or open(path, "rb").read(8) != b"\x89PNG\r\n\x1a\n":
+			problems.append(f"missing or invalid required screenshot {name}")
 if problems:
 	print("record-windows-smoke: not recorded:\n  " + "\n  ".join(problems), file=sys.stderr)
 	sys.exit(1)
 
 destination = os.path.join(out, "windows-smoke")
 real_source, real_destination = os.path.realpath(source), os.path.realpath(destination)
-if os.path.commonpath([real_source, real_destination]) == real_destination:
-	print(f"record-windows-smoke: not recorded: {source} is this release's own windows-smoke folder; pass the folder copied from the PC", file=sys.stderr)
+if os.path.commonpath([real_source, real_destination]) in (real_source, real_destination):
+	print(f"record-windows-smoke: not recorded: {source} overlaps this release's windows-smoke folder; pass a separate folder copied from the PC", file=sys.stderr)
 	sys.exit(1)
 if os.path.exists(destination):
 	# Keep an earlier recording's evidence rather than overwrite it.
@@ -52,7 +70,7 @@ for pattern in ("smoke.json", "*.png", "*.log"):
 
 keys = ("passed", "failures", "build", "operating_system", "processor", "graphics_device", "drive_simulated_s", "displacement_m",
 	"max_speed_over_ground_mps", "landing_segments", "recording_bytes", "min_screenshot_colours", "errors", "warnings",
-	"average_fps", "environment", "environment_pack", "environment_digest", "environment_packaged")
+	"average_fps", "environment", "environment_pack", "environment_digest", "environment_packaged", "scene", "harbor", "working_directory", "screenshots")
 run = {key: smoke.get(key) for key in keys}
 run["recorded_utc"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 run["evidence"] = "windows-smoke/"
