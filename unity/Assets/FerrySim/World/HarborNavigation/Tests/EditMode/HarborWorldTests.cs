@@ -67,14 +67,17 @@ namespace FerrySim.World.HarborNavigation.Tests
 		[Test] public void TickAndResidentQueriesAllocateNothingAfterWarmup()
 		{
 			var buffer = new HarborFootprint[128];
-			for (var i = 0; i < 10; i++) _world.Tick(i, null, "1", false, 0);
-			var before = GC.GetAllocatedBytesForCurrentThread();
-			for (var i = 0; i < 100; i++)
+			var camera = new GameObject("allocation camera").AddComponent<Camera>();
+			camera.transform.SetParent(_root.transform, false);
+			void Tick(int i)
 			{
-				_world.Tick(i, null, "1", false, 0);
+				camera.transform.position = _world.Labels[0].transform.position + Vector3.right * (i % 2 == 0 ? 100 : 20000);
+				_world.Tick(i * .037, camera, i % 2 == 0 ? "1" : "other", i % 3 == 1, i % 3 == 2 ? 200 : 0);
 				_world.Queries.Query(0, 0, 1000, buffer, out _);
 			}
-			Assert.That(GC.GetAllocatedBytesForCurrentThread() - before, Is.Zero);
+			for (var i = 0; i < 30; i++) Tick(i);
+			var count = NavigationTests.MeasureAllocations(() => { for (var i = 0; i < 100; i++) Tick(i); });
+			Assert.That(count, Is.Zero, "changing water, labels, palette, camera visibility and resident queries");
 		}
 
 		[Test] public void BoundarySpansKeepEvidenceAndQueriesWithoutExtrapolatedDatum()

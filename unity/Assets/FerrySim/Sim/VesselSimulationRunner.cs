@@ -324,7 +324,7 @@ namespace FerrySim.Sim
 			}
 
 			settings.Validate(EnvironmentPacks, TrafficPacks);
-			var vessel = LoadVesselSnapshot(settings.vesselFile, parameters, out var vesselDigest);
+			var vessel = RunRecorder.LoadVesselSnapshot(settings.vesselFile, parameters, out var vesselDigest);
 			var environment = settings.CreateEnvironment(EnvironmentPacks);
 			var traffic = Verified(() => settings.CreateTraffic(TrafficPacks));
 			var outline = traffic != null ? TrafficOutline(vessel, settings.name) : null;
@@ -354,7 +354,7 @@ namespace FerrySim.Sim
 		{
 			var packs = _packs ??= EnvironmentPacks.Default;
 			var candidate = packs.PrepareHarbor(settings, runtimeFolder, parseContacts, TrafficPacks);
-			var vessel = LoadVesselSnapshot(settings.vesselFile, parameters, out var vesselDigest);
+			var vessel = RunRecorder.LoadVesselSnapshot(settings.vesselFile, parameters, out var vesselDigest);
 			var initial = settings.InitialState(candidate.Environment.Observer);
 			if (!candidate.Runtime.Geoid.TrySample(initial.North, initial.East, out _))
 			{
@@ -417,7 +417,7 @@ namespace FerrySim.Sim
 			run.Header.TryGetValue(RunRecorder.VesselDigestKey, out var recordedVessel);
 			string vesselDigest = null;
 			var vessel = recordedVessel == null && parameters != null ? parameters :
-				LoadVesselSnapshot(run.VesselFile, parameters, out vesselDigest, recordedVessel);
+				RunRecorder.LoadVesselSnapshot(run.VesselFile, parameters, out vesselDigest, recordedVessel);
 			var outline = trafficRun != null ? TrafficOutline(vessel, Path.GetFileName(run.TelemetryPath)) : null;
 			var limits = trafficRun != null ? RecordedTraffic.Limits(run) : _trafficLimits;
 			EndRun();
@@ -614,7 +614,7 @@ namespace FerrySim.Sim
 		/// <summary>Moves the render target to the interpolated pose. Runs every frame after stepping, also while paused.</summary>
 		public void ApplyRenderPose()
 		{
-			if (!IsInitialized)
+			if (!IsInitialized || !_runActive)
 			{
 				return;
 			}
@@ -628,8 +628,11 @@ namespace FerrySim.Sim
 			}
 
 			BeforePlacement?.Invoke();
-			_placement.Place(renderTarget != null ? renderTarget : transform, RenderPose, HarborRuntime != null ? RenderTime : _driver.SimulationTime);
+			_placement.Place(renderTarget != null ? renderTarget : transform, RenderPose, UsesHarborWater ? RenderTime : _driver.SimulationTime);
 		}
+
+		// A harbor replay has its recorded environment, while the scene supplies the verified datum.
+		private bool UsesHarborWater => HarborRuntime != null || (_replay != null && _environment.Pack?.Region == "harbor");
 
 		private void StartRun(IControlInputSource controls, ISimulation preparedSimulation = null, TrafficStepObserver preparedTraffic = null)
 		{
@@ -696,7 +699,7 @@ namespace FerrySim.Sim
 			}
 
 			_runActive = true;
-			if (HarborRuntime != null)
+			if (UsesHarborWater)
 			{
 				// Bind the new spatial water and views before placing the new start against them.
 				RunStarted?.Invoke();
@@ -907,25 +910,6 @@ namespace FerrySim.Sim
 			{
 				throw new InvalidOperationException(error.Message, error);
 			}
-		}
-
-		private static VesselParameters LoadVesselSnapshot(string vesselFile, VesselParameters supplied, out string digest, string expectedDigest = null)
-		{
-			var path = SimPaths.Resolve(vesselFile);
-			if (!File.Exists(path))
-			{
-				throw new FileNotFoundException($"Vessel file not found: {vesselFile} (looked at {path})", path);
-			}
-
-			var bytes = File.ReadAllBytes(path);
-			digest = RunRecorder.VesselBytesDigest(bytes);
-			if (expectedDigest != null && !string.Equals(expectedDigest, digest, StringComparison.Ordinal))
-			{
-				throw new InvalidOperationException($"{path}: vessel SHA-256 mismatch; recorded {expectedDigest}, replay file {digest}.");
-			}
-			using var stream = new MemoryStream(bytes, false);
-			using var reader = new StreamReader(stream);
-			return supplied ?? VesselParametersJson.Parse(reader.ReadToEnd());
 		}
 
 	}

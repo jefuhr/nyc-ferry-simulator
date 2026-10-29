@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Text;
+using FerrySim.Core.Serialization;
+using FerrySim.Sim;
 using Newtonsoft.Json.Linq;
 
 namespace FerrySim.Harbor
@@ -58,6 +61,7 @@ namespace FerrySim.Harbor
 			{
 				throw new FormatException(file + ": depth_digest must be the depth set's SHA-256.");
 			}
+			ValidateProvenance(root, digest, file);
 
 			if (root["rows_per_hull"] == null || root["rows_per_hull"].Type != JTokenType.Integer || (int)root["rows_per_hull"] <= 0)
 			{
@@ -83,6 +87,41 @@ namespace FerrySim.Harbor
 			}
 
 			return new HarborLandingAudit(digest, rowsPerHull, berths, marks);
+		}
+
+		private static void ValidateProvenance(JObject root, string depthDigest, string file)
+		{
+			var provenance = root["matrix_provenance"] as JObject ?? throw new FormatException(file + ": matrix_provenance is required.");
+			if ((string)provenance["depth_digest"] != depthDigest)
+			{
+				throw new FormatException(file + ": matrix_provenance.depth_digest differs from depth_digest.");
+			}
+			if (!EnvironmentPackDigests.IsHexDigest((string)provenance["contacts_sha256"]) ||
+				!(provenance["day_digests"] is JObject days) || days.Count == 0)
+			{
+				throw new FormatException(file + ": matrix_provenance needs contacts_sha256 and day_digests.");
+			}
+			foreach (var day in days.Properties())
+			{
+				if (!EnvironmentPackDigests.IsHexDigest((string)day.Value))
+				{
+					throw new FormatException(file + ": matrix_provenance.day_digests has an invalid SHA-256 for " + day.Name + ".");
+				}
+			}
+			var vessels = provenance["vessel_sha256"] as JObject ?? throw new FormatException(file + ": matrix_provenance.vessel_sha256 is required.");
+			foreach (var vessel in HarborIntegrationFactory.VesselFiles)
+			{
+				var assessed = (string)vessels[vessel];
+				if (!EnvironmentPackDigests.IsHexDigest(assessed))
+				{
+					throw new FormatException(file + ": matrix_provenance.vessel_sha256 needs " + vessel + "'s SHA-256.");
+				}
+				var shipped = RunRecorder.VesselBytesDigest(File.ReadAllBytes(SimPaths.Resolve(vessel)));
+				if (!string.Equals(assessed, shipped, StringComparison.Ordinal))
+				{
+					throw new InvalidOperationException(file + ": " + vessel + " SHA-256 mismatch; assessed " + assessed + ", shipped " + shipped + ". Rerun the landing matrix.");
+				}
+			}
 		}
 
 		public sealed class AuditBerth

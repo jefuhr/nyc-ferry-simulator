@@ -96,7 +96,6 @@ namespace FerrySim.Traffic
 		public int ActiveCount { get; private set; }
 		/// <summary>Enabled signal points meeting optics and sector at the camera (before camera frustum/occlusion).</summary>
 		public int LightsDrawn { get; private set; }
-		public long AllocationBytes { get; private set; }
 		/// <summary>Renderer activation/deactivation transitions in the last Place; no pool is needed when all hulls fit.</summary>
 		public int ActivationChanges { get; private set; }
 		/// <summary>No pool when the all-eligible strategy fits the budget.</summary>
@@ -415,7 +414,6 @@ namespace FerrySim.Traffic
 
 		private void PlaceHarbor(TrafficRun traffic)
 		{
-			var allocated = GC.GetAllocatedBytesForCurrentThread();
 			_watch.Restart();
 			var time = RenderTime(runner.Driver);
 			var packTime = traffic.PackTime(time);
@@ -473,7 +471,6 @@ namespace FerrySim.Traffic
 			MaximumMilliseconds = Math.Max(MaximumMilliseconds, LastMilliseconds);
 			_totalMilliseconds += LastMilliseconds;
 			_frames++;
-			AllocationBytes = GC.GetAllocatedBytesForCurrentThread() - allocated;
 		}
 
 		private void HideHarborHull(int index)
@@ -619,7 +616,6 @@ namespace FerrySim.Traffic
 			_active = Array.Empty<bool>();
 			_built = null;
 			ShownCount = ActiveCount = LightsDrawn = ActivationChanges = MissingTargets = 0;
-			AllocationBytes = 0;
 			PlacedTime = double.NaN;
 		}
 

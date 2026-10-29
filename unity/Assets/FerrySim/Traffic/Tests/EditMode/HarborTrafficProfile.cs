@@ -76,50 +76,80 @@ namespace FerrySim.Traffic.Tests
 			_view.Sun = sun;
 			result["day_4km"] = MeasurePlacement(false, 4000);
 			result["night_4km"] = MeasurePlacement(true, 4000);
+			result["fog_4km"] = MeasurePlacement(false, 4000, 200);
 			result["all_eligible_shown_stress"] = MeasurePlacement(true, 100000);
 			var monitor = _runner.Traffic.StartRun(HullOutline.FromContact(VesselParametersJson.Load(SimPaths.Resolve("vessels/t-class.json"))), TrafficAlarmLimits.Default);
 			var samples = new double[1000];
 			var watch = new Stopwatch();
 			var own = _runner.State;
 			for (var i = 0; i < 100; i++) monitor.Update(i + 1, own, null);
-			var before = GC.GetAllocatedBytesForCurrentThread();
-			for (var i = 0; i < samples.Length; i++)
+			var monitorAllocations = AllocationSamples(() =>
 			{
-				watch.Restart(); monitor.Update(i + 101, own, null); watch.Stop();
-				samples[i] = watch.Elapsed.TotalMilliseconds;
-			}
-			var bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+				for (var i = 0; i < samples.Length; i++)
+				{
+					watch.Restart(); monitor.Update(i + 101, own, null); watch.Stop();
+					samples[i] = watch.Elapsed.TotalMilliseconds;
+				}
+			}, out var calibration);
 			Array.Sort(samples);
-			result["core_monitor_separate_fixture"] = new JObject { ["p95_ms"] = samples[949], ["allocation_bytes"] = bytes, ["steps"] = 1000 };
+			result["core_monitor_separate_fixture"] = new JObject { ["p95_ms"] = samples[949], ["gc_alloc_samples"] = monitorAllocations, ["positive_control_samples"] = calibration, ["steps"] = 1000 };
+			result["allocation_instrument"] = "GC.Alloc recorder, current thread; a deliberate string allocation must give one sample; bytes unavailable in editor Mono";
 			var folder = SimPaths.Resolve("artifacts/harbor-traffic"); Directory.CreateDirectory(folder);
 			File.WriteAllText(Path.Combine(folder, "profile.json"), result.ToString() + "\n");
 			TestContext.WriteLine(result.ToString());
 			Assert.That((double)result["day_4km"]["p95_ms"], Is.LessThanOrEqualTo(1));
 			Assert.That((double)result["night_4km"]["p95_ms"], Is.LessThanOrEqualTo(1));
-			Assert.That((long)result["night_4km"]["allocation_bytes"], Is.Zero);
+			foreach (var mode in new[] { "day_4km", "night_4km", "fog_4km", "all_eligible_shown_stress", "core_monitor_separate_fixture" })
+				Assert.That((int)result[mode]["gc_alloc_samples"], Is.Zero, mode);
 		}
 
-		private JObject MeasurePlacement(bool lights, float range)
+		private JObject MeasurePlacement(bool lights, float range, double visibility = 0)
 		{
 			_runner.ResetRun();
 			_view.Sun.SetUtc(new DateTime(2025, 7, 16, lights ? 6 : 16, 0, 0, DateTimeKind.Utc));
+			_view.Sun.VisibilityMetres = visibility;
 			_view.Sun.Apply();
 			_view.NavigationLightsEnabled = true;
 			_view.ViewRange = range;
 			for (var i = 0; i < 30; i++) _view.Place();
 			var samples = new double[1000];
-			long allocation = 0; var churn = 0; var missing = 0; var activations = 0;
-			for (var i = 0; i < samples.Length; i++)
+			var churn = 0; var missing = 0; var activations = 0;
+			var count = AllocationSamples(() =>
 			{
-				_runner.AdvanceFrame(1.0 / 60);
-				_view.Place();
-				samples[i] = _view.LastMilliseconds;
-				allocation += _view.AllocationBytes; churn += _view.PoolChurn; missing += _view.MissingTargets; activations += _view.ActivationChanges;
-			}
+				for (var i = 0; i < samples.Length; i++)
+				{
+					_runner.AdvanceFrame(1.0 / 60);
+					_view.Place();
+					samples[i] = _view.LastMilliseconds;
+					churn += _view.PoolChurn; missing += _view.MissingTargets; activations += _view.ActivationChanges;
+				}
+			}, out var calibration);
 			Array.Sort(samples);
 			return new JObject { ["p50_ms"] = samples[499], ["p95_ms"] = samples[949], ["max_ms"] = samples[999],
-				["frames"] = samples.Length, ["allocation_bytes"] = allocation, ["pool_churn"] = churn, ["activation_changes"] = activations, ["missing_targets"] = missing,
+				["frames"] = samples.Length, ["gc_alloc_samples"] = count, ["positive_control_samples"] = calibration, ["pool_churn"] = churn, ["activation_changes"] = activations, ["missing_targets"] = missing,
 				["active"] = _view.ActiveCount, ["shown_hulls"] = _view.ShownCount, ["lights_drawn"] = _view.LightsDrawn };
+		}
+
+		private static int AllocationSamples(Action action, out int calibration)
+		{
+			var chars = new char[16];
+			var recorder = Recorder.Get("GC.Alloc");
+			recorder.enabled = false;
+			recorder.FilterToCurrentThread();
+			try
+			{
+				recorder.enabled = true;
+				var control = new string(chars);
+				recorder.enabled = false;
+				calibration = recorder.sampleBlockCount;
+				GC.KeepAlive(control);
+				Assert.That(calibration, Is.EqualTo(1), "GC.Alloc must see the deliberate string allocation");
+				recorder.enabled = true;
+				action();
+				recorder.enabled = false;
+				return recorder.sampleBlockCount;
+			}
+			finally { recorder.enabled = false; recorder.CollectFromAllThreads(); }
 		}
 	}
 }

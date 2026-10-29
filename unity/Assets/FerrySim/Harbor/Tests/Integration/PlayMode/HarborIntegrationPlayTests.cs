@@ -121,6 +121,14 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 			Assert.That(label.text, Does.Contain("Run held").And.Contain("left the water"));
 			Assert.That(label.resolvedStyle.display, Is.Not.EqualTo(DisplayStyle.None));
 
+			// Ending the held run clears Hold but must not place its uncovered pose on the scene's strict datum.
+			var lastDrawn = runner.transform.position;
+			runner.EndRun();
+			Assert.That(runner.Hold, Is.EqualTo(RunHold.None));
+			Assert.DoesNotThrow(() => runner.ApplyRenderPose());
+			yield return null;
+			Assert.That(runner.transform.position, Is.EqualTo(lastDrawn));
+
 			// A new start resumes.
 			Assert.That(catalog.TryCreate(choice, out settings, out problem), Is.True, problem);
 			Assert.That(bootstrap.TryStart(settings, out problem), Is.True, problem);

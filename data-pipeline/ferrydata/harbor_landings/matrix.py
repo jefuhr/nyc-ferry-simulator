@@ -5,6 +5,7 @@ Python landing gate. The low-water time is the exact minimum of the piecewise-li
 spatial tide at the pose reference point over [0, 86340] s, including every gauge breakpoint.
 """
 import json
+import hashlib
 import math
 from pathlib import Path
 
@@ -12,7 +13,7 @@ import numpy as np
 import pandas as pd
 from shapely.geometry import LineString, Polygon
 
-from ferrydata import export_unity, geodesy, manifest
+from ferrydata import export_unity, geodesy, manifest, paths
 from ferrydata.environment import pack, series
 from ferrydata.harbor_landings import assessment as a, faces
 
@@ -78,10 +79,13 @@ def build(contacts_path, env, destination, depth_path=None):
 		or (r['id'] in confirmed_ids and export_unity.landing_gate(dict(r, water_side_crew_reported=True))[0] == 'kept')]
 	lines = [LineString([r['start_ne_m'], r['end_ne_m']]) for r in retained]
 	levels = {day: a.load_levels(env / 'days' / day) for day in series.DAYS}
+	# Parse and hash the same byte snapshots, once per hull for the whole assessment.
+	vessel_bytes = {hull: (paths.REPO_ROOT / 'vessels' / (hull + '.json')).read_bytes() for hull in ('t-class', 'k-class')}
+	vessels = {hull: json.loads(raw) for hull, raw in vessel_bytes.items()}
 	rows = []
 	for berth in berths:
 		for hull in ('t-class', 'k-class'):
-			v = a.vessel(hull)
+			v = vessels[hull]
 			draft, basis = a.maximum_draft(v)
 			north = east = heading = clearance = float('nan')
 			overlap, nearest, prepared = False, '', None
@@ -123,6 +127,8 @@ def build(contacts_path, env, destination, depth_path=None):
 		for berth in berths])
 	pack.write_json(destination / 'provenance.json', dict(contacts_sha256=manifest.sha256_file(contacts_path),
 		depth_digest=depth.digest, day_digests={day: pack.read_digest(env / 'days' / day) for day in series.DAYS},
+		vessel_sha256={f'vessels/{hull}.json': hashlib.sha256(raw).hexdigest() for hull, raw in vessel_bytes.items()},
+		berths_sha256=manifest.sha256_file(destination / 'berths.json'),
 		crew_face_notes_sha256=manifest.sha256_file(Path(faces.__file__).with_name('crew-face-notes.json')),
 		rows=len(frame), berths=len(berths), times='24 hourly plus local low water from all gauge breakpoints and day endpoints'))
 	return frame

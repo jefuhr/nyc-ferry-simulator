@@ -83,6 +83,7 @@ namespace FerrySim.Harbor
 
 			var runner = context.Runner;
 			var packs = runner.EnvironmentPacks;
+			runner.EnvironmentPacks = packs;
 			var launcher = new HarborLauncher(runner, runtimeFolder, landings, surfaces);
 			var catalog = new HarborScenarioCatalog(landings, LoadVessels(), packs, trafficPacks: runner.TrafficPacks, marks: audit.Marks, launcher: launcher,
 				depths: new SharedDepthEnvironments(packs));
@@ -181,12 +182,12 @@ namespace FerrySim.Harbor
 
 		private void OnRunStarted()
 		{
-			if (_disposed || _runner.HarborRuntime == null || _runner.RunEnvironment == null)
+			if (_disposed || _runner.RunEnvironment?.Pack == null)
 			{
 				return;
 			}
 
-			var service = new HarborWaterService(new HarborDatum(_runner.HarborRuntime.Geoid), _runner.RunEnvironment);
+			var service = new HarborWaterService(new HarborDatum((_runner.HarborRuntime ?? Pack).Geoid), _runner.RunEnvironment);
 			Water.Bind(service);
 			RebuildPatches(service);
 			RunsBound++;

@@ -141,6 +141,22 @@ namespace FerrySim.Sim.Tests
 			Assert.That(_runner.RunEnvironment.PackRun.Coverage.DepthMisses, Is.EqualTo(before.DepthMisses));
 		}
 
+		[TestCase(false)]
+		[TestCase(true)]
+		public void UnequalSuppliedHarborVessel_DoesNotClaimTheFileDigest(bool sameId)
+		{
+			_runner.InitializeHarbor(_settings, _runtime, (json, file) => EmptyWorldGeometry.Instance, Controls);
+			var supplied = sameId ? TestSupport.LoadTClass() : VesselParametersJson.Load(SimPaths.Resolve("vessels/k-class.json"));
+			if (sameId) supplied.Particulars.MaxDraft.Value += .1;
+			_runner.RecordRuns = true;
+			_runner.RecordingDirectory = Path.Combine(_root, "recordings");
+			_runner.InitializeHarbor(_settings, _runtime, (json, file) => EmptyWorldGeometry.Instance, Controls, supplied);
+			Assert.That(_runner.Parameters, Is.SameAs(supplied));
+			Assert.That(_runner.AdvanceFrame(.02).Steps, Is.EqualTo(2));
+			_runner.EndRun();
+			Assert.That(RecordedRun.Load(_runner.LastRecordingPath).Header.ContainsKey(RunRecorder.VesselDigestKey), Is.False);
+		}
+
 		[Test]
 		public void SuccessfulStart_NotifiesBindingsBeforeItsFirstPlacement()
 		{
@@ -223,6 +239,21 @@ namespace FerrySim.Sim.Tests
 			Assert.That(_runner.AdvanceFrame(0.02).Steps, Is.EqualTo(2));
 			_runner.EndRun();
 			Assert.That(_runner.Hold, Is.EqualTo(RunHold.None));
+		}
+
+		[Test]
+		public void EndingACoverageHeldRun_DoesNotPlaceAgainBeforeANewStart()
+		{
+			_runner.InitializeHarbor(_settings, _runtime, (json, file) => EmptyWorldGeometry.Instance, Controls);
+			_runner.Driver.AddObserver(new MissObserver(_runner.RunEnvironment.PackRun, false));
+			_runner.AdvanceFrame(.1);
+			Assert.That(_runner.Hold, Is.EqualTo(RunHold.OutsideCoveredWater));
+			var placed = 0;
+			_runner.BeforePlacement += () => placed++;
+			_runner.EndRun();
+			Assert.That(_runner.Hold, Is.EqualTo(RunHold.None));
+			_runner.ApplyRenderPose();
+			Assert.That(placed, Is.Zero, "ended runs retain the last safe drawn position");
 		}
 
 		private string WriteTraffic()

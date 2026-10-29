@@ -115,8 +115,26 @@ namespace FerrySim.Traffic.Tests
 			for (var i = 0; i < tracks.Length; i++)
 				tracks[i] = TrafficTestPacks.Track.Straight(366100000 + i, 43100, -7000 + i % 25 * 1300, -9000 + i / 25 * 1400, 1, 0.2, 12);
 			Start(tracks);
-			for (var i = 0; i < 5; i++) _view.Place();
-			Assert.That(() => _view.Place(), Is.Not.AllocatingGCMemory());
+			var sun = _world.AddComponent<SunController>();
+			_view.Sun = sun;
+			foreach (var mode in new[] { "day", "night", "fog" })
+			{
+				sun.SetUtc(new DateTime(2025, 7, 14, mode == "night" ? 6 : 16, 0, 0, DateTimeKind.Utc));
+				sun.VisibilityMetres = mode == "fog" ? 200 : 0;
+				sun.Apply();
+				void Frame(int i)
+				{
+					_camera.transform.localPosition = new Vector3(i % 2 == 0 ? 0 : 200000, 10, 0);
+					_runner.AdvanceFrame(.01);
+					_view.Place();
+				}
+				for (var i = 0; i < 6; i++) Frame(i);
+				var count = AllocationSamples(() => { for (var i = 0; i < 100; i++) Frame(i); }, out var calibration);
+				TestContext.WriteLine(mode + ": GC.Alloc positive control=" + calibration + "; measured samples=" + count);
+				Assert.That(count, Is.Zero, mode + ": changing samples, local tide, visibility and activation");
+			}
+			_camera.transform.localPosition = new Vector3(0, 10, 0);
+			_view.Place();
 			Assert.That(_view.ShownCount, Is.EqualTo(485));
 			Assert.That(_view.RosterCount, Is.EqualTo(485));
 			Assert.That(_view.MissingTargets, Is.Zero);

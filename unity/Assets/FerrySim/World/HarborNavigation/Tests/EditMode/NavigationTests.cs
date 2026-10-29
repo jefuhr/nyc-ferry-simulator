@@ -2,6 +2,7 @@ using System;
 using FerrySim.World.Import;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 namespace FerrySim.World.HarborNavigation.Tests
 {
@@ -30,11 +31,41 @@ namespace FerrySim.World.HarborNavigation.Tests
 					Assert.That(lights.CharacterLitAt(0, i * .037), Is.EqualTo(character.IsLit(i * .037)));
 				}
 				lights.Show(1, true);
-				var before = GC.GetAllocatedBytesForCurrentThread();
-				for (var i = 0; i < 1000; i++) lights.Show(i * .037, true);
-				Assert.That(GC.GetAllocatedBytesForCurrentThread() - before, Is.Zero);
+				var allocations = MeasureAllocations(() =>
+				{
+					for (var i = 0; i < 1000; i++)
+					{
+						lights.SetNearVisible(0, i % 2 == 0);
+						lights.Show(i * .037, i % 3 != 0);
+					}
+				});
+				Assert.That(allocations, Is.Zero, "changing flash samples, day/night and near visibility");
 			}
 			finally { UnityEngine.Object.DestroyImmediate(host); }
+		}
+
+		internal static int MeasureAllocations(Action action)
+		{
+			var chars = new char[16];
+			var recorder = Recorder.Get("GC.Alloc");
+			recorder.enabled = false;
+			recorder.FilterToCurrentThread();
+			try
+			{
+				recorder.enabled = true;
+				var control = new string(chars);
+				recorder.enabled = false;
+				var calibration = recorder.sampleBlockCount;
+				GC.KeepAlive(control);
+				Assert.That(calibration, Is.EqualTo(1), "GC.Alloc sees the deliberate string allocation");
+				recorder.enabled = true;
+				action();
+				recorder.enabled = false;
+				var count = recorder.sampleBlockCount;
+				TestContext.WriteLine("GC.Alloc positive control=" + calibration + "; measured samples=" + count);
+				return count;
+			}
+			finally { recorder.enabled = false; recorder.CollectFromAllThreads(); }
 		}
 
 		[Test] public void EstimatedAlternatingSequenceIsNotReportedAsChartEvidence()

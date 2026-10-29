@@ -34,6 +34,30 @@ namespace FerrySim.Harbor.Tests.Integration
 			]
 		}";
 
+		private static string ValidAudit()
+		{
+			var vessels = new Newtonsoft.Json.Linq.JObject();
+			foreach (var file in HarborIntegrationFactory.VesselFiles)
+			{
+				vessels[file] = RunRecorder.VesselBytesDigest(File.ReadAllBytes(SimPaths.Resolve(file)));
+			}
+			var provenance = new Newtonsoft.Json.Linq.JObject
+			{
+				["depth_digest"] = "b58ed9ef82109126c6ed6bfc7243754f4c6578fc6b16706efcea77b59aaa9eaa",
+				["contacts_sha256"] = new string('c', 64),
+				["day_digests"] = new Newtonsoft.Json.Linq.JObject { ["2025-07-16"] = new string('d', 64) },
+				["vessel_sha256"] = vessels
+			};
+			return Audit.Replace("\"rows_per_hull\": 700", "\"matrix_provenance\": " + provenance.ToString() + ", \"rows_per_hull\": 700");
+		}
+
+		private static string ReplaceFirst(string text, string from, string to)
+		{
+			var index = text.IndexOf(from, StringComparison.Ordinal);
+			Assert.That(index, Is.GreaterThanOrEqualTo(0));
+			return text.Substring(0, index) + to + text.Substring(index + from.Length);
+		}
+
 		private static HarborDatum Datum() =>
 			new HarborDatum(new HarborGeoidLattice(0, 0, 250, 3, 3, new double[] { -32, -31.9, -31.8, -31.9, -31.8, -31.7, -31.8, -31.7, -31.6 }, new byte[] { 1, 1, 1, 1 }));
 
@@ -90,7 +114,7 @@ namespace FerrySim.Harbor.Tests.Integration
 		[Test]
 		public void LandingAudit_MarksBerthsWithAStartPose_AndLeavesTheCrewFacesToTheCatalog()
 		{
-			var audit = HarborLandingAudit.Parse(Audit, "fixture audit");
+			var audit = HarborLandingAudit.Parse(ValidAudit(), "fixture audit");
 			Assert.That(audit.DepthDigest, Is.EqualTo("b58ed9ef82109126c6ed6bfc7243754f4c6578fc6b16706efcea77b59aaa9eaa"));
 			Assert.That(audit.RowsPerHull, Is.EqualTo(700));
 			Assert.That(audit.Berths.Count, Is.EqualTo(3));
@@ -106,6 +130,28 @@ namespace FerrySim.Harbor.Tests.Integration
 			Assert.That(audit.Berths[2].Note, Is.Empty);
 		}
 
+		[Test]
+		public void LandingAudit_RefusesMissingMatrixProvenance()
+		{
+			var error = Assert.Throws<FormatException>(() => HarborLandingAudit.Parse(Audit, "fixture audit"));
+			Assert.That(error.Message, Does.Contain("matrix_provenance"));
+		}
+
+		[Test]
+		public void LandingAudit_RefusesChangedVesselBytes()
+		{
+			var json = Newtonsoft.Json.Linq.JObject.Parse(Audit);
+			json["matrix_provenance"] = new Newtonsoft.Json.Linq.JObject
+			{
+				["depth_digest"] = json["depth_digest"].DeepClone(),
+				["contacts_sha256"] = new string('c', 64),
+				["day_digests"] = new Newtonsoft.Json.Linq.JObject { ["2025-07-16"] = new string('d', 64) },
+				["vessel_sha256"] = new Newtonsoft.Json.Linq.JObject { ["vessels/t-class.json"] = new string('a', 64), ["vessels/k-class.json"] = new string('b', 64) }
+			};
+			var error = Assert.Throws<InvalidOperationException>(() => HarborLandingAudit.Parse(json.ToString(), "fixture audit"));
+			Assert.That(error.Message, Does.Contain("vessels/t-class.json").And.Contain("SHA-256"));
+		}
+
 		[TestCase("\"schema\": \"ferrysim-harbor-landing-audit/1\"", "\"schema\": \"ferrysim-harbor-landing-audit/2\"", "schema")]
 		[TestCase("\"rows_per_hull\": 700", "\"rows_per_hull\": 0", "rows_per_hull")]
 		[TestCase("\"accepted\": 467", "\"accepted\": 701", "701 accepted of 700")]
@@ -113,7 +159,7 @@ namespace FerrySim.Harbor.Tests.Integration
 		[TestCase("\"depth_digest\": \"b58ed9ef82109126c6ed6bfc7243754f4c6578fc6b16706efcea77b59aaa9eaa\"", "\"depth_digest\": \"b58e\"", "depth_digest")]
 		public void LandingAudit_RefusesAnotherSchemaOrABrokenCount_NamingTheFile(string from, string to, string reason)
 		{
-			var error = Assert.Throws<FormatException>(() => HarborLandingAudit.Parse(Audit.Replace(from, to), "fixture audit"));
+			var error = Assert.Throws<FormatException>(() => HarborLandingAudit.Parse(ReplaceFirst(ValidAudit(), from, to), "fixture audit"));
 			Assert.That(error.Message, Does.StartWith("fixture audit: "));
 			Assert.That(error.Message, Does.Contain(reason));
 		}

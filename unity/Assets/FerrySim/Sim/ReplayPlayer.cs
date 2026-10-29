@@ -452,6 +452,17 @@ namespace FerrySim.Sim
 			{
 				return new ReplayResult(0, run.Rows.Count, 0, recordedVessel, replayedVessel);
 			}
+			if (run.Header.TryGetValue(RunRecorder.VesselDigestKey, out var expectedVessel))
+			{
+				try
+				{
+					parameters = RunRecorder.LoadVesselSnapshot(run.VesselFile, parameters, out _, expectedVessel);
+				}
+				catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is ArgumentException || error is InvalidOperationException || error is VesselParametersException)
+				{
+					return new ReplayResult(0, run.Rows.Count, 0, recordedVessel, error.Message);
+				}
+			}
 
 			geometry ??= EmptyWorldGeometry.Instance;
 			if (run.Header.TryGetValue(WorldGeometryDigest.HeaderKey, out var recordedGeometry))

@@ -50,6 +50,8 @@ bilinear sampling and unknown propagation. Maximum draft is preferred, with an e
 fallback flag. Negative UKC refuses; [0, 0.3) m warns. Contact/depth failures remain
 independent numerical fields. The 20 m outside-depth fallback is never acceptance evidence.
 
+`provenance.json` fingerprints the exact vessel byte snapshots parsed for the assessment, contacts, depth and each day, and binds the emitted `berths.json` with its SHA-256. The Unity landing-audit writer carries that provenance forward and refuses missing provenance, a different adopted depth, changed berth output or changed vessel bytes.
+
 `matrix.csv` preserves each result. `summary.csv` gives counts, worst UKC and the lowest
 accepted reference-point water level for each berth and hull. A finite-depth start at
 one level does not establish any-tide use or the safety of a departure maneuver.

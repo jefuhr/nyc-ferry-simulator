@@ -189,7 +189,11 @@ namespace FerrySim.Sim
 		public EnvironmentPack Load(string name, out string dayFolder)
 		{
 			dayFolder = DayFolder(name) ?? throw new FileNotFoundException(NotFound(name) + ".");
-			var pack = EnvironmentPackJson.Load(dayFolder);
+			// Replays use this general entry point too. Harbor previews, starts and replays share one verified set;
+			// the slice keeps its existing loader and verification behaviour.
+			var pack = name.StartsWith("harbor/", StringComparison.Ordinal)
+				? EnvironmentPackJson.Load(dayFolder, HarborDepth(EnvironmentPackJson.DepthFolderOf(dayFolder), out _))
+				: EnvironmentPackJson.Load(dayFolder);
 			if (pack.Name != name)
 			{
 				throw new EnvironmentPackException(Path.Combine(dayFolder, ManifestFile), $"is the pack {pack.Name}, but it is in the folder of {name}.");

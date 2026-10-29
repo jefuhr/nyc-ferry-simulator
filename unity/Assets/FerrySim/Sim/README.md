@@ -255,3 +255,5 @@ The pack tests run on small synthetic packs (`Tests/EditMode/SyntheticPacks.cs`:
 - **Horn.** The horn is a state and an event only; there is no sound yet.
 - **Keyboard helm.** The keyboard helm is hold-to-steer (±1). With the shipped follow-up steering, holding gives hard over.
 - **Placement and the water surface.** `CesiumVesselPlacement` takes the water surface from `IWaterSurface`. In the slice that is `WorldWaterHeight` on the drawn water, which follows the run's tide (Slice/README.md, Water height).
+
+A run with supplied vessel parameters records `vessel_sha256` only when those parameters are value-equal to the parameters parsed from the named file snapshot. Comparison includes every serialized field, not only the vessel ID; a matching run receives the owned parsed snapshot and hashes those same bytes. A custom supplied model remains supported but its header omits the file digest. A fingerprinted replay refuses unequal supplied parameters before replacing the active run or stepping; recordings without `vessel_sha256` retain their existing supplied-parameter override.
