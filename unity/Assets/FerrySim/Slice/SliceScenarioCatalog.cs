@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using FerrySim.Core.Contracts;
 using FerrySim.Core.Serialization;
-using FerrySim.Core.Traffic;
 using FerrySim.Sim;
 
 namespace FerrySim.Slice
@@ -142,73 +141,8 @@ namespace FerrySim.Slice
 				return false;
 			}
 
-			if (choice.LocalMinutes < 0 || choice.LocalMinutes > LastMinute)
-			{
-				problem = $"The start time must be 0 to {LastMinute} minutes after local midnight (00:00 to 23:59), not {choice.LocalMinutes}.";
-				return false;
-			}
-
-			var start = StartUtc(day, choice.LocalMinutes);
-			if (!day.Covers(start))
-			{
-				problem = $"{EnvironmentPacks.Iso(start)} is outside the {day.Date} pack, which covers {EnvironmentPacks.Iso(day.CoverageStartUtc)} to {EnvironmentPacks.Iso(day.CoverageEndUtc)}.";
-				return false;
-			}
-
-			if (choice.Traffic && _trafficPacks.DayFolder(choice.Date) == null)
-			{
-				problem = "Traffic isn't available for this day in this build.";
-				return false;
-			}
-			if (choice.Traffic && !Enum.IsDefined(typeof(TrafficLeaveOut), choice.LeaveOut))
-			{
-				problem = "The traffic leave-out mode is unknown.";
-				return false;
-			}
-			var file = VesselFile(choice.VesselId);
-			var name = string.Format(CultureInfo.InvariantCulture, "{0} ({1}), {2}, from {3}, {4}", face.StopName, face.StopId, day.Name, EnvironmentPacks.Iso(start), vessel.Id);
-			if (berths.Count > 1)
-			{
-				foreach (var berth in berths)
-					if (berth.Id == choice.BerthId || (string.IsNullOrEmpty(choice.BerthId) && berth.Order == 0)) name += ", " + berth.Name;
-			}
-			ScenarioSettings candidate;
-			try
-			{
-				candidate = LandingApproach.BowOn(face, vessel, StartBowClearance, name, file, EnvironmentPacks.Iso(start), 0.0,
-					new ScenarioEnvironment { pack = day.Name });
-			}
-			catch (ArgumentException error)
-			{
-				problem = error.Message;
-				return false;
-			}
-
-			var position = candidate.StartPosition;
-			var clearance = FaceClearance.Check(vessel, position.North, position.East, candidate.StartHeading, _landings.Geometry.Segments);
-			if (!clearance.IsClear())
-			{
-				problem = string.Format(CultureInfo.InvariantCulture, "A {0} starting at {1} would be {2:F2} m from landing face {3}; a start needs {4:F1} m.",
-					vessel.Id, face.StopName, clearance.Overlaps ? 0.0 : clearance.Distance, clearance.NearestSegmentId, FaceClearance.MinimumMetres);
-				return false;
-			}
-
-			try
-			{
-				candidate.visibilityMetres = choice.VisibilityMetres;
-				candidate.traffic = choice.Traffic ? new ScenarioTraffic { day = choice.Date,
-					leaveOut = ScenarioTraffic.LeaveOutText(choice.LeaveOut), leaveOutMmsi = choice.LeaveOutMmsi } : null;
-				candidate.Validate(_packs, _trafficPacks);
-			}
-			catch (Exception error) when (error is ArgumentException || error is FormatException)
-			{
-				problem = error.Message;
-				return false;
-			}
-
-			settings = candidate;
-			problem = null;
-			return true;
+			// The rest of the start (time, traffic, pose, clearance, validation) is BerthStart's, shared with the harbor catalog.
+			return BerthStart.TryCreate(_landings, face, berths, vessel, VesselFile(choice.VesselId), day, choice, _packs, _trafficPacks, out settings, out problem);
 		}
 
 		/// <summary>The listed vessel's file, or null.</summary>

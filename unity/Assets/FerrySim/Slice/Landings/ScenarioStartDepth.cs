@@ -28,13 +28,7 @@ namespace FerrySim.Slice
 				environment = new DataEnvironment(pack, pack.EpochUtc);
 				_depthDays.Add(choice.Date, environment);
 			}
-			var vessel = Vessel(choice.VesselId);
-			var position = settings.StartPosition;
-			var outline = FaceClearance.WorldOutline(vessel, position.North, position.East, settings.StartHeading);
-			var minimum = MinimumStartDepth(environment, outline, choice.LocalMinutes * 60.0);
-			if (double.IsNaN(minimum)) return false;
-			depth = new ScenarioStartDepth(minimum, (vessel.Particulars.MaxDraft ?? vessel.Particulars.Draft).Value);
-			return true;
+			return BerthStart.TryGetStartDepth(environment, Vessel(choice.VesselId), settings, choice.LocalMinutes * 60.0, out depth);
 		}
 
 		/// <summary>

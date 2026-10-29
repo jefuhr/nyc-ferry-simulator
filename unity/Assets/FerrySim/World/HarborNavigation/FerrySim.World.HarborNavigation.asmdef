@@ -1,0 +1,12 @@
+{
+	"name": "FerrySim.World.HarborNavigation",
+	"references": [
+		"FerrySim.Core",
+		"FerrySim.Unity.World",
+		"FerrySim.Unity.Sim",
+		"FerrySim.World.Import.Runtime",
+		"FerrySim.Unity.UI",
+		"CesiumForUnity",
+		"Unity.Mathematics"
+	]
+}

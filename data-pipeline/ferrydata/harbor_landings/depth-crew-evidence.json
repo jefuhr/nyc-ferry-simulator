@@ -1,0 +1,13 @@
+{
+	"source": "project crew reviewer",
+	"date": "2026-10-26",
+	"confidence": "crew-reported",
+	"statement": "T- and K-class boats land at any tide, even dead low water, at the listed faces.",
+	"faces": [
+		{"stop_id": "87", "berth_id": "enc:0226015B0512B198", "name": "Pier 11 South pontoon"},
+		{"stop_id": "8", "berth_id": "enc:022679C2F5BA764B", "name": "South Williamsburg"},
+		{"stop_id": "120", "berth_id": "derived-barge:120:02262FAC44F71C82", "name": "Brooklyn Navy Yard"},
+		{"stop_id": "138", "berth_id": "derived-barge:138:022611830D4D1C82", "name": "Midtown West/Pier 79"}
+	],
+	"note": "This is supporting evidence for reviewing the AIS candidate, not a surveyed bed, margin, face-orientation confirmation or instruction to deepen cells. The North pontoon has no such crew statement in this record."
+}

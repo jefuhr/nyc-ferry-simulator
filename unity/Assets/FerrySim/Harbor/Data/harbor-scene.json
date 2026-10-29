@@ -1,0 +1,28 @@
+{
+	"schema": "ferrysim-harbor-scene/1",
+	"originLatitude": 40.7,
+	"originLongitude": -74.015,
+	"originShiftMetres": 100,
+	"cameraFieldOfView": 60,
+	"wheelhouseFieldOfView": 65,
+	"cameraFarClipMetres": 40000,
+	"initialViewStableFrames": 10,
+	"initialViewTimeoutSeconds": 60,
+	"runtimePackFolder": "data/processed/harbor/runtime",
+	"contactsFile": "data/processed/harbor/runtime/contacts.json",
+	"environmentFolder": "data/processed/harbor/env",
+	"terrain": {
+		"id": "terrain",
+		"tilesetFile": "data/processed/harbor/3dtiles/tileset.json",
+		"required": true,
+		"maximumCachedBytes": 201326592,
+		"maximumScreenSpaceError": 16
+	},
+	"skyline": {
+		"id": "skyline",
+		"tilesetFile": "data/processed/harbor/3dtiles-buildings/tileset.json",
+		"required": true,
+		"maximumCachedBytes": 67108864,
+		"maximumScreenSpaceError": 16
+	}
+}

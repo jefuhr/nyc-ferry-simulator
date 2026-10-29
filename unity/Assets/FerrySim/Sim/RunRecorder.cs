@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 using FerrySim.Core.Contracts;
 using FerrySim.Core.Traffic;
@@ -234,24 +235,48 @@ namespace FerrySim.Sim
 		/// pack run says <c>environment</c> = <c>pack</c>, followed by the pack (region/date), its day digest, its epoch and its
 		/// wind station (<see cref="RunEnvironment.RecordingHeader"/>), and has no <c>env.*</c> values: a replay loads the pack.
 		/// </summary>
-		public static List<KeyValuePair<string, string>> BuildHeader(ScenarioSettings scenario, VesselParameters vessel, ISimulation simulation, string factoryName, in VesselState initial, RunEnvironment environment, int sampleHz)
+		public static List<KeyValuePair<string, string>> BuildHeader(ScenarioSettings scenario, VesselParameters vessel, ISimulation simulation, string factoryName, in VesselState initial, RunEnvironment environment, int sampleHz) =>
+			BuildHeader(scenario, vessel, simulation, factoryName, initial, environment, sampleHz, VesselFileDigest(scenario.vesselFile));
+
+		internal static List<KeyValuePair<string, string>> BuildHeader(ScenarioSettings scenario, VesselParameters vessel, ISimulation simulation, string factoryName, in VesselState initial, RunEnvironment environment, int sampleHz, string vesselDigest)
 		{
-			if (environment.Kind != EnvironmentKind.Pack)
+			var header = CommonHeader(scenario, vessel, simulation, factoryName, initial, sampleHz, vesselDigest);
+			if (environment.Kind == EnvironmentKind.Pack)
 			{
-				return BuildHeader(scenario, vessel, simulation, factoryName, initial, environment.UniformEnvironment, sampleHz);
+				header.InsertRange(header.FindIndex(pair => pair.Key == "environment") + 1, environment.RecordingHeader());
+			}
+			else
+			{
+				var uniform = environment.UniformEnvironment;
+				header.Add(Pair("env.current_north_mps", ControlTrace.FormatValue(uniform.Current.North)));
+				header.Add(Pair("env.current_east_mps", ControlTrace.FormatValue(uniform.Current.East)));
+				header.Add(Pair("env.wind_north_mps", ControlTrace.FormatValue(uniform.Wind.North)));
+				header.Add(Pair("env.wind_east_mps", ControlTrace.FormatValue(uniform.Wind.East)));
+				header.Add(Pair("env.depth_m", ControlTrace.FormatValue(uniform.Depth)));
 			}
 
-			var header = CommonHeader(scenario, vessel, simulation, factoryName, initial, sampleHz);
-			header.InsertRange(header.FindIndex(pair => pair.Key == "environment") + 1, environment.RecordingHeader());
 			return header;
 		}
 
-		private static List<KeyValuePair<string, string>> CommonHeader(ScenarioSettings scenario, VesselParameters vessel, ISimulation simulation, string factoryName, in VesselState initial, int sampleHz)
+		/// <summary>Recording key for the SHA-256 of the exact vessel file bytes loaded for the run.</summary>
+		public const string VesselDigestKey = "vessel_sha256";
+
+		/// <summary>Hashes a resolved vessel file's raw bytes, preserving whitespace and encoding differences.</summary>
+		public static string VesselFileDigest(string vesselFile) => VesselBytesDigest(File.ReadAllBytes(SimPaths.Resolve(vesselFile)));
+
+		internal static string VesselBytesDigest(byte[] bytes)
+		{
+			using var sha = SHA256.Create();
+			return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
+		}
+
+		private static List<KeyValuePair<string, string>> CommonHeader(ScenarioSettings scenario, VesselParameters vessel, ISimulation simulation, string factoryName, in VesselState initial, int sampleHz, string vesselDigest = null)
 		{
 			var invariant = CultureInfo.InvariantCulture;
 			var header = new List<KeyValuePair<string, string>>
 			{
 				Pair("vessel", vessel.Id),
+				Pair(VesselDigestKey, vesselDigest ?? VesselFileDigest(scenario.vesselFile)),
 				Pair("maneuver", "unity-run"),
 				Pair("maneuver_start_s", "0"),
 				Pair("environment", scenario.environment.SpecText()),

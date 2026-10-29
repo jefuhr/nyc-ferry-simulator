@@ -335,3 +335,45 @@ def write_report(result, destination):
 		lines.append(f'| {day} | {len(item["currents"])} | {sum(s["observed"] for s in water)} / {sum(s["predicted"] for s in water)} | '
 			f'{", ".join(item["wind"]) or "still air"} | `{item["digest"]}` |')
 	(destination / 'report.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+
+
+def rebuild_days_with_depth(source_env, depth_source, destination):
+	"""Rebuild the harbor packs against an explicitly selected verified depth set, without fetching.
+
+	Used only after approval for adoption. The station series are independent of depth in
+	the harbor's station-blend model, so their pinned raw bytes remain identical. Every day
+	gets its new depth reference and aggregate digest and is verified again. The default
+	build remains unchanged; calling this function is an explicit opt-in operation.
+	"""
+	import shutil
+
+	source_env, depth_source, destination = map(Path, (source_env, depth_source, destination))
+	pack.verify(source_env)
+	depth_hash, metadata, _ = pack.verify_depth(depth_source)
+	if metadata['region'] != REGION:
+		raise ValueError('adopted depth must be the harbor region')
+	days = sorted(p.name for p in (source_env / 'days').iterdir() if p.is_dir())
+	if days != sorted(series.DAYS):
+		raise ValueError('rebuilding harbor depth requires all 28 verified scenario days')
+	# Read all inputs before any writes so source_env may be the destination on explicit adoption.
+	day_inputs = []
+	for day in days:
+		folder = source_env / 'days' / day
+		m = json.loads((folder / 'manifest.json').read_text(encoding='utf-8'))
+		if 'field_digest' in m:
+			raise ValueError('depth rebinding supports station-blend harbor days only')
+		day_inputs.append((day, m, {name: (folder / name).read_bytes() for name in pack.COLUMNS}))
+	depth_target = destination / 'depth'
+	depth_target.mkdir(parents=True, exist_ok=True)
+	for name in ('manifest.json', 'DIGEST', *(g['file'] for g in metadata['grids'])):
+		if (depth_source / name).resolve() != (depth_target / name).resolve():
+			shutil.copyfile(depth_source / name, depth_target / name)
+	for day, m, files in day_inputs:
+		folder = destination / 'days' / day
+		folder.mkdir(parents=True, exist_ok=True)
+		for name, body in files.items():
+			(folder / name).write_bytes(body)
+		m['depth_digest'] = depth_hash
+		pack.write_json(folder / 'manifest.json', m)
+		pack.write_digest(folder, pack.day_digest(folder, depth_hash))
+	return pack.verify(destination)

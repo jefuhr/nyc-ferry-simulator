@@ -9,11 +9,14 @@ using UnityEngine.UIElements;
 namespace FerrySim.UI
 {
 	/// <summary>
-	/// Chooses a run: a landing, one of the scenario days, a local start time and a vessel, then Start. Start asks
-	/// the <see cref="IScenarioCatalog"/> to build the scenario and hands what it built to the
-	/// <see cref="IScenarioLauncher"/>; a refusal from either shows inline as its one-sentence reason. It works with
+	/// Chooses a run: a landing (and its berth, when it has several), one of the scenario days, a local start time and a
+	/// vessel, then Start. Start asks the <see cref="IScenarioCatalog"/> to build the scenario and hands what it built to
+	/// the <see cref="IScenarioLauncher"/>; a refusal from either shows inline as its one-sentence reason. It works with
 	/// the mouse (click an option, a day, a step button, Start) and the keyboard (Tab between fields, Up and Down to
-	/// change one, Enter to start, Escape to close; see <see cref="PickerField"/>).
+	/// change one, Enter to start, Escape to close; see <see cref="PickerField"/>). The landing list is searchable: typing
+	/// in the box above it narrows the list to the names containing the text, and Up, Down and Enter work from the box too.
+	/// A landing's or berth's note (its evidence, or the crew restriction that stops it starting) shows under its name in
+	/// the list and, for the selected one, on the line under the fields; the catalog's refusal says the rest.
 	/// <para>
 	/// The choice is remembered for the session in <see cref="SessionChoice"/>, in memory only: nothing is written to
 	/// disk. A picker built later in the session (another view, a reloaded scene) starts from it; a remembered option
@@ -32,6 +35,7 @@ namespace FerrySim.UI
 		public const string FailedToStart = "The run could not start because of an error; the log has the details.";
 
 		private readonly List<string> _labels = new List<string>();
+		private readonly List<string> _notes = new List<string>();
 		private InstrumentPalette _palette = InstrumentPalette.Day;
 		private IReadOnlyList<ScenarioLanding> _landings = Array.Empty<ScenarioLanding>();
 		private IReadOnlyList<ScenarioDay> _days = Array.Empty<ScenarioDay>();
@@ -63,7 +67,18 @@ namespace FerrySim.UI
 
 			var body = Row("fs-picker-body");
 			Landings = new OptionList("picker-landings");
-			body.Add(Field("LANDING", Landings, "fs-picker-landings"));
+			Search = new TextField { name = "picker-search", isDelayed = false };
+			Search.AddToClassList("fs-picker-search");
+			Search.RegisterValueChangedCallback(evt => OnSearchChanged(evt.newValue));
+			Search.RegisterCallback<KeyDownEvent>(OnSearchKeyDown, TrickleDown.TrickleDown);
+			var landingBox = Field("LANDING · TYPE TO SEARCH", Landings, "fs-picker-landings");
+			landingBox.Insert(1, Search);
+			NoteLabel = PaletteRoles.Label(string.Empty, PaletteRoles.Dim, "fs-caption", "fs-picker-note");
+			NoteLabel.name = "picker-note";
+			NoteLabel.style.whiteSpace = WhiteSpace.Normal;
+			NoteLabel.style.display = DisplayStyle.None;
+			landingBox.Add(NoteLabel);
+			body.Add(landingBox);
 			Days = new DayCalendar("picker-days");
 			body.Add(Field("DAY", Days, "fs-picker-days"));
 			var side = Column("fs-picker-side");
@@ -148,6 +163,12 @@ namespace FerrySim.UI
 
 		public OptionList Landings { get; }
 
+		/// <summary>The search box above the landing list: its text narrows the list to the names containing it.</summary>
+		public TextField Search { get; }
+
+		/// <summary>The selected landing's note (or the selected berth's, at a landing with several), under the landing list, two lines at most; hidden when there is none.</summary>
+		public Label NoteLabel { get; }
+
 		public DayCalendar Days { get; }
 
 		public TimeStepper Time { get; }
@@ -205,12 +226,15 @@ namespace FerrySim.UI
 			try
 			{
 				_labels.Clear();
+				_notes.Clear();
 				foreach (var landing in _landings)
 				{
 					_labels.Add(landing.Name);
+					_notes.Add(landing.Note);
 				}
 
-				Landings.SetOptions(_labels, IndexOf(_landings, remembered?.StopId, landing => landing.StopId));
+				Search.SetValueWithoutNotify(string.Empty);
+				Landings.SetOptions(_labels, _notes, IndexOf(_landings, remembered?.StopId, landing => landing.StopId));
 				Days.SetDays(_days, IndexOf(_days, remembered?.Date, day => day.Date));
 				Time.SetWithoutNotify(remembered?.LocalMinutes ?? DefaultLocalMinutes);
 				_labels.Clear();
@@ -236,6 +260,7 @@ namespace FerrySim.UI
 			StartButton.SetEnabled(CanStart);
 			ShowProblem(catalog == null ? NoCatalog : launcher == null ? NoLauncher : !CanStart ? NothingToChoose : string.Empty);
 			UpdateSummary();
+			UpdateNote();
 			RefreshDepthWarning();
 		}
 
@@ -304,6 +329,15 @@ namespace FerrySim.UI
 			PaletteRoles.SetBorderColor(StartButton, _palette.Engaged);
 			ProblemLabel.style.color = _palette.Caution;
 			DepthWarning.style.color = _palette.Caution;
+			// The search box takes palette colors too, so nothing shows the theme's grey light at night.
+			Search.style.color = _palette.Text;
+			var input = Search.Q(className: TextField.inputUssClassName);
+			if (input != null)
+			{
+				input.style.backgroundColor = _palette.Face;
+				input.style.color = _palette.Text;
+				PaletteRoles.SetBorderColor(input, _palette.Bezel);
+			}
 		}
 
 		private void OnChoiceChanged()
@@ -323,7 +357,79 @@ namespace FerrySim.UI
 			}
 
 			UpdateSummary();
+			UpdateNote();
 			RefreshDepthWarning();
+		}
+
+		/// <summary>
+		/// Narrows the landing list to the names containing <paramref name="text"/>, as typing in <see cref="Search"/> does
+		/// (the box's own change event reaches the picker only inside a panel; hosts and tests can call this directly).
+		/// </summary>
+		public void SetSearch(string text)
+		{
+			text ??= string.Empty;
+			if (Search.value != text)
+			{
+				Search.SetValueWithoutNotify(text);
+			}
+
+			// Filtering may move the selection, which refreshes everything else through OnChoiceChanged.
+			Landings.Filter(text);
+			UpdateNote();
+		}
+
+		private void OnSearchChanged(string text) => SetSearch(text);
+
+		// The box is a text field, so the picker's field keys are handled here for it: the landing list follows.
+		private void OnSearchKeyDown(KeyDownEvent evt)
+		{
+			switch (evt.keyCode)
+			{
+				case KeyCode.UpArrow:
+					Landings.Step(-1);
+					break;
+				case KeyCode.DownArrow:
+					Landings.Step(1);
+					break;
+				case KeyCode.PageUp:
+					Landings.Step(-OptionList.PageSize);
+					break;
+				case KeyCode.PageDown:
+					Landings.Step(OptionList.PageSize);
+					break;
+				case KeyCode.Return:
+				case KeyCode.KeypadEnter:
+					TryStartRun();
+					break;
+				case KeyCode.Escape:
+					CloseRequested?.Invoke();
+					break;
+				default:
+					return;
+			}
+
+			evt.StopPropagation();
+			focusController?.IgnoreEvent(evt);
+		}
+
+		private void UpdateNote()
+		{
+			var text = string.Empty;
+			if (Landings.Count > 0 && Landings.VisibleCount == 0)
+			{
+				text = "No landing name contains '" + Landings.FilterText.Trim() + "'.";
+			}
+			else if (Landings.SelectedIndex >= 0)
+			{
+				text = _landings[Landings.SelectedIndex].Note;
+				if (_berths.Count > 1 && Berths.SelectedIndex >= 0 && _berths[Berths.SelectedIndex].Note.Length > 0)
+				{
+					text = _berths[Berths.SelectedIndex].Name + ": " + _berths[Berths.SelectedIndex].Note;
+				}
+			}
+
+			PaletteRoles.SetText(NoteLabel, text);
+			NoteLabel.style.display = text.Length > 0 ? DisplayStyle.Flex : DisplayStyle.None;
 		}
 
 		private void RefreshBerths(string remembered)
@@ -333,8 +439,14 @@ namespace FerrySim.UI
 			_berthStop = landing?.StopId;
 			_berths = landing?.Berths ?? Array.Empty<ScenarioBerth>();
 			_labels.Clear();
-			foreach (var berth in _berths) _labels.Add(berth.Name);
-			Berths.SetOptions(_labels, IndexOf(_berths, remembered, b => b.Id));
+			_notes.Clear();
+			foreach (var berth in _berths)
+			{
+				_labels.Add(berth.Name);
+				_notes.Add(berth.Note);
+			}
+
+			Berths.SetOptions(_labels, _notes, IndexOf(_berths, remembered, b => b.Id));
 			_berthField.style.display = _berths.Count > 1 ? DisplayStyle.Flex : DisplayStyle.None;
 		}
 
@@ -379,6 +491,11 @@ namespace FerrySim.UI
 			var date = DayCalendar.TryParseDate(day.Date, out var parsed) ? EnvironmentFormat.Date(parsed) : day.Date;
 			var text = date + " · " + Time.Text + " " + zone + " · " + _landings[Landings.SelectedIndex].Name + " · " +
 				_vessels[Vessels.SelectedIndex].DisplayName;
+			if (day.CurrentMethod.Length > 0)
+			{
+				text += " · " + day.CurrentMethod.ToUpperInvariant() + " CURRENTS";
+			}
+
 			PaletteRoles.SetText(Summary, day.WindMissing ? text + " · NO WIND DATA" : text);
 		}
 

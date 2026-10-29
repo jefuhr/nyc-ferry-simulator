@@ -94,7 +94,21 @@ A scenario with `environment.pack` runs on one real day (format `ferrysim-env/1`
 - **Time.** Simulation time t reads the pack at t + (scenario start − the pack's local-midnight epoch). Local time comes from the epoch, never from a time-zone database: the offset is the date's midnight as UTC minus the epoch, −4 h in daylight time and −5 h in standard time.
 - **Each run** gets a fresh `DataEnvironment` (`RunEnvironment.StartRun`), so its time holds and depth misses count that run only. Everything that only looks (the start state, the readout, the drawn tide) reads a second environment over the same pack, so looking never changes the counts; both give the same bits.
 - **Depth under the keel** comes from the core: water level minus bed, minus `maxDraft`. The depth alarm runs on it.
-- **Calm and uniform** scenarios are unchanged: the same environment, recordings and replays, byte for byte.
+- **Calm and uniform** environments and simulation behavior are unchanged. New recordings add the vessel digest described below.
+
+### Harbor preparation and coverage holds
+
+`VesselSimulationRunner.InitializeHarbor` is the separate harbor entry point. It takes scenario settings, a runtime-pack folder and an explicit contact parser (`Func<string, string, IWorldGeometry>`). The parser receives the verified `contacts.json` text and its exact source path. An optional `validateStart` callback receives the prepared bundle, vessel parameters and initial state so the composition root can apply the existing approach, depth and clearance gates before the current run ends.
+
+Preparation verifies the environment day, the runtime export and their depth-digest linkage, parses contacts, loads enabled traffic, snapshots the vessel file bytes and constructs the candidate simulation. Any preparation or gate failure leaves the current run and its recording intact. Only after preparation succeeds are the bindings replaced and `RunStarted` raised. The composition root binds its water and scene views on that event, before the harbor's first placement. Slice starts continue through `Initialize` with their existing event order.
+
+One `EnvironmentPacks` instance retains at most one `VerifiedDepth`, created by `EnvironmentPackJson.LoadVerifiedDepth`. Day loads reuse that immutable instance and its grids without copying or rereading their arrays; every day hash, schema and depth-linkage check still runs. The loader cannot accept a caller-supplied digest as verification. There is no all-days cache: only the active bundle and a candidate are resident. Observer and physics `DataEnvironment` instances remain separate, sharing only immutable pack data.
+
+`HarborLoadTimings` exposes the depth and day read/hash/decode/validation/total milliseconds plus runtime-pack, contact-parser, traffic and whole-preparation milliseconds. Depth timing is zero for a reused snapshot. Validation is the remaining synchronous schema and construction work after measured reads, hashes and decoding; it includes loop and allocation overhead. These are measured load costs, not frame-time or GPU measurements.
+
+The runner implements `IRunHoldSource`. For harbor runs, a rise in physics `DepthMisses` latches `OutsideCoveredWater`; a rise in `TimeHolds` latches `BeyondDayData`. The driver checks its step limit between steps, stopping the same frame after the first step that reports lost coverage. `Resume` cannot clear a coverage hold; a new start or reset creates a fresh run. An ended run reports `None`. Observer-only water sampling cannot trigger a hold. Slice runs retain their previous coverage behavior.
+
+Harbor moving visuals and placement use `RenderTime`, interpolated between the same two physics states as `RenderPose`. `HarborWaterService` implements `IWaterSurface` as the canonical lattice datum plus the run's local tide; its baked visual meshes never provide depth. See [HarborWater](../World/HarborWater/README.md).
 
 ### The environment readout
 
@@ -139,6 +153,10 @@ A new file pair starts on every reset.
 | `<stamp>-<vessel>-runNN.traffic.csv` | Only for a run with traffic: its CPA alarms, collisions and the vessels it started alongside, one row per event, and the encounter digest (Traffic, below). |
 
 `maneuver` is `unity-run`. The header also carries what a replay needs, at full precision: `vessel_file`, `initial.*`, the environment, `scenario_start_utc` (to the tick), `start_latitude_deg`/`start_longitude_deg` and `world_geometry_digest` (the `WorldGeometryDigest` of the fixed structures, `none` for open water; `ReplayPlayer.Verify` and `InitializeReplay` refuse a replay against other structures). The header holds no wall-clock times and no absolute paths.
+
+New recordings also carry `vessel_sha256`, the SHA-256 of the exact vessel file bytes captured when the run was initialized, including whitespace and encoding. Parsing and hashing use the same byte snapshot, and resets retain that snapshot's digest. `ReplayPlayer.Verify` and `InitializeReplay` compare the current file's digest before the first replay row; a mismatch names both hashes and leaves an existing runner active. Older recordings without the key keep their previous replay behavior.
+
+`TrafficStepMilliseconds` measures the last actual `TrafficMonitor.Update`, including event dispatch. `TrafficStepP95Milliseconds` is the nearest-rank p95 of the latest 256 steps in the current run. A fixed pair of arrays maintains the rolling window without allocations. The metric excludes visual traffic updates, water, the rest of physics and timing-window bookkeeping; it is zero before a traffic update or when traffic is off.
 
 The environment in the header:
 

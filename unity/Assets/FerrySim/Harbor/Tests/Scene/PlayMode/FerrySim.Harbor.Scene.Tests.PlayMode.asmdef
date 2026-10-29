@@ -1,0 +1,8 @@
+{
+	"name": "FerrySim.Harbor.Scene.Tests.PlayMode",
+	"references": ["FerrySim.Harbor.Runtime", "FerrySim.World.HarborTiles", "FerrySim.Unity.Sim", "FerrySim.Unity.Sim.Cesium", "FerrySim.Unity.Input", "FerrySim.Unity.World", "FerrySim.Unity.UI", "FerrySim.Unity.Slice", "FerrySim.Core", "FerrySim.Core.Serialization", "CesiumForUnity", "Unity.Mathematics", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
+	"overrideReferences": true,
+	"precompiledReferences": ["nunit.framework.dll", "Newtonsoft.Json.dll"],
+	"defineConstraints": ["UNITY_INCLUDE_TESTS"],
+	"autoReferenced": false
+}

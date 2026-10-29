@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -10,6 +11,65 @@ using Newtonsoft.Json.Linq;
 
 namespace FerrySim.Core.Serialization
 {
+	/// <summary>Measured loading phases in milliseconds. Validation is the remaining schema/constructor work after I/O, hashing and decoding.</summary>
+	public readonly struct EnvironmentLoadTimings
+	{
+		internal EnvironmentLoadTimings(double read, double hash, double decode, double total)
+		{
+			ReadMilliseconds = read;
+			HashMilliseconds = hash;
+			DecodeMilliseconds = decode;
+			TotalMilliseconds = total;
+		}
+
+		/// <summary>Time spent reading file bytes.</summary>
+		public double ReadMilliseconds { get; }
+
+		/// <summary>Time spent computing file and aggregate SHA-256 digests.</summary>
+		public double HashMilliseconds { get; }
+
+		/// <summary>Time spent decoding JSON, CSV and binary grid values.</summary>
+		public double DecodeMilliseconds { get; }
+
+		/// <summary>Remaining schema, construction and bookkeeping time.</summary>
+		public double ValidationMilliseconds => Math.Max(0, TotalMilliseconds - ReadMilliseconds - HashMilliseconds - DecodeMilliseconds);
+
+		/// <summary>Total elapsed time for this synchronous load.</summary>
+		public double TotalMilliseconds { get; }
+
+		/// <summary>Invariant CSV values for the five phases, in property order.</summary>
+		public string ToCsv() => string.Format(CultureInfo.InvariantCulture, "{0:R},{1:R},{2:R},{3:R},{4:R}",
+			ReadMilliseconds, HashMilliseconds, DecodeMilliseconds, ValidationMilliseconds, TotalMilliseconds);
+	}
+
+	/// <summary>An immutable depth snapshot created only by the validating loader, with its computed digest.</summary>
+	public sealed class VerifiedDepth
+	{
+		private VerifiedDepth(DepthSet depth, EnvironmentLoadTimings timings)
+		{
+			Depth = depth;
+			Timings = timings;
+		}
+
+		/// <summary>The immutable depth data reused by every day that names this digest.</summary>
+		public DepthSet Depth { get; }
+
+		/// <summary>The verified region identity.</summary>
+		public string Region => Depth.Region;
+
+		/// <summary>The computed and verified raw-byte depth digest.</summary>
+		public string Digest => Depth.Digest;
+
+		/// <summary>Cost of initially reading and validating this snapshot.</summary>
+		public EnvironmentLoadTimings Timings { get; }
+
+		internal static VerifiedDepth Read(string folder)
+		{
+			var depth = EnvironmentPackJson.LoadDepthSet(folder, out var timings);
+			return new VerifiedDepth(depth, timings);
+		}
+	}
+
 	/// <summary>A pack file that is missing, malformed or does not match its digests. The message starts with the file's path.</summary>
 	public sealed class EnvironmentPackException : Exception
 	{
@@ -57,7 +117,35 @@ namespace FerrySim.Core.Serialization
 				throw new ArgumentException("A day folder is required.", nameof(dayFolder));
 			}
 
-			var depth = LoadDepthSet(depthFolder);
+			return LoadDay(dayFolder, LoadDepthSet(depthFolder), false);
+		}
+
+		/// <summary>Loads one immutable depth set once, retaining every existing byte, schema and lattice check.</summary>
+		public static VerifiedDepth LoadVerifiedDepth(string depthFolder) => VerifiedDepth.Read(depthFolder);
+
+		/// <summary>Verifies the day and its depth linkage, sharing the verified depth instance without copying arrays.</summary>
+		public static EnvironmentPack Load(string dayFolder, VerifiedDepth depth) => Load(dayFolder, depth, out _);
+
+		/// <summary>Loads a day against shared depth and exposes the day's read, hash, decode, validation and total cost.</summary>
+		public static EnvironmentPack Load(string dayFolder, VerifiedDepth depth, out EnvironmentLoadTimings timings)
+		{
+			if (depth == null)
+			{
+				throw new ArgumentNullException(nameof(depth));
+			}
+
+			return Timed(() => LoadDay(dayFolder, depth.Depth, true), out timings);
+		}
+
+		internal static DepthSet LoadDepthSet(string folder, out EnvironmentLoadTimings timings) => Timed(() => LoadDepthSet(folder), out timings);
+
+		private static EnvironmentPack LoadDay(string dayFolder, DepthSet depth, bool shared)
+		{
+			if (string.IsNullOrEmpty(dayFolder))
+			{
+				throw new ArgumentException("A day folder is required.", nameof(dayFolder));
+			}
+
 			var manifestPath = Path.Combine(dayFolder, EnvironmentPackDigests.ManifestFile);
 			var manifestBytes = ReadFile(manifestPath);
 			var digestPath = Path.Combine(dayFolder, EnvironmentPackDigests.DigestFile);
@@ -75,7 +163,12 @@ namespace FerrySim.Core.Serialization
 			files.Finish();
 			var fieldDigest = manifest.OptionalHex("field_digest");
 			var field = fieldDigest == null ? null : LoadCurrentField(FieldFolderOf(dayFolder));
-			var computed = EnvironmentPackDigests.DayDigest(manifestBytes, series, depth.Digest, field?.Digest);
+			if (shared && manifest.Hex("depth_digest") != depth.Digest)
+			{
+				throw manifest.Error("depth_digest", $"is {manifest.Hex("depth_digest")}, but the verified depth digest is {depth.Digest}.");
+			}
+
+			var computed = Measured(LoadPhase.Hash, () => EnvironmentPackDigests.DayDigest(manifestBytes, series, depth.Digest, field?.Digest));
 			if (computed != recorded)
 			{
 				throw new EnvironmentPackException(digestPath,
@@ -227,7 +320,7 @@ namespace FerrySim.Core.Serialization
 				files.Add(bytes);
 			}
 
-			var computed = EnvironmentPackDigests.DepthDigest(manifestBytes, names, files);
+			var computed = Measured(LoadPhase.Hash, () => EnvironmentPackDigests.DepthDigest(manifestBytes, names, files));
 			if (computed != recorded)
 			{
 				throw new EnvironmentPackException(digestPath,
@@ -285,11 +378,16 @@ namespace FerrySim.Core.Serialization
 					throw new EnvironmentPackException(gridPath, $"has {bytes.LongLength} bytes; {rows} rows by {columns} columns of float32 need {4L * rows * columns}.");
 				}
 
-				var values = new float[rows * columns];
-				for (var i = 0; i < values.Length; i++)
+				var values = Measured(LoadPhase.Decode, () =>
 				{
-					values[i] = BitConverter.Int32BitsToSingle(bytes[4 * i] | bytes[4 * i + 1] << 8 | bytes[4 * i + 2] << 16 | bytes[4 * i + 3] << 24);
-				}
+					var decoded = new float[rows * columns];
+					for (var i = 0; i < decoded.Length; i++)
+					{
+						decoded[i] = BitConverter.Int32BitsToSingle(bytes[4 * i] | bytes[4 * i + 1] << 8 | bytes[4 * i + 2] << 16 | bytes[4 * i + 3] << 24);
+					}
+
+					return decoded;
+				});
 
 				// Only the values are kept: a harbor set's grid files are tens of megabytes.
 				files[g] = null;
@@ -363,7 +461,7 @@ namespace FerrySim.Core.Serialization
 				}
 			}
 
-			var computed = EnvironmentPackDigests.FieldDigest(manifestBytes, names, files);
+			var computed = Measured(LoadPhase.Hash, () => EnvironmentPackDigests.FieldDigest(manifestBytes, names, files));
 			if (computed != recorded)
 			{
 				throw new EnvironmentPackException(digestPath,
@@ -446,11 +544,15 @@ namespace FerrySim.Core.Serialization
 					throw new EnvironmentPackException(stationsPath, $"has {stationBytes.LongLength} bytes; {rows} by {columns} cells of {slots} slots need {cells * slots}.");
 				}
 
-				var values = new float[valuesBytes.Length / 4];
-				for (var i = 0; i < values.Length; i++)
+				var values = Measured(LoadPhase.Decode, () =>
 				{
-					values[i] = BitConverter.Int32BitsToSingle(valuesBytes[4 * i] | valuesBytes[4 * i + 1] << 8 | valuesBytes[4 * i + 2] << 16 | valuesBytes[4 * i + 3] << 24);
-				}
+					var decoded = new float[valuesBytes.Length / 4];
+					for (var i = 0; i < decoded.Length; i++)
+					{
+						decoded[i] = BitConverter.Int32BitsToSingle(valuesBytes[4 * i] | valuesBytes[4 * i + 1] << 8 | valuesBytes[4 * i + 2] << 16 | valuesBytes[4 * i + 3] << 24);
+					}
+					return decoded;
+				});
 
 				try
 				{
@@ -622,12 +724,12 @@ namespace FerrySim.Core.Serialization
 					$"lists no stations for {EnvironmentPackDigests.SeriesFiles[file]}; current and water level stations are required.");
 			}
 
-			return EnvironmentPackCsv.Read(Path.Combine(dayFolder, EnvironmentPackDigests.SeriesFiles[file]), bytes, header, ids);
+			return Measured(LoadPhase.Decode, () => EnvironmentPackCsv.Read(Path.Combine(dayFolder, EnvironmentPackDigests.SeriesFiles[file]), bytes, header, ids));
 		}
 
 		private static void CheckHash(string path, byte[] bytes, string expected)
 		{
-			var actual = EnvironmentPackDigests.Sha256Hex(bytes);
+			var actual = Measured(LoadPhase.Hash, () => EnvironmentPackDigests.Sha256Hex(bytes));
 			if (actual != expected)
 			{
 				throw new EnvironmentPackException(path, $"SHA-256 is {actual}, but manifest.json lists {expected}: the file or manifest.json has changed.");
@@ -652,7 +754,9 @@ namespace FerrySim.Core.Serialization
 			return true;
 		}
 
-		private static byte[] ReadFile(string path)
+		private static byte[] ReadFile(string path) => Measured(LoadPhase.Read, () => ReadFileCore(path));
+
+		private static byte[] ReadFileCore(string path)
 		{
 			try
 			{
@@ -675,7 +779,9 @@ namespace FerrySim.Core.Serialization
 			return digest;
 		}
 
-		private static JObject ParseObject(string path, byte[] bytes)
+		private static JObject ParseObject(string path, byte[] bytes) => Measured(LoadPhase.Decode, () => ParseObjectCore(path, bytes));
+
+		private static JObject ParseObjectCore(string path, byte[] bytes)
 		{
 			string text;
 			try
@@ -703,6 +809,52 @@ namespace FerrySim.Core.Serialization
 			catch (JsonException exception)
 			{
 				throw new EnvironmentPackException(path, "is not valid JSON: " + exception.Message, exception);
+			}
+		}
+
+		// Loads are synchronous. A thread-local collector keeps concurrent loads independent and restores any outer scope.
+		[ThreadStatic] private static LoadMeasurement _measurement;
+
+		private enum LoadPhase { Read, Hash, Decode }
+
+		private sealed class LoadMeasurement
+		{
+			public readonly long[] Ticks = new long[3];
+		}
+
+		private static T Measured<T>(LoadPhase phase, Func<T> action)
+		{
+			if (_measurement == null)
+			{
+				return action();
+			}
+
+			var start = Stopwatch.GetTimestamp();
+			try
+			{
+				return action();
+			}
+			finally
+			{
+				_measurement.Ticks[(int)phase] += Stopwatch.GetTimestamp() - start;
+			}
+		}
+
+		private static T Timed<T>(Func<T> action, out EnvironmentLoadTimings timings)
+		{
+			var previous = _measurement;
+			var current = new LoadMeasurement();
+			_measurement = current;
+			var start = Stopwatch.GetTimestamp();
+			try
+			{
+				return action();
+			}
+			finally
+			{
+				var scale = 1000.0 / Stopwatch.Frequency;
+				timings = new EnvironmentLoadTimings(current.Ticks[0] * scale, current.Ticks[1] * scale, current.Ticks[2] * scale, (Stopwatch.GetTimestamp() - start) * scale);
+				_measurement = previous;
 			}
 		}
 

@@ -1,0 +1,658 @@
+{
+	"schema": "ferrysim-harbor-landing-audit/1",
+	"source": "python -m ferrydata.harbor_landings matrix on the adopted harbor environment packs (data-pipeline/ferrydata/harbor_landings/README.md)",
+	"depth_digest": "b58ed9ef82109126c6ed6bfc7243754f4c6578fc6b16706efcea77b59aaa9eaa",
+	"rows_per_hull": 700,
+	"berths": [
+		{
+			"stop_id": "11",
+			"stop_name": "Atlantic Ave/BBP Pier 6",
+			"berth_id": "enc:022648854ADA764B",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 6.154
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 6.436
+				}
+			]
+		},
+		{
+			"stop_id": "111",
+			"stop_name": "Gov. Island/Yankee Pier",
+			"berth_id": "enc:0226268C41ACB198",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 3.491
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 3.684
+				}
+			]
+		},
+		{
+			"stop_id": "112",
+			"stop_name": "Soundview",
+			"berth_id": "derived-barge:112:0226089045AD1C82",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 2.4
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 2.666
+				}
+			]
+		},
+		{
+			"stop_id": "113",
+			"stop_name": "East 90th St",
+			"berth_id": "derived-barge:113:02261FC76BF41C82",
+			"berth_name": "Main berth",
+			"eligible": false,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 0,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": null
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 0,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": null
+				}
+			]
+		},
+		{
+			"stop_id": "114",
+			"stop_name": "Stuyvesant Cove",
+			"berth_id": "enc:0226C9D1DA71764B",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 0.482
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 0.782
+				}
+			]
+		},
+		{
+			"stop_id": "115",
+			"stop_name": "Corlears Hook",
+			"berth_id": "derived-barge:115:0226359E630A1C82",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 3.301
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 3.601
+				}
+			]
+		},
+		{
+			"stop_id": "118",
+			"stop_name": "Sunset Park/BAT",
+			"berth_id": "derived-barge:118:022604B22DCB1C82",
+			"berth_name": "Main berth",
+			"eligible": false,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 0,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": null
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 0,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": null
+				}
+			]
+		},
+		{
+			"stop_id": "120",
+			"stop_name": "Brooklyn Navy Yard",
+			"berth_id": "derived-barge:120:02262FAC44F71C82",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 693,
+					"warning": 68,
+					"aground_refusal": 7,
+					"worst_ukc_m": -0.27
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 9,
+					"aground_refusal": 0,
+					"worst_ukc_m": 0.008
+				}
+			]
+		},
+		{
+			"stop_id": "136",
+			"stop_name": "Battery Park City/Vesey St.",
+			"berth_id": "derived-barge:136:0226359E630A1C82",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 10.01
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 10.309
+				}
+			]
+		},
+		{
+			"stop_id": "137",
+			"stop_name": "St. George",
+			"berth_id": "enc:02266B95280E764B",
+			"berth_name": "Main berth",
+			"eligible": false,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 0,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": null
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 0,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": null
+				}
+			]
+		},
+		{
+			"stop_id": "138",
+			"stop_name": "Midtown West 39th St-Pier 79",
+			"berth_id": "derived-barge:138:022611830D4D1C82",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 698,
+					"warning": 7,
+					"aground_refusal": 2,
+					"worst_ukc_m": -0.025
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 2,
+					"aground_refusal": 0,
+					"worst_ukc_m": 0.274
+				}
+			]
+		},
+		{
+			"stop_id": "141",
+			"stop_name": "Ferry Point Park",
+			"berth_id": "derived-barge:141:0226089045AD1C82",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 3.581
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 3.881
+				}
+			]
+		},
+		{
+			"stop_id": "17",
+			"stop_name": "East 34th Street",
+			"berth_id": "enc:02261ACE4C291C82",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 11.671
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 11.962
+				}
+			]
+		},
+		{
+			"stop_id": "18",
+			"stop_name": "Greenpoint",
+			"berth_id": "derived-barge:18:02263973E1BC1C82",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 14.24
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 14.539
+				}
+			]
+		},
+		{
+			"stop_id": "19",
+			"stop_name": "North Williamsburg",
+			"berth_id": "enc:02264AC31B5B764B",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 3.775
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 4.074
+				}
+			]
+		},
+		{
+			"stop_id": "20",
+			"stop_name": "Dumbo/Fulton Ferry",
+			"berth_id": "derived-barge:20:02262FAC44F71C82",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 6.845
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 7.143
+				}
+			]
+		},
+		{
+			"stop_id": "23",
+			"stop_name": "Bay Ridge",
+			"berth_id": "enc:0226C906B298764B",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 3.639
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 3.933
+				}
+			]
+		},
+		{
+			"stop_id": "24",
+			"stop_name": "Red Hook/Atlantic Basin",
+			"berth_id": "enc:02261F94A92DB198",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 3.849
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 4.115
+				}
+			]
+		},
+		{
+			"stop_id": "25",
+			"stop_name": "Roosevelt Island",
+			"berth_id": "derived-barge:25:02261663CF341C82",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 8.037
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 8.337
+				}
+			]
+		},
+		{
+			"stop_id": "4",
+			"stop_name": "Hunters Point South",
+			"berth_id": "derived-barge:4:0226144581DB1C82",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 7.757
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 7.816
+				}
+			]
+		},
+		{
+			"stop_id": "8",
+			"stop_name": "South Williamsburg",
+			"berth_id": "enc:022679C2F5BA764B",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 696,
+					"warning": 27,
+					"aground_refusal": 4,
+					"worst_ukc_m": -0.136
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 4,
+					"aground_refusal": 0,
+					"worst_ukc_m": 0.164
+				}
+			]
+		},
+		{
+			"stop_id": "87",
+			"stop_name": "Wall St/Pier 11",
+			"berth_id": "enc:02261FA117EFB198",
+			"berth_name": "Outer pontoon (east)",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 3,
+					"aground_refusal": 0,
+					"worst_ukc_m": 0.18
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 0.479
+				}
+			]
+		},
+		{
+			"stop_id": "87",
+			"stop_name": "Wall St/Pier 11",
+			"berth_id": "enc:0226111D16AAB198",
+			"berth_name": "North pontoon",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 697,
+					"warning": 17,
+					"aground_refusal": 3,
+					"worst_ukc_m": -0.095
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 3,
+					"aground_refusal": 0,
+					"worst_ukc_m": 0.172
+				}
+			]
+		},
+		{
+			"stop_id": "87",
+			"stop_name": "Wall St/Pier 11",
+			"berth_id": "enc:0226015B0512B198",
+			"berth_name": "South pontoon",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 467,
+					"warning": 126,
+					"aground_refusal": 233,
+					"worst_ukc_m": -0.907
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 598,
+					"warning": 150,
+					"aground_refusal": 102,
+					"worst_ukc_m": -0.638
+				}
+			]
+		},
+		{
+			"stop_id": "89",
+			"stop_name": "Astoria",
+			"berth_id": "derived-barge:89:0226082402D61C82",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 5.047
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 4.971
+				}
+			]
+		},
+		{
+			"stop_id": "90",
+			"stop_name": "Long Island City",
+			"berth_id": "derived-barge:90:0226144581DB1C82",
+			"berth_name": "Main berth",
+			"eligible": true,
+			"hulls": [
+				{
+					"hull": "t-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 8.383
+				},
+				{
+					"hull": "k-class",
+					"rows": 700,
+					"accepted": 700,
+					"warning": 0,
+					"aground_refusal": 0,
+					"worst_ukc_m": 8.681
+				}
+			]
+		}
+	]
+}

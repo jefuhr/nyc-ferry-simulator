@@ -1,0 +1,7 @@
+{
+	"name": "FerrySim.World.HarborTiles",
+	"references": ["CesiumForUnity", "FerrySim.World.Tiles3D"],
+	"overrideReferences": true,
+	"precompiledReferences": ["Newtonsoft.Json.dll"],
+	"autoReferenced": true
+}

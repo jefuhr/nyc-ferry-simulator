@@ -186,6 +186,11 @@ namespace FerrySim.Sim
 			var taken = 0;
 			for (; taken < due; taken++)
 			{
+				if (AtStepLimit)
+				{
+					break;
+				}
+
 				_accumulator -= SimulationClock.FixedTimeStep;
 				if (!StepOnce())
 				{

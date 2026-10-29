@@ -1,0 +1,147 @@
+{
+	"source": "data/processed/harbor/index.json",
+	"sha256": "4ddd102b4cdc3caf2f66f6b930fcb7739f31aa8d125864edf1ca9a840e0b4093",
+	"purpose": "Rendering precision only. Synthetic water; these are not start approvals or survey accuracy. Extent corners are the bounding rectangle of the active 4 km grid.",
+	"points": [
+		{
+			"name": "4 Hunters Point South",
+			"north": 4647.432355675881,
+			"east": 4533.783176539832
+		},
+		{
+			"name": "8 South Williamsburg",
+			"north": 971.8585107643436,
+			"east": 3783.7711702233087
+		},
+		{
+			"name": "11 Atlantic Ave/BBP Pier 6",
+			"north": -853.3238022047451,
+			"east": 1092.6575070238437
+		},
+		{
+			"name": "17 East 34th Street",
+			"north": 4877.304810994856,
+			"east": 3738.9586523292637
+		},
+		{
+			"name": "18 Greenpoint",
+			"north": 3484.3026099795297,
+			"east": 4340.6222137759905
+		},
+		{
+			"name": "19 North Williamsburg",
+			"north": 2315.2314399551365,
+			"east": 4232.737680854659
+		},
+		{
+			"name": "20 Dumbo/Fulton Ferry",
+			"north": 405.72751633014525,
+			"east": 1633.5109988594336
+		},
+		{
+			"name": "23 Bay Ridge",
+			"north": -6678.361992277469,
+			"east": -1956.6007054783286
+		},
+		{
+			"name": "24 Red Hook/Atlantic Basin",
+			"north": -2114.684393656571,
+			"east": 138.81397536767145
+		},
+		{
+			"name": "25 Roosevelt Island",
+			"north": 6310.662679849887,
+			"east": 5279.2479637141405
+		},
+		{
+			"name": "87 Wall St/Pier 11",
+			"north": 351.0609018090373,
+			"east": 748.4339518819246
+		},
+		{
+			"name": "89 Astoria",
+			"north": 7967.438386986194,
+			"east": 6693.70228912508
+		},
+		{
+			"name": "90 Long Island City",
+			"north": 5378.548214996703,
+			"east": 4837.118135012267
+		},
+		{
+			"name": "111 Gov. Island/Yankee Pier",
+			"north": -1483.600006468812,
+			"east": -125.27700300432718
+		},
+		{
+			"name": "112 Soundview",
+			"north": 11584.813627608055,
+			"east": 14032.731437338474
+		},
+		{
+			"name": "113 East 90th St",
+			"north": 8606.055854186496,
+			"east": 6147.956906224675
+		},
+		{
+			"name": "114 Stuyvesant Cove",
+			"north": 3552.0684476623564,
+			"east": 3554.5419821977516
+		},
+		{
+			"name": "115 Corlears Hook",
+			"north": 1128.7535695353358,
+			"east": 3021.4771567390817
+		},
+		{
+			"name": "118 Sunset Park/BAT",
+			"north": -5965.857187850459,
+			"east": -967.2954179016166
+		},
+		{
+			"name": "120 Brooklyn Navy Yard",
+			"north": 199.82350785501708,
+			"east": 3500.8762664667734
+		},
+		{
+			"name": "136 Battery Park City/Vesey St.",
+			"north": 1668.94796351371,
+			"east": -234.4778155531381
+		},
+		{
+			"name": "137 St. George",
+			"north": -5986.885060415954,
+			"east": -5009.971976678007
+		},
+		{
+			"name": "138 Midtown West 39th St-Pier 79",
+			"north": 6698.846591108928,
+			"east": 922.4984770981793
+		},
+		{
+			"name": "141 Ferry Point Park",
+			"north": 11725.841692830123,
+			"east": 14994.250165431476
+		},
+		{
+			"name": "extent -8000,-8000",
+			"north": -8000,
+			"east": -8000
+		},
+		{
+			"name": "extent -8000,16000",
+			"north": -8000,
+			"east": 16000
+		},
+		{
+			"name": "extent 16000,-8000",
+			"north": 16000,
+			"east": -8000
+		},
+		{
+			"name": "extent 16000,16000",
+			"north": 16000,
+			"east": 16000
+		}
+	]
+}

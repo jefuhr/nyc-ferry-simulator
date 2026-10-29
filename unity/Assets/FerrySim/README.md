@@ -32,6 +32,19 @@ Unity-side code for the simulator. The physics lives in `core/FerrySim.Core` (lo
 | `Slice/Authoring/` | `FerrySim.Unity.Slice.Authoring` (Editor only) | unity-slice-integration |
 | `Slice/Tests/EditMode/`, `Slice/Tests/PlayMode/` | `FerrySim.Unity.Slice.Tests.*` | unity-slice-integration |
 | `Slice/Player/` | (in `FerrySim.Unity.Slice`) | release-build |
+| `Traffic/Tests/PlayMode/` | `FerrySim.Unity.Traffic.Tests.PlayMode` | harbor-traffic |
+| `World/HarborTiles/`, `World/Skyline/` | `FerrySim.World.HarborTiles`, `FerrySim.World.Skyline` | harbor-scene |
+| `World/HarborWater/` | `FerrySim.HarborWater` | harbor-runtime |
+| `World/HarborWater/Tests/EditMode/`, `World/HarborWater/Tests/PlayMode/` | `FerrySim.HarborWater.Tests.*` | harbor-runtime |
+| `World/HarborNavigation/` | `FerrySim.World.HarborNavigation` | harbor-navigation |
+| `World/HarborNavigation/Tests/EditMode/`, `World/HarborNavigation/Tests/PlayMode/` | `FerrySim.World.HarborNavigation.Tests.*` | harbor-navigation |
+| `Harbor/Runtime/` | `FerrySim.Harbor.Runtime` | harbor-scene |
+| `Harbor/Editor/` | `FerrySim.Harbor.Editor` (Editor only) | harbor-scene |
+| `Harbor/Tests/Scene/EditMode/`, `Harbor/Tests/Scene/PlayMode/` | `FerrySim.Harbor.Scene.Tests.*` | harbor-scene |
+| `Harbor/Scenarios/` | `FerrySim.Unity.Harbor.Scenarios` | harbor-picker |
+| `Harbor/Tests/Scenarios/EditMode/` | `FerrySim.Unity.Harbor.Scenarios.Tests.EditMode` | harbor-picker |
+| `Harbor/Integration/` | `FerrySim.Harbor.Integration` (the harbor composition root) | harbor-integration |
+| `Harbor/Tests/Integration/EditMode/`, `Harbor/Tests/Integration/PlayMode/` | `FerrySim.Harbor.Integration.Tests.*` | harbor-integration |
 | `Build/Editor/` | `FerrySim.Unity.Build.Editor` (Editor only) | release-build |
 | `Build/Tests/EditMode/` | `FerrySim.Unity.Build.Tests.EditMode` | release-build |
 | `Tests/EditMode/`, `Tests/PlayMode/` | `FerrySim.Unity.Tests.*` | unity-project-bootstrap (project smoke tests) |

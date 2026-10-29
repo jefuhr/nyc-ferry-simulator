@@ -96,8 +96,20 @@ namespace FerrySim.Traffic
 		/// <summary>The power-driven light set, built once with this hull.</summary>
 		public NavigationLights NavigationLights { get; private set; }
 
+		private Renderer[] _hullRenderers;
+		public bool DetailedHullShown { get; private set; } = true;
+		public double MaximumLightIntensity { get; private set; }
+
+		internal void ShowDetail(bool show)
+		{
+			if (DetailedHullShown == show) return;
+			DetailedHullShown = show;
+			for (var i = 0; i < _hullRenderers.Length; i++) _hullRenderers[i].enabled = show;
+		}
+
 		internal void Describe(TrafficVessel vessel, double height)
 		{
+			_hullRenderers = GetComponentsInChildren<Renderer>(true);
 			VesselIndex = vessel.Index;
 			Mmsi = vessel.Mmsi;
 			VesselName = vessel.Name;
@@ -116,6 +128,8 @@ namespace FerrySim.Traffic
 			NavigationLights.ConfigureGeneric(Length, Beam, Height + 1.5, Height * 0.4,
 				Moving ? VesselLightStatus.Underway : VesselLightStatus.Moored);
 			NavigationLights.On = false;
+			for (var i = 0; i < NavigationLights.Specs.Count; i++)
+				MaximumLightIntensity = Math.Max(MaximumLightIntensity, NavigationLights.Specs[i].IntensityCandela);
 		}
 
 		internal void Follow(in TrafficSample sample, bool alarmed, bool colliding)

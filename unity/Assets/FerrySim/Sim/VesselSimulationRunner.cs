@@ -6,6 +6,7 @@ using FerrySim.Core.Dynamics;
 using FerrySim.Core.Env;
 using FerrySim.Core.Serialization;
 using FerrySim.Core.Traffic;
+using FerrySim.Core.World;
 using UnityEngine;
 
 namespace FerrySim.Sim
@@ -22,7 +23,7 @@ namespace FerrySim.Sim
 	/// </summary>
 	[DefaultExecutionOrder(-100)]
 	[DisallowMultipleComponent]
-	public sealed class VesselSimulationRunner : MonoBehaviour, IVesselTelemetrySource, IEnvironmentReadoutSource, ITrafficReadoutSource
+	public sealed class VesselSimulationRunner : MonoBehaviour, IVesselTelemetrySource, IEnvironmentReadoutSource, ITrafficReadoutSource, IRunHoldSource
 	{
 		private const double DropReportIntervalSeconds = 5.0;
 		private static long _nextRunId;
@@ -86,6 +87,8 @@ namespace FerrySim.Sim
 		private long _readoutRun = -1;
 		private long _readoutStep = -1;
 		private VesselState _initialState;
+		private string _vesselDigest;
+		private HarborHoldObserver _harborHoldObserver;
 		private RunRecorder _recorder;
 		private RecordedRun _replay;
 		private ReplayVerifier _replayVerifier;
@@ -164,6 +167,21 @@ namespace FerrySim.Sim
 		/// <summary>The current run's water and air: what its simulation samples, and the readout and tide built on it. Null before the first run.</summary>
 		public RunEnvironment RunEnvironment => _environment;
 
+		/// <summary>The active harbor runtime; null in slice/uniform mode.</summary>
+		public HarborRuntimePack HarborRuntime { get; private set; }
+
+		/// <summary>The latched harbor coverage hold; only a new run clears it.</summary>
+		public RunHold Hold { get; private set; }
+
+		/// <summary>Preparation cost of the latest successful harbor start.</summary>
+		public HarborStartTimings HarborLoadTimings { get; private set; }
+
+		/// <summary>Last actual TrafficMonitor.Update cost, including event dispatch, in milliseconds.</summary>
+		public double TrafficStepMilliseconds => _trafficObserver?.LastMilliseconds ?? 0;
+
+		/// <summary>Rolling 95th percentile of the latest 256 traffic steps, in milliseconds.</summary>
+		public double TrafficStepP95Milliseconds => _trafficObserver?.P95Milliseconds ?? 0;
+
 		/// <summary>Where scenarios and replays find environment packs: StreamingAssets, then the repository, unless replaced.</summary>
 		public EnvironmentPacks EnvironmentPacks
 		{
@@ -217,6 +235,10 @@ namespace FerrySim.Sim
 
 		/// <summary>Pose drawn this frame: interpolated between the last two physics states.</summary>
 		public VesselPose RenderPose { get; private set; }
+
+		/// <summary>Time interpolated between the states used by RenderPose, for harbor moving visuals and water.</summary>
+		public double RenderTime => _driver == null ? 0 : _driver.PreviousState.Time +
+			(_driver.CurrentState.Time - _driver.PreviousState.Time) * _driver.InterpolationFactor;
 
 		public IVesselPlacement Placement => _placement;
 
@@ -302,15 +324,17 @@ namespace FerrySim.Sim
 			}
 
 			settings.Validate(EnvironmentPacks, TrafficPacks);
-			var vessel = parameters ?? LoadVessel(settings.vesselFile);
+			var vessel = LoadVesselSnapshot(settings.vesselFile, parameters, out var vesselDigest);
 			var environment = settings.CreateEnvironment(EnvironmentPacks);
 			var traffic = Verified(() => settings.CreateTraffic(TrafficPacks));
 			var outline = traffic != null ? TrafficOutline(vessel, settings.name) : null;
 			EndRun();
+			HarborRuntime = null;
 			_replay = null;
 			_replayVerifier = null;
 			Scenario = settings;
 			Parameters = vessel;
+			_vesselDigest = vesselDigest;
 			ScenarioStartUtc = settings.StartUtc;
 			_environment = environment;
 			_traffic = traffic;
@@ -318,6 +342,47 @@ namespace FerrySim.Sim
 			_runTrafficLimits = _trafficLimits;
 			_initialState = settings.InitialState(_environment.Observer);
 			StartRun(controls ?? FindControlSource());
+		}
+
+		/// <summary>
+		/// Prepares the complete harbor bundle, vessel bytes and core before ending the current run. The contact parser
+		/// receives verified text and its exact source path. An optional start gate runs against the candidate only.
+		/// </summary>
+		public void InitializeHarbor(ScenarioSettings settings, string runtimeFolder, Func<string, string, IWorldGeometry> parseContacts,
+			IControlInputSource controls = null, VesselParameters parameters = null,
+			Action<PreparedHarborStart, VesselParameters, VesselState> validateStart = null)
+		{
+			var packs = _packs ??= EnvironmentPacks.Default;
+			var candidate = packs.PrepareHarbor(settings, runtimeFolder, parseContacts, TrafficPacks);
+			var vessel = LoadVesselSnapshot(settings.vesselFile, parameters, out var vesselDigest);
+			var initial = settings.InitialState(candidate.Environment.Observer);
+			if (!candidate.Runtime.Geoid.TrySample(initial.North, initial.East, out _))
+			{
+				throw new InvalidOperationException(Path.Combine(runtimeFolder, "geoid.json") + ": the vessel start is outside the active datum lattice.");
+			}
+
+			validateStart?.Invoke(candidate, vessel, initial);
+			var outline = candidate.Traffic != null ? TrafficOutline(vessel, settings.name) : null;
+			var simulation = Factory.Create(vessel, candidate.Environment.StartRun(), candidate.Contacts, initial);
+			var trafficObserver = candidate.Traffic != null ? new TrafficStepObserver(candidate.Traffic.StartRun(outline, _trafficLimits)) : null;
+			var input = controls ?? FindControlSource();
+
+			EndRun();
+			_replay = null;
+			_replayVerifier = null;
+			Scenario = settings;
+			Parameters = vessel;
+			_vesselDigest = vesselDigest;
+			ScenarioStartUtc = settings.StartUtc;
+			_environment = candidate.Environment;
+			_worldGeometry = candidate.Contacts;
+			HarborRuntime = candidate.Runtime;
+			HarborLoadTimings = candidate.Timings;
+			_traffic = candidate.Traffic;
+			_trafficOutline = outline;
+			_runTrafficLimits = _trafficLimits;
+			_initialState = initial;
+			StartRun(input, simulation, trafficObserver);
 		}
 
 		/// <summary>
@@ -349,12 +414,17 @@ namespace FerrySim.Sim
 				throw new InvalidOperationException($"{Path.GetFileName(run.TelemetryPath)} was recorded against {recordedTraffic}, but the replay has {replayedTraffic}; replay it against the same traffic.");
 			}
 
-			var vessel = parameters ?? LoadVessel(run.VesselFile);
+			run.Header.TryGetValue(RunRecorder.VesselDigestKey, out var recordedVessel);
+			string vesselDigest = null;
+			var vessel = recordedVessel == null && parameters != null ? parameters :
+				LoadVesselSnapshot(run.VesselFile, parameters, out vesselDigest, recordedVessel);
 			var outline = trafficRun != null ? TrafficOutline(vessel, Path.GetFileName(run.TelemetryPath)) : null;
 			var limits = trafficRun != null ? RecordedTraffic.Limits(run) : _trafficLimits;
 			EndRun();
+			HarborRuntime = null;
 			Scenario = null;
 			Parameters = vessel;
+			_vesselDigest = vesselDigest;
 			ScenarioStartUtc = run.ScenarioStartUtc;
 			_environment = environment;
 			_traffic = trafficRun;
@@ -390,7 +460,7 @@ namespace FerrySim.Sim
 		/// </summary>
 		public FrameAdvance AdvanceFrame(double deltaTime)
 		{
-			if (!IsInitialized || !_runActive || IsPaused)
+			if (!IsInitialized || !_runActive || IsPaused || Hold != RunHold.None)
 			{
 				return new FrameAdvance(0, 0.0);
 			}
@@ -437,6 +507,7 @@ namespace FerrySim.Sim
 
 			var wasActive = _runActive;
 			_runActive = false;
+			Hold = RunHold.None;
 			if (_trafficObserver != null)
 			{
 				// The monitor stays readable (its last readout and counts) until the next run starts; it sees no more steps.
@@ -549,16 +620,23 @@ namespace FerrySim.Sim
 			}
 
 			RenderPose = VesselPose.Interpolate(_driver.PreviousState, _driver.CurrentState, _driver.InterpolationFactor);
+			if (Hold == RunHold.OutsideCoveredWater)
+			{
+				// The held pose is past the water the run has data for, where the harbor datum refuses a sample; the
+				// vessel keeps the position it was last drawn at until a new start.
+				return;
+			}
+
 			BeforePlacement?.Invoke();
-			_placement.Place(renderTarget != null ? renderTarget : transform, RenderPose, _driver.SimulationTime);
+			_placement.Place(renderTarget != null ? renderTarget : transform, RenderPose, HarborRuntime != null ? RenderTime : _driver.SimulationTime);
 		}
 
-		private void StartRun(IControlInputSource controls)
+		private void StartRun(IControlInputSource controls, ISimulation preparedSimulation = null, TrafficStepObserver preparedTraffic = null)
 		{
 			_lastReplayResult = null;
 			ReplayCompleted = false;
 			RecordingError = null;
-			var simulation = Factory.Create(Parameters, _environment.StartRun(), _worldGeometry, _initialState);
+			var simulation = preparedSimulation ?? Factory.Create(Parameters, _environment.StartRun(), _worldGeometry, _initialState);
 			RunId = System.Threading.Interlocked.Increment(ref _nextRunId);
 			_contactObserver.Reset();
 			if (_driver == null)
@@ -572,6 +650,17 @@ namespace FerrySim.Sim
 				_driver.Restart(simulation);
 			}
 
+			Hold = RunHold.None;
+			if (_harborHoldObserver != null)
+			{
+				_driver.RemoveObserver(_harborHoldObserver);
+			}
+			_harborHoldObserver = HarborRuntime != null ? new HarborHoldObserver(this) : null;
+			if (_harborHoldObserver != null)
+			{
+				_driver.AddObserver(_harborHoldObserver);
+			}
+
 			_driver.StepLimit = _replay != null ? _replay.StepCount : (long?)null;
 			_placement = FindPlacement();
 			IsPaused = false;
@@ -583,7 +672,7 @@ namespace FerrySim.Sim
 				_driver.RemoveObserver(_trafficObserver);
 			}
 
-			_trafficObserver = _traffic != null ? new TrafficStepObserver(_traffic.StartRun(_trafficOutline, _runTrafficLimits)) : null;
+			_trafficObserver = preparedTraffic ?? (_traffic != null ? new TrafficStepObserver(_traffic.StartRun(_trafficOutline, _runTrafficLimits)) : null);
 			if (_replay != null)
 			{
 				_replayVerifier = new ReplayVerifier(_replay);
@@ -607,15 +696,24 @@ namespace FerrySim.Sim
 			}
 
 			_runActive = true;
-			ApplyRenderPose();
-			RunStarted?.Invoke();
+			if (HarborRuntime != null)
+			{
+				// Bind the new spatial water and views before placing the new start against them.
+				RunStarted?.Invoke();
+				ApplyRenderPose();
+			}
+			else
+			{
+				ApplyRenderPose();
+				RunStarted?.Invoke();
+			}
 		}
 
 		private void StartRecording(ISimulation simulation)
 		{
 			try
 			{
-				var header = RunRecorder.BuildHeader(Scenario, Parameters, simulation, Factory.GetType().FullName, _initialState, _environment, telemetrySampleHz);
+				var header = RunRecorder.BuildHeader(Scenario, Parameters, simulation, Factory.GetType().FullName, _initialState, _environment, telemetrySampleHz, _vesselDigest);
 				header.Add(new System.Collections.Generic.KeyValuePair<string, string>(
 					"world_geometry", _worldGeometry is EmptyWorldGeometry ? "none" : _worldGeometry.GetType().FullName));
 				var geometryDigest = WorldGeometryDigest.Of(_worldGeometry);
@@ -730,6 +828,41 @@ namespace FerrySim.Sim
 			return _flatPlacement;
 		}
 
+		private sealed class HarborHoldObserver : IStepObserver
+		{
+			private readonly VesselSimulationRunner _runner;
+			private readonly long _depthMisses;
+			private readonly long _timeHolds;
+
+			public HarborHoldObserver(VesselSimulationRunner runner)
+			{
+				_runner = runner;
+				var coverage = runner._environment.PackRun.Coverage;
+				_depthMisses = coverage.DepthMisses;
+				_timeHolds = coverage.TimeHolds;
+			}
+
+			public void BeforeStep(long step, in VesselState state, in VesselTelemetry telemetry, in ControlInputs controls) { }
+
+			public void AfterStep(long stepCount, in VesselState state, in VesselTelemetry telemetry)
+			{
+				var readout = _runner.Environment;
+				if (readout.DepthMisses > _depthMisses)
+				{
+					_runner.Hold = RunHold.OutsideCoveredWater;
+				}
+				else if (readout.TimeHolds > _timeHolds)
+				{
+					_runner.Hold = RunHold.BeyondDayData;
+				}
+
+				if (_runner.Hold != RunHold.None)
+				{
+					_runner._driver.StepLimit = stepCount;
+				}
+			}
+		}
+
 		/// <summary>One observer for the driver's lifetime, updated after every completed finite physics step.</summary>
 		private sealed class ContactObserver : IStepObserver
 		{
@@ -776,7 +909,7 @@ namespace FerrySim.Sim
 			}
 		}
 
-		private static VesselParameters LoadVessel(string vesselFile)
+		private static VesselParameters LoadVesselSnapshot(string vesselFile, VesselParameters supplied, out string digest, string expectedDigest = null)
 		{
 			var path = SimPaths.Resolve(vesselFile);
 			if (!File.Exists(path))
@@ -784,8 +917,17 @@ namespace FerrySim.Sim
 				throw new FileNotFoundException($"Vessel file not found: {vesselFile} (looked at {path})", path);
 			}
 
-			return VesselParametersJson.Load(path);
+			var bytes = File.ReadAllBytes(path);
+			digest = RunRecorder.VesselBytesDigest(bytes);
+			if (expectedDigest != null && !string.Equals(expectedDigest, digest, StringComparison.Ordinal))
+			{
+				throw new InvalidOperationException($"{path}: vessel SHA-256 mismatch; recorded {expectedDigest}, replay file {digest}.");
+			}
+			using var stream = new MemoryStream(bytes, false);
+			using var reader = new StreamReader(stream);
+			return supplied ?? VesselParametersJson.Parse(reader.ReadToEnd());
 		}
+
 	}
 
 	/// <summary>
@@ -794,6 +936,14 @@ namespace FerrySim.Sim
 	/// </summary>
 	public sealed class TrafficStepObserver : IStepObserver, ITrafficEventSink
 	{
+		private readonly TrafficStepTimingWindow _timing = new TrafficStepTimingWindow();
+
+		/// <summary>Last monitor update cost, including event dispatch, in milliseconds.</summary>
+		public double LastMilliseconds => _timing.LastMilliseconds;
+
+		/// <summary>Rolling nearest-rank p95 of the latest 256 monitor updates.</summary>
+		public double P95Milliseconds => _timing.P95Milliseconds;
+
 		public TrafficStepObserver(TrafficMonitor monitor)
 		{
 			Monitor = monitor ?? throw new ArgumentNullException(nameof(monitor));
@@ -811,7 +961,12 @@ namespace FerrySim.Sim
 		{
 		}
 
-		public void AfterStep(long stepCount, in VesselState state, in VesselTelemetry telemetry) => Monitor.Update(stepCount, state, this);
+		public void AfterStep(long stepCount, in VesselState state, in VesselTelemetry telemetry)
+		{
+			var start = System.Diagnostics.Stopwatch.GetTimestamp();
+			Monitor.Update(stepCount, state, this);
+			_timing.Record((System.Diagnostics.Stopwatch.GetTimestamp() - start) * (1000.0 / System.Diagnostics.Stopwatch.Frequency));
+		}
 
 		public void OnTrafficEvent(in TrafficEvent trafficEvent)
 		{
@@ -819,4 +974,56 @@ namespace FerrySim.Sim
 			Verifier?.OnTrafficEvent(trafficEvent);
 		}
 	}
+	/// <summary>A fixed 256-step timing window with an allocation-free sorted sample set.</summary>
+	public sealed class TrafficStepTimingWindow
+	{
+		private const int Capacity = 256;
+		private readonly double[] _history = new double[Capacity];
+		private readonly double[] _sorted = new double[Capacity];
+		private int _next;
+		private int _count;
+
+		/// <summary>Most recent timing sample in milliseconds.</summary>
+		public double LastMilliseconds { get; private set; }
+
+		/// <summary>Nearest-rank p95 over at most the latest 256 samples.</summary>
+		public double P95Milliseconds => _count == 0 ? 0 : _sorted[(95 * _count + 99) / 100 - 1];
+
+		/// <summary>Records one finite nonnegative cost in milliseconds.</summary>
+		public void Record(double milliseconds)
+		{
+			if (double.IsNaN(milliseconds) || double.IsInfinity(milliseconds) || milliseconds < 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(milliseconds));
+			}
+
+			if (_count == Capacity)
+			{
+				var old = _history[_next];
+				var index = 0;
+				while (_sorted[index] != old)
+				{
+					index++;
+				}
+				for (var i = index; i < _count - 1; i++)
+				{
+					_sorted[i] = _sorted[i + 1];
+				}
+				_count--;
+			}
+
+			var at = _count;
+			while (at > 0 && _sorted[at - 1] > milliseconds)
+			{
+				_sorted[at] = _sorted[at - 1];
+				at--;
+			}
+			_sorted[at] = milliseconds;
+			_count++;
+			_history[_next] = milliseconds;
+			_next = (_next + 1) % Capacity;
+			LastMilliseconds = milliseconds;
+		}
+	}
+
 }

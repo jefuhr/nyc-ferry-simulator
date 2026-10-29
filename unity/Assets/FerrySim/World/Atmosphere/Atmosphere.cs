@@ -41,6 +41,8 @@ namespace FerrySim.World
 		private NavigationLights _ownLights;
 		private FogSignal _fogSignal;
 		private AidLights _aids;
+		private readonly List<SignalLight> _registeredBridgeLights = new List<SignalLight>();
+		private bool _navigationBatch;
 		private Vector2 _optics = new Vector2(float.NaN, float.NaN);
 
 		public SunController Sun => _sun;
@@ -106,7 +108,7 @@ namespace FerrySim.World
 				Configure(_sun, _sun.Runner != null ? _sun.Runner : FindFirstObjectByType<VesselSimulationRunner>());
 			}
 
-			if (_runner == null)
+			if (_runner == null || _navigationBatch)
 			{
 				return;
 			}
@@ -120,6 +122,37 @@ namespace FerrySim.World
 			}
 
 			_aids = AidLights.Find(null);
+		}
+
+		/// <summary>Replaces the complete resident navigation batch. Call after building, before starting the run.
+		/// Also safe after Start: the single scene sky and optics immediately apply to the new objects.</summary>
+		public void RegisterNavigationBatch(AidLights aids, IReadOnlyList<SignalLight> nominalBridgeLights)
+		{
+			_navigationBatch = true;
+			_aids = aids;
+			_registeredBridgeLights.Clear();
+			for (var i = 0; i < nominalBridgeLights.Count; i++)
+			{
+				var light = nominalBridgeLights[i];
+				if (light != null && !_registeredBridgeLights.Contains(light)) _registeredBridgeLights.Add(light);
+			}
+			RefreshNavigation(_runner != null && _runner.IsInitialized ? _runner.Driver.SimulationTime : 0);
+		}
+
+		/// <summary>Releases only the batch owned by the caller; an old world's teardown cannot unregister its replacement.</summary>
+		public void UnregisterNavigationBatch(AidLights aids)
+		{
+			if (!ReferenceEquals(_aids, aids)) return;
+			_aids = null;
+			_registeredBridgeLights.Clear();
+			_navigationBatch = false;
+		}
+
+		/// <summary>Applies the one scene sky to resident navigation at explicit simulated time, also for previews.</summary>
+		public void RefreshNavigation(double simulationSeconds)
+		{
+			RefreshLights();
+			if (_sun != null) _aids?.Show(simulationSeconds, Daylight.ShowsAidLights(_sun.Sun));
 		}
 
 		private void OnDestroy()
@@ -182,7 +215,7 @@ namespace FerrySim.World
 		/// </summary>
 		public void RefreshLights()
 		{
-			if (_runner == null || !_runner.IsInitialized || _sun == null)
+			if (_sun == null || (!_navigationBatch && (_runner == null || !_runner.IsInitialized)))
 			{
 				SetChartLighting(false);
 				return;
@@ -201,6 +234,11 @@ namespace FerrySim.World
 				_bridges[i].On = LightsShown;
 			}
 
+			for (var i = 0; i < _registeredBridgeLights.Count; i++)
+			{
+				if (_registeredBridgeLights[i] != null) _registeredBridgeLights[i].On = LightsShown;
+			}
+
 			// The import's unlit chart geometry, dimmed and fogged with the rest of the scene; as imported by day in clear air.
 			SetChartLighting(_sun.ChartLight < 1f || MeteorologicalVisibility.IsLimited(visibility));
 
@@ -215,8 +253,8 @@ namespace FerrySim.World
 		}
 
 		/// <summary>
-		/// Puts the aids at the run's simulated time (<see cref="AidLights.Show"/>). Allocation-free on the lights with a
-		/// chart sequence; the import's character code allocates for a light without one (World/Atmosphere/README.md).
+		/// Puts the aids at the run's simulated time (<see cref="AidLights.Show"/>). Allocation-free, including
+		/// fallback characters compiled when the batch is registered.
 		/// </summary>
 		public void RefreshAids()
 		{

@@ -1,0 +1,28 @@
+{
+	"name": "FerrySim.World.HarborNavigation.Tests.EditMode",
+	"references": [
+		"FerrySim.Core",
+		"FerrySim.Unity.World",
+		"FerrySim.Unity.Sim",
+		"FerrySim.World.Import.Runtime",
+		"FerrySim.Unity.UI",
+		"CesiumForUnity",
+		"Unity.Mathematics",
+		"FerrySim.World.HarborNavigation",
+		"FerrySim.Core.Serialization",
+		"UnityEngine.TestRunner",
+		"UnityEditor.TestRunner"
+	],
+	"includePlatforms": [
+		"Editor"
+	],
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"nunit.framework.dll",
+		"Newtonsoft.Json.dll"
+	],
+	"autoReferenced": false,
+	"defineConstraints": [
+		"UNITY_INCLUDE_TESTS"
+	]
+}

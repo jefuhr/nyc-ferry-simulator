@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using CesiumForUnity;
+using Unity.Mathematics;
 using FerrySim.Core.Contracts;
 using FerrySim.Core.Traffic;
 using FerrySim.Vessels;
@@ -60,6 +62,10 @@ namespace FerrySim.Traffic
 		private readonly List<TrafficHull> _hulls = new List<TrafficHull>();
 		private readonly List<Mesh> _meshes = new List<Mesh>();
 		private readonly Dictionary<TrafficClass, Material> _materials = new Dictionary<TrafficClass, Material>();
+		private readonly Dictionary<(TrafficClass, double, double, double), (Mesh mesh, double height)> _sharedMeshes =
+			new Dictionary<(TrafficClass, double, double, double), (Mesh mesh, double height)>();
+		private readonly HashSet<Mesh> _renderMeshes = new HashSet<Mesh>();
+		private readonly HashSet<Material> _renderMaterials = new HashSet<Material>();
 		private readonly Stopwatch _watch = new Stopwatch();
 		private TrafficRun _built;
 		private Transform[] _transforms = Array.Empty<Transform>();
@@ -68,6 +74,11 @@ namespace FerrySim.Traffic
 		private double[] _heightEast = Array.Empty<double>();
 		private double[] _heightLevel = Array.Empty<double>();
 		private double[] _height = Array.Empty<double>();
+		private CesiumGeoreference _georeference;
+		private IWaterSurface _harborWater;
+		private ITrafficArea _harborArea;
+		private TrafficGlobeLattice _lattice;
+		private int[] _hullIndices = Array.Empty<int>();
 		private bool _hasArea;
 		private double _minNorth, _maxNorth, _minEast, _maxEast;
 		private bool _subscribed;
@@ -79,6 +90,21 @@ namespace FerrySim.Traffic
 
 		/// <summary>Hulls drawn this frame.</summary>
 		public int ShownCount { get; private set; }
+
+		public int RosterCount => _built?.Pack.Vessels.Count ?? 0;
+		/// <summary>All present targets, excluding leave-out, including those outside render coverage/range.</summary>
+		public int ActiveCount { get; private set; }
+		/// <summary>Enabled signal points meeting optics and sector at the camera (before camera frustum/occlusion).</summary>
+		public int LightsDrawn { get; private set; }
+		public long AllocationBytes { get; private set; }
+		/// <summary>Renderer activation/deactivation transitions in the last Place; no pool is needed when all hulls fit.</summary>
+		public int ActivationChanges { get; private set; }
+		/// <summary>No pool when the all-eligible strategy fits the budget.</summary>
+		public int PoolChurn => 0;
+		public int MissingTargets { get; private set; }
+		public int MeshCount => _renderMeshes.Count;
+		public int MaterialCount => _renderMaterials.Count;
+		public long LatticeBytes => _lattice?.StorageBytes ?? 0;
 
 		/// <summary>The run time the hulls were last placed at, s since the scenario start.</summary>
 		public double PlacedTime { get; private set; } = double.NaN;
@@ -118,6 +144,10 @@ namespace FerrySim.Traffic
 		{
 			Unsubscribe();
 			Clear();
+			_georeference = null;
+			_harborWater = null;
+			_harborArea = null;
+			_lattice = null;
 			runner = simulationRunner;
 			frame = worldFrame;
 			water = waterSurface;
@@ -131,16 +161,44 @@ namespace FerrySim.Traffic
 			Rebuild();
 		}
 
+		/// <summary>Connects harbor render coverage and spatial water without changing the slice adapter.</summary>
+		public void ConnectHarbor(VesselSimulationRunner simulationRunner, CesiumGeoreference georeference,
+			IWaterSurface waterSurface, ITrafficArea area, Camera camera, SunController sun = null)
+		{
+			if (georeference == null) throw new ArgumentNullException(nameof(georeference));
+			if (waterSurface == null) throw new ArgumentNullException(nameof(waterSurface));
+			if (area == null) throw new ArgumentNullException(nameof(area));
+			var lattice = new TrafficGlobeLattice(area.Extent);
+			Unsubscribe();
+			Clear();
+			runner = simulationRunner;
+			frame = georeference.transform;
+			water = null;
+			_georeference = georeference;
+			_harborWater = waterSurface;
+			_harborArea = area;
+			_lattice = lattice;
+			viewCamera = camera;
+			Sun = sun;
+			if (isActiveAndEnabled) Subscribe();
+			Rebuild();
+		}
+
 		private void OnEnable()
 		{
 			Subscribe();
 			Rebuild();
 		}
 
-		private void OnDisable() => Unsubscribe();
+		private void OnDisable()
+		{
+			Unsubscribe();
+			HideAll();
+		}
 
 		private void OnDestroy()
 		{
+			Unsubscribe();
 			Clear();
 			foreach (var material in _materials.Values)
 			{
@@ -200,7 +258,8 @@ namespace FerrySim.Traffic
 			var hulls = new List<TrafficHull>();
 			foreach (var vessel in pack.Vessels)
 			{
-				if (_hasArea && !traffic.Replay.MayEnter(vessel.Index, _minNorth, _maxNorth, _minEast, _maxEast))
+				if ((_harborArea != null && !_harborArea.MayEnter(traffic.Replay, vessel.Index)) ||
+					(_hasArea && !traffic.Replay.MayEnter(vessel.Index, _minNorth, _maxNorth, _minEast, _maxEast)))
 				{
 					continue;
 				}
@@ -216,18 +275,35 @@ namespace FerrySim.Traffic
 				}
 				else
 				{
-					var mesh = TrafficHullMesh.Build(vessel.Class, vessel.Hull, out height);
-					_meshes.Add(mesh);
+					var key = (vessel.Class, vessel.Hull.Length, vessel.Hull.Beam, vessel.Hull.Draft);
+					Mesh mesh;
+					if (_harborArea != null && _sharedMeshes.TryGetValue(key, out var shared))
+					{
+						mesh = shared.mesh;
+						height = shared.height;
+					}
+					else
+					{
+						mesh = TrafficHullMesh.Build(vessel.Class, vessel.Hull, out height);
+						_meshes.Add(mesh);
+						if (_harborArea != null) _sharedMeshes.Add(key, (mesh, height));
+					}
 					hull.AddComponent<MeshFilter>().sharedMesh = mesh;
 					hull.AddComponent<MeshRenderer>().sharedMaterial = MaterialFor(vessel.Class);
 				}
 				var component = hull.AddComponent<TrafficHull>();
 				component.Describe(vessel, height);
+				foreach (var filter in hull.GetComponentsInChildren<MeshFilter>(true)) _renderMeshes.Add(filter.sharedMesh);
+				foreach (var renderer in hull.GetComponentsInChildren<Renderer>(true))
+					foreach (var material in renderer.sharedMaterials) _renderMaterials.Add(material);
 				hull.SetActive(false);
 				hulls.Add(component);
 			}
 
 			_hulls.AddRange(hulls);
+			_hullIndices = new int[pack.Vessels.Count];
+			for (var i = 0; i < _hullIndices.Length; i++) _hullIndices[i] = -1;
+			for (var i = 0; i < _hulls.Count; i++) _hullIndices[_hulls[i].VesselIndex] = i;
 			_transforms = new Transform[_hulls.Count];
 			_active = new bool[_hulls.Count];
 			_heightNorth = new double[_hulls.Count];
@@ -240,7 +316,7 @@ namespace FerrySim.Traffic
 				_heightNorth[i] = double.NaN;
 			}
 
-			Debug.Log($"[FerrySim] Traffic {pack.Date}: {_hulls.Count} of the day's {pack.Vessels.Count} vessels come near the slice; {(traffic.Removed != null ? "leaving out " + traffic.Removed : "none left out")}.", this);
+			Debug.Log($"[FerrySim] Traffic {pack.Date}: {_hulls.Count} of the day's {pack.Vessels.Count} vessels come near the render area; {(traffic.Removed != null ? "leaving out " + traffic.Removed : "none left out")}.", this);
 		}
 
 		/// <summary>
@@ -265,6 +341,12 @@ namespace FerrySim.Traffic
 			if (traffic == null || runner == null || runner.Driver == null || !ReferenceEquals(runner.Traffic, traffic))
 			{
 				HideAll();
+				return;
+			}
+
+			if (_harborArea != null)
+			{
+				PlaceHarbor(traffic);
 				return;
 			}
 
@@ -329,6 +411,79 @@ namespace FerrySim.Traffic
 			MaximumMilliseconds = Math.Max(MaximumMilliseconds, LastMilliseconds);
 			_totalMilliseconds += LastMilliseconds;
 			_frames++;
+		}
+
+		private void PlaceHarbor(TrafficRun traffic)
+		{
+			var allocated = GC.GetAllocatedBytesForCurrentThread();
+			_watch.Restart();
+			var time = RenderTime(runner.Driver);
+			var packTime = traffic.PackTime(time);
+			var camera = viewCamera != null ? viewCamera : Camera.main;
+			var hasCamera = camera != null;
+			var eye = hasCamera ? camera.transform.position : Vector3.zero;
+			var cameraEcef = hasCamera ? _georeference.TransformUnityPositionToEarthCenteredEarthFixed((double3)(float3)frame.InverseTransformPoint(eye)) : double3.zero;
+			var lightsOn = NavigationLightsEnabled && Sun != null && Daylight.ShowsNavigationLights(Sun.Sun, Sun.VisibilityMetres);
+			var extinction = SignalLightOptics.LightExtinction(Sun != null ? Sun.VisibilityMetres : 0);
+			var threshold = SignalLightOptics.ThresholdLux(Sun != null ? Sun.Sun.ApparentElevationDegrees : 90);
+			ActiveCount = ShownCount = LightsDrawn = ActivationChanges = MissingTargets = 0;
+			for (var vessel = 0; vessel < _hullIndices.Length; vessel++)
+			{
+				var index = _hullIndices[vessel];
+				TrafficSample sample = default;
+				var present = vessel != traffic.RemovedVessel && traffic.Replay.TrySample(vessel, packTime, out sample);
+				if (present) ActiveCount++;
+				if (!present)
+				{
+					if (index >= 0) HideHarborHull(index);
+					continue;
+				}
+				if (!_harborArea.Contains(sample.North, sample.East))
+				{
+					if (index >= 0) HideHarborHull(index);
+					continue;
+				}
+				if (index < 0) { MissingTargets++; continue; }
+				var hull = _hulls[index];
+				// Sample at each render time, even when stationary. No scalar tide or spatial/time cache.
+				var height = _harborWater.EllipsoidalHeight(sample.North, sample.East, time);
+				if (double.IsNaN(height) || double.IsInfinity(height)) { MissingTargets++; HideHarborHull(index); continue; }
+				_lattice.Sample(sample.North, sample.East, height, out var position, out var up, out var north);
+				var distance = hasCamera ? math.distance(position, cameraEcef) : 0;
+				var detail = !hasCamera || distance <= viewRange;
+				// Conservative upper envelope: the nearest light can be closer than the reference point. Sector and
+				// actual per-light optics stay in SignalLight's shader; this never clips a potentially visible light.
+				var lightDistance = Math.Max(0.01, distance - hull.Length - hull.Beam - hull.Height - 2);
+				var signal = lightsOn && (!hasCamera || SignalLightOptics.Illuminance(hull.MaximumLightIntensity, lightDistance, extinction) >= threshold);
+				if (!detail && !signal) { HideHarborHull(index); continue; }
+				TrafficGlobeLattice.Place(_georeference, _transforms[index], position, up, north, sample.Heading);
+				hull.ShowDetail(detail);
+				hull.NavigationLights.On = lightsOn;
+				hull.Follow(sample, runner.TrafficMonitor != null && runner.TrafficMonitor.IsAlarmed(vessel),
+					runner.TrafficMonitor != null && runner.TrafficMonitor.IsColliding(vessel));
+				if (!_active[index]) { _active[index] = true; hull.gameObject.SetActive(true); ActivationChanges++; }
+				if (detail) ShownCount++;
+				if (lightsOn)
+					for (var l = 0; l < hull.NavigationLights.Lights.Count; l++)
+						if (!hasCamera || hull.NavigationLights.Lights[l].RatioToThreshold(eye, extinction, threshold) >= 1) LightsDrawn++;
+			}
+			PlacedTime = time;
+			_watch.Stop();
+			LastMilliseconds = _watch.Elapsed.TotalMilliseconds;
+			MaximumMilliseconds = Math.Max(MaximumMilliseconds, LastMilliseconds);
+			_totalMilliseconds += LastMilliseconds;
+			_frames++;
+			AllocationBytes = GC.GetAllocatedBytesForCurrentThread() - allocated;
+		}
+
+		private void HideHarborHull(int index)
+		{
+			if (!_active[index]) return;
+			_active[index] = false;
+			_hulls[index].NavigationLights.On = false;
+			_hulls[index].gameObject.SetActive(false);
+			_hulls[index].Hide();
+			ActivationChanges++;
 		}
 
 		/// <summary>The hull for a vessel of the day, or null when it never comes near the slice.</summary>
@@ -418,12 +573,24 @@ namespace FerrySim.Traffic
 				if (_active[i])
 				{
 					_active[i] = false;
-					_hulls[i].gameObject.SetActive(false);
-					_hulls[i].Hide();
+					// Hulls are parented to the world frame, which can be destroyed before this view during teardown.
+					var hull = _hulls[i];
+					if (hull == null)
+					{
+						continue;
+					}
+
+					if (hull.NavigationLights != null)
+					{
+						hull.NavigationLights.On = false;
+					}
+
+					hull.gameObject.SetActive(false);
+					hull.Hide();
 				}
 			}
 
-			ShownCount = 0;
+			ShownCount = ActiveCount = LightsDrawn = ActivationChanges = MissingTargets = 0;
 		}
 
 		private void Clear()
@@ -444,10 +611,15 @@ namespace FerrySim.Traffic
 
 			_hulls.Clear();
 			_meshes.Clear();
+			_sharedMeshes.Clear();
+			_renderMeshes.Clear();
+			_renderMaterials.Clear();
+			_hullIndices = Array.Empty<int>();
 			_transforms = Array.Empty<Transform>();
 			_active = Array.Empty<bool>();
 			_built = null;
-			ShownCount = 0;
+			ShownCount = ActiveCount = LightsDrawn = ActivationChanges = MissingTargets = 0;
+			AllocationBytes = 0;
 			PlacedTime = double.NaN;
 		}
 
