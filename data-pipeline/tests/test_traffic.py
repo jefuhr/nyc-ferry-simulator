@@ -85,11 +85,32 @@ def test_classes(codes, expected):
 	assert all(ship_class(code) == expected for code in codes)
 
 
-def test_identity_audit_only_t_and_k(tmp_path):
+@pytest.mark.parametrize("label,expected", [
+	("T", {1}), ("K", {1}), ("K-IC18130", {1}), ("unclassified", set()), ("", set()),
+])
+def test_identity_audit_only_t_and_k(tmp_path, label, expected):
 	path = tmp_path / "audit.csv"
-	path.write_text("mmsi,class\n1,T\n2,K\n3,unclassified\n")
-	assert ferry_candidates(path) == {1, 2}
-	assert 367798420 in ferry_candidates()
+	path.write_text(f"mmsi,class\n1,{label}\n")
+	assert ferry_candidates(path) == expected
+
+
+def test_candidates_equal_operational_depth_identity_classes():
+	from ferrydata.operational_depth import identity_classes
+	assert ferry_candidates() == set(identity_classes())
+	assert {367798420, 368129810, 368135270} <= ferry_candidates()
+
+
+def test_k_candidate_pack_preserves_audit_provenance(tmp_path):
+	from ferrydata.manifest import sha256_file
+	path = tmp_path / "audit.csv"
+	path.write_text("mmsi,class\n368129810,K-IC18130\n")
+	out = tmp_path / "pack"
+	manifest = build_pack(points(mmsi=[368129810]), "2025-07-14", out, audit_path=path)
+	assert pd.read_csv(out / "vessels.csv").ferry_candidate.iloc[0]
+	assert manifest["ferry_candidates"] == {
+		"source": "data-pipeline/calibration/identity-audit.csv", "sha256": sha256_file(path), "subsets": ["T", "K"],
+	}
+	verify_pack(out)
 
 
 def test_binary_metadata_fixed_obstacle_and_roundtrip(tmp_path):

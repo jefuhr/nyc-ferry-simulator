@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using FerrySim.World.Import;
 using UnityEngine;
@@ -26,6 +27,12 @@ namespace FerrySim.World
 		private static readonly int EmissiveId = Shader.PropertyToID("_FerrySimEmissive");
 
 		private readonly List<BuoyFlasher> _flashers = new List<BuoyFlasher>(32);
+		private readonly List<bool> _chartSequences = new List<bool>(32);
+
+		private readonly List<bool> _nearVisible = new List<bool>(32);
+
+		private readonly List<CompiledCharacter> _characters = new List<CompiledCharacter>(32);
+
 		private readonly List<SignalLight> _points = new List<SignalLight>(32);
 
 		/// <summary>The number of aid lights driven.</summary>
@@ -51,7 +58,7 @@ namespace FerrySim.World
 			var lights = new AidLights();
 			var flashers = root != null
 				? root.GetComponentsInChildren<BuoyFlasher>(true)
-				: Object.FindObjectsByType<BuoyFlasher>(FindObjectsInactive.Include, FindObjectsSortMode.InstanceID);
+				: UnityEngine.Object.FindObjectsByType<BuoyFlasher>(FindObjectsInactive.Include, FindObjectsSortMode.InstanceID);
 			foreach (var flasher in flashers)
 			{
 				lights.Add(flasher);
@@ -70,10 +77,10 @@ namespace FerrySim.World
 		public bool LampLit(int index) => _flashers[index].Lamp != null && _flashers[index].Lamp.enabled;
 
 		/// <summary>Whether light <paramref name="index"/>'s character is lit at <paramref name="simulationSeconds"/>.</summary>
-		public bool CharacterLitAt(int index, double simulationSeconds) => _flashers[index].Characteristic.IsLit(simulationSeconds);
+		public bool CharacterLitAt(int index, double simulationSeconds) => _characters[index].IsLit(simulationSeconds);
 
 		/// <summary>Whether light <paramref name="index"/>'s character is the chart's sequence (SIGSEQ), not nominal pulse widths.</summary>
-		public bool UsesChartSequence(int index) => _flashers[index].Characteristic.UsesChartSequence;
+		public bool UsesChartSequence(int index) => _chartSequences[index];
 
 		/// <summary>Whether light <paramref name="index"/>'s lens is marked as a light, which the night does not dim.</summary>
 		public bool LensMarked(int index)
@@ -89,7 +96,7 @@ namespace FerrySim.World
 			return block.GetFloat(EmissiveId) == 1f;
 		}
 
-		private void Add(BuoyFlasher flasher)
+		public void Add(BuoyFlasher flasher, double? nominalRangeMetres = null, LightSector? sector = null, bool sequenceEstimated = false)
 		{
 			if (flasher == null || flasher.Characteristic == null || _flashers.Contains(flasher))
 			{
@@ -97,11 +104,16 @@ namespace FerrySim.World
 			}
 
 			var colour = flasher.Characteristic.Colour;
-			var range = DefaultNominalRangeNauticalMiles(colour) * NavigationLightRules.MetresPerNauticalMile;
-			var point = SignalLight.Create(flasher.transform, $"Aid light point ({colour}, {range / NavigationLightRules.MetresPerNauticalMile:0.#} nm estimated range)",
-				Vector3.zero, Quaternion.identity, ColourOf(colour), LightSector.AllRound, SignalLightOptics.IntensityForRange(range));
+			var range = nominalRangeMetres ?? DefaultNominalRangeNauticalMiles(colour) * NavigationLightRules.MetresPerNauticalMile;
+			var point = SignalLight.Create(flasher.transform, $"Aid light point ({colour}, {range / NavigationLightRules.MetresPerNauticalMile:0.#} nm {(nominalRangeMetres.HasValue ? "charted" : "estimated")} range)",
+				Vector3.zero, Quaternion.identity, ColourOf(colour), sector ?? LightSector.AllRound, SignalLightOptics.IntensityForRange(range));
 			point.On = false;
 			_flashers.Add(flasher);
+			_characters.Add(new CompiledCharacter(flasher.Characteristic));
+			_nearVisible.Add(true);
+			_chartSequences.Add(flasher.Characteristic.UsesChartSequence && !sequenceEstimated);
+			// One owner of simulated time; the legacy component otherwise evaluates its allocating fallback again.
+			flasher.enabled = false;
 			_points.Add(point);
 
 			// The lens is the light itself: the import's shader leaves it undimmed at night (World/Import/Runtime/SolidColour.shader).
@@ -116,7 +128,7 @@ namespace FerrySim.World
 
 		/// <summary>
 		/// Puts every light at <paramref name="simulationSeconds"/> and shows each light's point while its lamp is lit and
-		/// <paramref name="daylightControlOn"/>. Allocation-free on lights with a chart sequence.
+		/// <paramref name="daylightControlOn"/>. Allocation-free, including compiled fallback characters.
 		/// </summary>
 		public void Show(double simulationSeconds, bool daylightControlOn)
 		{
@@ -129,9 +141,82 @@ namespace FerrySim.World
 					continue;
 				}
 
-				flasher.SetSimulationTime(simulationSeconds);
+				var lit = _characters[i].IsLit(simulationSeconds);
+				if (flasher.Lamp != null) flasher.Lamp.enabled = lit;
+				if (flasher.Lens != null) flasher.Lens.enabled = lit && _nearVisible[i];
 				_points[i].On = daylightControlOn && flasher.Lamp != null && flasher.Lamp.enabled;
 			}
 		}
+		/// <summary>Culls only the near-field lens; far signals remain governed by optical range.</summary>
+		public void SetNearVisible(int index, bool visible) => _nearVisible[index] = visible;
+
+		// Snapshot the mutable import character once. No parsing, validation, LINQ or allocations on Show.
+		private sealed class CompiledCharacter
+		{
+			private readonly double _period, _spacing, _pulse;
+			private readonly string _rhythm;
+			private readonly int[] _groups;
+			private readonly double[] _durations;
+			private readonly bool[] _states;
+			private readonly bool _valid, _quick;
+
+			public CompiledCharacter(LightCharacteristic value)
+			{
+				_period = value.PeriodSeconds;
+				_rhythm = value.Rhythm;
+				if (!(_period > 0) || double.IsInfinity(_period)) return;
+				if (value.UsesChartSequence && value.Durations != null && value.States != null && value.Durations.Length == value.States.Length)
+				{
+					var sum = 0.0;
+					for (var i = 0; i < value.Durations.Length; i++)
+					{
+						if (!(value.Durations[i] > 0) || double.IsInfinity(value.Durations[i])) return;
+						sum += value.Durations[i];
+					}
+					if (value.Durations.Length == 0 || Math.Abs(sum - _period) > .01) return;
+					_durations = (double[])value.Durations.Clone();
+					_states = (bool[])value.States.Clone();
+					_valid = true;
+					return;
+				}
+				if (!value.TryValidateFallback(out _)) return;
+				_groups = (int[])value.Groups.Clone();
+				var count = 0.0;
+				for (var i = 0; i < _groups.Length; i++) count += _groups[i];
+				var slots = count + _groups.Length - 1;
+				_spacing = Math.Min(1, _period / (slots + 1));
+				_pulse = .3 * _spacing;
+				if (_rhythm == "LFl") { _pulse = 2; _spacing = _pulse + Math.Min(1, (_period - count * _pulse) / (count + _groups.Length)); }
+				if (_rhythm == "Oc" || _rhythm == "Iso") { _spacing = _period / slots; _pulse = _spacing * (_rhythm == "Oc" ? .25 : .5); }
+				_quick = _rhythm == "Q" && _groups.Length == 1 && _groups[0] == 1;
+				_valid = true;
+			}
+
+			public bool IsLit(double seconds)
+			{
+				if (!_valid || double.IsNaN(seconds) || double.IsInfinity(seconds)) return false;
+				var phase = ((seconds % _period) + _period) % _period;
+				if (_durations != null)
+				{
+					for (var i = 0; i < _durations.Length; i++) { if (phase < _durations[i]) return _states[i]; phase -= _durations[i]; }
+					return _states[_states.Length - 1];
+				}
+				if (_rhythm == "F") return true;
+				if (_quick) return phase % Math.Min(1, _period) < .3 * Math.Min(1, _period);
+				var cursor = 0.0;
+				for (var g = 0; g < _groups.Length; g++)
+				{
+					for (var i = 0; i < _groups[g]; i++)
+					{
+						var start = cursor + (_rhythm == "Oc" ? _spacing - _pulse : 0);
+						if (phase >= start && phase < start + _pulse) return _rhythm != "Oc";
+						cursor += _spacing;
+					}
+					cursor += _rhythm == "LFl" ? _spacing - _pulse : _spacing;
+				}
+				return _rhythm == "Oc";
+			}
+		}
+
 	}
 }

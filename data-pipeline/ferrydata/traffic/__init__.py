@@ -14,6 +14,7 @@ import pyarrow.csv as pacsv
 
 from ferrydata import ais, geodesy, paths
 from ferrydata.manifest import Manifest, sha256_file
+from ferrydata.operational_depth import identity_classes
 from ferrydata.slices import AIS_HARBOR_BBOX
 
 FORMAT = "ferrysim-traffic/1"
@@ -54,9 +55,7 @@ def output_root():
 
 
 def ferry_candidates(path=None):
-	path = Path(path) if path else paths.REPO_ROOT / "data-pipeline/calibration/identity-audit.csv"
-	audit = pd.read_csv(path)
-	return set(audit.loc[audit["class"].isin(["T", "K"]), "mmsi"].astype(int))
+	return set(identity_classes(path))
 
 
 def scenario_window(day, available_days):

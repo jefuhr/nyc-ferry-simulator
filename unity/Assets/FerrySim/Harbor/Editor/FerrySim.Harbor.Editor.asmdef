@@ -1,0 +1,6 @@
+{
+	"name": "FerrySim.Harbor.Editor",
+	"references": ["FerrySim.Harbor.Runtime", "FerrySim.Harbor.Integration", "FerrySim.World.HarborTiles", "FerrySim.World.Skyline", "FerrySim.Unity.World", "FerrySim.Unity.World.Editor", "FerrySim.Unity.Sim", "FerrySim.Unity.Sim.Cesium", "FerrySim.Unity.Input", "FerrySim.Unity.UI", "FerrySim.Core", "FerrySim.Core.Serialization", "CesiumForUnity", "Unity.InputSystem", "Unity.RenderPipelines.Universal.Runtime", "Unity.RenderPipelines.Core.Runtime"],
+	"includePlatforms": ["Editor"],
+	"autoReferenced": false
+}

@@ -39,6 +39,15 @@ namespace FerrySim.UI
 		/// <summary>When not null, every <see cref="TryStart"/> refuses with this (even an empty one).</summary>
 		public string StartProblem { get; set; }
 
+		/// <summary>
+		/// Landings <see cref="TryCreate"/> refuses, by stop id, each with the rest of its sentence ("waiting for a crew answer on
+		/// the landing side"): the refusal is "&lt;name&gt;: &lt;reason&gt;.", as the harbor catalog words it.
+		/// </summary>
+		public Dictionary<string, string> RefusedLandings { get; } = new Dictionary<string, string>();
+
+		/// <summary>Berths <see cref="TryCreate"/> refuses, by berth id, worded "&lt;landing&gt;, &lt;berth&gt;: &lt;reason&gt;.".</summary>
+		public Dictionary<string, string> RefusedBerths { get; } = new Dictionary<string, string>();
+
 		/// <summary>Every call in order: "create &lt;stop&gt; &lt;date&gt; &lt;minutes&gt; &lt;vessel&gt;" and "start &lt;settings name&gt;".</summary>
 		public List<string> Calls { get; } = new List<string>();
 
@@ -94,6 +103,20 @@ namespace FerrySim.UI
 			Calls.Add(string.Format(CultureInfo.InvariantCulture, "create {0} {1} {2} {3}", choice.StopId, choice.Date, choice.LocalMinutes, choice.VesselId));
 			settings = null;
 			var checkProblem = Check(choice, out var day, out var vessel);
+			if (checkProblem == null)
+			{
+				var landing = Find(Landings, item => item.StopId == choice.StopId);
+				if (RefusedLandings.TryGetValue(choice.StopId, out var reason))
+				{
+					checkProblem = landing.Name + ": " + reason + ".";
+				}
+				else if (!string.IsNullOrEmpty(choice.BerthId) && RefusedBerths.TryGetValue(choice.BerthId, out reason))
+				{
+					var berth = Find(landing.Berths, item => item.Id == choice.BerthId);
+					checkProblem = landing.Name + ", " + (berth != null ? berth.Name : choice.BerthId) + ": " + reason + ".";
+				}
+			}
+
 			problem = CreateProblem ?? checkProblem;
 			if (problem != null)
 			{
@@ -114,6 +137,70 @@ namespace FerrySim.UI
 			_created.Add((settings, choice));
 			LastCreatedSettings = settings;
 			return true;
+		}
+
+		/// <summary>
+		/// The harbor's catalog as the picker sees it: the 24 landings in stop id order with their notes (the three whose
+		/// landing side is a crew question are listed, noted and refused), Pier 11's three berths, the 28 days with traffic
+		/// and station-blend currents, and the T- and K-class. The notes are the shapes the real catalog produces, not its
+		/// data; Harbor/Scenarios/README.md has the real rules.
+		/// </summary>
+		public static FakeScenarioCatalog Harbor(params string[] daysWithoutWind)
+		{
+			const string crew = "Waiting for a crew answer on the landing side";
+			const string charted = "Charted face, landing side chart-checked";
+			const string derived = "Barge derived from the stop position (low confidence), landing side chart-checked";
+			var landings = new List<ScenarioLanding>
+			{
+				new ScenarioLanding("4", "Hunters Point South", null, derived),
+				new ScenarioLanding("8", "South Williamsburg", null, "Charted face, landing side crew-reported"),
+				new ScenarioLanding("11", "Atlantic Ave/BBP Pier 6", null, charted),
+				new ScenarioLanding("17", "East 34th Street", null, charted),
+				new ScenarioLanding("18", "Greenpoint", null, derived),
+				new ScenarioLanding("19", "North Williamsburg", null, "Charted face, landing side chart-checked and crew-reported"),
+				new ScenarioLanding("20", "Dumbo/Fulton Ferry", null, derived),
+				new ScenarioLanding("23", "Bay Ridge", null, charted),
+				new ScenarioLanding("24", "Red Hook/Atlantic Basin", null, charted),
+				new ScenarioLanding("25", "Roosevelt Island", null, derived),
+				new ScenarioLanding("87", "Wall St/Pier 11", new[]
+				{
+					new ScenarioBerth("enc:02261FA117EFB198", "Outer pontoon (east)", charted + ", crew note pier11-ramped-berths-2026-10-25"),
+					new ScenarioBerth("enc:0226111D16AAB198", "North pontoon", "Charted face, landing side unsurveyed, crew berth use, crew note pier11-ramped-berths-2026-10-25"),
+					new ScenarioBerth("enc:0226015B0512B198", "South pontoon", "Charted face, landing side unsurveyed, crew berth use, crew note pier11-ramped-berths-2026-10-25"),
+				}, charted + ", crew note pier11-ramped-berths-2026-10-25"),
+				new ScenarioLanding("89", "Astoria", null, derived),
+				new ScenarioLanding("90", "Long Island City", null, derived),
+				new ScenarioLanding("111", "Gov. Island/Yankee Pier", null, charted),
+				new ScenarioLanding("112", "Soundview", null, derived),
+				new ScenarioLanding("113", "East 90th St", null, crew),
+				new ScenarioLanding("114", "Stuyvesant Cove", null, charted),
+				new ScenarioLanding("115", "Corlears Hook", null, derived),
+				new ScenarioLanding("118", "Sunset Park/BAT", null, crew),
+				new ScenarioLanding("120", "Brooklyn Navy Yard", null, derived),
+				new ScenarioLanding("136", "Battery Park City/Vesey St.", null, derived),
+				new ScenarioLanding("137", "St. George", null, crew),
+				new ScenarioLanding("138", "Midtown West 39th St-Pier 79", null, derived),
+				new ScenarioLanding("141", "Ferry Point Park", null, derived),
+			};
+			var days = new List<ScenarioDay>();
+			foreach (var week in ScenarioWeeks)
+			{
+				var monday = DateTime.ParseExact(week, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+				for (var i = 0; i < 7; i++)
+				{
+					var date = monday.AddDays(i).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+					NewYorkTime.ToLocal(new DateTimeOffset(monday.AddDays(i).AddHours(5), TimeSpan.Zero), out var daylight);
+					days.Add(new ScenarioDay(date, "harbor/" + date, TimeSpan.FromHours(daylight ? -4 : -5), Array.IndexOf(daysWithoutWind, date) >= 0, true, "station blend"));
+				}
+			}
+
+			var catalog = new FakeScenarioCatalog(landings, days, Slice().Vessels);
+			foreach (var stop in new[] { "113", "118", "137" })
+			{
+				catalog.RefusedLandings[stop] = "waiting for a crew answer on the landing side";
+			}
+
+			return catalog;
 		}
 
 		public bool TryStart(ScenarioSettings settings, out string problem)

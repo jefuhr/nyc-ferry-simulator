@@ -1,0 +1,5 @@
+{
+	"name": "FerrySim.Harbor.Runtime",
+	"references": ["FerrySim.Core", "FerrySim.Core.Serialization", "FerrySim.Unity.Sim", "FerrySim.Unity.Sim.Cesium", "FerrySim.Unity.Input", "FerrySim.Unity.UI", "FerrySim.Unity.World", "FerrySim.Unity.Slice", "FerrySim.World.HarborTiles", "CesiumForUnity", "Unity.Mathematics"],
+	"autoReferenced": true
+}

@@ -1,0 +1,23 @@
+{
+	"name": "FerrySim.HarborWater.Tests.PlayMode",
+	"references": [
+		"FerrySim.HarborWater",
+		"FerrySim.Core",
+		"FerrySim.Core.Serialization",
+		"FerrySim.Unity.Sim",
+		"FerrySim.Unity.World",
+		"CesiumForUnity",
+		"Unity.Mathematics",
+		"UnityEngine.TestRunner"
+	],
+	"includePlatforms": [],
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"nunit.framework.dll",
+		"Newtonsoft.Json.dll"
+	],
+	"autoReferenced": false,
+	"defineConstraints": [
+		"UNITY_INCLUDE_TESTS"
+	]
+}

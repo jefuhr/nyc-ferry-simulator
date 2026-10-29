@@ -588,7 +588,7 @@
 	left: 50%;
 	translate: -50% 0;
 	flex-direction: column;
-	padding: 8px 12px 10px 12px;
+	padding: 8px 12px 8px 12px;
 	border-width: 1px;
 	border-radius: 8px;
 }
@@ -629,7 +629,61 @@
 
 .fs-picker-landings .fs-options {
 	width: 214px;
-	height: 214px;
+	height: 140px;
+}
+
+/* The search box above the landing list: the list's width, one row high. */
+.fs-picker-search {
+	width: 214px;
+	margin: 0 0 3px 0;
+}
+
+.fs-picker-search .unity-text-field__input {
+	padding: 2px 6px;
+	font-size: 13px;
+	border-width: 1px;
+	border-radius: 3px;
+	min-height: 22px;
+}
+
+/* An option with a note: two clipped lines, the name over the note (the compound selector outranks .fs-option's height). */
+.fs-option.fs-option-noted {
+	height: 38px;
+	padding: 0 8px;
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: center;
+	overflow: hidden;
+}
+
+.fs-option-name {
+	margin: 0;
+	padding: 0;
+	font-size: 13px;
+	-unity-font-style: bold;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%;
+}
+
+.fs-option-note {
+	margin: 0;
+	padding: 0;
+	font-size: 10px;
+	-unity-font-style: normal;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%;
+}
+
+/* The selected landing's or berth's note, under the landing list: the list's width, two lines at most. */
+.fs-picker-note {
+	margin-top: 3px;
+	width: 214px;
+	max-height: 30px;
+	overflow: hidden;
 }
 
 .fs-picker-vessels .fs-options {
@@ -650,6 +704,9 @@
 	-unity-text-align: middle-left;
 	border-width: 1px;
 	border-radius: 3px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .fs-calendar-body {
@@ -662,7 +719,7 @@
 }
 
 .fs-calendar-weekday {
-	height: 24px;
+	height: 22px;
 	margin: 1px 0;
 }
 
@@ -686,7 +743,7 @@
 }
 
 .fs-calendar-cell {
-	height: 24px;
+	height: 22px;
 	margin: 1px 0;
 	padding: 0;
 	font-size: 13px;
@@ -723,7 +780,7 @@
 .fs-picker-footer {
 	flex-direction: row;
 	align-items: center;
-	margin-top: 8px;
+	margin-top: 6px;
 }
 
 .fs-picker-summary {
@@ -740,7 +797,7 @@
 }
 
 .fs-picker-problem {
-	margin-top: 6px;
+	margin-top: 3px;
 	white-space: normal;
 	max-width: 760px;
 }

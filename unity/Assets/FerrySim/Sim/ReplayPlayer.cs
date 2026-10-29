@@ -410,6 +410,29 @@ namespace FerrySim.Sim
 	/// </summary>
 	public static class ReplayPlayer
 	{
+		/// <summary>Checks vessel file identity before simulation creation; legacy recordings have no digest to check.</summary>
+		public static bool TryVesselDigest(RecordedRun run, out string recorded, out string replayed)
+		{
+			if (!run.Header.TryGetValue(RunRecorder.VesselDigestKey, out var expected))
+			{
+				recorded = replayed = string.Empty;
+				return true;
+			}
+
+			recorded = "vessel SHA-256 " + expected;
+			try
+			{
+				var actual = RunRecorder.VesselFileDigest(run.VesselFile);
+				replayed = "vessel SHA-256 " + actual;
+				return EnvironmentPackDigests.IsHexDigest(expected) && string.Equals(expected, actual, StringComparison.Ordinal);
+			}
+			catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is ArgumentException)
+			{
+				replayed = "no usable vessel file: " + error.Message;
+				return false;
+			}
+		}
+
 		/// <summary>
 		/// Replays <paramref name="run"/> on a fresh simulation from <paramref name="factory"/> and compares every row.
 		/// Pass the <paramref name="geometry"/> the run was recorded with (its <c>world_geometry</c> header names the
@@ -425,6 +448,22 @@ namespace FerrySim.Sim
 		public static ReplayResult Verify(RecordedRun run, VesselParameters parameters, ISimulationFactory factory, IStepObserver observer = null, IWorldGeometry geometry = null,
 			FerrySim.Core.Env.EnvironmentPack pack = null, EnvironmentPacks packs = null, TrafficPack traffic = null, TrafficPacks trafficPacks = null)
 		{
+			if (!TryVesselDigest(run, out var recordedVessel, out var replayedVessel))
+			{
+				return new ReplayResult(0, run.Rows.Count, 0, recordedVessel, replayedVessel);
+			}
+			if (run.Header.TryGetValue(RunRecorder.VesselDigestKey, out var expectedVessel))
+			{
+				try
+				{
+					parameters = RunRecorder.LoadVesselSnapshot(run.VesselFile, parameters, out _, expectedVessel);
+				}
+				catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is ArgumentException || error is InvalidOperationException || error is VesselParametersException)
+				{
+					return new ReplayResult(0, run.Rows.Count, 0, recordedVessel, error.Message);
+				}
+			}
+
 			geometry ??= EmptyWorldGeometry.Instance;
 			if (run.Header.TryGetValue(WorldGeometryDigest.HeaderKey, out var recordedGeometry))
 			{

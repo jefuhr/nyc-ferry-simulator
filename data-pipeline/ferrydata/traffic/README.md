@@ -40,7 +40,7 @@ Heading and COG are valid only from 0 inclusive to 360 exclusive degrees; invali
 | 80–89 | tanker |
 | All other codes, zero, missing, non-integer | other |
 
-Names, type and dimensions are the modes among kept reports; ties resolve to the smallest numeric or lexicographic value. Missing or nonpositive dimensions remain blank. The passenger class follows the published format's name and includes all passenger codes, without claiming each passenger vessel is a ferry. `ferry_candidate` is strictly membership in the calibration identity audit's T or K subsets.
+Names, type and dimensions are the modes among kept reports; ties resolve to the smallest numeric or lexicographic value. Missing or nonpositive dimensions remain blank. The passenger class follows the published format's name and includes all passenger codes, without claiming each passenger vessel is a ferry. `ferry_candidate` is strictly membership in the calibration identity audit's T or K subsets, using `operational_depth.identity_classes`: literal `T` maps to T, and `K` or `K-*` maps to K. Blank and unclassified rows are excluded. The manifest retains the audit SHA-256 and the normalized T/K subset provenance.
 
 ## Binary and verification
 

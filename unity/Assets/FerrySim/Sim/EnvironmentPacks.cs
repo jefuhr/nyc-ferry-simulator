@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using FerrySim.Core.Env;
+using FerrySim.Core.Contracts;
+using FerrySim.Core.Traffic;
+using FerrySim.Core.World;
 using FerrySim.Core.Serialization;
 using UnityEngine;
 
@@ -26,6 +30,8 @@ namespace FerrySim.Sim
 		private const string EpochFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
 		private readonly string[] _roots;
+		private VerifiedDepth _harborDepth;
+		private string _harborDepthFolder;
 
 		/// <summary>Packs under <paramref name="roots"/>, absolute folders searched in order, each laid out like <c>data/processed</c>.</summary>
 		public EnvironmentPacks(params string[] roots)
@@ -183,7 +189,11 @@ namespace FerrySim.Sim
 		public EnvironmentPack Load(string name, out string dayFolder)
 		{
 			dayFolder = DayFolder(name) ?? throw new FileNotFoundException(NotFound(name) + ".");
-			var pack = EnvironmentPackJson.Load(dayFolder);
+			// Replays use this general entry point too. Harbor previews, starts and replays share one verified set;
+			// the slice keeps its existing loader and verification behaviour.
+			var pack = name.StartsWith("harbor/", StringComparison.Ordinal)
+				? EnvironmentPackJson.Load(dayFolder, HarborDepth(EnvironmentPackJson.DepthFolderOf(dayFolder), out _))
+				: EnvironmentPackJson.Load(dayFolder);
 			if (pack.Name != name)
 			{
 				throw new EnvironmentPackException(Path.Combine(dayFolder, ManifestFile), $"is the pack {pack.Name}, but it is in the folder of {name}.");
@@ -191,6 +201,89 @@ namespace FerrySim.Sim
 
 			return pack;
 		}
+
+		/// <summary>Prepares all resident harbor inputs before the runner changes any current binding.</summary>
+		public PreparedHarborStart PrepareHarbor(ScenarioSettings settings, string runtimeFolder,
+			Func<string, string, IWorldGeometry> parseContacts, TrafficPacks trafficPacks = null)
+		{
+			if (settings == null)
+			{
+				throw new ArgumentNullException(nameof(settings));
+			}
+			if (parseContacts == null)
+			{
+				throw new ArgumentNullException(nameof(parseContacts));
+			}
+
+			var started = Stopwatch.GetTimestamp();
+			settings.Validate(this, trafficPacks ?? ScenarioTraffic.DefaultPacks);
+			var name = settings.environment.pack;
+			if (!TryParseName(name, out var region, out _, out _) || region != "harbor")
+			{
+				throw new ArgumentException("A harbor start requires a harbor environment day.");
+			}
+
+			var dayFolder = DayFolder(name) ?? throw new FileNotFoundException(NotFound(name));
+			var depth = HarborDepth(EnvironmentPackJson.DepthFolderOf(dayFolder), out var loadedDepth);
+			var day = EnvironmentPackJson.Load(dayFolder, depth, out var dayTimings);
+			if (day.Name != name)
+			{
+				throw new EnvironmentPackException(Path.Combine(dayFolder, ManifestFile), $"is {day.Name}, expected {name}.");
+			}
+
+			var phase = Stopwatch.GetTimestamp();
+			var runtime = HarborRuntimePackJson.Load(runtimeFolder);
+			var runtimeMs = ElapsedMilliseconds(phase);
+			if (runtime.EnvironmentDepthDigest != day.Depth.Digest)
+			{
+				throw new HarborRuntimePackException(Path.Combine(runtimeFolder, ManifestFile),
+					$"environment_depth_digest is {runtime.EnvironmentDepthDigest}, but the day uses {day.Depth.Digest}.");
+			}
+
+			phase = Stopwatch.GetTimestamp();
+			var contactsPath = Path.Combine(runtimeFolder, "contacts.json");
+			var contacts = parseContacts(runtime.ContactsJson, contactsPath) ?? throw new InvalidOperationException(contactsPath + ": contact parser returned no geometry.");
+			var contactMs = ElapsedMilliseconds(phase);
+			phase = Stopwatch.GetTimestamp();
+			var traffic = settings.CreateTraffic(trafficPacks ?? ScenarioTraffic.DefaultPacks);
+			var trafficMs = ElapsedMilliseconds(phase);
+			var environment = RunEnvironment.ForPack(day, settings.StartUtc, dayFolder);
+			var timing = new HarborStartTimings(loadedDepth ? _harborDepth.Timings : default, dayTimings, runtimeMs, contactMs, trafficMs, ElapsedMilliseconds(started));
+			return new PreparedHarborStart(environment, runtime, contacts, traffic, runtimeFolder, timing);
+		}
+
+		/// <summary>
+		/// Loads and verifies a harbor day against the resident verified depth set, loading that set once, so a depth
+		/// preview and the atomic start share one copy (decision 0005, Resident data). Throws as <see cref="Load(string)"/> does.
+		/// </summary>
+		public EnvironmentPack LoadHarborDay(string name)
+		{
+			var dayFolder = DayFolder(name) ?? throw new FileNotFoundException(NotFound(name) + ".");
+			var depth = HarborDepth(EnvironmentPackJson.DepthFolderOf(dayFolder), out _);
+			var pack = EnvironmentPackJson.Load(dayFolder, depth);
+			if (pack.Name != name)
+			{
+				throw new EnvironmentPackException(Path.Combine(dayFolder, ManifestFile), $"is the pack {pack.Name}, but it is in the folder of {name}.");
+			}
+
+			return pack;
+		}
+
+		/// <summary>The resident verified depth set for <paramref name="depthFolder"/>, replaced only when the folder changes.</summary>
+		private VerifiedDepth HarborDepth(string depthFolder, out bool loaded)
+		{
+			loaded = _harborDepth == null || _harborDepthFolder != depthFolder;
+			if (loaded)
+			{
+				var verified = EnvironmentPackJson.LoadVerifiedDepth(depthFolder);
+				_harborDepth = verified;
+				_harborDepthFolder = depthFolder;
+			}
+
+			return _harborDepth;
+		}
+
+		private static double ElapsedMilliseconds(long start) => (Stopwatch.GetTimestamp() - start) * (1000.0 / Stopwatch.Frequency);
 
 		/// <summary>
 		/// The days with a pack in <paramref name="region"/>, oldest first, from the first root that has the region's
@@ -275,6 +368,70 @@ namespace FerrySim.Sim
 
 		internal static bool TryParseEpoch(string text, out DateTimeOffset epoch) =>
 			DateTimeOffset.TryParseExact(text, EpochFormat, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out epoch);
+	}
+
+	/// <summary>A complete candidate bundle. Constructed only after its contacts, day, optional traffic and runtime pack verify.</summary>
+	public sealed class PreparedHarborStart
+	{
+		internal PreparedHarborStart(RunEnvironment environment, HarborRuntimePack runtime, IWorldGeometry contacts, TrafficRun traffic, string runtimeFolder, HarborStartTimings timings)
+		{
+			Environment = environment;
+			Runtime = runtime;
+			Contacts = contacts;
+			Traffic = traffic;
+			RuntimeFolder = runtimeFolder;
+			Timings = timings;
+		}
+
+		/// <summary>Prepared day with independent physics and observer environments.</summary>
+		public RunEnvironment Environment { get; }
+
+		/// <summary>Verified resident runtime export.</summary>
+		public HarborRuntimePack Runtime { get; }
+
+		/// <summary>Authoritative contacts parsed from the verified JSON snapshot.</summary>
+		public IWorldGeometry Contacts { get; }
+
+		/// <summary>Prepared optional traffic; null when disabled.</summary>
+		public TrafficRun Traffic { get; }
+
+		/// <summary>Exact folder of the verified runtime export.</summary>
+		public string RuntimeFolder { get; }
+
+		/// <summary>Measured costs of preparing this bundle.</summary>
+		public HarborStartTimings Timings { get; }
+	}
+
+	/// <summary>Preparation costs, including separate environment phases and the whole candidate bundle.</summary>
+	public readonly struct HarborStartTimings
+	{
+		internal HarborStartTimings(EnvironmentLoadTimings depth, EnvironmentLoadTimings day, double runtime, double contacts, double traffic, double total)
+		{
+			Depth = depth;
+			Day = day;
+			RuntimeMilliseconds = runtime;
+			ContactsMilliseconds = contacts;
+			TrafficMilliseconds = traffic;
+			TotalMilliseconds = total;
+		}
+
+		/// <summary>Initial depth load phases; zero when the verified snapshot was reused.</summary>
+		public EnvironmentLoadTimings Depth { get; }
+
+		/// <summary>Read, hash, decode, validation and total costs for the candidate day.</summary>
+		public EnvironmentLoadTimings Day { get; }
+
+		/// <summary>Runtime export verification and parsing cost in milliseconds.</summary>
+		public double RuntimeMilliseconds { get; }
+
+		/// <summary>Authoritative contact parser cost in milliseconds.</summary>
+		public double ContactsMilliseconds { get; }
+
+		/// <summary>Optional traffic preparation cost in milliseconds.</summary>
+		public double TrafficMilliseconds { get; }
+
+		/// <summary>Whole-bundle preparation cost in milliseconds.</summary>
+		public double TotalMilliseconds { get; }
 	}
 
 	/// <summary>

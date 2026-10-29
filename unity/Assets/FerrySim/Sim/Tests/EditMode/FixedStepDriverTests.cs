@@ -29,6 +29,41 @@ namespace FerrySim.Sim.Tests
 			return trace;
 		}
 
+		[TestCase(true, 1)]
+		[TestCase(false, 10)]
+		public void LimitSetDuringFrame_StopsAtThatCompletedStep(bool hold, int expected)
+		{
+			var driver = new FixedStepDriver(NewSimulation(), new ConstantControls(ControlInputs.Neutral));
+			driver.AddObserver(new LimitObserver(driver, hold));
+			var frame = driver.Advance(0.1);
+			Assert.That(frame.Steps, Is.EqualTo(expected));
+			Assert.That(driver.StepCount, Is.EqualTo(expected));
+			Assert.That(driver.SimulationTime, Is.EqualTo(expected * SimulationClock.FixedTimeStep));
+			if (hold) Assert.That(driver.Advance(0.1).Steps, Is.Zero);
+			else Assert.That(driver.Accumulator, Is.EqualTo(0).Within(1e-12));
+		}
+
+		[Test]
+		public void ExistingLimit_StillEndsAtTheRequestedStep()
+		{
+			var driver = new FixedStepDriver(NewSimulation(), new ConstantControls(ControlInputs.Neutral)) { StepLimit = 3 };
+			Assert.That(driver.Advance(0.1).Steps, Is.EqualTo(3));
+			Assert.That(driver.Advance(0.1).Steps, Is.Zero);
+			Assert.That(driver.SimulationTime, Is.EqualTo(0.03));
+		}
+
+		private sealed class LimitObserver : IStepObserver
+		{
+			private readonly FixedStepDriver _driver;
+			private readonly bool _hold;
+			public LimitObserver(FixedStepDriver driver, bool hold) { _driver = driver; _hold = hold; }
+			public void BeforeStep(long step, in VesselState state, in VesselTelemetry telemetry, in ControlInputs controls) { }
+			public void AfterStep(long stepCount, in VesselState state, in VesselTelemetry telemetry)
+			{
+				if (_hold) _driver.StepLimit = stepCount;
+			}
+		}
+
 		[Test]
 		public void Advance_TakesWholeStepsAndCarriesTheRemainder()
 		{

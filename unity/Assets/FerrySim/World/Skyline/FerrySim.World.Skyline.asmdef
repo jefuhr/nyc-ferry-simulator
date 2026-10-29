@@ -1,0 +1,5 @@
+{
+	"name": "FerrySim.World.Skyline",
+	"references": ["FerrySim.World.HarborTiles"],
+	"autoReferenced": true
+}

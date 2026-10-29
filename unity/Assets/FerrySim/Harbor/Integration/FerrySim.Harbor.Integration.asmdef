@@ -1,0 +1,10 @@
+{
+	"name": "FerrySim.Harbor.Integration",
+	"rootNamespace": "FerrySim.Harbor",
+	"references": ["FerrySim.Core", "FerrySim.Core.Serialization", "FerrySim.Unity.Sim", "FerrySim.Unity.Sim.Cesium", "FerrySim.Unity.World", "FerrySim.Unity.Slice", "FerrySim.Unity.UI", "FerrySim.Unity.Traffic", "FerrySim.Harbor.Runtime", "FerrySim.Unity.Harbor.Scenarios", "FerrySim.World.HarborNavigation", "FerrySim.HarborWater", "CesiumForUnity", "Unity.Mathematics"],
+	"includePlatforms": [],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"autoReferenced": true,
+	"noEngineReferences": false
+}

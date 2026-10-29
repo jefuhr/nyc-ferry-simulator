@@ -169,6 +169,7 @@ namespace FerrySim.Core.Env
 	public sealed class DepthSet
 	{
 		private readonly DepthGrid[] _grids;
+		private readonly IReadOnlyList<DepthGrid> _gridView;
 
 		public DepthSet(string region, string datum, double outsideDepth, IReadOnlyList<DepthGrid> grids, IReadOnlyList<DepthSource> sources, string digest)
 		{
@@ -201,7 +202,8 @@ namespace FerrySim.Core.Env
 			Datum = datum ?? string.Empty;
 			OutsideDepth = outsideDepth;
 			_grids = copy;
-			Sources = sources == null ? Array.Empty<DepthSource>() : new List<DepthSource>(sources).ToArray();
+			_gridView = Array.AsReadOnly(copy);
+			Sources = Array.AsReadOnly(sources == null ? Array.Empty<DepthSource>() : new List<DepthSource>(sources).ToArray());
 			Digest = digest ?? string.Empty;
 		}
 
@@ -213,7 +215,7 @@ namespace FerrySim.Core.Env
 		/// <summary>Depth returned outside every grid and where the bed is unknown, m: the documented conservative value.</summary>
 		public double OutsideDepth { get; }
 
-		public IReadOnlyList<DepthGrid> Grids => _grids;
+		public IReadOnlyList<DepthGrid> Grids => _gridView;
 
 		public IReadOnlyList<DepthSource> Sources { get; }
 

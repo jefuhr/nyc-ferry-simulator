@@ -1,0 +1,11 @@
+{
+	"name": "FerrySim.Harbor.Integration.Tests.EditMode",
+	"rootNamespace": "FerrySim.Harbor.Tests.Integration",
+	"references": ["FerrySim.Harbor.Integration", "FerrySim.Harbor.Runtime", "FerrySim.Unity.Harbor.Scenarios", "FerrySim.HarborWater", "FerrySim.Unity.Traffic", "FerrySim.Unity.Sim", "FerrySim.Unity.Slice", "FerrySim.Unity.World", "FerrySim.Core", "FerrySim.Core.Serialization", "CesiumForUnity", "Unity.Mathematics", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
+	"includePlatforms": ["Editor"],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"autoReferenced": false,
+	"defineConstraints": ["UNITY_INCLUDE_TESTS"],
+	"noEngineReferences": false
+}

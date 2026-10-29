@@ -1,0 +1,14 @@
+{
+	"name": "FerrySim.Unity.Harbor.Scenarios",
+	"rootNamespace": "FerrySim.Harbor",
+	"references": ["FerrySim.Core", "FerrySim.Core.Serialization", "FerrySim.Unity.Sim", "FerrySim.Unity.Slice"],
+	"includePlatforms": [],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": false,
+	"precompiledReferences": [],
+	"autoReferenced": true,
+	"defineConstraints": [],
+	"versionDefines": [],
+	"noEngineReferences": false
+}

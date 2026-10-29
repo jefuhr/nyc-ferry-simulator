@@ -1,0 +1,10 @@
+{
+	"name": "FerrySim.HarborWater",
+	"rootNamespace": "FerrySim.HarborWater",
+	"references": ["FerrySim.Core", "FerrySim.Unity.Sim", "FerrySim.Unity.World", "CesiumForUnity", "Unity.Mathematics"],
+	"includePlatforms": [],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"autoReferenced": true,
+	"noEngineReferences": false
+}

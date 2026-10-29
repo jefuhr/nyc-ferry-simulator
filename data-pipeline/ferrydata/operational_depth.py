@@ -18,7 +18,8 @@ A cell's floor is the deepest required bed over every report whose footprint cov
 min(bed, floor) on water cells only: a bed is never raised, land and fixed structures are never touched and nodata is
 never filled. Charted hazards keep their bed too (coordinator, 2026-10-25): every cell an always-submerged structure
 (WATLEV 3) or an ENC obstruction or wreck area touches, and the report lists what each would have lost. floor_grid and
-apply_floor work on any north-up lon/lat grid, a harbor tile too; the build applies the floor to the slice only.
+apply_floor work on any north-up lon/lat grid. The slice build is unchanged; harbor_landings builds an isolated
+candidate with build_harbor_tile, and requires separate review before adoption.
 """
 import json
 import math
@@ -338,9 +339,10 @@ def fixed_mask(out, grid_shape, transform):
 	return features.geometry_mask(parts, out_shape=grid_shape, transform=transform, invert=True)
 
 
-def hazards(out, slice_):
+def hazards(out, slice_, *, areas_only=True):
 	"""Charted hazards the floor never deepens, sorted by layer and id: always-submerged structures (WATLEV 3) in
-	shoreline_constructions.geojson, and ENC obstruction and wreck areas (OBSTRN and WRECKS polygons)."""
+	shoreline_constructions.geojson, and ENC obstruction and wreck areas (OBSTRN and WRECKS polygons).
+	The harbor caller sets areas_only=False to protect point/line hazards too; the slice default is unchanged."""
 	from ferrydata import enc
 	items = [dict(layer=p['feature_class'], id=str(p['id']), kind='always-submerged structure', category=p.get('category'), geometry=g)
 		for g, p in _geometries(Path(out) / 'shoreline_constructions.geojson', properties=True) if p.get('water_level_effect_code') == 3]
@@ -349,7 +351,7 @@ def hazards(out, slice_):
 		if name not in layers:
 			continue
 		for row in layers[name].itertuples():
-			if row.geometry is not None and row.geometry.geom_type in ('Polygon', 'MultiPolygon'):
+			if row.geometry is not None and (not areas_only or row.geometry.geom_type in ('Polygon', 'MultiPolygon')):
 				category = getattr(row, 'CATOBS' if name == 'OBSTRN' else 'CATWRK', None)
 				items.append(dict(layer=name, id=str(row.LNAM), kind=kind, category=None if pd.isna(category) else int(category), geometry=row.geometry))
 	return sorted(items, key=lambda h: (h['layer'], h['id']))
@@ -657,3 +659,22 @@ def report_markdown(report):
 		lines.append(f"| {row['stop_id']} | " + ' | '.join('/'.join(f'{k}{v}' for k, v in c.items()) or '-' for c in cells) + ' |')
 	lines += ['', 'Notes: ' + ' '.join(report['notes']), '']
 	return '\n'.join(lines)
+
+
+# ---- opt-in harbor candidate (the slice path above is unchanged) --------------------------------------------
+
+
+def build_harbor_tile(source, destination, bed, profile, reports, classes, sources, items):
+	"""Apply the existing operational-ais rule to one harbor tile in a separate destination.
+
+	The caller supplies the globally selected reports (including reports just across tile boundaries)
+	and the tile's charted hazards. This function never writes the source tile or a slice output.
+	"""
+	destination = Path(destination)
+	destination.mkdir(parents=True, exist_ok=True)
+	valid = np.isfinite(bed) & (bed != profile.get('nodata'))
+	water = valid & ~fixed_mask(source, bed.shape, profile['transform']) & ~hazard_mask(items, bed.shape, profile['transform'])
+	new, provenance = write_outputs(destination, bed, water, profile, reports, classes, sources)
+	_write(destination / 'depth_merged_navd88.tif', new, profile,
+		{'vertical_datum': 'NAVD88', 'units': 'm', 'positive': 'up', 'method': METHOD})
+	return new, provenance

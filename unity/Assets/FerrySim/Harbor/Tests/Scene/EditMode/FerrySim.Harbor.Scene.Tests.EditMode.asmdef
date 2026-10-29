@@ -1,0 +1,7 @@
+{
+	"name": "FerrySim.Harbor.Scene.Tests.EditMode",
+	"references": ["FerrySim.Harbor.Runtime", "FerrySim.Harbor.Editor", "FerrySim.World.HarborTiles", "FerrySim.Unity.World", "FerrySim.Unity.UI", "FerrySim.Unity.Input", "FerrySim.Unity.Sim", "FerrySim.Unity.Sim.Cesium", "FerrySim.Unity.Slice", "FerrySim.Core", "CesiumForUnity", "Unity.Mathematics"],
+	"includePlatforms": ["Editor"],
+	"optionalUnityReferences": ["TestAssemblies"],
+	"autoReferenced": false
+}

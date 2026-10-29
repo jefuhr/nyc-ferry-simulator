@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 using FerrySim.Core.Contracts;
 using FerrySim.Core.Traffic;
@@ -220,7 +221,7 @@ namespace FerrySim.Sim
 		/// </summary>
 		public static List<KeyValuePair<string, string>> BuildHeader(ScenarioSettings scenario, VesselParameters vessel, ISimulation simulation, string factoryName, in VesselState initial, UniformEnvironment environment, int sampleHz)
 		{
-			var header = CommonHeader(scenario, vessel, simulation, factoryName, initial, sampleHz);
+			var header = CommonHeader(scenario, vessel, simulation, factoryName, initial, sampleHz, SnapshotDigest(scenario.vesselFile, vessel));
 			header.Add(Pair("env.current_north_mps", ControlTrace.FormatValue(environment.Current.North)));
 			header.Add(Pair("env.current_east_mps", ControlTrace.FormatValue(environment.Current.East)));
 			header.Add(Pair("env.wind_north_mps", ControlTrace.FormatValue(environment.Wind.North)));
@@ -234,19 +235,80 @@ namespace FerrySim.Sim
 		/// pack run says <c>environment</c> = <c>pack</c>, followed by the pack (region/date), its day digest, its epoch and its
 		/// wind station (<see cref="RunEnvironment.RecordingHeader"/>), and has no <c>env.*</c> values: a replay loads the pack.
 		/// </summary>
-		public static List<KeyValuePair<string, string>> BuildHeader(ScenarioSettings scenario, VesselParameters vessel, ISimulation simulation, string factoryName, in VesselState initial, RunEnvironment environment, int sampleHz)
+		public static List<KeyValuePair<string, string>> BuildHeader(ScenarioSettings scenario, VesselParameters vessel, ISimulation simulation, string factoryName, in VesselState initial, RunEnvironment environment, int sampleHz) =>
+			BuildHeader(scenario, vessel, simulation, factoryName, initial, environment, sampleHz, SnapshotDigest(scenario.vesselFile, vessel));
+
+		internal static List<KeyValuePair<string, string>> BuildHeader(ScenarioSettings scenario, VesselParameters vessel, ISimulation simulation, string factoryName, in VesselState initial, RunEnvironment environment, int sampleHz, string vesselDigest)
 		{
-			if (environment.Kind != EnvironmentKind.Pack)
+			var header = CommonHeader(scenario, vessel, simulation, factoryName, initial, sampleHz, vesselDigest);
+			if (environment.Kind == EnvironmentKind.Pack)
 			{
-				return BuildHeader(scenario, vessel, simulation, factoryName, initial, environment.UniformEnvironment, sampleHz);
+				header.InsertRange(header.FindIndex(pair => pair.Key == "environment") + 1, environment.RecordingHeader());
+			}
+			else
+			{
+				var uniform = environment.UniformEnvironment;
+				header.Add(Pair("env.current_north_mps", ControlTrace.FormatValue(uniform.Current.North)));
+				header.Add(Pair("env.current_east_mps", ControlTrace.FormatValue(uniform.Current.East)));
+				header.Add(Pair("env.wind_north_mps", ControlTrace.FormatValue(uniform.Wind.North)));
+				header.Add(Pair("env.wind_east_mps", ControlTrace.FormatValue(uniform.Wind.East)));
+				header.Add(Pair("env.depth_m", ControlTrace.FormatValue(uniform.Depth)));
 			}
 
-			var header = CommonHeader(scenario, vessel, simulation, factoryName, initial, sampleHz);
-			header.InsertRange(header.FindIndex(pair => pair.Key == "environment") + 1, environment.RecordingHeader());
 			return header;
 		}
 
-		private static List<KeyValuePair<string, string>> CommonHeader(ScenarioSettings scenario, VesselParameters vessel, ISimulation simulation, string factoryName, in VesselState initial, int sampleHz)
+		/// <summary>Recording key for the SHA-256 of the exact vessel file bytes loaded for the run.</summary>
+		public const string VesselDigestKey = "vessel_sha256";
+
+		/// <summary>Hashes a resolved vessel file's raw bytes, preserving whitespace and encoding differences.</summary>
+		public static string VesselFileDigest(string vesselFile) => VesselBytesDigest(File.ReadAllBytes(SimPaths.Resolve(vesselFile)));
+
+		public static string VesselBytesDigest(byte[] bytes)
+		{
+			using var sha = SHA256.Create();
+			return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
+		}
+
+		/// <summary>Fingerprints one byte snapshot only when it describes the supplied model; fingerprinted replay refuses a different model.</summary>
+		internal static VesselParameters LoadVesselSnapshot(string vesselFile, VesselParameters supplied, out string digest, string expectedDigest = null)
+		{
+			var path = SimPaths.Resolve(vesselFile);
+			if (!File.Exists(path))
+			{
+				throw new FileNotFoundException($"Vessel file not found: {vesselFile} (looked at {path})", path);
+			}
+			var bytes = File.ReadAllBytes(path);
+			digest = VesselBytesDigest(bytes);
+			if (expectedDigest != null && !string.Equals(expectedDigest, digest, StringComparison.Ordinal))
+			{
+				throw new InvalidOperationException($"{path}: vessel SHA-256 mismatch; recorded {expectedDigest}, replay file {digest}.");
+			}
+			using var stream = new MemoryStream(bytes, false);
+			using var reader = new StreamReader(stream);
+			var parsed = FerrySim.Core.Serialization.VesselParametersJson.Parse(reader.ReadToEnd());
+			if (supplied != null && !Newtonsoft.Json.Linq.JToken.DeepEquals(
+				Newtonsoft.Json.Linq.JToken.Parse(FerrySim.Core.Serialization.VesselParametersJson.Serialize(supplied)),
+				Newtonsoft.Json.Linq.JToken.Parse(FerrySim.Core.Serialization.VesselParametersJson.Serialize(parsed))))
+			{
+				if (expectedDigest != null)
+				{
+					throw new InvalidOperationException($"{path}: supplied vessel parameters do not equal the file snapshot (SHA-256 {digest}).");
+				}
+				// Custom/legacy model overrides are supported, but the named file is not their provenance.
+				digest = null;
+				return supplied;
+			}
+			return parsed;
+		}
+
+		private static string SnapshotDigest(string vesselFile, VesselParameters vessel)
+		{
+			LoadVesselSnapshot(vesselFile, vessel, out var digest);
+			return digest;
+		}
+
+		private static List<KeyValuePair<string, string>> CommonHeader(ScenarioSettings scenario, VesselParameters vessel, ISimulation simulation, string factoryName, in VesselState initial, int sampleHz, string vesselDigest)
 		{
 			var invariant = CultureInfo.InvariantCulture;
 			var header = new List<KeyValuePair<string, string>>
@@ -274,6 +336,10 @@ namespace FerrySim.Sim
 				Pair("initial.sway_mps", ControlTrace.FormatValue(initial.Sway)),
 				Pair("initial.yaw_rate_radps", ControlTrace.FormatValue(initial.YawRate)),
 			};
+			if (vesselDigest != null)
+			{
+				header.Insert(1, Pair(VesselDigestKey, vesselDigest));
+			}
 
 			// Only a run that asked for fog says so: one that did not records the same bytes as before the setting existed.
 			if (scenario.visibilityMetres > 0.0)

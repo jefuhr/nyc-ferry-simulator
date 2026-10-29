@@ -4,7 +4,7 @@ Owner: **unity-slice-integration**. The Lower East River slice as one drivable s
 
 | Folder | Assembly | Contents |
 |---|---|---|
-| `Slice/` | `FerrySim.Unity.Slice` (namespace `FerrySim.Slice`) | `SliceBootstrap`, landing geometry from data, fender parameters, the water height adapter and the tide (`Water/`), the imported terrain on the water's datum, the scenario catalog and launcher (`SliceScenarioCatalog`, `SliceScenarios`) |
+| `Slice/` | `FerrySim.Unity.Slice` (namespace `FerrySim.Slice`) | `SliceBootstrap`, landing geometry from data, fender parameters, the water height adapter and the tide (`Water/`), the imported terrain on the water's datum, the scenario catalog and launcher (`SliceScenarioCatalog`, `SliceScenarios`) and the start shared with the harbor catalog (`Landings/BerthStart.cs`) |
 | `Slice/Authoring/` | `FerrySim.Unity.Slice.Authoring` (editor only) | `SliceSceneBuilder`: builds the scene from code |
 | `Slice/Data/` | (data) | `landing-contact-surfaces.json`: the landings' fender parameters |
 | `Slice/Scenes/` | (generated) | `LowerEastRiverSlice.unity` and its scenario asset |
@@ -165,6 +165,8 @@ Run with the commands in `unity/README.md` (`-assemblyNames FerrySim.Unity.Slice
 `LandingGeometry.Berths(stop)` reads the optional contacts-v2 selector metadata, and `BerthFace(stop, id)` returns its complete kept face in explicit segment order. Null or empty selects the first/default berth. Missing, excluded, duplicate or disconnected subdivisions fail with the stop and berth named. Legacy contacts retain their primary face as one Main berth. Pier 11 uses the crew-note order east, north, south; the east face is primary.
 
 The narrow primary-face exception keeps independent flags honest: a current crew-use note, verified solid-side geometry, a clear 0.5 m UNSARE probe, and nonzero outward slow T/K support at least equal to inward. Its `WaterSideBasis` is `solid-side + crew berth use (water side unsurveyed: UNSARE)`. The embedded crew note and digest are checked against the current source by pipeline validation; the player reads that validated export. This does not verify the 12 m sweep, corridor, ramp side or depth.
+
+**Shared with the harbor.** `Landings/BerthStart.cs` holds the part of a start that is not the slice's own lists: the time on the day's pack, the traffic checks, the bow-on pose, the clearance from every kept contact segment, the scenario's validation and the sampled depth under the hull. `SliceScenarioCatalog` calls it after resolving the landing, berth, day and vessel, and the harbor catalog (`Harbor/Scenarios/README.md`) calls the same code, so a start means the same thing in both and every refusal reads the same. It was extracted in wave 3b as a pure refactor: the Pier 11 start-depth matrix and the clearance report were byte-identical before and after.
 
 `SliceScenarioCatalog` implements `IScenarioStartDepthSource`, forwarded by the bootstrap. The preview samples the real pack under the start hull and compares its minimum depth with maximum draft; it warns through the picker below 0.3 m under keel, including aground starts, without refusing them. The catalog caches loaded days and does no preview work during a running frame. The complete ordering, traffic and visibility rules are in Sim/README.md, The scenario catalog.
 
