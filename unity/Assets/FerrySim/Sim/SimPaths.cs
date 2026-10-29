@@ -33,23 +33,26 @@ namespace FerrySim.Sim
 		}
 
 		/// <summary>
-		/// An absolute path as given; otherwise the first existing of StreamingAssets/&lt;path&gt; and
+		/// An absolute path as given; otherwise the first existing file or directory of StreamingAssets/&lt;path&gt; and
 		/// &lt;repo&gt;/&lt;path&gt;, falling back to the repository location so error messages name it.
 		/// </summary>
-		public static string Resolve(string path)
+		public static string Resolve(string path) => Resolve(path, Application.streamingAssetsPath, RepoRoot);
+
+		// Explicit roots let tests exercise installed-data decisions without leaving files in Assets/StreamingAssets.
+		internal static string Resolve(string path, string streamingRoot, string repositoryRoot)
 		{
 			if (string.IsNullOrEmpty(path) || Path.IsPathRooted(path))
 			{
 				return path;
 			}
 
-			var streaming = Path.Combine(Application.streamingAssetsPath, path);
-			if (File.Exists(streaming))
+			var streaming = Path.Combine(streamingRoot, path);
+			if (File.Exists(streaming) || Directory.Exists(streaming))
 			{
 				return streaming;
 			}
 
-			return Path.Combine(RepoRoot, path);
+			return Path.Combine(repositoryRoot, path);
 		}
 	}
 }

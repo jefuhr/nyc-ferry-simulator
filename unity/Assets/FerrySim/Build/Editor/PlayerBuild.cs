@@ -108,6 +108,9 @@ namespace FerrySim.Build
 		public static void BuildFromCommandLine()
 		{
 			var scenes = EditorBuildSettings.scenes.Where(scene => scene.enabled).Select(scene => scene.path).ToList();
+			HarborPayload.ValidateScenes(scenes);
+			// Evidence-only S5 build; release.sh never passes this switch or changes the shipping scene list.
+			if (Environment.GetCommandLineArgs().Contains("-ferrysimBothScenesEvidence")) scenes.Add(HarborPayload.SliceScene);
 			EditorApplication.Exit(Run(Environment.GetCommandLineArgs(), PlayerSettings.bundleVersion, PlayerSettings.productName, scenes, request => Build(request).summary.result));
 		}
 
@@ -118,6 +121,7 @@ namespace FerrySim.Build
 				UnityEditor.OSXStandalone.UserBuildSettings.architecture = UnityEditor.Build.OSArchitecture.x64ARM64;
 			}
 
+			PlayerPayloadBuildStep.RequestedScenes = request.Scenes;
 			Directory.CreateDirectory(request.OutputFolder);
 			var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
 			{
@@ -127,18 +131,21 @@ namespace FerrySim.Build
 				targetGroup = BuildTargetGroup.Standalone,
 				options = BuildOptions.StrictMode,
 			});
-			WriteReport(report, Path.Combine(request.OutputFolder, ReportFileName));
+			WriteReport(report, Path.Combine(request.OutputFolder, ReportFileName), request.Scenes);
+			PlayerPayloadBuildStep.RequestedScenes = null;
 			var summary = report.summary;
 			Debug.Log($"[FerrySim] {summary.platform} player {summary.result}: {summary.totalSize / 1e6:0.0} MB, {summary.totalErrors} error(s), " +
 				$"{summary.totalWarnings} warning(s), {summary.totalTime.TotalSeconds:0} s, at {request.PlayerPath}");
 			return report;
 		}
 
-		private static void WriteReport(BuildReport report, string path)
+		private static void WriteReport(BuildReport report, string path, string[] scenes)
 		{
 			var summary = report.summary;
 			var file = new ReportFile
 			{
+				scenes = scenes,
+				packed_assets = report.packedAssets.SelectMany(pack => pack.contents).Select(asset => asset.sourceAssetPath).Distinct().OrderBy(asset => asset, StringComparer.Ordinal).ToArray(),
 				result = summary.result.ToString(),
 				platform = summary.platform.ToString(),
 				player = summary.outputPath,
@@ -193,6 +200,8 @@ namespace FerrySim.Build
 		[Serializable]
 		private sealed class ReportFile
 		{
+			public string[] scenes;
+			public string[] packed_assets;
 			public string result;
 			public string platform;
 			public string player;

@@ -1,112 +1,105 @@
 # Releasing
 
-A release is a universal macOS app (Intel and Apple silicon) in a disk image and a Windows x64 player in a zip. `scripts/release.sh` builds both on the Mac from a clean commit, smoke-tests the Mac app, and leaves everything in `artifacts/release/<version>/`. The Windows player's smoke run on a PC is recorded beside it (`scripts/record-windows-smoke.sh`). The release is then published on the private GitHub repository. Releases stay private: the NYC Ferry name and livery need their owners' permission before anything goes wider (see the README's disclaimer).
+The release candidates are a universal macOS app in a DMG and a Windows x64 player in a ZIP. `scripts/release.sh` builds both, validates the exact offline harbor inventory, and smoke-tests a copy installed from the DMG. It never tags, publishes, changes the version, fetches data, or reaches a Windows machine.
 
-## Before a release
+## Before a candidate
 
-- **Unity.** `6000.3.27f1` with Mac Build Support (Mono), which comes with the editor, and Windows Build Support (Mono). Add the Windows module with Unity Hub:
+- Use Unity `6000.3.27f1` with the existing Mac and Windows Mono build-support modules. No package or module installation is part of the release script.
+- Provide the processed harbor outputs from the intended source revision. On a fresh worktree, copy the existing verified outputs with `cp -c -R`; do not write into another checkout. Missing cached inputs must be resolved before release; no downloads are authorized implicitly.
+- Run the whole repository gate, `lockf -k "$HOME/FerrySim-cache/heavy.lock" scripts/check.sh`.
+- Preserve `bundleVersion` unless a version change is explicitly requested. `--allow-dirty` produces a `<version>-dirty` candidate and records the actual source commit and dirty state.
+- Enable only `Assets/FerrySim/Harbor/Scenes/Harbor.unity`. The slice scene, generated assets and its tests remain regression fixtures in the repository.
 
-  ```
-  "/Applications/Unity Hub.app/Contents/MacOS/Unity Hub" -- --headless install-modules --version 6000.3.27f1 -m windows-mono
-  ```
-
-- **Processed data.** The players package the slice's processed data from `data/processed/lower-east-river/`: its `geoid_offset.json`, and every file of its environment packs (`env/`: the 28 scenario days and the current field, about 26 MB). It is not in git, so build it from the release commit, the slice first. The slice build is the full one, because the depth floor needs the AIS extract. On the shared build Mac, both take the heavy lock (`lockf -k ~/FerrySim-cache/heavy.lock …`):
-
-  ```
-  uv run --project data-pipeline python data-pipeline/ferrydata build --slice lower-east-river
-  PYTHONPATH=data-pipeline uv run --project data-pipeline python -m ferrydata.environment build --region lower-east-river --all
-  ```
-
-  A build fails when a file or folder a scene names is missing, and `scripts/release.sh` verifies the packs' digests before it builds anything. Traffic packs are not packaged: players refuse traffic for now.
-- **Checks.** `scripts/check.sh` passes on the commit.
-- **Version.** The version is `bundleVersion` in `unity/ProjectSettings/ProjectSettings.asset` (Player Settings → Version). It must be major.minor.patch, raised for the release, and committed.
-- **Clean tree.** The working tree is clean. `--allow-dirty` builds anyway and labels everything `<version>-dirty`; it is for trying the script, not for publishing.
-
-## Build, package, smoke-test
-
-```
-scripts/release.sh
+```sh
+scripts/release.sh --allow-dirty
 ```
 
-It runs Unity under the shared lock (`~/FerrySim-cache/unity.lock`), one build after the other, so it waits for any other Unity process. A first build compiles every shader variant for Metal and Direct3D and takes a while; later builds reuse the Library's caches.
+The script acquires `heavy.lock` before `unity.lock` for every Unity invocation, including preflight and the installed-player smoke, and releases both between steps. Other heavy packaging steps take `heavy.lock` alone. **Do not wrap `release.sh` in `heavy.lock`: BSD `lockf` is not reentrant and a second acquisition deadlocks.** Internally locking harbor, harbor-environment and traffic builders are not called by this script and must never be enclosed in an outer heavy lock.
 
-In `artifacts/release/<version>/`:
+## Inventory and preflight
 
-| File | What |
+`unity/Assets/FerrySim/Build/Editor/harbor-payload.json` is the single root configuration. Its `roots` array lists the terrain, skyline, environment, runtime, each of the 28 explicit traffic date folders, source contact/index files, both vessels, surface parameters and landing audit. The canonical geoid files travel inside `runtime/`. The surface parameters and audit are also the scene's referenced TextAssets; their source bytes are included in the inventory for review.
+
+To add the later chart pack, add one line to that array:
+
+```json
+"data/processed/harbor/chart",
+```
+
+Keep the preceding/following JSON comma valid. New roots receive containment, exclusion, duplication, byte and hash checks automatically; a format-specific validator should be added when the chart contract requires one.
+
+`HarborPayload` validates before building either platform:
+
+- Every configured root exists, is nonempty, has no symlink, and has no excluded content. Overlapping roots fail on duplicate files.
+- Terrain and skyline indices match every content file's SHA-256 and size, include every actual file, and all decoded tile URIs remain local and indexed.
+- The source harbor index and the render/runtime source inventories match the source files they fingerprint.
+- The existing core readers validate the runtime, one shared depth set, all 28 environment days and all 28 traffic packs. Depth/field dependencies must also be present in the intended inventory. The runtime and audit must reference the adopted depth and unchanged contacts/vessel/day bytes.
+- Scene roots resolve into that inventory, and the configured player scene is harbor-only.
+
+Excluded: raw cache, raw AIS, traffic `_sources/`, dot files, working rasters, GIS intermediates, reports, build logs, slice environment and slice render assets. Traffic uses date roots, never the whole traffic folder. An excluded file inside a selected root fails preflight; a sibling `_sources/` cache is simply outside the inventory.
+
+The preflight writes `payload-inventory.json`. Each player packages the same paths into StreamingAssets and records every file in `build-info.json`, including harbor schema/source metadata and built scenes. Release verification compares the preflight inventory, source bytes, actual copies and build record, and rejects any extra StreamingAssets file. The build report lists scenes and packed asset dependencies so slice exclusion is independently inspectable.
+
+## Candidate outputs
+
+Under `artifacts/release/<label>/`:
+
+| File | Evidence |
 |---|---|
-| `NYC-Ferry-Simulator-<version>-mac.dmg` | The app, ad hoc signed, beside a link to Applications |
-| `NYC-Ferry-Simulator-<version>-windows-x64.zip` | The Windows player's folder |
-| `SHA256SUMS.txt` | The checksums of both |
-| `release-manifest.json` | Version, commit, sizes, hashes and the smoke run's result |
-| `smoke/result/` | The smoke run's `smoke.json` and its wheelhouse and chase screenshots |
-| `windows-smoke/` | The Windows smoke run's report, screenshots and player log, once recorded (Windows smoke run, below) |
-| `mac/`, `windows/` | The built players and Unity's `build-report.json` for each |
-| `logs/` | Unity's build logs, codesign, Gatekeeper and hdiutil output, and the player's log from the smoke run |
+| `*-mac.dmg`, `*-windows-x64.zip` | Actual platform downloads; a download over 500,000,000 bytes stops the script before optimization |
+| `SHA256SUMS.txt` | SHA-256 of both downloads |
+| `release-manifest.json` | Version/commit/dirty state, exact download sizes and hashes, full harbor inventory, schemas/source digests, exclusions and smoke summary |
+| `payload-inventory.json` | All intended source files, sizes/hashes and per-root totals/hash receipts |
+| `mac/`, `windows/` | Players and `build-report.json` with scene and packed-asset inventories |
+| `smoke/result/` | Installed Mac smoke JSON, PNGs and closed recording |
+| `logs/` | Preflight/build/package/player logs and Windows ZIP CRC/listing checks |
+| `windows-smoke/` | A later actual Windows run, once recorded |
 
-An earlier run with the same label is moved aside with a timestamp, not overwritten. Run one release at a time: two runs of the same version would race over the same folder.
+An existing candidate folder is moved aside with a timestamp. Do not run two releases with the same label concurrently. Mac binaries and Cesium must be universal; the app is ad hoc signed and verified after payload copying, and the DMG is verified. Windows requires the x64 executable, UnityPlayer and Cesium plugin; Burst debug information is excluded and the ZIP receives a CRC test.
 
-### What the script checks
+## Installed-player smoke
 
-- **Data first.** The environment packs verify (`python -m ferrydata.environment verify`) before anything is built; the log is `logs/environment-verify.log`.
-- **Builds.** Each build succeeds in strict mode (any error fails it), and the builds leave the working tree as it was.
-- **Packaged data.** Every player build copies the repository files the slice reads at run time into the player's StreamingAssets (`FerrySim.Build.PlayerPayload`):
-  - Today these are both vessel files (`vessels/t-class.json`, `vessels/k-class.json`), the placement's `geoid_offset.json`, and the environment packs' folder, whole: about 150 files and 26 MB.
-  - **Which files.** The build packages repository-relative paths with forward slashes, in serialized string fields or arrays of them whose names end in `File` or `Files`, and every file under the folders named in fields ending in `Folder` or `Folders` (a path with a part starting with a dot, such as `.DS_Store`, is left out). It reads the components of the built scenes, and the project assets they reference under `Assets/`: ScriptableObjects, prefabs, and prefabs behind component references.
-  - **What fails the build:**
-    - a path that is absolute, climbs out of the repository, passes through a symbolic link, or is written with backslashes or surrounding spaces
-    - a missing file
-    - a scenario JSON file or a replay in a built scene, because each names further files the build would not package
-  - **Not found.** A file a script locates by a name built in code is not found. Give it a `*File` field or make it a TextAsset.
-  - **The record.** The build writes `build-info.json` beside the files, recording the version, the commit, whether the tree was dirty, and each file's SHA-256.
-  - **What the script checks.** The record matches this version and commit. Both vessel files, the geoid offset and every file of the environment packs are packaged, and no traffic file is. Each packaged file matches its recorded hash and the repository's bytes, and resolves inside the repository. StreamingAssets holds nothing the record doesn't list, apart from `build-info.json` and dot files such as `.DS_Store`.
-- **Mac app.** The app and the Cesium native plugin are universal (`lipo`). The app re-signs ad hoc and passes `codesign --verify --deep --strict`. The disk image passes `hdiutil verify`.
-- **Windows player.** The package holds an x64 `NYC Ferry Simulator.exe`, `UnityPlayer.dll` and the x64 Cesium native plugin, and no Burst debug information.
-- **Smoke run.** The script copies the app out of the mounted disk image, as a user installs it, and launches it with `-ferrysim-smoke <folder>` (`FerrySim.Slice.PlayerSmokeRun`). A window opens for about a minute. The run:
-  - waits for the slice's own run to step
-  - restarts it with both engines astern for ten simulated seconds
-  - selects and captures the wheelhouse view, then the chase view
-  - quits with 0 only if:
-    - the vessel file came from StreamingAssets
-    - the landings loaded
-    - the vessel moved at least a metre with a finite state
-    - the run's recording was written
-    - both views were captured and are not blank. This is a colour count, not a check of what they show, so look at `smoke/result/*.png` before publishing.
-    - nothing logged an error, exception or assert
-    - on a pack scenario (the slice's is one), the pack came from StreamingAssets and the drawn water stood at the pack's water level at the vessel
+The small materials in `Harbor/Player/Resources` retain `FerrySim/SolidColour` and `FerrySim/HarborLabel`, which navigation finds by name at runtime. Their asset dependencies are covered by EditMode tests and the actual player build report.
 
-  The run leaves its two recordings in the app's `runs/` folder on the build Mac.
+Both platforms keep `-ferrysim-smoke <absolute-folder>`. A harbor-first player starts only `FerrySim.Harbor.Player.HarborPlayerSmokeRun`; a slice-first fixture player retains the existing slice harness. The release script mounts the DMG, copies the app to a fresh temporary Applications folder, unmounts, then launches from an empty temporary working directory with a cleared environment and no repository paths. The installed copy is retained at the path recorded in the evidence.
 
-## Windows smoke run
+The harbor route selects Astoria (stop `89`), T-class, `2025-07-16` at 12:18 local, with actual traffic. It uses the real catalog and atomic launcher, waits for the scene's ten-frame actual terrain/skyline readiness gate, drives both engines astern for ten simulated seconds, captures wheelhouse and chase, closes its recording and quits. It fails on missing/unpackaged data, tile failure/timeout, no traffic, invalid state, insufficient movement, depth/time coverage holds, missing/blank screenshots, recording failure or logged errors.
 
-The Windows player cannot run on the Mac, so it runs on a Windows PC before the release is published:
+`smoke.json` retains `passed`, `failures`, build/platform/environment and screenshot fields used by the release script. It adds `scene: "Harbor"`, `working_directory`, and `harbor` containing the selected landing/date, tile readiness/content counts, runtime/depth/traffic digests, traffic counts and coverage counters. A passing verdict requires actual screenshot files as well as JSON. The screenshot colour check detects blank frames; review the images before publishing.
 
-1. Copy `NYC-Ferry-Simulator-<version>-windows-x64.zip` to the PC and extract it. A folder path with spaces is fine.
-2. In PowerShell, in the extracted folder:
+The short 1280×720 smoke is functional acceptance. It does not accept the design's 1920×1080 multi-route memory, event-frame or first-view budgets. Report measured diagnostics separately; Windows runtime and full budget acceptance remain pending until executed on the target PC.
 
-   ```
-   New-Item -ItemType Directory -Force C:\ferry-smoke | Out-Null
-   $p = Start-Process -FilePath '.\NYC Ferry Simulator.exe' -ArgumentList '-ferrysim-smoke C:\ferry-smoke -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile C:\ferry-smoke\Player.log' -Wait -PassThru; $p.ExitCode
-   ```
+## Windows extracted-player smoke
 
-   A window opens for about a minute. The run makes the same checks as the Mac's, and the exit code is 0 only if all of them passed.
-3. Copy `C:\ferry-smoke` back to the Mac and record it:
+A cross-build on the Mac is **not Windows runtime evidence**. The coordinator runs the extracted ZIP on Romeo afterwards. In PowerShell, substitute the absolute extracted executable path and candidate label, then run:
 
-   ```
-   scripts/record-windows-smoke.sh <version> <the copied folder>
-   ```
-
-   It refuses a run that is not this release's Windows build, and it refuses the release's own `windows-smoke/` folder as the source. Otherwise it copies the report, the screenshots and the log into `artifacts/release/<version>/windows-smoke/`, writes the run's summary into `release-manifest.json` as `windows_run`, and exits 1 if the run failed. Look at the screenshots as well.
-
-## Publish
-
-From the commit the release was built from, with the tree still clean:
-
+```powershell
+$player = 'C:\path\to\extracted\NYC Ferry Simulator\NYC Ferry Simulator.exe'
+$result = 'C:\ferry-smoke\0.2.0-dirty'
+$empty = Join-Path $env:TEMP ('ferrysim-empty-' + [guid]::NewGuid())
+New-Item -ItemType Directory -Force $result, $empty | Out-Null
+$p = Start-Process -FilePath $player -WorkingDirectory $empty -ArgumentList "-ferrysim-smoke $result -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile $result\Player.log" -Wait -PassThru
+$p.ExitCode
+Get-Content "$result\smoke.json"
 ```
-git tag -a v<version> -m "NYC Ferry Simulator <version>"
-git push origin main v<version>
-gh release create v<version> --verify-tag --prerelease --title "NYC Ferry Simulator <version>" --notes-file <notes.md> \
-	artifacts/release/<version>/*.dmg artifacts/release/<version>/*.zip artifacts/release/<version>/SHA256SUMS.txt
+
+Expected: exit 0; `passed: true`, empty `failures`, `platform: "WindowsPlayer"`, `scene: "Harbor"`, Astoria stop `89`, actual terrain/skyline content ready, packaged environment/vessel, active traffic, zero errors/depth misses/time holds, a nonempty recording, `smoke-wheelhouse.png`, `smoke-chase.png`, and `Player.log`. Keep the complete result folder and inspect both screenshots.
+
+Copy that folder to the Mac and record it:
+
+```sh
+scripts/record-windows-smoke.sh <label> <copied-result-folder>
 ```
+
+The recorder refuses a different build/platform, overlapping source/destination folders, or a claimed passing result without harbor readiness, exact runtime/depth/day digests, active traffic and both PNGs. It preserves earlier evidence, records failed runs too, updates `windows_run`, and exits 1 for a failed run.
+
+## S5 scene-size comparison
+
+For release-note evidence only, `PlayerBuild.BuildFromCommandLine` accepts `-ferrysimBothScenesEvidence`. With the shipping build settings unchanged, it explicitly builds harbor first plus the retained slice, and scans precisely those requested scenes. Build an ordinary harbor-only player and this variant on the same source revision, then compare actual built file counts/bytes, payload inventories and compressed downloads. Never ship or relabel the evidence variant as the harbor-only candidate.
+
+## Publishing
+
+Candidate creation grants no publishing permission. Tagging, pushing, release creation and any version change are separate explicitly authorized actions. Signing/notarization purchases and public branding/licensing decisions also remain separate.
 
 ## Installing
 

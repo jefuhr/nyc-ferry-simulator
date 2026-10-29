@@ -28,6 +28,8 @@ namespace FerrySim.Slice
 	{
 		public const string ReportFileName = "smoke.json";
 
+		public const string SliceScenePath = "Assets/FerrySim/Slice/Scenes/LowerEastRiverSlice.unity";
+
 		/// <summary>Both levers during the drive: astern with some throttle, which backs the boat off the landing it starts facing.</summary>
 		public const double DriveLever = -0.3;
 
@@ -86,10 +88,13 @@ namespace FerrySim.Slice
 			_recordingFolder = recordingFolder;
 		}
 
+		// Other first scenes own their smoke route; keep the slice harness for slice-first players only.
+		public static bool IsSlicePlayer(string firstScene) => firstScene == SliceScenePath;
+
 		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
 		private static void StartFromCommandLine()
 		{
-			if (Application.isEditor)
+			if (Application.isEditor || !IsSlicePlayer(UnityEngine.SceneManagement.SceneUtility.GetScenePathByBuildIndex(0)))
 			{
 				return;
 			}

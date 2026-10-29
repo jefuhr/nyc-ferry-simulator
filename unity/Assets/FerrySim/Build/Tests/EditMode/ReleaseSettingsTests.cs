@@ -8,7 +8,7 @@ namespace FerrySim.Build.Tests
 	/// <summary>
 	/// The project settings a release depends on. Failure modes guarded: a version the release script cannot tag
 	/// (not major.minor.patch), the bundle identifier Unity would derive from the product name, a build that opens on
-	/// another scene than the slice or carries a development scene, and a product name changed by accident, which
+	/// another scene than the harbor or carries a development scene, and a product name changed by accident, which
 	/// would rename the installed app and move its saved input profiles.
 	/// </summary>
 	public class ReleaseSettingsTests
@@ -26,11 +26,11 @@ namespace FerrySim.Build.Tests
 		}
 
 		[Test]
-		public void TheBuild_OpensOnTheSlice_AndCarriesNothingElse()
+		public void TheBuild_OpensOnTheHarbor_AndCarriesNothingElse()
 		{
 			var enabled = EditorBuildSettings.scenes.Where(scene => scene.enabled).Select(scene => scene.path).ToArray();
 
-			Assert.That(enabled, Is.EqualTo(new[] { "Assets/FerrySim/Slice/Scenes/LowerEastRiverSlice.unity" }));
+			Assert.That(enabled, Is.EqualTo(new[] { "Assets/FerrySim/Harbor/Scenes/Harbor.unity" }));
 		}
 
 		[Test]
