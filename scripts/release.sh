@@ -36,6 +36,10 @@ heavy() { lockf -k "$HEAVY_LOCK" "$@"; }
 json_field() { python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$1" "$2"; }
 
 [[ -x "$UNITY_EDITOR" ]] || fail "no Unity editor at $UNITY_EDITOR (set UNITY_EDITOR to override)"
+# The verifier and the manifest writer run on the python3 found on PATH: check it before any build, not after.
+python3 -I -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)' 2> /dev/null \
+	|| fail "python3 on PATH is missing or older than 3.9 (found: $(python3 --version 2>&1 || echo none)); the release verifier needs 3.9 or newer"
+echo "--- Python: $(python3 --version 2>&1) at $(command -v python3)"
 command -v uv > /dev/null || fail "uv is not on PATH; the environment packs are verified with the data pipeline's uv environment"
 [[ -d "$(dirname "$UNITY_EDITOR")/../../../PlaybackEngines/WindowsStandaloneSupport" ]] \
 	|| fail "Unity has no Windows Build Support (Mono) module; docs/releasing.md says how to add it"
@@ -153,23 +157,45 @@ package_mac() {
 	heavy hdiutil verify "$MAC_DMG" >> "$OUT/logs/hdiutil.log" 2>&1 || fail "the disk image does not verify; see $OUT/logs/hdiutil.log"
 }
 
+# run_smoke <result-folder> [player args...]: one installed smoke run, with the player's resident set sampled about once a second
+# (ps rss, KB) into <result>/rss-samples.csv and its peak in bytes into <result>/rss-peak-bytes.txt: installed-player memory evidence.
+run_smoke() {
+	local result="$1" suffix="$2"
+	shift 2
+	mkdir -p "$result"
+	local samples="$result/rss-samples.csv" status=0 pid
+	: > "$samples"
+	(cd "$INSTALLED/empty-cwd" && heavy lockf -k "$UNITY_LOCK" env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin TMPDIR="${TMPDIR:-/tmp}" \
+		perl -e 'alarm shift; exec @ARGV' "$SMOKE_TIMEOUT_S" "$INSTALLED/Applications/$PRODUCT.app/Contents/MacOS/$PRODUCT" \
+		-ferrysim-smoke "$result" "$@" -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile "$OUT/logs/smoke-player$suffix.log") \
+		> "$OUT/logs/smoke-player$suffix.stdout.log" 2>&1 &
+	local job=$!
+	while kill -0 "$job" 2> /dev/null; do
+		pid="$(pgrep -n -f "Contents/MacOS/$PRODUCT -ferrysim-smoke $result" || true)"
+		[[ -z "$pid" ]] || echo "$(date -u +%s),$(ps -o rss= -p "$pid" | tr -d ' ')" >> "$samples"
+		sleep 1
+	done
+	wait "$job" || status=$?
+	awk -F, 'BEGIN { m = 0 } $2 > m { m = $2 } END { printf "%d\n", m * 1024 }' "$samples" > "$result/rss-peak-bytes.txt"
+	[[ -f "$result/smoke.json" ]] || fail "the smoke run$suffix wrote no report (exit $status); see $OUT/logs/smoke-player$suffix.log"
+	echo "smoke$suffix: peak resident set $(cat "$result/rss-peak-bytes.txt") bytes over $(wc -l < "$samples" | tr -d ' ') samples"
+	return "$status"
+}
+
 smoke_mac() {
 	echo "--- Offline harbor smoke from the app installed from the DMG"
-	local installed
-	installed="$(mktemp -d "${TMPDIR:-/tmp}/ferrysim-harbor-smoke.XXXXXX")"
-	mkdir -p "$SMOKE/mount" "$SMOKE/result" "$installed/Applications" "$installed/empty-cwd"
+	INSTALLED="$(mktemp -d "${TMPDIR:-/tmp}/ferrysim-harbor-smoke.XXXXXX")"
+	mkdir -p "$SMOKE/mount" "$SMOKE/result" "$INSTALLED/Applications" "$INSTALLED/empty-cwd"
 	hdiutil attach -nobrowse -readonly -mountpoint "$SMOKE/mount" "$MAC_DMG" >> "$OUT/logs/hdiutil.log" 2>&1 \
 		|| fail "the disk image does not mount; see $OUT/logs/hdiutil.log"
-	ditto "$SMOKE/mount/$PRODUCT.app" "$installed/Applications/$PRODUCT.app"
+	ditto "$SMOKE/mount/$PRODUCT.app" "$INSTALLED/Applications/$PRODUCT.app"
 	hdiutil detach "$SMOKE/mount" -quiet || hdiutil detach "$SMOKE/mount" -force -quiet
-	verify_payload "$installed/Applications/$PRODUCT.app/Contents/Resources/Data/StreamingAssets" mac || fail "the installed DMG copy has an invalid harbor payload"
-	local status=0
+	verify_payload "$INSTALLED/Applications/$PRODUCT.app/Contents/Resources/Data/StreamingAssets" mac || fail "the installed DMG copy has an invalid harbor payload"
 	# No repository working directory, paths or inherited environment. The extracted app can read only its own payload.
-	(cd "$installed/empty-cwd" && heavy lockf -k "$UNITY_LOCK" env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin TMPDIR="${TMPDIR:-/tmp}" \
-		perl -e 'alarm shift; exec @ARGV' "$SMOKE_TIMEOUT_S" "$installed/Applications/$PRODUCT.app/Contents/MacOS/$PRODUCT" \
-		-ferrysim-smoke "$SMOKE/result" -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -logFile "$OUT/logs/smoke-player.log") \
-		> "$OUT/logs/smoke-player.stdout.log" 2>&1 || status=$?
-	[[ -f "$SMOKE/result/smoke.json" ]] || fail "the smoke run wrote no report (exit $status); see $OUT/logs/smoke-player.log"
+	# Twice: the displays on (the candidate's verdict) and off (the memory comparison the coordinator asked for).
+	local status=0 status_off=0
+	run_smoke "$SMOKE/result" "" || status=$?
+	run_smoke "$SMOKE/result-no-displays" "-no-displays" -ferrysim-smoke-no-displays || status_off=$?
 	python3 -I - "$SMOKE/result" <<'PYSMOKE'
 import json, pathlib, sys
 folder = pathlib.Path(sys.argv[1])
@@ -187,6 +213,7 @@ for name in ('smoke-wheelhouse.png', 'smoke-chase.png'):
 print('harbor installed-player smoke: passed, Astoria, real tiles + environment + traffic, both views')
 PYSMOKE
 	[[ $status -eq 0 ]] || fail "the smoke run failed (exit $status); see $SMOKE/result/smoke.json"
+	[[ $status_off -eq 0 ]] || fail "the no-displays smoke run failed (exit $status_off); see $SMOKE/result-no-displays/smoke.json"
 	# Preserve the installed copy for review. Its location and cwd are in smoke.json.
 }
 
@@ -212,6 +239,8 @@ manifest = {
 	"artifacts": [artifact(dmg), artifact(archive)],
 	"harbor_payload": json.load(open(os.path.join(out, "payload-inventory.json"))),
 	"mac_smoke_run": {key: smoke.get(key) for key in keys},
+	"mac_smoke_peak_rss_bytes": int(open(os.path.join(out, "smoke", "result", "rss-peak-bytes.txt")).read()),
+	"mac_smoke_no_displays_peak_rss_bytes": int(open(os.path.join(out, "smoke", "result-no-displays", "rss-peak-bytes.txt")).read()),
 	"windows_run": "not run yet: built and inspected on macOS; scripts/record-windows-smoke.sh records a run on a PC",
 }
 with open(os.path.join(out, "release-manifest.json"), "w") as handle:

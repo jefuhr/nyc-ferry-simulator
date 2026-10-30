@@ -1,0 +1,5 @@
+{
+	"name": "FerrySim.Radar",
+	"references": ["FerrySim.Core", "FerrySim.Unity.Sim", "FerrySim.Unity.UI"],
+	"autoReferenced": true
+}

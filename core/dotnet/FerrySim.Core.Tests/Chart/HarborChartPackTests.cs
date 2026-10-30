@@ -181,6 +181,163 @@ namespace FerrySim.Core.Tests.Chart
 			Assert.Throws<HarborChartPackException>(()=>HarborChartPackJson.Load(_folder,_runtime));
 		}
 
+		// Streaming must retain the original fail-closed checks even when files have valid hashes.
+		[TestCase("format")]
+		[TestCase("fields")]
+		[TestCase("tuple-length")]
+		[TestCase("id-order")]
+		[TestCase("attribute")]
+		[TestCase("point-length")]
+		[TestCase("encoded-short")]
+		[TestCase("encoded-long")]
+		[TestCase("line-size")]
+		[TestCase("ring-open")]
+		[TestCase("ring-zero")]
+		[TestCase("empty-geometry")]
+		[TestCase("geometry-type")]
+		[TestCase("attribute-object")]
+		[TestCase("attribute-float")]
+		[TestCase("nonfinite")]
+		[TestCase("bounds")]
+		[TestCase("grid-size")]
+		[TestCase("grid-inventory")]
+		[TestCase("grid-member-count")]
+		[TestCase("grid-member")]
+		[TestCase("grid-key")]
+		[TestCase("count")]
+		[TestCase("duplicate-property")]
+		[TestCase("unknown-nonfinite")]
+		[TestCase("trailing-content")]
+		public void RehashedMalformedLayerMatchesFrozenReader(string mutation)
+		{
+			var file = Path.Combine(_folder, "soundings.json"); var root = JObject.Parse(File.ReadAllText(file));
+			switch (mutation)
+			{
+				case "format": root["format"] = "wrong"; break;
+				case "fields": root["fields"][1] = "wrong"; break;
+				case "tuple-length": ((JArray)root["features"][0]).RemoveAt(5); break;
+				case "id-order": ((JArray)root["features"]).Add(root["features"][0].DeepClone()); break;
+				case "attribute": root["features"][0][3] = 99; break;
+				case "point-length": root["features"][0][4][1] = new JArray(250); break;
+				case "encoded-short": root["features"][0][4] = new JArray("Point"); break;
+				case "encoded-long": ((JArray)root["features"][0][4]).Add(JValue.CreateNull()); break;
+				case "line-size": root["features"][0][4] = new JArray("LineString", new JArray(new JArray(250, 250))); break;
+				case "ring-open": root["features"][0][4] = new JArray("Polygon", new JArray(new JArray(new JArray(250,250), new JArray(260,250), new JArray(260,260), new JArray(250,260)))); break;
+				case "ring-zero": root["features"][0][4] = new JArray("Polygon", new JArray(new JArray(new JArray(250,250), new JArray(251,251), new JArray(252,252), new JArray(250,250)))); break;
+				case "empty-geometry": root["features"][0][4] = new JArray("MultiPoint", new JArray()); break;
+				case "geometry-type": root["features"][0][4][0] = "Circle"; break;
+				case "attribute-object": root["attributes"][0] = new JArray(); break;
+				case "attribute-float": root["features"][0][3] = 0.0; break;
+				case "nonfinite": root["features"][0][4][1][0] = double.NaN; break;
+				case "bounds": root["features"][0][4][1][0] = 1000001; break;
+				case "grid-size": root["grid"]["cell_m"] = 251; break;
+				case "grid-inventory": root["grid"]["cells"] = new JObject(); break;
+				case "grid-member-count": root["grid"]["cells"]["1,1"] = new JArray(); break;
+				case "grid-member": root["grid"]["cells"]["1,1"][0] = 2; break;
+				case "grid-key": root["grid"]["cells"] = new JObject { ["01,1"] = new JArray(0) }; break;
+				case "unknown-nonfinite": root["extra"] = double.PositiveInfinity; break;
+			}
+			var text = root.ToString();
+			if (mutation == "duplicate-property") text = text.Replace("\"format\":", "\"format\": \"ignored\", \"format\":");
+			if (mutation == "trailing-content") text += " {}";
+			// Use bare nonfinite tokens so this exercises numeric rejection, not string validation.
+			if (mutation == "nonfinite") text = text.Replace("\"NaN\"", "NaN");
+			if (mutation == "unknown-nonfinite") text = text.Replace("\"Infinity\"", "Infinity");
+			File.WriteAllText(file, text);
+			if (mutation == "count")
+			{
+				var manifestFile = Path.Combine(_folder, "manifest.json"); var m = JObject.Parse(File.ReadAllText(manifestFile));
+				m["counts"]["soundings"] = 9; File.WriteAllText(manifestFile, m.ToString());
+			}
+			Reseal();
+			var expected = Assert.Throws<HarborChartPackException>(() => LegacyHarborChartPackJson.Load(_folder, _runtime));
+			var actual = Assert.Throws<HarborChartPackException>(() => HarborChartPackJson.Load(_folder, _runtime));
+			Assert.That(actual.File, Is.EqualTo(expected.File));
+			if (mutation != "duplicate-property" && mutation != "trailing-content") Assert.That(actual.Message, Is.EqualTo(expected.Message));
+		}
+
+		[Test]
+		public void LargeIntegerEvidenceMatchesFrozenReader()
+		{
+			var file = Path.Combine(_folder, "soundings.json"); var root = JObject.Parse(File.ReadAllText(file));
+			root["attributes"][0]["large"] = JToken.Parse("123456789012345678901234567890");
+			File.WriteAllText(file, root.ToString()); Reseal();
+			var expected = LegacyHarborChartPackJson.Load(_folder, _runtime)[ChartLayer.Soundings].Features[0].Properties["large"].Number.Value;
+			var actual = HarborChartPackJson.Load(_folder, _runtime)[ChartLayer.Soundings].Features[0].Properties["large"].Number.Value;
+			Assert.That(BitConverter.DoubleToInt64Bits(actual), Is.EqualTo(BitConverter.DoubleToInt64Bits(expected)));
+		}
+
+		[Test]
+		public void IgnoredGeometryExtensionsKeepOriginalAcceptance()
+		{
+			var file = Path.Combine(_folder, "soundings.json"); var root = JObject.Parse(File.ReadAllText(file));
+			root["extra"] = new JConstructor("Ignored", 1);
+			root["features"][0][4] = new JArray("GeometryCollection", new JArray(
+				new JObject { ["coordinates"] = new JObject { ["ignored"] = new JConstructor("Ignored", 1) }, ["geometries"] = new JArray(new JObject { ["type"] = "Point", ["coordinates"] = new JArray(250,250) }), ["type"] = "GeometryCollection" },
+				new JObject { ["geometries"] = new JArray(new JObject { ["type"] = "Unsupported" }), ["type"] = "Point", ["coordinates"] = new JArray(250,250) }));
+			File.WriteAllText(file, root.ToString()); Reseal();
+			var expected = LegacyHarborChartPackJson.Load(_folder, _runtime)[ChartLayer.Soundings].Features[0];
+			var actual = HarborChartPackJson.Load(_folder, _runtime)[ChartLayer.Soundings].Features[0];
+			HarborChartStreamingTests.CompareGeometry(actual.Geometry, expected.Geometry);
+		}
+
+		[TestCase("Point")]
+		[TestCase("MultiPoint")]
+		[TestCase("LineString")]
+		[TestCase("MultiLineString")]
+		[TestCase("Polygon")]
+		[TestCase("MultiPolygon")]
+		[TestCase("GeometryCollection")]
+		public void AllGeometryFormsAndReorderedFieldsMatchFrozenReader(string type)
+		{
+			var point = new JArray(250.01, 250.02);
+			var line = new JArray(point.DeepClone(), new JArray(259.99, 259.98));
+			var ring = new JArray(new JArray(250,250), new JArray(260,250), new JArray(260,260), new JArray(250,260), new JArray(250,250));
+			var hole = new JArray(new JArray(252,252), new JArray(254,252), new JArray(254,254), new JArray(252,254), new JArray(252,252));
+			var polygon = new JArray(ring.DeepClone(), hole.DeepClone());
+			JToken coordinates = type switch
+			{
+				"Point" => point,
+				"MultiPoint" => line,
+				"LineString" => line,
+				"MultiLineString" => new JArray(line.DeepClone(), line.DeepClone()),
+				"Polygon" => polygon,
+				"MultiPolygon" => new JArray(polygon.DeepClone(), polygon.DeepClone()),
+				_ => new JArray(
+					new JObject { ["coordinates"] = polygon.DeepClone(), ["type"] = "Polygon" },
+					new JObject { ["type"] = "LineString", ["coordinates"] = line.DeepClone() },
+					new JObject { ["geometries"] = new JArray(new JObject { ["coordinates"] = point.DeepClone(), ["type"] = "Point" }), ["type"] = "GeometryCollection" },
+					new JObject { ["coordinates"] = new JArray(polygon.DeepClone()), ["type"] = "MultiPolygon" },
+					new JObject { ["coordinates"] = line.DeepClone(), ["type"] = "MultiPoint" },
+					new JObject { ["coordinates"] = new JArray(line.DeepClone()), ["type"] = "MultiLineString" })
+			};
+			var file = Path.Combine(_folder, "soundings.json"); var root = JObject.Parse(File.ReadAllText(file));
+			root["features"][0][4] = new JArray(type, coordinates);
+			// Fixtures write features before attributes; reverse order also exercises fields/grid before features.
+			root = new JObject(root.Properties().Reverse().Select(p => new JProperty(p.Name, p.Value.DeepClone())));
+			File.WriteAllText(file, root.ToString()); Reseal();
+			var old = LegacyHarborChartPackJson.Load(_folder, _runtime)[ChartLayer.Soundings].Features[0];
+			var current = HarborChartPackJson.Load(_folder, _runtime)[ChartLayer.Soundings].Features[0];
+			HarborChartStreamingTests.CompareGeometry(current.Geometry, old.Geometry);
+		}
+
+		[TestCase("duplicate-nested")]
+		[TestCase("invalid-utf8")]
+		[TestCase("bom")]
+		[TestCase("trailing-comment")]
+		public void RehashedTextFramingIsRefusedByBothReaders(string mutation)
+		{
+			var file = Path.Combine(_folder, "soundings.json"); var text = File.ReadAllText(file);
+			if (mutation == "duplicate-nested") text = text.Replace("\"depth_m\":", "\"depth_m\": 4, \"depth_m\":");
+			if (mutation == "trailing-comment") text += " /* comment */";
+			if (mutation == "bom") text = "\uFEFF" + text;
+			File.WriteAllText(file, text, new UTF8Encoding(false));
+			if (mutation == "invalid-utf8") { var bytes = File.ReadAllBytes(file); bytes[10] = 255; File.WriteAllBytes(file, bytes); }
+			Reseal();
+			Assert.Throws<HarborChartPackException>(() => LegacyHarborChartPackJson.Load(_folder, _runtime));
+			Assert.Throws<HarborChartPackException>(() => HarborChartPackJson.Load(_folder, _runtime));
+		}
+
 		[Test, Explicit("Requires the local adopted harbor and chart products; run by exact test filter.")]
 		public void FullPackResidentMemoryAndQueries()
 		{

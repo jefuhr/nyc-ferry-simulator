@@ -70,6 +70,76 @@ namespace FerrySim.Build.Tests
 			if (!Directory.Exists(Path.Combine(PlayerPayload.RepoRoot, HarborPayload.Harbor))) Assert.Ignore("Copied harbor outputs unavailable");
 			Assert.DoesNotThrow(() => HarborPayload.ValidateRepository(PlayerPayload.RepoRoot));
 		}
+		[Test] public void ChartRootIsConfigured()
+		{
+			var roots = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(Path.Combine(PlayerPayload.RepoRoot, HarborPayload.Configuration)))["roots"].Values<string>().ToArray();
+			Assert.That(roots, Does.Contain(HarborPayload.Chart));
+			Assert.That(roots.Distinct().Count(), Is.EqualTo(roots.Length));
+		}
+		/// <summary>Review item 1: the chart records the skyline index, every consumed attributes sidecar and the runtime manifest it was built from; a release with any of them changed must fail before a build, naming the file.</summary>
+		[Test, Category("HarborRealData")] public void ChartBuiltAgainstAnotherSkylineOrSidecarIsRefusedBeforeAnyBuild()
+		{
+			var harbor = Path.Combine(PlayerPayload.RepoRoot, HarborPayload.Harbor);
+			if (!Directory.Exists(Path.Combine(harbor, "runtime")) || !Directory.Exists(Path.Combine(harbor, "chart"))) Assert.Ignore("Copied harbor outputs unavailable");
+			var runtime = FerrySim.Core.Serialization.HarborRuntimePackJson.Load(Path.Combine(harbor, "runtime"));
+			CopyChartInputs(harbor);
+			Assert.DoesNotThrow(() => HarborPayload.ValidateChart(_root, runtime), "the unchanged real inputs pass");
+			// An internally valid but different skyline index with the old chart.
+			var index = Path.Combine(_root, HarborPayload.Harbor, "3dtiles-buildings/index.json");
+			var original = File.ReadAllText(index);
+			File.WriteAllText(index, original.Replace("\"schema\"", "\"review_note\": \"rebuilt skyline\", \"schema\""));
+			Assert.That(() => HarborPayload.ValidateChart(_root, runtime), Throws.InvalidOperationException.With.Message.Contains("3dtiles-buildings/index.json"), "a chart built against another skyline");
+			File.WriteAllText(index, original);
+			Assert.DoesNotThrow(() => HarborPayload.ValidateChart(_root, runtime));
+			// A changed consumed sidecar.
+			var sidecar = Directory.GetFiles(Path.Combine(_root, HarborPayload.Harbor, "3dtiles-buildings"), "attributes.json.gz", SearchOption.AllDirectories)[0];
+			var bytes = File.ReadAllBytes(sidecar);
+			File.WriteAllBytes(sidecar, bytes.Concat(new byte[] { 0 }).ToArray());
+			var relative = sidecar.Substring(Path.Combine(_root, HarborPayload.Harbor).Length + 1).Replace('\\', '/');
+			Assert.That(() => HarborPayload.ValidateChart(_root, runtime), Throws.InvalidOperationException.With.Message.Contains(relative), "a changed sidecar");
+			File.WriteAllBytes(sidecar, bytes);
+			// A changed runtime manifest file on disk.
+			var manifest = Path.Combine(_root, HarborPayload.Harbor, "runtime/manifest.json");
+			var manifestText = File.ReadAllText(manifest);
+			File.WriteAllText(manifest, manifestText + "\n");
+			Assert.That(() => HarborPayload.ValidateChart(_root, runtime), Throws.InvalidOperationException.With.Message.Contains("runtime/manifest.json"), "a changed runtime manifest");
+		}
+
+		/// <summary>The chart folder, the runtime folder and only the skyline files the chart manifest records, into the fixture root.</summary>
+		private void CopyChartInputs(string harbor)
+		{
+			foreach (var folder in new[] { "chart", "runtime" })
+			{
+				Directory.CreateDirectory(Path.Combine(_root, HarborPayload.Harbor, folder));
+				foreach (var file in Directory.GetFiles(Path.Combine(harbor, folder))) File.Copy(file, Path.Combine(_root, HarborPayload.Harbor, folder, Path.GetFileName(file)));
+			}
+			var manifest = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(Path.Combine(harbor, "chart/manifest.json")));
+			foreach (var source in manifest["sources"])
+			{
+				var path = (string)source["file"];
+				if (!path.StartsWith("3dtiles-buildings/", StringComparison.Ordinal)) continue;
+				var target = Path.Combine(_root, HarborPayload.Harbor, path);
+				Directory.CreateDirectory(Path.GetDirectoryName(target));
+				File.Copy(Path.Combine(harbor, path), target);
+			}
+		}
+
+		[Test, Category("HarborRealData")] public void MissingOrStaleChartPackIsRefusedBeforeAnyBuild()
+		{
+			var harbor = Path.Combine(PlayerPayload.RepoRoot, HarborPayload.Harbor);
+			if (!Directory.Exists(Path.Combine(harbor, "runtime")) || !Directory.Exists(Path.Combine(harbor, "chart"))) Assert.Ignore("Copied harbor outputs unavailable");
+			var runtime = FerrySim.Core.Serialization.HarborRuntimePackJson.Load(Path.Combine(harbor, "runtime"));
+			Assert.That(() => HarborPayload.ValidateChart(_root, runtime), Throws.InvalidOperationException.With.Message.Contains("Missing chart pack"));
+			Directory.CreateDirectory(Path.Combine(_root, HarborPayload.Chart));
+			foreach (var file in Directory.GetFiles(Path.Combine(harbor, "chart")))
+			{
+				if (Path.GetFileName(file) == "radar_obstructions.json") Write(HarborPayload.Chart + "/radar_obstructions.json", "{}");
+				else File.Copy(file, Path.Combine(_root, HarborPayload.Chart, Path.GetFileName(file)));
+			}
+			Assert.That(() => HarborPayload.ValidateChart(_root, runtime), Throws.InvalidOperationException.With.Message.Contains("Stale or invalid chart pack").And.Message.Contains("DIGEST").And.Message.Contains("digest mismatch"));
+			File.Delete(Path.Combine(_root, HarborPayload.Chart, "DIGEST"));
+			Assert.That(() => HarborPayload.ValidateChart(_root, runtime), Throws.InvalidOperationException.With.Message.Contains("Missing chart DIGEST"));
+		}
 
 		private void Tiles(string json)
 		{

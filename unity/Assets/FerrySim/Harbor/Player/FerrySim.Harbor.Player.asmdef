@@ -10,7 +10,9 @@
 		"FerrySim.World.HarborTiles",
 		"FerrySim.Unity.Traffic",
 		"FerrySim.Core",
-		"FerrySim.Unity.Harbor.Scenarios"
+		"FerrySim.Unity.Harbor.Scenarios",
+		"FerrySim.Radar",
+		"FerrySim.Chartplotter"
 	],
 	"overrideReferences": true,
 	"precompiledReferences": [

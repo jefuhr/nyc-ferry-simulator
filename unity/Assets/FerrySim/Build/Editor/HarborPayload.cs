@@ -5,6 +5,8 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using FerrySim.Core.Serialization;
+using FerrySim.Core.World;
+using FerrySim.Core.World.Chart;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -107,6 +109,55 @@ namespace FerrySim.Build
 
 		public static void ValidateRepository(string repo) => Create(repo);
 
+		public const string Chart = Harbor + "/chart";
+
+		/// <summary>
+		/// The chart pack as the players will load it: the fixed inventory, every file's SHA-256, the manifest-first DIGEST and
+		/// the link to the packaged runtime's digest, all through the core reader. Fails naming the file before any build.
+		/// </summary>
+		public static HarborChartPack ValidateChart(string repo, HarborRuntimePack runtime)
+		{
+			if (runtime == null) throw new ArgumentNullException(nameof(runtime));
+			var folder = SafePath(repo, Chart);
+			if (!Directory.Exists(folder)) throw new InvalidOperationException("Missing chart pack: " + Chart);
+			if (!File.Exists(Path.Combine(folder, "DIGEST"))) throw new InvalidOperationException("Missing chart DIGEST: " + Chart + "/DIGEST");
+			HarborChartPack chart;
+			try { chart = HarborChartPackJson.Load(folder, runtime); }
+			catch (HarborChartPackException error) { throw new InvalidOperationException("Stale or invalid chart pack: " + error.Message, error); }
+			if (chart.RuntimeDigest != runtime.Digest) throw new InvalidOperationException("Chart pack links runtime " + chart.RuntimeDigest + " but the packaged runtime is " + runtime.Digest + ".");
+			ValidateChartSources(repo, chart);
+			return chart;
+		}
+
+		/// <summary>
+		/// Every packaged input the chart manifest records (the skyline index, each consumed attributes sidecar and the runtime
+		/// manifest) must be the file being packaged now: a chart built against another skyline or runtime fails by name.
+		/// External ENC cache provenance (noaa-enc/…) stays as recorded and is not packaged, so it is not compared here.
+		/// </summary>
+		public static void ValidateChartSources(string repo, HarborChartPack chart)
+		{
+			var harbor = SafePath(repo, Harbor);
+			var sources = chart.Manifest["sources"].Items ?? throw new InvalidOperationException("Chart manifest records no sources.");
+			var skylineIndex = false; var runtimeManifest = false; var sidecars = 0;
+			foreach (var source in sources)
+			{
+				var path = source["file"].Text; var expected = source["sha256"].Text;
+				if (string.IsNullOrEmpty(path) || string.IsNullOrEmpty(expected)) throw new InvalidOperationException("Chart manifest source without a file or sha256.");
+				if (path.StartsWith("noaa-enc/", StringComparison.Ordinal)) continue;
+				if (!path.StartsWith("3dtiles-buildings/", StringComparison.Ordinal) && !path.StartsWith("runtime/", StringComparison.Ordinal))
+					throw new InvalidOperationException("Chart manifest records an input outside the packaged skyline and runtime: " + path);
+				var full = SafePath(harbor, path);
+				if (!File.Exists(full) || HashFile(full) != expected)
+					throw new InvalidOperationException("Chart pack was built against another " + path + " than the one being packaged (recorded " + expected + ", found " + (File.Exists(full) ? HashFile(full) : "no file") + "). Rebuild the chart.");
+				if (path == "3dtiles-buildings/index.json") skylineIndex = true;
+				else if (path == "runtime/manifest.json") runtimeManifest = true;
+				else if (path.EndsWith("/attributes.json.gz", StringComparison.Ordinal)) sidecars++;
+			}
+			if (!skylineIndex) throw new InvalidOperationException("Chart manifest does not record the skyline index 3dtiles-buildings/index.json.");
+			if (!runtimeManifest) throw new InvalidOperationException("Chart manifest does not record runtime/manifest.json.");
+			if (sidecars == 0) throw new InvalidOperationException("Chart manifest records no consumed attributes.json.gz sidecar.");
+		}
+
 		public static JObject Create(string repo)
 		{
 			var config = Read(Path.Combine(repo, Configuration));
@@ -133,6 +184,8 @@ namespace FerrySim.Build
 			var runtimeNames = runtimeManifest["files"].Children<JProperty>().Select(p => p.Name).Concat(new[] { "manifest.json", "DIGEST" });
 			Exact(Path.Combine(harbor, "runtime"), new HashSet<string>(runtimeNames, StringComparer.Ordinal));
 			RequirePackaged(repo, files, Harbor + "/runtime");
+			var chart = ValidateChart(repo, runtime);
+			RequirePackaged(repo, files, Chart);
 			var envExpected = new HashSet<string>(StringComparer.Ordinal) { "depth/manifest.json", "depth/DIGEST" };
 			foreach (var grid in Read(Path.Combine(harbor, "env/depth/manifest.json"))["grids"]) envExpected.Add("depth/" + (string)grid["file"]);
 			var days = new JArray();
@@ -166,8 +219,8 @@ namespace FerrySim.Build
 			return new JObject
 			{
 				["schema"] = "ferrysim-harbor-player-inventory/1", ["configuration_sha256"] = HashFile(Path.Combine(repo, Configuration)),
-				["schemas"] = new JObject { ["source_index"] = (string)sourceIndex["schema"], ["terrain"] = (string)Read(Path.Combine(harbor, "3dtiles/index.json"))["schema"], ["skyline"] = (string)Read(Path.Combine(harbor, "3dtiles-buildings/index.json"))["schema"], ["runtime"] = (string)runtimeManifest["format"], ["environment"] = "ferrysim-env/1", ["depth"] = "ferrysim-env-depth/1", ["traffic"] = "ferrysim-traffic/1" },
-				["source_digests"] = new JObject { ["source_index_sha256"] = HashFile(Path.Combine(harbor, "index.json")), ["terrain_index_sha256"] = HashFile(Path.Combine(harbor, "3dtiles/index.json")), ["skyline_index_sha256"] = HashFile(Path.Combine(harbor, "3dtiles-buildings/index.json")), ["depth"] = depth.Digest, ["runtime"] = runtime.Digest, ["days"] = days },
+				["schemas"] = new JObject { ["source_index"] = (string)sourceIndex["schema"], ["terrain"] = (string)Read(Path.Combine(harbor, "3dtiles/index.json"))["schema"], ["skyline"] = (string)Read(Path.Combine(harbor, "3dtiles-buildings/index.json"))["schema"], ["runtime"] = (string)runtimeManifest["format"], ["chart"] = "ferrysim-harbor-chart/1", ["environment"] = "ferrysim-env/1", ["depth"] = "ferrysim-env-depth/1", ["traffic"] = "ferrysim-traffic/1" },
+				["source_digests"] = new JObject { ["source_index_sha256"] = HashFile(Path.Combine(harbor, "index.json")), ["terrain_index_sha256"] = HashFile(Path.Combine(harbor, "3dtiles/index.json")), ["skyline_index_sha256"] = HashFile(Path.Combine(harbor, "3dtiles-buildings/index.json")), ["depth"] = depth.Digest, ["runtime"] = runtime.Digest, ["chart"] = chart.Digest, ["chart_runtime"] = chart.RuntimeDigest, ["days"] = days },
 				["roots"] = new JArray(roots.Select(root => RootRecord(root, inventory))), ["files"] = inventory,
 				["file_count"] = files.Count, ["bytes"] = inventory.Sum(e => (long)e["bytes"]), ["exclusions"] = config["exclusions"].DeepClone(),
 			};

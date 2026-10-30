@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using FerrySim.Core.Contracts;
 using FerrySim.Core.Serialization;
+using FerrySim.Controls;
 using FerrySim.Core.World;
 using FerrySim.HarborWater;
 using FerrySim.Sim;
@@ -87,9 +88,26 @@ namespace FerrySim.Harbor
 			var launcher = new HarborLauncher(runner, runtimeFolder, landings, surfaces);
 			var catalog = new HarborScenarioCatalog(landings, LoadVessels(), packs, trafficPacks: runner.TrafficPacks, marks: audit.Marks, launcher: launcher,
 				depths: new SharedDepthEnvironments(packs));
-			var indexFile = Path.Combine(Path.GetDirectoryName(runtimeFolder) ?? runtimeFolder, "index.json");
+			var harborFolder = Path.GetDirectoryName(runtimeFolder) ?? runtimeFolder;
+			var indexFile = Path.Combine(harborFolder, "index.json");
 			_services = new HarborIntegrationServices(context, pack, landings, catalog, launcher, new HarborWaterForwarder(new HarborDatum(pack.Geoid)), waterMaterial, indexFile);
+			// The chart pack loads once per process on a worker thread from here on, so no Start waits on it; the displays
+			// connect themselves when it is ready and show CHART LOADING until then (HarborDisplays).
+			var chart = HarborChartLoad.Start(Path.Combine(harborFolder, ChartFolderName), pack);
+			_services.Displays = CreateDisplays(context, chart);
 			return _services;
+		}
+
+		/// <summary>The chart pack beside the runtime pack: data/processed/harbor/chart.</summary>
+		public const string ChartFolderName = "chart";
+
+		private HarborDisplays CreateDisplays(HarborSceneContext context, HarborChartLoad chart)
+		{
+			var host = new GameObject("Harbor displays");
+			host.transform.SetParent(transform, false);
+			var displays = host.AddComponent<HarborDisplays>();
+			displays.Configure(context.Runner, chart, wheelhouseUI, context.CameraRig, context.Sun, context.Runner.GetComponent<HelmInputController>());
+			return displays;
 		}
 
 		private static IReadOnlyList<KeyValuePair<string, VesselParameters>> LoadVessels()
@@ -176,6 +194,9 @@ namespace FerrySim.Harbor
 
 		/// <summary>The visual water of the current run, one patch per depth grid.</summary>
 		public IReadOnlyList<HarborWaterPatch> Patches => _patches;
+
+		/// <summary>The wheelhouse chartplotter and radar with their shared chart load, created by the factory.</summary>
+		public HarborDisplays Displays { get; internal set; }
 
 		/// <summary>How many harbor runs have bound their water and visual patches.</summary>
 		public int RunsBound { get; private set; }
@@ -297,6 +318,11 @@ namespace FerrySim.Harbor
 			}
 
 			ClearPatches();
+			if (Displays != null)
+			{
+				UnityEngine.Object.Destroy(Displays.gameObject);
+				Displays = null;
+			}
 		}
 	}
 }

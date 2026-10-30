@@ -20,13 +20,7 @@ The script acquires `heavy.lock` before `unity.lock` for every Unity invocation,
 
 `unity/Assets/FerrySim/Build/Editor/harbor-payload.json` is the single root configuration. Its `roots` array lists the terrain, skyline, environment, runtime, each of the 28 explicit traffic date folders, source contact/index files, both vessels, surface parameters and landing audit. The canonical geoid files travel inside `runtime/`. The surface parameters and audit are also the scene's referenced TextAssets; their source bytes are included in the inventory for review.
 
-To add the later chart pack, add one line to that array:
-
-```json
-"data/processed/harbor/chart",
-```
-
-Keep the preceding/following JSON comma valid. New roots receive containment, exclusion, duplication, byte and hash checks automatically; a format-specific validator should be added when the chart contract requires one.
+The chart pack root, `data/processed/harbor/chart`, is in that array: the preflight loads it through the core reader (every file's SHA-256, the manifest-first DIGEST and the link to the packaged runtime's digest) and compares every packaged input its manifest records (the skyline `3dtiles-buildings/index.json`, each consumed `attributes.json.gz` sidecar and `runtime/manifest.json`) against the current repository files, failing before any build and naming the file; external ENC cache provenance stays as recorded and is not packaged.
 
 `HarborPayload` validates before building either platform:
 

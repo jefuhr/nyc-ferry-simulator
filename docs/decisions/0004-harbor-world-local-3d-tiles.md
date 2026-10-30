@@ -46,11 +46,13 @@ The harbor's terrain, and later its skyline, stream as **local 3D Tiles** that `
   - builds the pipeline's 3D Tiles writer and its validation first, starting from the spike's Python tooling in `tools/spikes/world-streaming/`;
   - then the harbor scene, the packaging step and a streaming end-to-end test from Wall St to St. George, Astoria and Soundview with no load screen.
 - **Budgets to test against:**
-  - process memory under 1.2 GB with the stand-in skyline;
+  - peak process memory under 2 GB (2,000,000,000 bytes) in the installed player;
   - no frame with a streaming event over 20 ms at 1x;
   - the first full view within 3 s of a scenario start.
 
   They're rechecked once the real skyline tileset exists.
+
+  **Amended 2026-10-29:** the memory budget was 1.2 GB. The installed harbor player, with the real skyline, the chart pack and all 28 offline days, peaked at about 1.19–1.25 GB on a short 720p smoke route, with or without the radar and chartplotter. The project owner raised the budget to 2 GB instead of scheduling memory work. Harbor end-to-end acceptance measures it at 1080p on the long routes, on Mac and Windows.
 - **Windows:** `file://` loading in the Windows player is untested. It's checked on a real Windows PC early in wave 2, before more is built on it.
 - **Floating origin:** stays as in the slice (`CesiumOriginShift`, 100 m), and static batching stays off for tiles.
 - **Colliders:** any streamed collider is baked in a job, never cooked on the main thread.

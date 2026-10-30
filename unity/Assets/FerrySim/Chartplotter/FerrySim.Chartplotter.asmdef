@@ -1,0 +1,14 @@
+{
+	"name": "FerrySim.Chartplotter",
+	"rootNamespace": "FerrySim.Chartplotter",
+	"references": ["FerrySim.Core", "FerrySim.Unity.Sim", "FerrySim.Unity.UI"],
+	"includePlatforms": [],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": false,
+	"precompiledReferences": [],
+	"autoReferenced": true,
+	"defineConstraints": [],
+	"versionDefines": [],
+	"noEngineReferences": false
+}

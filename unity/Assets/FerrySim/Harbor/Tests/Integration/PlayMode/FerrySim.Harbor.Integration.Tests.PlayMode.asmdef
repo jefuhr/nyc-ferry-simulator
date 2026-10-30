@@ -1,7 +1,7 @@
 {
 	"name": "FerrySim.Harbor.Integration.Tests.PlayMode",
 	"rootNamespace": "FerrySim.Harbor.Tests.Integration.PlayMode",
-	"references": ["FerrySim.Harbor.Integration", "FerrySim.Harbor.Runtime", "FerrySim.Unity.Harbor.Scenarios", "FerrySim.HarborWater", "FerrySim.World.HarborNavigation", "FerrySim.World.HarborTiles", "FerrySim.Unity.Traffic", "FerrySim.Unity.Sim", "FerrySim.Unity.Sim.Cesium", "FerrySim.Unity.Input", "FerrySim.Unity.Slice", "FerrySim.Unity.UI", "FerrySim.Unity.World", "FerrySim.Core", "FerrySim.Core.Serialization", "CesiumForUnity", "Unity.Mathematics", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
+	"references": ["FerrySim.Harbor.Integration", "FerrySim.Harbor.Runtime", "FerrySim.Unity.Harbor.Scenarios", "FerrySim.HarborWater", "FerrySim.World.HarborNavigation", "FerrySim.World.HarborTiles", "FerrySim.Unity.Traffic", "FerrySim.Unity.Sim", "FerrySim.Unity.Sim.Cesium", "FerrySim.Unity.Input", "FerrySim.Unity.Slice", "FerrySim.Unity.UI", "FerrySim.Unity.World", "FerrySim.Core", "FerrySim.Core.Serialization", "FerrySim.Radar", "FerrySim.Chartplotter", "FerrySim.Chartplotter.Tests.Fixtures", "Unity.InputSystem", "Unity.InputSystem.TestFramework", "CesiumForUnity", "Unity.Mathematics", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
 	"includePlatforms": [],
 	"excludePlatforms": [],
 	"allowUnsafeCode": false,

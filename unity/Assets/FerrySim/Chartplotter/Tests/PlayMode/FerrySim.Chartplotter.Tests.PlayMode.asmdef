@@ -1,0 +1,14 @@
+{
+	"name": "FerrySim.Chartplotter.Tests.PlayMode",
+	"rootNamespace": "FerrySim.Chartplotter.Tests.PlayMode",
+	"references": ["FerrySim.Core", "FerrySim.Core.Serialization", "FerrySim.Unity.Sim", "FerrySim.Unity.UI", "FerrySim.Unity.Traffic", "FerrySim.Unity.World", "FerrySim.Harbor.Runtime", "FerrySim.Harbor.Integration", "FerrySim.Unity.Harbor.Scenarios", "FerrySim.World.HarborTiles", "FerrySim.World.HarborNavigation", "FerrySim.Chartplotter", "FerrySim.Chartplotter.Tests.Fixtures", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
+	"includePlatforms": [],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": true,
+	"precompiledReferences": ["nunit.framework.dll"],
+	"autoReferenced": false,
+	"defineConstraints": ["UNITY_INCLUDE_TESTS"],
+	"versionDefines": [],
+	"noEngineReferences": false
+}

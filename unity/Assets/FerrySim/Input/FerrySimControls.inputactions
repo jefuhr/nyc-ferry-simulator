@@ -542,6 +542,514 @@
 					"isPartOfComposite": false
 				}
 			]
+		},
+		{
+			"name": "Displays",
+			"id": "872e9b81-81b6-568c-b061-c2a580106f17",
+			"actions": [
+				{
+					"name": "ChartplotterToggle",
+					"type": "Button",
+					"id": "e4deeb1c-d2aa-5304-8788-ea938ea3789f",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "RadarToggle",
+					"type": "Button",
+					"id": "5dacd481-c0c1-532f-a0d8-d99966f3cee7",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "ChartZoomIn",
+					"type": "Button",
+					"id": "cad23d6c-a141-5320-aaa9-0094c9fa6598",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "ChartZoomOut",
+					"type": "Button",
+					"id": "db779fa6-ee12-5a5c-893d-35beda703114",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "ChartOrientation",
+					"type": "Button",
+					"id": "059988d3-feb3-563d-baf6-10f08854fccd",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "ChartCentre",
+					"type": "Button",
+					"id": "1047293b-6aec-58ce-bbdc-ac2a7ee36ccc",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "ChartPanUp",
+					"type": "Button",
+					"id": "fdfd5a8e-dcd3-5a65-b98e-f09d6fc7378f",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "ChartPanLeft",
+					"type": "Button",
+					"id": "c29775ac-be0d-5113-b72f-909912c91cd5",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "ChartPanDown",
+					"type": "Button",
+					"id": "72df5465-e0cf-57f3-9284-fc52e34ab620",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "ChartPanRight",
+					"type": "Button",
+					"id": "9f687912-8b2b-5ecf-ac7e-82554b79c351",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "ChartPalette",
+					"type": "Button",
+					"id": "0a1af3c1-4456-596a-9e25-728894ca247d",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "ChartNextTarget",
+					"type": "Button",
+					"id": "47c0c2ad-8bd9-5a33-9e04-b85e38cb3d24",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "ChartClearSelection",
+					"type": "Button",
+					"id": "5b1cb933-51f2-5c27-a816-b66fb9adae2f",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "RadarRangeUp",
+					"type": "Button",
+					"id": "79de248f-1475-5cd4-9774-0725ff1194da",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "RadarRangeDown",
+					"type": "Button",
+					"id": "1120094e-3ac0-5efe-9190-b16e9125e036",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "RadarOrientation",
+					"type": "Button",
+					"id": "cea47c0c-8341-5cab-a533-f9517c1efba7",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "RadarPalette",
+					"type": "Button",
+					"id": "b770dc59-3ba9-5b14-9e30-fb83dbe65a77",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "RadarEblLeft",
+					"type": "Button",
+					"id": "5474fdad-f6bd-5af6-8626-c29681e072ab",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "RadarEblRight",
+					"type": "Button",
+					"id": "5ed57a53-d56a-586a-abe4-e6706cf143a2",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "RadarVrmIn",
+					"type": "Button",
+					"id": "d8ab0086-b43f-5fab-b465-1902711633fd",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "RadarVrmOut",
+					"type": "Button",
+					"id": "52aeac19-1d38-5e75-ba80-6b5e6b9466ac",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "RadarGainDown",
+					"type": "Button",
+					"id": "dac46362-0414-527e-9f76-c3971b95b515",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "RadarGainUp",
+					"type": "Button",
+					"id": "1620bca0-9eeb-5f13-9c19-619546501c62",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "RadarSeaDown",
+					"type": "Button",
+					"id": "aca1d6de-e6a0-50f6-abd4-c2eb8fee9846",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "RadarSeaUp",
+					"type": "Button",
+					"id": "68f40655-7717-5766-9192-7cd136b15700",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				}
+			],
+			"bindings": [
+				{
+					"name": "",
+					"id": "af1ba08a-f2e8-5f44-be45-66d6f9c5d2f2",
+					"path": "<Keyboard>/1",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ChartplotterToggle",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "a851a187-7104-5ac0-91e3-6d9835d72f6b",
+					"path": "<Keyboard>/2",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "RadarToggle",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "2436bb78-3dd3-596c-8035-3b0eb6b7b853",
+					"path": "<Keyboard>/equals",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ChartZoomIn",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "f3824080-8840-5e96-9553-82db4ce04b20",
+					"path": "<Keyboard>/minus",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ChartZoomOut",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "ab4f6f3a-521e-5ed7-aefe-7bbe7a568fab",
+					"path": "<Keyboard>/o",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ChartOrientation",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "92a850cf-4ffa-5987-bf12-a55ea83ed63a",
+					"path": "<Keyboard>/u",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ChartCentre",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "74ee737a-d5cc-5713-83b0-9dbe41489129",
+					"path": "<Keyboard>/i",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ChartPanUp",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "3b129186-478b-5457-8dc5-b4f176ec466d",
+					"path": "<Keyboard>/j",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ChartPanLeft",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "c6246d9e-264d-5102-88be-f956eaeefa76",
+					"path": "<Keyboard>/k",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ChartPanDown",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "9f6221df-74bf-5143-8b4f-73d1de8dfae6",
+					"path": "<Keyboard>/l",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ChartPanRight",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "dde1e2aa-e8a8-5046-b554-6e2691fd3a12",
+					"path": "<Keyboard>/f",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ChartPalette",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "edd424ac-5bac-548a-8f1b-ce977785aece",
+					"path": "<Keyboard>/t",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ChartNextTarget",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "c857aeae-6c74-5b49-a919-4a640c8892ae",
+					"path": "<Keyboard>/y",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ChartClearSelection",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "283b7ba6-8ab3-5685-a613-d2cf409df175",
+					"path": "<Keyboard>/rightBracket",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "RadarRangeUp",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "cbb45d4c-949b-59f5-b0e5-53963a36c9a3",
+					"path": "<Keyboard>/leftBracket",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "RadarRangeDown",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "59b4a74b-0724-58c6-8700-7fd02c270bd4",
+					"path": "<Keyboard>/z",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "RadarOrientation",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "bb884f14-f285-519e-a827-020a35af0199",
+					"path": "<Keyboard>/x",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "RadarPalette",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "dfa7377a-983b-55db-ac9d-8e243e5eb6e6",
+					"path": "<Keyboard>/comma",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "RadarEblLeft",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "46f97ab6-7951-5646-acbd-a56f4f0db59e",
+					"path": "<Keyboard>/period",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "RadarEblRight",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "b8ebb4de-74b7-57db-8182-1644e1e2fd70",
+					"path": "<Keyboard>/semicolon",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "RadarVrmIn",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "c90846a7-1325-5d72-84ef-370dba570fcc",
+					"path": "<Keyboard>/quote",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "RadarVrmOut",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "d5edf07e-785e-551a-8c5e-048cd6f95c90",
+					"path": "<Keyboard>/3",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "RadarGainDown",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "e74ad1ef-4970-5a36-a849-d39e216114ba",
+					"path": "<Keyboard>/4",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "RadarGainUp",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "803d7436-a2e5-5ebc-b091-c7e73f744b79",
+					"path": "<Keyboard>/5",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "RadarSeaDown",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "ae2ad8ce-2a3b-5ab6-b932-9e93ff2de329",
+					"path": "<Keyboard>/6",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "RadarSeaUp",
+					"isComposite": false,
+					"isPartOfComposite": false
+				}
+			]
 		}
 	],
 	"controlSchemes": [

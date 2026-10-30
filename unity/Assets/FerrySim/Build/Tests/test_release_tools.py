@@ -38,6 +38,13 @@ class PayloadVerifierTests(unittest.TestCase):
 		verify.verify(str(self.copy), str(self.source), str(self.inventory_path), '0.2.0', 'abc', '1', 'mac', str(self.report_path))
 
 	def test_exact_inventory_passes(self): self.run_verify()
+	def test_digest_streams_sha256_without_file_digest(self):
+		# Review item 8: the verifier must run on the macOS system Python 3.9, which has no hashlib.file_digest.
+		path = self.source / 'big.bin'
+		data = bytes(range(256)) * 8192 + b'tail'
+		path.write_bytes(data)
+		self.assertEqual(verify.digest(path), hashlib.sha256(data).hexdigest())
+		self.assertNotIn('hashlib.file_digest(', (TOOLS / 'verify_harbor_payload.py').read_text())
 	def test_unrecorded_copy_is_refused(self):
 		(self.copy / 'raw.bin').write_bytes(b'raw')
 		with self.assertRaisesRegex(ValueError, 'actual StreamingAssets'): self.run_verify()

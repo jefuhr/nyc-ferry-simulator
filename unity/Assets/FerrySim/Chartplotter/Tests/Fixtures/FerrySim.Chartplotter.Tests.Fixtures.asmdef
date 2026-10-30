@@ -1,0 +1,14 @@
+{
+	"name": "FerrySim.Chartplotter.Tests.Fixtures",
+	"rootNamespace": "FerrySim.Chartplotter.Tests",
+	"references": ["FerrySim.Core", "FerrySim.Core.Serialization", "FerrySim.Unity.Sim", "FerrySim.Unity.UI", "FerrySim.Chartplotter"],
+	"includePlatforms": [],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": false,
+	"precompiledReferences": [],
+	"autoReferenced": false,
+	"defineConstraints": ["UNITY_INCLUDE_TESTS"],
+	"versionDefines": [],
+	"noEngineReferences": false
+}

@@ -6,8 +6,9 @@ Owner: **unity-sim-bridge-controls**. Assembly `FerrySim.Unity.Input` (namespace
 
 | File | Role |
 |---|---|
-| `FerrySimControls.inputactions` | The "Helm" action map and default bindings |
-| `HelmInputMapper` | Turns the map into lever and helm positions, plus button events |
+| `FerrySimControls.inputactions` | The "Helm" and "Displays" action maps and default bindings |
+| `HelmInputMapper` | Turns the Helm map into lever and helm positions, plus button events |
+| `DisplayInputMapper` | Turns the Displays map into events for the harbor's chartplotter and radar |
 | `ControlInputSmoother` | Device-independent noise smoothing, once per physics step |
 | `HelmInputController` | MonoBehaviour: the runner's `IControlInputSource`; buttons pause and reset the run, cycle the camera and sound the horn |
 
@@ -33,6 +34,23 @@ Owner: **unity-sim-bridge-controls**. Assembly `FerrySim.Unity.Input` (namespace
 `NewRun` raises `HelmInputMapper.NewRunRequested`. In the slice scene, `SliceBootstrap` opens the wheelhouse UI's scenario picker on it. While the picker is open, the run is paused and the helm map is disabled, so no key or axis moves the boat; Escape or the picker's Close button closes it.
 
 Signs follow `ControlInputs`: +1 is full ahead, −1 full astern, and +1 helm is hard over to starboard. The Input System inverts HID Y axes, so stick forward reads +1.
+
+## The Displays map
+
+Keyboard only, for the harbor wheelhouse's chartplotter and radar (`Harbor/Integration/README.md`, Displays). The composition root enables the map only in the wheelhouse view with the scenario picker and the debrief closed, and a display's keys act only while that display is visible. No key is shared with the Helm map, the bow view (B, Shift+B), the camera (F1–F3) or the picker and debrief (Escape, Enter, Space, the arrows, Page Up/Down, Home, End), and no Shift combination is used: a plain key binding fires on Shift+key too, so Shift+arrows would also step the helm. `Input/Tests/EditMode/InputBindingTests` fails on any keyboard control bound twice across all action maps, or bound to one of those reserved keys.
+
+| Action | Key | Action | Key |
+|---|---|---|---|
+| `ChartplotterToggle` show / hide | 1 | `RadarToggle` show / hide | 2 |
+| `ChartZoomIn` / `ChartZoomOut` (0.25 … 8 NM) | = / − | `RadarRangeUp` / `RadarRangeDown` (0.125 … 6 nm) | ] / [ |
+| `ChartOrientation` north-up / course-up | O | `RadarOrientation` north-up / head-up | Z |
+| `ChartCentre` back to own ship | U | `RadarEblLeft` / `RadarEblRight` 1° | , / . |
+| `ChartPanUp` / `ChartPanLeft` / `ChartPanDown` / `ChartPanRight` 40 px | I / J / K / L | `RadarVrmIn` / `RadarVrmOut` 2 % of range | ; / ' |
+| `ChartPalette` day, dusk, night | F | `RadarPalette` day, dusk, night | X |
+| `ChartNextTarget` / `ChartClearSelection` | T / Y | `RadarGainDown` / `RadarGainUp` 0.1 | 3 / 4 |
+| | | `RadarSeaDown` / `RadarSeaUp` 0.05 | 5 / 6 |
+
+Palettes follow the scene's light: at night both displays hold their night palette, so F and X cycle back to it at once; by day a palette chosen with F or X holds until the next night resets it.
 
 ## How positions are set
 
