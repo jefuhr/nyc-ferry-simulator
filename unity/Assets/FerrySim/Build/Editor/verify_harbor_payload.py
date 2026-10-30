@@ -6,8 +6,12 @@ import sys
 
 
 def digest(path):
+	# A streaming loop rather than hashlib.file_digest, so the verifier runs on the macOS system Python 3.9 as well as newer ones.
+	sha = hashlib.sha256()
 	with path.open('rb') as stream:
-		return hashlib.file_digest(stream, 'sha256').hexdigest()
+		for chunk in iter(lambda: stream.read(1 << 20), b''):
+			sha.update(chunk)
+	return sha.hexdigest()
 
 
 def verify(streaming, root, intended, version, commit, dirty, target, report):

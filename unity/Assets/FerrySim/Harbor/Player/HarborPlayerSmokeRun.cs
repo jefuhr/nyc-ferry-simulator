@@ -29,6 +29,14 @@ namespace FerrySim.Harbor.Player
 		private int _frame;
 		private bool _met;
 		private double _scenarioStart;
+		private readonly JObject _memory = new JObject();
+		private long _peakMonoUsed, _peakMonoHeap, _peakAllocated, _peakReserved;
+		private bool _displaysOff;
+		private HarborBootstrap _bootstrap;
+		private bool _chartSnapshot;
+
+		/// <summary>The flag that leaves both displays off, for the comparison run the release script makes.</summary>
+		public const string NoDisplaysFlag = "-ferrysim-smoke-no-displays";
 
 		public static bool DriveComplete(double time, RunHold hold, bool active, double duration) => time >= duration || hold != RunHold.None || !active;
 
@@ -46,7 +54,9 @@ namespace FerrySim.Harbor.Player
 				Application.runInBackground = true;
 				var host = new GameObject("Harbor player smoke run");
 				DontDestroyOnLoad(host);
-				host.AddComponent<HarborPlayerSmokeRun>()._options = options;
+				var run = host.AddComponent<HarborPlayerSmokeRun>();
+				run._options = options;
+				run._displaysOff = Array.IndexOf(System.Environment.GetCommandLineArgs(), NoDisplaysFlag) >= 0;
 			}
 			catch (Exception error) { Debug.LogError(error); Application.Quit(2); }
 		}
@@ -63,6 +73,44 @@ namespace FerrySim.Harbor.Player
 					if (_errors.Count < 20) _errors.Add(type + ": " + message);
 				}
 			}
+		}
+
+		/// <summary>Every frame: the four Profiler figures, kept as peaks (coordinator-required installed-player memory evidence).</summary>
+		private void Update()
+		{
+			SampleMemory();
+			// The chart's share on the frame the displays connected to it, whenever that falls (usually before the tiles are ready).
+			if (!_chartSnapshot && _bootstrap != null && _bootstrap.Services is HarborIntegrationServices services && services.Displays != null && services.Displays.Connected)
+			{
+				_chartSnapshot = true;
+				Snapshot("chart_ready");
+			}
+		}
+
+		private void SampleMemory()
+		{
+			_peakMonoUsed = Math.Max(_peakMonoUsed, UnityEngine.Profiling.Profiler.GetMonoUsedSizeLong());
+			_peakMonoHeap = Math.Max(_peakMonoHeap, UnityEngine.Profiling.Profiler.GetMonoHeapSizeLong());
+			_peakAllocated = Math.Max(_peakAllocated, UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong());
+			_peakReserved = Math.Max(_peakReserved, UnityEngine.Profiling.Profiler.GetTotalReservedMemoryLong());
+		}
+
+		private void Snapshot(string when)
+		{
+			SampleMemory();
+			var snapshot = new JObject
+			{
+				["wall_s"] = Time.realtimeSinceStartupAsDouble - _started,
+				["mono_used_bytes"] = UnityEngine.Profiling.Profiler.GetMonoUsedSizeLong(), ["mono_heap_bytes"] = UnityEngine.Profiling.Profiler.GetMonoHeapSizeLong(),
+				["total_allocated_bytes"] = UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong(), ["total_reserved_bytes"] = UnityEngine.Profiling.Profiler.GetTotalReservedMemoryLong(),
+			};
+			try
+			{
+				var process = System.Diagnostics.Process.GetCurrentProcess();
+				snapshot["working_set_bytes"] = process.WorkingSet64; snapshot["peak_working_set_bytes"] = process.PeakWorkingSet64;
+			}
+			catch (Exception error) { snapshot["process_error"] = error.Message; }
+			_memory[when] = snapshot;
 		}
 
 		private IEnumerator Start()
@@ -82,6 +130,8 @@ namespace FerrySim.Harbor.Player
 			HarborBootstrap bootstrap = null;
 			yield return Wait(() => { if (bootstrap == null) bootstrap = FindFirstObjectByType<HarborBootstrap>(); return bootstrap != null && (bootstrap.Services != null || bootstrap.Problem != null); }, 120);
 			if (!_met || bootstrap.Services == null) { Fail(bootstrap?.Problem ?? "Harbor scene/services did not load"); Finish(); yield break; }
+			_bootstrap = bootstrap;
+			Snapshot("composed");
 			var services = bootstrap.Services as HarborIntegrationServices;
 			var runner = bootstrap.Runner;
 			var initialized = false;
@@ -104,6 +154,7 @@ namespace FerrySim.Harbor.Player
 				_harbor["date"] = choice.Date;
 				_harbor["runtime_digest"] = runner.HarborRuntime.Digest;
 				_harbor["depth_digest"] = runner.RunEnvironment.Pack.Depth.Digest;
+				Snapshot("run_started");
 				initialized = true;
 			}
 			catch (Exception error) { Fail("Harbor start failed: " + error.Message); }
@@ -113,6 +164,7 @@ namespace FerrySim.Harbor.Player
 			if (!_met || bootstrap.ViewState != HarborViewState.Ready) { Fail(bootstrap.Problem ?? "Actual harbor tiles did not become ready"); runner.EndRun(); Finish(); yield break; }
 			_harbor["tiles_ready"] = true;
 			_harbor["start_to_ready_s"] = Time.realtimeSinceStartupAsDouble - _scenarioStart;
+			Snapshot("scene_ready");
 			var layers = FindObjectsByType<HarborTileset>(FindObjectsSortMode.None);
 			var layerReports = new JArray();
 			foreach (var layer in layers)
@@ -150,6 +202,73 @@ namespace FerrySim.Harbor.Player
 				if (!_report.state_finite || _report.displacement_m < 1 || runner.Environment.DepthMisses != 0 || runner.Environment.TimeHolds != 0) Fail("Drive state, displacement or coverage failed");
 			}
 			catch (Exception error) { Fail("Drive evidence failed: " + error.Message); }
+			// The chart pack and the wheelhouse displays: the shared load (started when the scene composed, never waited on by the
+			// start above), then both displays opened in the wheelhouse view and proved to draw real content before their capture.
+			var displays = services.Displays;
+			if (displays == null) Fail("Harbor displays are missing from the composition");
+			else
+			{
+				yield return Wait(() => displays.ChartState != HarborChartLoadState.Loading, 180);
+				_harbor["chart_state"] = displays.ChartState.ToString();
+				_harbor["displays_shown"] = !_displaysOff;
+				if (!_met || displays.ChartState != HarborChartLoadState.Ready) Fail("Chart pack did not become ready: " + (displays.Load.Error ?? "timed out"));
+				else
+				{
+					// The displays connect on the frame after the load is ready, shown or not: the chart's share of memory is measured here.
+					yield return Wait(() => displays.Connected, 30);
+					if (!_met) Fail("Displays did not connect to the ready chart");
+					_harbor["chart_ready_s"] = displays.ChartReadySeconds;
+					if (!_chartSnapshot) { _chartSnapshot = true; Snapshot("chart_ready"); }
+					Snapshot("after_drive");
+					try
+					{
+						var load = displays.Load;
+						_harbor["chart_digest"] = load.Pack.Digest; _harbor["chart_runtime_digest"] = load.Pack.RuntimeDigest;
+						_harbor["chart_load_ms"] = load.LoadMilliseconds; _harbor["chart_index_ms"] = load.IndexMilliseconds;
+						_harbor["chart_tessellation_ms"] = load.TessellationMilliseconds; _harbor["chart_total_ms"] = load.TotalMilliseconds;
+						_harbor["chart_managed_bytes_before"] = load.ManagedBytesBefore; _harbor["chart_managed_bytes_after"] = load.ManagedBytesAfter;
+						_harbor["chart_peak_mono_used_bytes_while_loading"] = displays.PeakMonoUsedBytes;
+						if (load.Pack.RuntimeDigest != runner.HarborRuntime.Digest) Fail("Chart pack links another runtime than the run's");
+					}
+					catch (Exception error) { Fail("Chart evidence failed: " + error.Message); }
+					if (!_displaysOff)
+					{
+						bootstrap.CameraRig.CurrentMode = CameraRig.Mode.Wheelhouse;
+						displays.RadarShown = true; displays.ChartplotterShown = true;
+						yield return Wait(() => displays.Connected && displays.RadarVisible && displays.ChartplotterVisible, 30);
+						if (!_met) Fail("Displays did not open");
+						var echoBins = 0; var vertices = 0; var drawn = 0; var renders = 0;
+						yield return Wait(() =>
+						{
+							echoBins = displays.Radar.Engine != null ? HarborDisplays.CountEchoBins(displays.Radar.Engine) : 0;
+							var view = displays.Chartplotter.View;
+							vertices = view != null ? view.Canvas.LastVertices : 0; drawn = view != null ? view.Targets.TargetsDrawn : 0; renders = view != null ? view.Canvas.RenderCount : 0;
+							return echoBins >= 200 && vertices > 0 && drawn > 0;
+						}, 30);
+						_harbor["radar_echo_bins"] = echoBins; _harbor["radar_range_nm"] = displays.Radar.Engine != null ? displays.Radar.Engine.Scale.RangeMetres / 1852 : 0;
+						_harbor["radar_targets_present"] = displays.Radar.PresentTargets;
+						_harbor["chart_vertices"] = vertices; _harbor["chart_targets_drawn"] = drawn; _harbor["chart_static_renders"] = renders;
+						if (!_met) Fail("Displays did not draw real content: radar echo bins " + echoBins + ", chart vertices " + vertices + ", targets drawn " + drawn);
+						for (var i = 0; i < 5; i++) yield return null;
+						yield return new WaitForEndOfFrame();
+						Texture2D texture = null;
+						try
+						{
+							texture = ScreenCapture.CaptureScreenshotAsTexture();
+							var colours = PlayerSmokeRun.DistinctColours(texture);
+							_harbor["display_screenshot_colours"] = colours;
+							if (colours <= 50) Fail("Blank displays screenshot");
+							var path = Path.Combine(_options.OutputFolder, "smoke-displays.png");
+							File.WriteAllBytes(path, texture.EncodeToPNG()); _harbor["display_screenshot"] = path;
+						}
+						catch (Exception error) { Fail("Displays screenshot failed: " + error.Message); }
+						finally { if (texture != null) Destroy(texture); }
+						Snapshot("displays_shown");
+						displays.RadarShown = false; displays.ChartplotterShown = false;
+						yield return null;
+					}
+				}
+			}
 			foreach (var view in new[] { CameraRig.Mode.Wheelhouse, CameraRig.Mode.Chase })
 			{
 				bootstrap.CameraRig.CurrentMode = view;
@@ -198,6 +317,9 @@ namespace FerrySim.Harbor.Player
 				if (_errorCount > 0) Fail("Player logged errors: " + _errors[0]);
 				_report.errors = _errorCount; _report.error_messages = _errors.ToArray(); _report.warnings = _warnings;
 			}
+			Snapshot("end");
+			_memory["peak"] = new JObject { ["mono_used_bytes"] = _peakMonoUsed, ["mono_heap_bytes"] = _peakMonoHeap, ["total_allocated_bytes"] = _peakAllocated, ["total_reserved_bytes"] = _peakReserved };
+			_harbor["memory"] = _memory;
 			_report.screenshots = _screenshots.ToArray(); _report.screenshot_views = new[] { "Wheelhouse", "Chase" };
 			if (_screenshots.Count != 2) Fail("Both screenshots are required");
 			_report.frames = Time.frameCount - _frame; _report.wall_s = Time.realtimeSinceStartupAsDouble - _started;

@@ -1,0 +1,10 @@
+{
+	"name": "FerrySim.Input.Tests.EditMode",
+	"rootNamespace": "FerrySim.Controls.Tests",
+	"references": ["FerrySim.Unity.Input", "Unity.InputSystem"],
+	"includePlatforms": ["Editor"],
+	"overrideReferences": true,
+	"precompiledReferences": ["nunit.framework.dll"],
+	"autoReferenced": false,
+	"defineConstraints": ["UNITY_INCLUDE_TESTS"]
+}

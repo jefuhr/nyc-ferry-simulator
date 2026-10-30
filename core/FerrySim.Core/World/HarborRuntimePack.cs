@@ -62,7 +62,85 @@ namespace FerrySim.Core.World
 		public static HarborValue FromItems(IReadOnlyList<HarborValue> values) => new HarborValue(null, null, null, HarborLists.Copy(values), null);
 
 		/// <summary>Copies object evidence into read-only storage.</summary>
-		public static HarborValue FromFields(IDictionary<string, HarborValue> fields) => new HarborValue(null, null, null, null, new ReadOnlyDictionary<string, HarborValue>(new Dictionary<string, HarborValue>(fields, StringComparer.Ordinal)));
+		public static HarborValue FromFields(IDictionary<string, HarborValue> fields)
+		{
+			// Small evidence records need ordered immutable fields, not a hash table per feature.
+			// Keep Dictionary's copy/exception behaviour for other IDictionary implementations.
+			IDictionary<string, HarborValue> copy = fields is Dictionary<string, HarborValue> dictionary && dictionary.Count <= 16
+				? new CompactFields(dictionary)
+				: new Dictionary<string, HarborValue>(fields, StringComparer.Ordinal);
+			return new HarborValue(null, null, null, null, new ReadOnlyDictionary<string, HarborValue>(copy));
+		}
+
+		private sealed class CompactFields : IDictionary<string, HarborValue>
+		{
+			private static readonly Dictionary<string, HarborValue> Empty = new Dictionary<string, HarborValue>(StringComparer.Ordinal);
+			private readonly KeyValuePair<string, HarborValue>[] _entries;
+			public CompactFields(Dictionary<string, HarborValue> fields)
+			{
+				_entries = new KeyValuePair<string, HarborValue>[fields.Count];
+				var index = 0;
+				foreach (var field in fields)
+				{
+					for (var i = 0; i < index; i++)
+					{
+						if (string.Equals(_entries[i].Key, field.Key, StringComparison.Ordinal))
+						{
+							// A custom source comparer can admit keys that the ordinal copy refuses.
+							_ = new Dictionary<string, HarborValue>(fields, StringComparer.Ordinal);
+						}
+					}
+					_entries[index++] = field;
+				}
+			}
+			public int Count => _entries.Length;
+			public bool IsReadOnly => true;
+			public HarborValue this[string key]
+			{
+				get => TryGetValue(key, out var value) ? value : Empty[key];
+				set => throw new NotSupportedException();
+			}
+			public bool TryGetValue(string key, out HarborValue value)
+			{
+				if (key == null) return Empty.TryGetValue(key, out value);
+				foreach (var entry in _entries) if (string.Equals(entry.Key, key, StringComparison.Ordinal)) { value = entry.Value; return true; }
+				value = null; return false;
+			}
+			public bool ContainsKey(string key) => TryGetValue(key, out _);
+			public ICollection<string> Keys
+			{
+				get => AsDictionary().Keys;
+			}
+			public ICollection<HarborValue> Values
+			{
+				get => AsDictionary().Values;
+			}
+			public IEnumerator<KeyValuePair<string, HarborValue>> GetEnumerator() => ((IEnumerable<KeyValuePair<string, HarborValue>>)_entries).GetEnumerator();
+			System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+			public bool Contains(KeyValuePair<string, HarborValue> item) => TryGetValue(item.Key, out var value) && EqualityComparer<HarborValue>.Default.Equals(value, item.Value);
+			public void CopyTo(KeyValuePair<string, HarborValue>[] array, int arrayIndex)
+			{
+				if (array == null || arrayIndex < 0 || arrayIndex > array.Length || array.Length - arrayIndex < Count)
+				{
+					// Delegate uncommon error paths so exception types, parameter names and messages
+					// remain those of this runtime's Dictionary implementation.
+					((ICollection<KeyValuePair<string, HarborValue>>)AsDictionary()).CopyTo(array, arrayIndex);
+					return;
+				}
+				Array.Copy(_entries, 0, array, arrayIndex, Count);
+			}
+			private Dictionary<string, HarborValue> AsDictionary()
+			{
+				var copy = new Dictionary<string, HarborValue>(Count, StringComparer.Ordinal);
+				foreach (var entry in _entries) copy.Add(entry.Key, entry.Value);
+				return copy;
+			}
+			public void Add(string key, HarborValue value) => throw new NotSupportedException();
+			public void Add(KeyValuePair<string, HarborValue> item) => throw new NotSupportedException();
+			public bool Remove(string key) => throw new NotSupportedException();
+			public bool Remove(KeyValuePair<string, HarborValue> item) => throw new NotSupportedException();
+			public void Clear() => throw new NotSupportedException();
+		}
 	}
 
 	internal static class HarborLists

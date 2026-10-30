@@ -2,6 +2,8 @@
 	"name": "FerrySim.Unity.Build.Tests.EditMode",
 	"rootNamespace": "FerrySim.Build.Tests",
 	"references": [
+		"FerrySim.Core",
+		"FerrySim.Core.Serialization",
 		"FerrySim.Unity.Sim",
 		"FerrySim.Unity.Slice",
 		"FerrySim.Unity.Build.Editor",
@@ -12,7 +14,7 @@
 	"excludePlatforms": [],
 	"allowUnsafeCode": false,
 	"overrideReferences": true,
-	"precompiledReferences": ["nunit.framework.dll"],
+	"precompiledReferences": ["nunit.framework.dll", "Newtonsoft.Json.dll"],
 	"autoReferenced": false,
 	"defineConstraints": ["UNITY_INCLUDE_TESTS"],
 	"versionDefines": [],
