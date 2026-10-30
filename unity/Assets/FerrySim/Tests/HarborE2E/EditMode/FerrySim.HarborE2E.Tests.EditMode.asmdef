@@ -1,0 +1,29 @@
+{
+	"name": "FerrySim.HarborE2E.Tests.EditMode",
+	"references": [
+		"CesiumForUnity",
+		"Unity.Mathematics",
+		"FerrySim.Harbor.Player",
+		"FerrySim.Core",
+		"FerrySim.Harbor.Journeys",
+		"FerrySim.Core.Serialization",
+		"FerrySim.Unity.Sim",
+		"FerrySim.Unity.Slice",
+		"FerrySim.Unity.Harbor.Scenarios",
+		"FerrySim.Harbor.Integration",
+		"FerrySim.Unity.Tests.E2E",
+		"FerrySim.Harbor.Journeys.Editor"
+	],
+	"includePlatforms": [
+		"Editor"
+	],
+	"optionalUnityReferences": [
+		"TestAssemblies"
+	],
+	"autoReferenced": false,
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"nunit.framework.dll",
+		"Newtonsoft.Json.dll"
+	]
+}

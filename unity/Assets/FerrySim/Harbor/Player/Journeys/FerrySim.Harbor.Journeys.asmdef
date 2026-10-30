@@ -1,0 +1,27 @@
+{
+	"name": "FerrySim.Harbor.Journeys",
+	"references": [
+		"FerrySim.Harbor.Player",
+		"FerrySim.Harbor.Runtime",
+		"FerrySim.Harbor.Integration",
+		"FerrySim.Unity.Sim",
+		"FerrySim.Unity.Slice",
+		"FerrySim.Unity.World",
+		"FerrySim.Unity.UI",
+		"FerrySim.World.HarborTiles",
+		"FerrySim.Core",
+		"FerrySim.Core.Serialization",
+		"FerrySim.Unity.Harbor.Scenarios",
+		"FerrySim.Radar",
+		"FerrySim.Chartplotter",
+		"CesiumForUnity",
+		"Unity.Mathematics",
+		"FerrySim.Unity.Sim.Cesium",
+		"FerrySim.World.HarborNavigation"
+	],
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"Newtonsoft.Json.dll"
+	],
+	"autoReferenced": true
+}

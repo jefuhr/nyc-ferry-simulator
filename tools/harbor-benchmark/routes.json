@@ -1,0 +1,1911 @@
+{
+  "schema": "ferrysim-harbor-e2e/1",
+  "routes": [
+    {
+      "name": "st-george",
+      "departure_stop": "87",
+      "arrival_stop": "137",
+      "arrival_blocked": true,
+      "date": "2025-07-16",
+      "minute": 738,
+      "vessel": "t-class",
+      "points": [
+        [
+          390.0,
+          980.0
+        ],
+        [
+          -800.0,
+          700.0
+        ],
+        [
+          -1425.0,
+          150.0
+        ],
+        [
+          -2200.0,
+          -1200.0
+        ],
+        [
+          -4000.0,
+          -3200.0
+        ],
+        [
+          -5850.0,
+          -4700.0
+        ]
+      ],
+      "required_spans": [],
+      "rationale": "Estimated simulation test route only, not navigation advice. Deep-water candidate legs from harbor_transit.plan on adopted floor A, independently corridor-checked. West Roosevelt Island channel for East River journeys; St. George holds off the crew-refused face.",
+      "waypoint_provenance": {
+        "bridges_file_sha256": "d1c1ab2f7dc9de53f4b146e4cf2fc617e1c7a0c970ecd90700967a1c2dd40295",
+        "contacts_sha256": "0ff8e977a49b72bf77837148067ab25f60a0f154b0855b120caf0e2d050e285e",
+        "depth_digest": "b58ed9ef82109126c6ed6bfc7243754f4c6578fc6b16706efcea77b59aaa9eaa",
+        "candidate_bed_below_navd88_m": -4,
+        "candidate_clearance_m": 25,
+        "bends": "authoring estimates from adopted depth raster; no GTFS route used",
+        "start_time": "Astoria 08:33 and Soundview 14:24 local selected to reach low-current arrival windows from the shipped 2025-07-16 station blend; these are test conditions, not navigation advice"
+      },
+      "corridor": {
+        "samples": 45253,
+        "missing_examples": [],
+        "zero_missing": true,
+        "highest_bed_navd88_m": -5.417700319452021
+      },
+      "length_m": 8684.103623810906,
+      "estimated_force_limit_n": 414034.7452260116
+    },
+    {
+      "name": "astoria",
+      "departure_stop": "87",
+      "arrival_stop": "89",
+      "arrival_blocked": false,
+      "date": "2025-07-16",
+      "minute": 513,
+      "vessel": "t-class",
+      "points": [
+        [
+          390.0,
+          980.0
+        ],
+        [
+          655.389088667065,
+          1554.351536923543
+        ],
+        [
+          772.5633492278282,
+          2074.4010171879554
+        ],
+        [
+          1050.0,
+          3000.0
+        ],
+        [
+          1509.0524077816262,
+          3622.523737710356
+        ],
+        [
+          3100.0,
+          4250.0
+        ],
+        [
+          4500.0,
+          3920.0
+        ],
+        [
+          5400.0,
+          4330.0
+        ],
+        [
+          6435.617970237682,
+          4901.648870088835
+        ],
+        [
+          7900.0,
+          6000.0
+        ],
+        [
+          8450.0,
+          6510.0
+        ],
+        [
+          8200.0,
+          6440.0
+        ],
+        [
+          7813.072175775193,
+          6634.484538339417
+        ]
+      ],
+      "required_spans": [
+        {
+          "id": "enc:02263858DA411C82",
+          "clearances": [
+            {
+              "category_codes": [
+                1
+              ],
+              "clearance_datum": "MHW",
+              "clearance_note": "vertical clearances are metres above MHW; horizontal clearance is the navigable width between fenders/piers",
+              "conversion_note": "MHW clearance retained; no span-specific MHW to NAVD88 conversion supplied",
+              "has_clearance": true,
+              "horizontal_clearance_m": 411.4,
+              "id": "02263858DA411C82",
+              "information": "Vertical clearance 33.5 meters/110 feet under moving platforms",
+              "name": "Brooklyn Bridge",
+              "source": "NOAA ENC BRIDGE",
+              "underside_navd88_m": null,
+              "vertical_clearance_closed_m": null,
+              "vertical_clearance_m": 38.7,
+              "vertical_clearance_open_m": null
+            }
+          ],
+          "geometry_ne_m": {
+            "coordinates": [
+              [
+                [
+                  498.021,
+                  1686.943
+                ],
+                [
+                  516.425,
+                  1705.142
+                ],
+                [
+                  802.75,
+                  1432.391
+                ],
+                [
+                  809.867,
+                  1424.886
+                ],
+                [
+                  808.889,
+                  1423.83
+                ],
+                [
+                  792.018,
+                  1405.681
+                ],
+                [
+                  782.314,
+                  1414.041
+                ],
+                [
+                  498.021,
+                  1686.943
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          }
+        },
+        {
+          "id": "enc:0226250074081C82",
+          "clearances": [
+            {
+              "category_codes": [
+                1
+              ],
+              "clearance_datum": "MHW",
+              "clearance_note": "vertical clearances are metres above MHW; horizontal clearance is the navigable width between fenders/piers",
+              "conversion_note": "MHW clearance retained; no span-specific MHW to NAVD88 conversion supplied",
+              "has_clearance": true,
+              "horizontal_clearance_m": 365.7,
+              "id": "0226250074081C82",
+              "information": null,
+              "name": "Manhattan Bridge",
+              "source": "NOAA ENC BRIDGE",
+              "underside_navd88_m": null,
+              "vertical_clearance_closed_m": null,
+              "vertical_clearance_m": 40.8,
+              "vertical_clearance_open_m": null
+            }
+          ],
+          "geometry_ne_m": {
+            "coordinates": [
+              [
+                [
+                  570.986,
+                  2142.996
+                ],
+                [
+                  583.809,
+                  2171.007
+                ],
+                [
+                  617.863,
+                  2156.31
+                ],
+                [
+                  648.064,
+                  2143.583
+                ],
+                [
+                  760.421,
+                  2096.843
+                ],
+                [
+                  885.324,
+                  2043.35
+                ],
+                [
+                  975.673,
+                  2003.016
+                ],
+                [
+                  964.817,
+                  1976.62
+                ],
+                [
+                  570.986,
+                  2142.996
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          }
+        },
+        {
+          "id": "enc:022631AF1AA81C82",
+          "clearances": [
+            {
+              "category_codes": [
+                1
+              ],
+              "clearance_datum": "MHW",
+              "clearance_note": "vertical clearances are metres above MHW; horizontal clearance is the navigable width between fenders/piers",
+              "conversion_note": "MHW clearance retained; no span-specific MHW to NAVD88 conversion supplied",
+              "has_clearance": true,
+              "horizontal_clearance_m": 468.1,
+              "id": "022631AF1AA81C82",
+              "information": null,
+              "name": "Williamsburg Bridge",
+              "source": "NOAA ENC BRIDGE",
+              "underside_navd88_m": null,
+              "vertical_clearance_closed_m": null,
+              "vertical_clearance_m": 40.5,
+              "vertical_clearance_open_m": null
+            }
+          ],
+          "geometry_ne_m": {
+            "coordinates": [
+              [
+                [
+                  1405.827,
+                  3832.053
+                ],
+                [
+                  1406.093,
+                  3832.171
+                ],
+                [
+                  1410.659,
+                  3834.188
+                ],
+                [
+                  1421.266,
+                  3838.898
+                ],
+                [
+                  1436.439,
+                  3845.624
+                ],
+                [
+                  1438.371,
+                  3846.485
+                ],
+                [
+                  1438.682,
+                  3846.62
+                ],
+                [
+                  1440.557,
+                  3841.642
+                ],
+                [
+                  1477.333,
+                  3750.001
+                ],
+                [
+                  1477.3308237540587,
+                  3750.000999761106
+                ],
+                [
+                  1582.424,
+                  3488.107
+                ],
+                [
+                  1589.168,
+                  3471.61
+                ],
+                [
+                  1612.138,
+                  3411.742
+                ],
+                [
+                  1609.129,
+                  3410.619
+                ],
+                [
+                  1608.207,
+                  3410.273
+                ],
+                [
+                  1589.003,
+                  3403.117
+                ],
+                [
+                  1578.763,
+                  3399.302
+                ],
+                [
+                  1558.021,
+                  3452.055
+                ],
+                [
+                  1438.5495195060369,
+                  3750.003997110206
+                ],
+                [
+                  1438.544,
+                  3750.004
+                ],
+                [
+                  1409.276,
+                  3823.009
+                ],
+                [
+                  1405.827,
+                  3832.053
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          }
+        },
+        {
+          "id": "enc:02260CA8F7FC1C82",
+          "clearances": [
+            {
+              "category_codes": [
+                1
+              ],
+              "clearance_datum": "MHW",
+              "clearance_note": "vertical clearances are metres above MHW; horizontal clearance is the navigable width between fenders/piers",
+              "conversion_note": "MHW clearance retained; no span-specific MHW to NAVD88 conversion supplied",
+              "has_clearance": true,
+              "horizontal_clearance_m": 273.1,
+              "id": "02260CA8F7FC1C82",
+              "information": "West span",
+              "name": "Queensboro Bridge",
+              "source": "NOAA ENC BRIDGE",
+              "underside_navd88_m": null,
+              "vertical_clearance_closed_m": null,
+              "vertical_clearance_m": 39.9,
+              "vertical_clearance_open_m": null
+            }
+          ],
+          "geometry_ne_m": {
+            "coordinates": [
+              [
+                [
+                  6356.724,
+                  5020.372
+                ],
+                [
+                  6370.833,
+                  5029.119
+                ],
+                [
+                  6375.625,
+                  5020.764
+                ],
+                [
+                  6479.947,
+                  4841.289
+                ],
+                [
+                  6509.564,
+                  4790.343
+                ],
+                [
+                  6514.933,
+                  4781.101
+                ],
+                [
+                  6502.866,
+                  4770.537
+                ],
+                [
+                  6496.987,
+                  4780.741
+                ],
+                [
+                  6476.211,
+                  4816.828
+                ],
+                [
+                  6467.049,
+                  4832.431
+                ],
+                [
+                  6361.959,
+                  5011.468
+                ],
+                [
+                  6356.724,
+                  5020.372
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          }
+        }
+      ],
+      "rationale": "Estimated simulation test route only, not navigation advice. Deep-water candidate legs from harbor_transit.plan on adopted floor A, independently corridor-checked. West Roosevelt Island channel for East River journeys; St. George holds off the crew-refused face.",
+      "waypoint_provenance": {
+        "bridges_file_sha256": "d1c1ab2f7dc9de53f4b146e4cf2fc617e1c7a0c970ecd90700967a1c2dd40295",
+        "contacts_sha256": "0ff8e977a49b72bf77837148067ab25f60a0f154b0855b120caf0e2d050e285e",
+        "depth_digest": "b58ed9ef82109126c6ed6bfc7243754f4c6578fc6b16706efcea77b59aaa9eaa",
+        "candidate_bed_below_navd88_m": -4,
+        "candidate_clearance_m": 25,
+        "bends": "authoring estimates from adopted depth raster; no GTFS route used",
+        "start_time": "Astoria 08:33 and Soundview 14:24 local selected to reach low-current arrival windows from the shipped 2025-07-16 station blend; these are test conditions, not navigation advice"
+      },
+      "corridor": {
+        "samples": 60060,
+        "missing_examples": [],
+        "zero_missing": true,
+        "highest_bed_navd88_m": -4.651468603408865
+      },
+      "length_m": 11499.28933938071,
+      "arrival_face": {
+        "middle": [
+          7962.456108727058,
+          6691.79457738872
+        ],
+        "normal": [
+          -0.9336495809491551,
+          -0.35818774405815057
+        ],
+        "segment_ids": [
+          523290550
+        ]
+      },
+      "estimated_force_limit_n": 414034.7452260116
+    },
+    {
+      "name": "soundview",
+      "departure_stop": "87",
+      "arrival_stop": "112",
+      "arrival_blocked": false,
+      "date": "2025-07-16",
+      "minute": 864,
+      "vessel": "t-class",
+      "points": [
+        [
+          390.0,
+          980.0
+        ],
+        [
+          655.389088667065,
+          1554.351536923543
+        ],
+        [
+          772.5633492278282,
+          2074.4010171879554
+        ],
+        [
+          1050.0,
+          3000.0
+        ],
+        [
+          1509.0524077816262,
+          3622.523737710356
+        ],
+        [
+          3100.0,
+          4250.0
+        ],
+        [
+          4500.0,
+          3920.0
+        ],
+        [
+          5400.0,
+          4330.0
+        ],
+        [
+          6435.617970237682,
+          4901.648870088835
+        ],
+        [
+          7900.0,
+          6000.0
+        ],
+        [
+          8450.0,
+          6510.0
+        ],
+        [
+          8725.0,
+          6785.0
+        ],
+        [
+          8780.0,
+          7240.0
+        ],
+        [
+          9168.072426306007,
+          7847.481775394962
+        ],
+        [
+          10300.0,
+          8760.0
+        ],
+        [
+          11400.0,
+          9785.0
+        ],
+        [
+          11400.0,
+          9900.0
+        ],
+        [
+          11050.0,
+          10800.0
+        ],
+        [
+          10650.0,
+          12200.0
+        ],
+        [
+          11150.0,
+          13400.0
+        ],
+        [
+          11444.44341614822,
+          13942.837735575748
+        ]
+      ],
+      "required_spans": [
+        {
+          "id": "enc:02263858DA411C82",
+          "clearances": [
+            {
+              "category_codes": [
+                1
+              ],
+              "clearance_datum": "MHW",
+              "clearance_note": "vertical clearances are metres above MHW; horizontal clearance is the navigable width between fenders/piers",
+              "conversion_note": "MHW clearance retained; no span-specific MHW to NAVD88 conversion supplied",
+              "has_clearance": true,
+              "horizontal_clearance_m": 411.4,
+              "id": "02263858DA411C82",
+              "information": "Vertical clearance 33.5 meters/110 feet under moving platforms",
+              "name": "Brooklyn Bridge",
+              "source": "NOAA ENC BRIDGE",
+              "underside_navd88_m": null,
+              "vertical_clearance_closed_m": null,
+              "vertical_clearance_m": 38.7,
+              "vertical_clearance_open_m": null
+            }
+          ],
+          "geometry_ne_m": {
+            "coordinates": [
+              [
+                [
+                  498.021,
+                  1686.943
+                ],
+                [
+                  516.425,
+                  1705.142
+                ],
+                [
+                  802.75,
+                  1432.391
+                ],
+                [
+                  809.867,
+                  1424.886
+                ],
+                [
+                  808.889,
+                  1423.83
+                ],
+                [
+                  792.018,
+                  1405.681
+                ],
+                [
+                  782.314,
+                  1414.041
+                ],
+                [
+                  498.021,
+                  1686.943
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          }
+        },
+        {
+          "id": "enc:0226250074081C82",
+          "clearances": [
+            {
+              "category_codes": [
+                1
+              ],
+              "clearance_datum": "MHW",
+              "clearance_note": "vertical clearances are metres above MHW; horizontal clearance is the navigable width between fenders/piers",
+              "conversion_note": "MHW clearance retained; no span-specific MHW to NAVD88 conversion supplied",
+              "has_clearance": true,
+              "horizontal_clearance_m": 365.7,
+              "id": "0226250074081C82",
+              "information": null,
+              "name": "Manhattan Bridge",
+              "source": "NOAA ENC BRIDGE",
+              "underside_navd88_m": null,
+              "vertical_clearance_closed_m": null,
+              "vertical_clearance_m": 40.8,
+              "vertical_clearance_open_m": null
+            }
+          ],
+          "geometry_ne_m": {
+            "coordinates": [
+              [
+                [
+                  570.986,
+                  2142.996
+                ],
+                [
+                  583.809,
+                  2171.007
+                ],
+                [
+                  617.863,
+                  2156.31
+                ],
+                [
+                  648.064,
+                  2143.583
+                ],
+                [
+                  760.421,
+                  2096.843
+                ],
+                [
+                  885.324,
+                  2043.35
+                ],
+                [
+                  975.673,
+                  2003.016
+                ],
+                [
+                  964.817,
+                  1976.62
+                ],
+                [
+                  570.986,
+                  2142.996
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          }
+        },
+        {
+          "id": "enc:022631AF1AA81C82",
+          "clearances": [
+            {
+              "category_codes": [
+                1
+              ],
+              "clearance_datum": "MHW",
+              "clearance_note": "vertical clearances are metres above MHW; horizontal clearance is the navigable width between fenders/piers",
+              "conversion_note": "MHW clearance retained; no span-specific MHW to NAVD88 conversion supplied",
+              "has_clearance": true,
+              "horizontal_clearance_m": 468.1,
+              "id": "022631AF1AA81C82",
+              "information": null,
+              "name": "Williamsburg Bridge",
+              "source": "NOAA ENC BRIDGE",
+              "underside_navd88_m": null,
+              "vertical_clearance_closed_m": null,
+              "vertical_clearance_m": 40.5,
+              "vertical_clearance_open_m": null
+            }
+          ],
+          "geometry_ne_m": {
+            "coordinates": [
+              [
+                [
+                  1405.827,
+                  3832.053
+                ],
+                [
+                  1406.093,
+                  3832.171
+                ],
+                [
+                  1410.659,
+                  3834.188
+                ],
+                [
+                  1421.266,
+                  3838.898
+                ],
+                [
+                  1436.439,
+                  3845.624
+                ],
+                [
+                  1438.371,
+                  3846.485
+                ],
+                [
+                  1438.682,
+                  3846.62
+                ],
+                [
+                  1440.557,
+                  3841.642
+                ],
+                [
+                  1477.333,
+                  3750.001
+                ],
+                [
+                  1477.3308237540587,
+                  3750.000999761106
+                ],
+                [
+                  1582.424,
+                  3488.107
+                ],
+                [
+                  1589.168,
+                  3471.61
+                ],
+                [
+                  1612.138,
+                  3411.742
+                ],
+                [
+                  1609.129,
+                  3410.619
+                ],
+                [
+                  1608.207,
+                  3410.273
+                ],
+                [
+                  1589.003,
+                  3403.117
+                ],
+                [
+                  1578.763,
+                  3399.302
+                ],
+                [
+                  1558.021,
+                  3452.055
+                ],
+                [
+                  1438.5495195060369,
+                  3750.003997110206
+                ],
+                [
+                  1438.544,
+                  3750.004
+                ],
+                [
+                  1409.276,
+                  3823.009
+                ],
+                [
+                  1405.827,
+                  3832.053
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          }
+        },
+        {
+          "id": "enc:02260CA8F7FC1C82",
+          "clearances": [
+            {
+              "category_codes": [
+                1
+              ],
+              "clearance_datum": "MHW",
+              "clearance_note": "vertical clearances are metres above MHW; horizontal clearance is the navigable width between fenders/piers",
+              "conversion_note": "MHW clearance retained; no span-specific MHW to NAVD88 conversion supplied",
+              "has_clearance": true,
+              "horizontal_clearance_m": 273.1,
+              "id": "02260CA8F7FC1C82",
+              "information": "West span",
+              "name": "Queensboro Bridge",
+              "source": "NOAA ENC BRIDGE",
+              "underside_navd88_m": null,
+              "vertical_clearance_closed_m": null,
+              "vertical_clearance_m": 39.9,
+              "vertical_clearance_open_m": null
+            }
+          ],
+          "geometry_ne_m": {
+            "coordinates": [
+              [
+                [
+                  6356.724,
+                  5020.372
+                ],
+                [
+                  6370.833,
+                  5029.119
+                ],
+                [
+                  6375.625,
+                  5020.764
+                ],
+                [
+                  6479.947,
+                  4841.289
+                ],
+                [
+                  6509.564,
+                  4790.343
+                ],
+                [
+                  6514.933,
+                  4781.101
+                ],
+                [
+                  6502.866,
+                  4770.537
+                ],
+                [
+                  6496.987,
+                  4780.741
+                ],
+                [
+                  6476.211,
+                  4816.828
+                ],
+                [
+                  6467.049,
+                  4832.431
+                ],
+                [
+                  6361.959,
+                  5011.468
+                ],
+                [
+                  6356.724,
+                  5020.372
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          }
+        },
+        {
+          "id": "enc:02261F20513B1C82",
+          "clearances": [
+            {
+              "category_codes": [
+                1
+              ],
+              "clearance_datum": "MHW",
+              "clearance_note": "vertical clearances are metres above MHW; horizontal clearance is the navigable width between fenders/piers",
+              "conversion_note": "MHW clearance retained; no span-specific MHW to NAVD88 conversion supplied",
+              "has_clearance": true,
+              "horizontal_clearance_m": 252.9,
+              "id": "02261F20513B1C82",
+              "information": "Railway bridge",
+              "name": "Hell Gate Bridge",
+              "source": "NOAA ENC BRIDGE",
+              "underside_navd88_m": null,
+              "vertical_clearance_closed_m": null,
+              "vertical_clearance_m": 40.8,
+              "vertical_clearance_open_m": null
+            }
+          ],
+          "geometry_ne_m": {
+            "coordinates": [
+              [
+                [
+                  9067.519,
+                  7934.488
+                ],
+                [
+                  9085.483,
+                  7950.82
+                ],
+                [
+                  9102.388,
+                  7933.328
+                ],
+                [
+                  9114.468,
+                  7920.831
+                ],
+                [
+                  9119.093,
+                  7916.04
+                ],
+                [
+                  9195.134,
+                  7837.355
+                ],
+                [
+                  9251.763,
+                  7778.757
+                ],
+                [
+                  9254.448,
+                  7775.968
+                ],
+                [
+                  9259.44,
+                  7770.797
+                ],
+                [
+                  9264.543,
+                  7765.525
+                ],
+                [
+                  9252.913,
+                  7741.438
+                ],
+                [
+                  9245.492,
+                  7749.169
+                ],
+                [
+                  9244.697218380186,
+                  7749.997002384164
+                ],
+                [
+                  9244.693,
+                  7749.997
+                ],
+                [
+                  9240.755,
+                  7754.104
+                ],
+                [
+                  9237.693,
+                  7757.289
+                ],
+                [
+                  9235.464,
+                  7759.604
+                ],
+                [
+                  9233.267,
+                  7761.894
+                ],
+                [
+                  9108.518,
+                  7891.791
+                ],
+                [
+                  9100.354,
+                  7900.3
+                ],
+                [
+                  9095.473,
+                  7905.378
+                ],
+                [
+                  9093.343,
+                  7907.601
+                ],
+                [
+                  9090.98,
+                  7910.051
+                ],
+                [
+                  9086.233,
+                  7915.003
+                ],
+                [
+                  9082.029,
+                  7919.38
+                ],
+                [
+                  9067.519,
+                  7934.488
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          }
+        }
+      ],
+      "rationale": "Estimated simulation test route only, not navigation advice. Deep-water candidate legs from harbor_transit.plan on adopted floor A, independently corridor-checked. West Roosevelt Island channel for East River journeys; St. George holds off the crew-refused face.",
+      "waypoint_provenance": {
+        "bridges_file_sha256": "d1c1ab2f7dc9de53f4b146e4cf2fc617e1c7a0c970ecd90700967a1c2dd40295",
+        "contacts_sha256": "0ff8e977a49b72bf77837148067ab25f60a0f154b0855b120caf0e2d050e285e",
+        "depth_digest": "b58ed9ef82109126c6ed6bfc7243754f4c6578fc6b16706efcea77b59aaa9eaa",
+        "candidate_bed_below_navd88_m": -4,
+        "candidate_clearance_m": 25,
+        "bends": "authoring estimates from adopted depth raster; no GTFS route used",
+        "start_time": "Astoria 08:33 and Soundview 14:24 local selected to reach low-current arrival windows from the shipped 2025-07-16 station blend; these are test conditions, not navigation advice"
+      },
+      "corridor": {
+        "samples": 103311,
+        "missing_examples": [],
+        "zero_missing": true,
+        "highest_bed_navd88_m": -3.7082782165266255
+      },
+      "length_m": 19786.409912471237,
+      "arrival_face": {
+        "middle": [
+          11589.065159204787,
+          14011.281518604452
+        ],
+        "normal": [
+          -0.9038858941035436,
+          -0.4277736439294007
+        ],
+        "segment_ids": [
+          1567538817
+        ]
+      },
+      "estimated_force_limit_n": 414034.7452260116
+    },
+    {
+      "name": "astoria-return",
+      "departure_stop": "89",
+      "arrival_stop": "87",
+      "arrival_blocked": false,
+      "date": "2025-07-16",
+      "minute": 864,
+      "vessel": "t-class",
+      "points": [
+        [
+          7813.072175775193,
+          6634.484538339417
+        ],
+        [
+          8200.0,
+          6440.0
+        ],
+        [
+          8450.0,
+          6510.0
+        ],
+        [
+          7900.0,
+          6000.0
+        ],
+        [
+          6435.617970237682,
+          4901.648870088835
+        ],
+        [
+          5400.0,
+          4330.0
+        ],
+        [
+          4500.0,
+          3920.0
+        ],
+        [
+          3100.0,
+          4250.0
+        ],
+        [
+          1509.0524077816262,
+          3622.523737710356
+        ],
+        [
+          1050.0,
+          3000.0
+        ],
+        [
+          772.5633492278282,
+          2074.4010171879554
+        ],
+        [
+          655.389088667065,
+          1554.351536923543
+        ],
+        [
+          390.0,
+          980.0
+        ],
+        [
+          434.0615846099299,
+          922.7716349322083
+        ]
+      ],
+      "required_spans": [
+        {
+          "id": "enc:02260CA8F7FC1C82",
+          "clearances": [
+            {
+              "category_codes": [
+                1
+              ],
+              "clearance_datum": "MHW",
+              "clearance_note": "vertical clearances are metres above MHW; horizontal clearance is the navigable width between fenders/piers",
+              "conversion_note": "MHW clearance retained; no span-specific MHW to NAVD88 conversion supplied",
+              "has_clearance": true,
+              "horizontal_clearance_m": 273.1,
+              "id": "02260CA8F7FC1C82",
+              "information": "West span",
+              "name": "Queensboro Bridge",
+              "source": "NOAA ENC BRIDGE",
+              "underside_navd88_m": null,
+              "vertical_clearance_closed_m": null,
+              "vertical_clearance_m": 39.9,
+              "vertical_clearance_open_m": null
+            }
+          ],
+          "geometry_ne_m": {
+            "coordinates": [
+              [
+                [
+                  6356.724,
+                  5020.372
+                ],
+                [
+                  6370.833,
+                  5029.119
+                ],
+                [
+                  6375.625,
+                  5020.764
+                ],
+                [
+                  6479.947,
+                  4841.289
+                ],
+                [
+                  6509.564,
+                  4790.343
+                ],
+                [
+                  6514.933,
+                  4781.101
+                ],
+                [
+                  6502.866,
+                  4770.537
+                ],
+                [
+                  6496.987,
+                  4780.741
+                ],
+                [
+                  6476.211,
+                  4816.828
+                ],
+                [
+                  6467.049,
+                  4832.431
+                ],
+                [
+                  6361.959,
+                  5011.468
+                ],
+                [
+                  6356.724,
+                  5020.372
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          }
+        },
+        {
+          "id": "enc:022631AF1AA81C82",
+          "clearances": [
+            {
+              "category_codes": [
+                1
+              ],
+              "clearance_datum": "MHW",
+              "clearance_note": "vertical clearances are metres above MHW; horizontal clearance is the navigable width between fenders/piers",
+              "conversion_note": "MHW clearance retained; no span-specific MHW to NAVD88 conversion supplied",
+              "has_clearance": true,
+              "horizontal_clearance_m": 468.1,
+              "id": "022631AF1AA81C82",
+              "information": null,
+              "name": "Williamsburg Bridge",
+              "source": "NOAA ENC BRIDGE",
+              "underside_navd88_m": null,
+              "vertical_clearance_closed_m": null,
+              "vertical_clearance_m": 40.5,
+              "vertical_clearance_open_m": null
+            }
+          ],
+          "geometry_ne_m": {
+            "coordinates": [
+              [
+                [
+                  1405.827,
+                  3832.053
+                ],
+                [
+                  1406.093,
+                  3832.171
+                ],
+                [
+                  1410.659,
+                  3834.188
+                ],
+                [
+                  1421.266,
+                  3838.898
+                ],
+                [
+                  1436.439,
+                  3845.624
+                ],
+                [
+                  1438.371,
+                  3846.485
+                ],
+                [
+                  1438.682,
+                  3846.62
+                ],
+                [
+                  1440.557,
+                  3841.642
+                ],
+                [
+                  1477.333,
+                  3750.001
+                ],
+                [
+                  1477.3308237540587,
+                  3750.000999761106
+                ],
+                [
+                  1582.424,
+                  3488.107
+                ],
+                [
+                  1589.168,
+                  3471.61
+                ],
+                [
+                  1612.138,
+                  3411.742
+                ],
+                [
+                  1609.129,
+                  3410.619
+                ],
+                [
+                  1608.207,
+                  3410.273
+                ],
+                [
+                  1589.003,
+                  3403.117
+                ],
+                [
+                  1578.763,
+                  3399.302
+                ],
+                [
+                  1558.021,
+                  3452.055
+                ],
+                [
+                  1438.5495195060369,
+                  3750.003997110206
+                ],
+                [
+                  1438.544,
+                  3750.004
+                ],
+                [
+                  1409.276,
+                  3823.009
+                ],
+                [
+                  1405.827,
+                  3832.053
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          }
+        },
+        {
+          "id": "enc:0226250074081C82",
+          "clearances": [
+            {
+              "category_codes": [
+                1
+              ],
+              "clearance_datum": "MHW",
+              "clearance_note": "vertical clearances are metres above MHW; horizontal clearance is the navigable width between fenders/piers",
+              "conversion_note": "MHW clearance retained; no span-specific MHW to NAVD88 conversion supplied",
+              "has_clearance": true,
+              "horizontal_clearance_m": 365.7,
+              "id": "0226250074081C82",
+              "information": null,
+              "name": "Manhattan Bridge",
+              "source": "NOAA ENC BRIDGE",
+              "underside_navd88_m": null,
+              "vertical_clearance_closed_m": null,
+              "vertical_clearance_m": 40.8,
+              "vertical_clearance_open_m": null
+            }
+          ],
+          "geometry_ne_m": {
+            "coordinates": [
+              [
+                [
+                  570.986,
+                  2142.996
+                ],
+                [
+                  583.809,
+                  2171.007
+                ],
+                [
+                  617.863,
+                  2156.31
+                ],
+                [
+                  648.064,
+                  2143.583
+                ],
+                [
+                  760.421,
+                  2096.843
+                ],
+                [
+                  885.324,
+                  2043.35
+                ],
+                [
+                  975.673,
+                  2003.016
+                ],
+                [
+                  964.817,
+                  1976.62
+                ],
+                [
+                  570.986,
+                  2142.996
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          }
+        },
+        {
+          "id": "enc:02263858DA411C82",
+          "clearances": [
+            {
+              "category_codes": [
+                1
+              ],
+              "clearance_datum": "MHW",
+              "clearance_note": "vertical clearances are metres above MHW; horizontal clearance is the navigable width between fenders/piers",
+              "conversion_note": "MHW clearance retained; no span-specific MHW to NAVD88 conversion supplied",
+              "has_clearance": true,
+              "horizontal_clearance_m": 411.4,
+              "id": "02263858DA411C82",
+              "information": "Vertical clearance 33.5 meters/110 feet under moving platforms",
+              "name": "Brooklyn Bridge",
+              "source": "NOAA ENC BRIDGE",
+              "underside_navd88_m": null,
+              "vertical_clearance_closed_m": null,
+              "vertical_clearance_m": 38.7,
+              "vertical_clearance_open_m": null
+            }
+          ],
+          "geometry_ne_m": {
+            "coordinates": [
+              [
+                [
+                  498.021,
+                  1686.943
+                ],
+                [
+                  516.425,
+                  1705.142
+                ],
+                [
+                  802.75,
+                  1432.391
+                ],
+                [
+                  809.867,
+                  1424.886
+                ],
+                [
+                  808.889,
+                  1423.83
+                ],
+                [
+                  792.018,
+                  1405.681
+                ],
+                [
+                  782.314,
+                  1414.041
+                ],
+                [
+                  498.021,
+                  1686.943
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          }
+        }
+      ],
+      "rationale": "Estimated simulation test route only, not navigation advice. Deep-water candidate legs from harbor_transit.plan on adopted floor A, independently corridor-checked. West Roosevelt Island channel for East River journeys; St. George holds off the crew-refused face.",
+      "waypoint_provenance": {
+        "bridges_file_sha256": "d1c1ab2f7dc9de53f4b146e4cf2fc617e1c7a0c970ecd90700967a1c2dd40295",
+        "contacts_sha256": "0ff8e977a49b72bf77837148067ab25f60a0f154b0855b120caf0e2d050e285e",
+        "depth_digest": "b58ed9ef82109126c6ed6bfc7243754f4c6578fc6b16706efcea77b59aaa9eaa",
+        "candidate_bed_below_navd88_m": -4,
+        "candidate_clearance_m": 25,
+        "bends": "authoring estimates from adopted depth raster; no GTFS route used",
+        "start_time": "Astoria 08:33 and Soundview 14:24 local selected to reach low-current arrival windows from the shipped 2025-07-16 station blend; these are test conditions, not navigation advice"
+      },
+      "corridor": {
+        "samples": 60450,
+        "missing_examples": [],
+        "zero_missing": true,
+        "highest_bed_navd88_m": -3.1874466797971257
+      },
+      "length_m": 11571.514743544827,
+      "arrival_face": {
+        "middle": [
+          347.65028107997875,
+          788.1124851418779
+        ],
+        "normal": [
+          0.5400706470621949,
+          0.8416196861895652
+        ],
+        "segment_ids": [
+          314313394
+        ]
+      },
+      "arrival_hold": true,
+      "estimated_force_limit_n": 414034.7452260116
+    },
+    {
+      "name": "astoria-busy",
+      "departure_stop": "87",
+      "arrival_stop": "89",
+      "arrival_blocked": false,
+      "date": "2025-07-19",
+      "minute": 1015,
+      "vessel": "t-class",
+      "points": [
+        [
+          390.0,
+          980.0
+        ],
+        [
+          655.389088667065,
+          1554.351536923543
+        ],
+        [
+          772.5633492278282,
+          2074.4010171879554
+        ],
+        [
+          1050.0,
+          3000.0
+        ],
+        [
+          1509.0524077816262,
+          3622.523737710356
+        ],
+        [
+          3100.0,
+          4250.0
+        ],
+        [
+          4500.0,
+          3920.0
+        ],
+        [
+          5400.0,
+          4330.0
+        ],
+        [
+          6435.617970237682,
+          4901.648870088835
+        ],
+        [
+          7900.0,
+          6000.0
+        ],
+        [
+          8450.0,
+          6510.0
+        ],
+        [
+          8200.0,
+          6440.0
+        ],
+        [
+          7813.072175775193,
+          6634.484538339417
+        ]
+      ],
+      "required_spans": [
+        {
+          "id": "enc:02263858DA411C82",
+          "clearances": [
+            {
+              "category_codes": [
+                1
+              ],
+              "clearance_datum": "MHW",
+              "clearance_note": "vertical clearances are metres above MHW; horizontal clearance is the navigable width between fenders/piers",
+              "conversion_note": "MHW clearance retained; no span-specific MHW to NAVD88 conversion supplied",
+              "has_clearance": true,
+              "horizontal_clearance_m": 411.4,
+              "id": "02263858DA411C82",
+              "information": "Vertical clearance 33.5 meters/110 feet under moving platforms",
+              "name": "Brooklyn Bridge",
+              "source": "NOAA ENC BRIDGE",
+              "underside_navd88_m": null,
+              "vertical_clearance_closed_m": null,
+              "vertical_clearance_m": 38.7,
+              "vertical_clearance_open_m": null
+            }
+          ],
+          "geometry_ne_m": {
+            "coordinates": [
+              [
+                [
+                  498.021,
+                  1686.943
+                ],
+                [
+                  516.425,
+                  1705.142
+                ],
+                [
+                  802.75,
+                  1432.391
+                ],
+                [
+                  809.867,
+                  1424.886
+                ],
+                [
+                  808.889,
+                  1423.83
+                ],
+                [
+                  792.018,
+                  1405.681
+                ],
+                [
+                  782.314,
+                  1414.041
+                ],
+                [
+                  498.021,
+                  1686.943
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          }
+        },
+        {
+          "id": "enc:0226250074081C82",
+          "clearances": [
+            {
+              "category_codes": [
+                1
+              ],
+              "clearance_datum": "MHW",
+              "clearance_note": "vertical clearances are metres above MHW; horizontal clearance is the navigable width between fenders/piers",
+              "conversion_note": "MHW clearance retained; no span-specific MHW to NAVD88 conversion supplied",
+              "has_clearance": true,
+              "horizontal_clearance_m": 365.7,
+              "id": "0226250074081C82",
+              "information": null,
+              "name": "Manhattan Bridge",
+              "source": "NOAA ENC BRIDGE",
+              "underside_navd88_m": null,
+              "vertical_clearance_closed_m": null,
+              "vertical_clearance_m": 40.8,
+              "vertical_clearance_open_m": null
+            }
+          ],
+          "geometry_ne_m": {
+            "coordinates": [
+              [
+                [
+                  570.986,
+                  2142.996
+                ],
+                [
+                  583.809,
+                  2171.007
+                ],
+                [
+                  617.863,
+                  2156.31
+                ],
+                [
+                  648.064,
+                  2143.583
+                ],
+                [
+                  760.421,
+                  2096.843
+                ],
+                [
+                  885.324,
+                  2043.35
+                ],
+                [
+                  975.673,
+                  2003.016
+                ],
+                [
+                  964.817,
+                  1976.62
+                ],
+                [
+                  570.986,
+                  2142.996
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          }
+        },
+        {
+          "id": "enc:022631AF1AA81C82",
+          "clearances": [
+            {
+              "category_codes": [
+                1
+              ],
+              "clearance_datum": "MHW",
+              "clearance_note": "vertical clearances are metres above MHW; horizontal clearance is the navigable width between fenders/piers",
+              "conversion_note": "MHW clearance retained; no span-specific MHW to NAVD88 conversion supplied",
+              "has_clearance": true,
+              "horizontal_clearance_m": 468.1,
+              "id": "022631AF1AA81C82",
+              "information": null,
+              "name": "Williamsburg Bridge",
+              "source": "NOAA ENC BRIDGE",
+              "underside_navd88_m": null,
+              "vertical_clearance_closed_m": null,
+              "vertical_clearance_m": 40.5,
+              "vertical_clearance_open_m": null
+            }
+          ],
+          "geometry_ne_m": {
+            "coordinates": [
+              [
+                [
+                  1405.827,
+                  3832.053
+                ],
+                [
+                  1406.093,
+                  3832.171
+                ],
+                [
+                  1410.659,
+                  3834.188
+                ],
+                [
+                  1421.266,
+                  3838.898
+                ],
+                [
+                  1436.439,
+                  3845.624
+                ],
+                [
+                  1438.371,
+                  3846.485
+                ],
+                [
+                  1438.682,
+                  3846.62
+                ],
+                [
+                  1440.557,
+                  3841.642
+                ],
+                [
+                  1477.333,
+                  3750.001
+                ],
+                [
+                  1477.3308237540587,
+                  3750.000999761106
+                ],
+                [
+                  1582.424,
+                  3488.107
+                ],
+                [
+                  1589.168,
+                  3471.61
+                ],
+                [
+                  1612.138,
+                  3411.742
+                ],
+                [
+                  1609.129,
+                  3410.619
+                ],
+                [
+                  1608.207,
+                  3410.273
+                ],
+                [
+                  1589.003,
+                  3403.117
+                ],
+                [
+                  1578.763,
+                  3399.302
+                ],
+                [
+                  1558.021,
+                  3452.055
+                ],
+                [
+                  1438.5495195060369,
+                  3750.003997110206
+                ],
+                [
+                  1438.544,
+                  3750.004
+                ],
+                [
+                  1409.276,
+                  3823.009
+                ],
+                [
+                  1405.827,
+                  3832.053
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          }
+        },
+        {
+          "id": "enc:02260CA8F7FC1C82",
+          "clearances": [
+            {
+              "category_codes": [
+                1
+              ],
+              "clearance_datum": "MHW",
+              "clearance_note": "vertical clearances are metres above MHW; horizontal clearance is the navigable width between fenders/piers",
+              "conversion_note": "MHW clearance retained; no span-specific MHW to NAVD88 conversion supplied",
+              "has_clearance": true,
+              "horizontal_clearance_m": 273.1,
+              "id": "02260CA8F7FC1C82",
+              "information": "West span",
+              "name": "Queensboro Bridge",
+              "source": "NOAA ENC BRIDGE",
+              "underside_navd88_m": null,
+              "vertical_clearance_closed_m": null,
+              "vertical_clearance_m": 39.9,
+              "vertical_clearance_open_m": null
+            }
+          ],
+          "geometry_ne_m": {
+            "coordinates": [
+              [
+                [
+                  6356.724,
+                  5020.372
+                ],
+                [
+                  6370.833,
+                  5029.119
+                ],
+                [
+                  6375.625,
+                  5020.764
+                ],
+                [
+                  6479.947,
+                  4841.289
+                ],
+                [
+                  6509.564,
+                  4790.343
+                ],
+                [
+                  6514.933,
+                  4781.101
+                ],
+                [
+                  6502.866,
+                  4770.537
+                ],
+                [
+                  6496.987,
+                  4780.741
+                ],
+                [
+                  6476.211,
+                  4816.828
+                ],
+                [
+                  6467.049,
+                  4832.431
+                ],
+                [
+                  6361.959,
+                  5011.468
+                ],
+                [
+                  6356.724,
+                  5020.372
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          }
+        }
+      ],
+      "rationale": "Estimated simulation test route only, not navigation advice. Deep-water candidate legs from harbor_transit.plan on adopted floor A, independently corridor-checked. West Roosevelt Island channel for East River journeys; St. George holds off the crew-refused face.",
+      "waypoint_provenance": {
+        "bridges_file_sha256": "d1c1ab2f7dc9de53f4b146e4cf2fc617e1c7a0c970ecd90700967a1c2dd40295",
+        "contacts_sha256": "0ff8e977a49b72bf77837148067ab25f60a0f154b0855b120caf0e2d050e285e",
+        "depth_digest": "b58ed9ef82109126c6ed6bfc7243754f4c6578fc6b16706efcea77b59aaa9eaa",
+        "candidate_bed_below_navd88_m": -4,
+        "candidate_clearance_m": 25,
+        "bends": "authoring estimates from adopted depth raster; no GTFS route used",
+        "start_time": "Astoria 08:33 and Soundview 14:24 local selected to reach low-current arrival windows from the shipped 2025-07-16 station blend; these are test conditions, not navigation advice"
+      },
+      "corridor": {
+        "samples": 60060,
+        "missing_examples": [],
+        "zero_missing": true,
+        "highest_bed_navd88_m": -4.651468603408865
+      },
+      "length_m": 11499.28933938071,
+      "arrival_face": {
+        "middle": [
+          7962.456108727058,
+          6691.79457738872
+        ],
+        "normal": [
+          -0.9336495809491551,
+          -0.35818774405815057
+        ],
+        "segment_ids": [
+          523290550
+        ]
+      },
+      "estimated_force_limit_n": 414034.7452260116,
+      "workload_note": "90-second rendering/behaviour workload at the global peak shipped AIS presence minute, 243 vessels before own-vessel suppression; not a full arrival acceptance route"
+    }
+  ]
+}

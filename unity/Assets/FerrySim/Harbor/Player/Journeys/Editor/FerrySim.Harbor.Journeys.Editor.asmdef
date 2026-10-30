@@ -1,0 +1,6 @@
+{
+	"name": "FerrySim.Harbor.Journeys.Editor",
+	"references": ["FerrySim.Unity.Build.Editor"],
+	"includePlatforms": ["Editor"],
+	"autoReferenced": true
+}
