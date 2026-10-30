@@ -69,8 +69,13 @@ namespace FerrySim.Chartplotter
 				return Past;
 			}
 
-			var whole = (int)Math.Round(seconds, MidpointRounding.AwayFromZero);
-			return whole < MinutesSeconds.Length ? MinutesSeconds[whole] : OverAnHour;
+			// Compare before the cast: a nearly parallel target's huge TCPA would overflow int to a negative index.
+			if (seconds >= MinutesSeconds.Length - 0.5)
+			{
+				return OverAnHour;
+			}
+
+			return MinutesSeconds[(int)Math.Round(seconds, MidpointRounding.AwayFromZero)];
 		}
 
 		/// <summary>A view span: "0.25 NM", "0.5 NM", "2 NM".</summary>

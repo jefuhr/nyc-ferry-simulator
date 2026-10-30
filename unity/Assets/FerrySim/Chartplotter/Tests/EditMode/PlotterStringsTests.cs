@@ -23,7 +23,18 @@ namespace FerrySim.Chartplotter.Tests.EditMode
 			Assert.That(PlotterStrings.MinutesAndSeconds(359.6), Is.EqualTo("6:00"));
 			Assert.That(PlotterStrings.MinutesAndSeconds(-1), Is.EqualTo("PAST"));
 			Assert.That(PlotterStrings.MinutesAndSeconds(3600), Is.EqualTo("> 60:00"));
+			Assert.That(PlotterStrings.MinutesAndSeconds(3599.4), Is.EqualTo("59:59"));
+			Assert.That(PlotterStrings.MinutesAndSeconds(3599.5), Is.EqualTo("> 60:00"), "rounds up past the last table entry");
 			Assert.That(PlotterStrings.MinutesAndSeconds(double.PositiveInfinity), Is.EqualTo("---"));
+		}
+
+		// A nearly parallel target gives a huge finite TCPA; casting it to int overflowed to a negative index (harbor-e2e, Astoria).
+		[TestCase(2147483648.0)]
+		[TestCase(1e12)]
+		[TestCase(double.MaxValue)]
+		public void HugeFiniteTcpaIsOverAnHour(double seconds)
+		{
+			Assert.That(PlotterStrings.MinutesAndSeconds(seconds), Is.EqualTo("> 60:00"));
 		}
 
 		[Test]

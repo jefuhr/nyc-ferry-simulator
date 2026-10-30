@@ -3,13 +3,13 @@ using NUnit.Framework;
 
 namespace FerrySim.HarborE2E.Tests
 {
-	/// <summary>Explicit desired-behavior repros for product defects found by the installed journeys.</summary>
+	/// <summary>Regression repros for product defects found by the installed journeys; they run in the ordinary gate once fixed.</summary>
 	public class ProductReproductionTests
 	{
+		// Found as a player exception in PlotterStrings.MinutesAndSeconds on the Astoria journey; fixed by comparing before the int cast.
 		[TestCase(2147483648.0)]
 		[TestCase(1e12)]
 		[TestCase(double.MaxValue)]
-		[Explicit("Observed player exception in PlotterStrings.MinutesAndSeconds; product fix belongs to the coordinator")]
 		public void LargeFiniteTcpaShowsOverAnHour(double seconds)
 		{
 			// Reflection keeps this evidence assembly independent of the product's formatting implementation.
