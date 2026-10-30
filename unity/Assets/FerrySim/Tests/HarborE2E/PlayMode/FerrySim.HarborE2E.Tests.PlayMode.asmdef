@@ -1,0 +1,20 @@
+{
+	"name": "FerrySim.HarborE2E.Tests.PlayMode",
+	"references": [
+		"FerrySim.Harbor.Journeys",
+		"FerrySim.Core",
+		"FerrySim.Harbor.Runtime",
+		"FerrySim.Harbor.Integration",
+		"FerrySim.Unity.Sim",
+		"FerrySim.Unity.World",
+		"FerrySim.World.HarborTiles",
+		"FerrySim.World.HarborNavigation",
+		"CesiumForUnity",
+		"FerrySim.Unity.Harbor.Scenarios",
+		"FerrySim.Unity.UI"
+	],
+	"optionalUnityReferences": [
+		"TestAssemblies"
+	],
+	"autoReferenced": false
+}

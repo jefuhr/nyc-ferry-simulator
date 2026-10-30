@@ -106,10 +106,11 @@ namespace FerrySim.Harbor.Player
 			};
 			try
 			{
-				var process = System.Diagnostics.Process.GetCurrentProcess();
-				snapshot["working_set_bytes"] = process.WorkingSet64; snapshot["peak_working_set_bytes"] = process.PeakWorkingSet64;
+				HarborProcessMemory.Read(out var working, out var peak, out var pagefile, out var source);
+				snapshot["working_set_bytes"] = working; snapshot["peak_working_set_bytes"] = peak;
+				snapshot["pagefile_usage_bytes"] = pagefile; snapshot["process_source"] = source;
 			}
-			catch (Exception error) { snapshot["process_error"] = error.Message; }
+			catch (Exception error) { snapshot["process_error"] = error.Message; Fail("Process memory unavailable: " + error.Message); }
 			_memory[when] = snapshot;
 		}
 
@@ -237,14 +238,24 @@ namespace FerrySim.Harbor.Player
 						displays.RadarShown = true; displays.ChartplotterShown = true;
 						yield return Wait(() => displays.Connected && displays.RadarVisible && displays.ChartplotterVisible, 30);
 						if (!_met) Fail("Displays did not open");
+						var sweep = new RadarCaptureReadiness(displays.Radar.Engine.Configuration.Spokes);
+						var sweepStarted = Time.realtimeSinceStartupAsDouble;
 						var echoBins = 0; var vertices = 0; var drawn = 0; var renders = 0;
 						yield return Wait(() =>
 						{
-							echoBins = displays.Radar.Engine != null ? HarborDisplays.CountEchoBins(displays.Radar.Engine) : 0;
+							var engine = displays.Radar.Engine;
+							sweep.Observe(Time.frameCount, engine.LastFirstSpoke, engine.LastSpokeCount, engine.Cleared);
+							// Do not repeatedly scan the whole picture while only its first arc has been swept.
+							if (!sweep.Complete) return false;
+							echoBins = HarborDisplays.CountEchoBins(engine);
 							var view = displays.Chartplotter.View;
 							vertices = view != null ? view.Canvas.LastVertices : 0; drawn = view != null ? view.Targets.TargetsDrawn : 0; renders = view != null ? view.Canvas.RenderCount : 0;
-							return echoBins >= 200 && vertices > 0 && drawn > 0;
+							return RadarCaptureReadiness.ContentReady(sweep.Complete, echoBins, vertices, drawn);
 						}, 30);
+						_harbor["radar_swept_spokes"] = sweep.ObservedSpokes;
+						_harbor["radar_required_spokes"] = displays.Radar.Engine.Configuration.Spokes;
+						_harbor["radar_capture_wait_s"] = Time.realtimeSinceStartupAsDouble - sweepStarted;
+						_harbor["radar_minimum_echo_bins"] = RadarCaptureReadiness.MinimumEchoBins;
 						_harbor["radar_echo_bins"] = echoBins; _harbor["radar_range_nm"] = displays.Radar.Engine != null ? displays.Radar.Engine.Scale.RangeMetres / 1852 : 0;
 						_harbor["radar_targets_present"] = displays.Radar.PresentTargets;
 						_harbor["chart_vertices"] = vertices; _harbor["chart_targets_drawn"] = drawn; _harbor["chart_static_renders"] = renders;
