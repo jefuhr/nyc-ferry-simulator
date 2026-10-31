@@ -21,6 +21,7 @@ namespace FerrySim.HarborWater
 		private double[] _levels;
 		private Vector3[] _vertices;
 		private Mesh _mesh;
+		private int _firstNorth, _firstEast, _rows, _columns;
 
 		/// <summary>Double-precision anchor and basis used to bake the patch.</summary>
 		public WaterFrame Frame { get; private set; }
@@ -31,7 +32,7 @@ namespace FerrySim.HarborWater
 		/// <summary>Number of unique corner nodes in this patch.</summary>
 		public int NodeCount => _nodes?.Length ?? 0;
 
-		/// <summary>Builds a patch using integer common-lattice coordinates. Shared edge coordinates use the same datum nodes and tide weights.</summary>
+		/// <summary>Builds a patch using integer common-lattice coordinates, or rebinds its baked mesh when the datum and gauge layout match by value.</summary>
 		public void Configure(HarborWaterService service, int firstNorth, int firstEast, int rows, int columns, Material material, VesselSimulationRunner runner = null)
 		{
 			if (service == null || rows < 1 || columns < 1 || rows > 40 || columns > 40)
@@ -44,8 +45,21 @@ namespace FerrySim.HarborWater
 				throw new InvalidOperationException("HarborWaterPatch must be parented below a CesiumGeoreference.");
 			}
 
+			if (_mesh != null && firstNorth == _firstNorth && firstEast == _firstEast && rows == _rows && columns == _columns && SameLayout(service))
+			{
+				_service = service;
+				_runner = runner;
+				GetComponent<MeshRenderer>().sharedMaterial = material;
+				UpdateWater(0);
+				return;
+			}
+
 			_service = service;
 			_runner = runner;
+			_firstNorth = firstNorth;
+			_firstEast = firstEast;
+			_rows = rows;
+			_columns = columns;
 			var north = firstNorth * Spacing;
 			var east = firstEast * Spacing;
 			Frame = WaterFrame.AtNorthEast(north + rows * Spacing * .5, east + columns * Spacing * .5);
@@ -119,6 +133,34 @@ namespace FerrySim.HarborWater
 			_mesh.bounds = new Bounds(Vector3.zero, new Vector3((float)(columns * Spacing + 10), 200, (float)(rows * Spacing + 10)));
 			GetComponent<MeshFilter>().sharedMesh = _mesh;
 			GetComponent<MeshRenderer>().sharedMaterial = material;
+		}
+
+		private bool SameLayout(HarborWaterService service)
+		{
+			// Only geometry and normalized weights are reused. Samples and the scenario's time offset come from
+			// the new service; equal gauge counts or shared object references alone do not prove a matching layout.
+			var a = _service.Datum.Lattice;
+			var b = service.Datum.Lattice;
+			if (a.OriginNorth != b.OriginNorth || a.OriginEast != b.OriginEast || a.CellSize != b.CellSize || a.Rows != b.Rows || a.Columns != b.Columns)
+			{
+				return false;
+			}
+			for (var row = 0; row < a.Rows; row++)
+			{
+				for (var column = 0; column < a.Columns; column++)
+				{
+					if (a.Node(row, column) != b.Node(row, column) || a.CellActive(row, column) != b.CellActive(row, column)) return false;
+				}
+			}
+			var before = _service.Environment.Pack.WaterLevelStations;
+			var after = service.Environment.Pack.WaterLevelStations;
+			if (before.Count != after.Count) return false;
+			for (var i = 0; i < before.Count; i++)
+			{
+				if (before[i].Id != after[i].Id || before[i].North != after[i].North || before[i].East != after[i].East ||
+					before[i].Latitude != after[i].Latitude || before[i].Longitude != after[i].Longitude) return false;
+			}
+			return true;
 		}
 
 		/// <summary>Updates baked vertices and submits them without per-frame allocations or geodesy.</summary>

@@ -51,6 +51,13 @@ namespace FerrySim.Chartplotter
 		/// <summary>Labels of each pool turned per frame when the chart has turned: bounded work, never a whole-frame burst.</summary>
 		public const int LabelsRotatedPerFrame = 16;
 
+		/// <summary>
+		/// A drift regeneration (own ship creeping through the rendered margin while the old chart is still right) draws
+		/// about this much per frame, ms, so a route never pays the whole chart in one frame; a view change still
+		/// regenerates at once. The remaining fifth of the margin is about 150 m at 1 NM: many frames at ferry speeds.
+		/// </summary>
+		public const double DriftRegenerationBudgetMilliseconds = 1.5;
+
 		private readonly VisualElement _header;
 		private readonly VisualElement _viewport;
 		private readonly VisualElement _footer;
@@ -77,6 +84,8 @@ namespace FerrySim.Chartplotter
 		private double _safety = SafetyContour.DefaultMetres;
 		private double _vectorMinutes = 6.0;
 		private CpaAlarmLimits _limits = CpaAlarmLimits.Default;
+		private bool _alarmMuted;
+		private bool _limitsTextDirty = true;
 		private double _visibility;
 		private int _selected = -1;
 		private string _selectedText = string.Empty;
@@ -96,6 +105,11 @@ namespace FerrySim.Chartplotter
 		private int _outlineCount;
 		private double _ownLength = 26.0, _ownBeam = 8.0;
 		private bool _modeTextDirty = true, _depthTextDirty = true;
+		private double _depthTextDrawn = double.NaN;
+		private string[] _depthTexts = Array.Empty<string>();
+		private DistanceUnit _depthTextsUnit;
+		private double _depthTextsSafety = double.NaN;
+		private ChartTessellation _depthTextsChart;
 		private double _scaleBarMetres = ChartView.MetresPerCable;
 
 		/// <summary>Diagnostics for the cost tests only: hold the canvas unrotated, or skip the label repositioning, to attribute the cost of each.</summary>
@@ -193,13 +207,21 @@ namespace FerrySim.Chartplotter
 
 		public FixRing Track => _track;
 
-		/// <summary>True while any target is a CPA alarm.</summary>
+		/// <summary>True while any target is a CPA alarm, muted or not (the ranking's truth).</summary>
 		public bool Alarm => _ranking.Alarm;
+
+		/// <summary>True while the alarm treatment is drawn: an alarm target and the alarm not muted.</summary>
+		public bool AlarmShown => _ranking.Alarm && !_alarmMuted;
 
 		/// <summary>Static chart generations requested so far (one per view change).</summary>
 		public int StaticRenders => Canvas.RequestCount;
 
 		public double LastRefreshMilliseconds { get; private set; }
+
+		/// <summary>Of the last static regeneration: the canvas placement (queries and labels) and the label layout, ms; the mesh generation itself runs at the repaint (<see cref="ChartCanvas.LastRenderMilliseconds"/>).</summary>
+		public double LastStaticPlacementMilliseconds { get; private set; }
+
+		public double LastLabelLayoutMilliseconds { get; private set; }
 
 		public string ModeText => _modeLabel.text;
 
@@ -344,11 +366,46 @@ namespace FerrySim.Chartplotter
 			}
 		}
 
+		/// <summary>
+		/// The CPA alarm limits: a display setting, never recorded and separate from the run's own traffic alarm limits.
+		/// Holds across runs in a session; a new view starts at the defaults.
+		/// </summary>
 		public CpaAlarmLimits AlarmLimits
 		{
 			get => _limits;
-			set => _limits = value;
+			set
+			{
+				if (value.Cpa == _limits.Cpa && value.Tcpa == _limits.Tcpa) return;
+				_limits = value;
+				_limitsTextDirty = true;
+			}
 		}
+
+		/// <summary>Widens (+1) or narrows (−1) the CPA limit one step (0.05 NM within 0.05 to 1 NM).</summary>
+		public void StepCpaLimit(int direction) => AlarmLimits = _limits.StepCpa(direction);
+
+		/// <summary>Lengthens (+1) or shortens (−1) the TCPA limit one step (a minute within 1 to 30 min).</summary>
+		public void StepTcpaLimit(int direction) => AlarmLimits = _limits.StepTcpa(direction);
+
+		/// <summary>
+		/// Muted, the alarm treatment is hidden (the banner, the row fill and the target fill) while the targets, their
+		/// values and their ranking stay as they are. A display setting like the limits.
+		/// </summary>
+		public bool AlarmMuted
+		{
+			get => _alarmMuted;
+			set
+			{
+				if (_alarmMuted == value) return;
+				_alarmMuted = value;
+				_limitsTextDirty = true;
+			}
+		}
+
+		public void ToggleAlarmMute() => AlarmMuted = !_alarmMuted;
+
+		/// <summary>The limits readout shown under the list's banner.</summary>
+		public string LimitsText => List.LimitsText;
 
 		/// <summary>Meteorological visibility, m; 0 or more than a mile draws no ring.</summary>
 		public double VisibilityMetres
@@ -562,12 +619,12 @@ namespace FerrySim.Chartplotter
 					view.Direction(targetCourse, out var tcdx, out var tcdy);
 					Targets.SetTarget(i, (float)x, (float)y, sample.HeadingKnown || targetSpeed >= StoppedSpeed, (float)thdx, (float)thdy, (float)tcdx, (float)tcdy,
 						(float)(targetSpeed * _vectorMinutes * 60.0 / metresPerPixel), (float)(sample.Length / metresPerPixel), (float)(sample.Beam / metresPerPixel),
-						_limits.IsAlarm(encounter), targetSpeed < StoppedSpeed, !sample.Moving);
+						_limits.IsAlarm(encounter) && !_alarmMuted, targetSpeed < StoppedSpeed, !sample.Moving);
 				}
 			}
 
 			LandingLabelsGiveWay(rect, roster);
-			List.Update(_ranking, targets);
+			List.Update(_ranking, targets, _alarmMuted);
 			if (_selected >= 0 && (_selected >= roster || targets == null))
 			{
 				_selected = -1;
@@ -692,30 +749,81 @@ namespace FerrySim.Chartplotter
 		{
 			var diagonal = Math.Sqrt(rect.width * rect.width + rect.height * rect.height);
 			var side = Math.Ceiling(diagonal * 1.6);
-			var need = _staticDirty || !Canvas.HasRenderedView || _renderedSpan != _span || Canvas.RenderedView.ScreenCentreX * 2.0 != side;
-			if (!need)
+			var viewChange = _staticDirty || !Canvas.HasRenderedView || _renderedSpan != _span || Canvas.RenderedView.ScreenCentreX * 2.0 != side;
+			if (!viewChange && !Covers(Canvas.RenderedView, centreNorth, centreEast, side, diagonal, metresPerPixel))
 			{
+				// A discontinuity (a far pan, the centre key after one, a new run elsewhere): the chart on screen no longer
+				// covers the viewport, so it cannot stay while a replacement is spread over frames, and a pending drift
+				// generation is for the wrong place. The immediate path below replaces both.
+				viewChange = true;
+			}
+
+			if (!viewChange)
+			{
+				var mark = _watch.Elapsed.TotalMilliseconds;
+				if (Canvas.Generating)
+				{
+					// A drift regeneration under way: another slice, and the commit when it is complete.
+					if (Canvas.Advance(DriftRegenerationBudgetMilliseconds))
+					{
+						FinishStatic(rect, side, metresPerPixel, mark);
+					}
+
+					return;
+				}
+
 				var rendered = Canvas.RenderedView;
 				var dn = centreNorth - rendered.CentreNorth;
 				var de = centreEast - rendered.CentreEast;
-				// Regenerate once the view centre has used up most of the margin around the viewport's diagonal.
+				// Regenerate once the view centre has used up most of the margin around the viewport's diagonal: spread over
+				// frames, since the chart on screen is still right while the rest of the margin is used up.
 				var marginPixels = (side - diagonal) * 0.5 * 0.8;
-				need = dn * dn + de * de > marginPixels * marginPixels * metresPerPixel * metresPerPixel;
-			}
+				if (dn * dn + de * de > marginPixels * marginPixels * metresPerPixel * metresPerPixel)
+				{
+					Canvas.Render(centreNorth, centreEast, metresPerPixel, side, _span, _palette, _safety, _unit, immediate: false);
+					if (Canvas.Advance(DriftRegenerationBudgetMilliseconds))
+					{
+						FinishStatic(rect, side, metresPerPixel, mark);
+					}
+				}
 
-			if (!need)
-			{
 				return;
 			}
 
+			// A view change (the first render, a zoom, a palette, unit or safety-contour change): the chart on screen is wrong, so it regenerates at once.
+			var started = _watch.Elapsed.TotalMilliseconds;
 			Canvas.Render(centreNorth, centreEast, metresPerPixel, side, _span, _palette, _safety, _unit);
+			FinishStatic(rect, side, metresPerPixel, started);
+		}
+
+		/// <summary>
+		/// True while the committed chart's square (<paramref name="side"/> px, north-up) still contains the viewport's
+		/// circumscribed circle at a centre: the chart on screen can be translated there without exposing empty map.
+		/// </summary>
+		private static bool Covers(ChartView rendered, double centreNorth, double centreEast, double side, double diagonal, double metresPerPixel)
+		{
+			var margin = (side - diagonal) * 0.5 * metresPerPixel;
+			return Math.Abs(centreNorth - rendered.CentreNorth) <= margin && Math.Abs(centreEast - rendered.CentreEast) <= margin;
+		}
+
+		/// <summary>After a commit: the canvas placed in the viewport, the labels laid out for the chart's rotation, the header and the scale bar refreshed.</summary>
+		private void FinishStatic(Rect rect, double side, double metresPerPixel, double startedMilliseconds)
+		{
 			Canvas.style.left = (float)((rect.width - side) * 0.5);
 			Canvas.style.top = (float)((rect.height - side) * 0.5);
+			LastStaticPlacementMilliseconds = _watch.Elapsed.TotalMilliseconds - startedMilliseconds;
+			var mark = _watch.Elapsed.TotalMilliseconds;
 			_labelRotation = (float)(-_upBearing * 180.0 / Math.PI);
 			Canvas.LayoutLabels(_labelRotation, rect.width * 0.5f, rect.height * 0.5f);
+			LastLabelLayoutMilliseconds = _watch.Elapsed.TotalMilliseconds - mark;
 			_staticDirty = false;
 			_renderedSpan = _span;
-			_depthTextDirty = true;
+			if (SafetyContourDrawnMetres != _depthTextDrawn)
+			{
+				// The header names the contour drawn: rebuilt only when a regeneration changed it, not per drift regeneration.
+				_depthTextDirty = true;
+			}
+
 			var bar = _span <= 1.0 ? ChartView.MetresPerCable : _span <= 4.0 ? ChartView.MetresPerNauticalMile * 0.5 : ChartView.MetresPerNauticalMile;
 			if (bar != _scaleBarMetres)
 			{
@@ -761,14 +869,19 @@ namespace FerrySim.Chartplotter
 				PaletteRoles.SetText(_modeLabel, PlotterStrings.Span(_span) + (_orientation == ChartOrientation.NorthUp ? " · NORTH UP · " : " · COURSE UP · ") + (_centred ? "CENTRED" : "PANNED"));
 			}
 
+			if (_limitsTextDirty)
+			{
+				// Built on a key press only: a string per change, nothing per frame.
+				_limitsTextDirty = false;
+				List.SetLimitsText(PlotterStrings.AlarmLimits(_limits));
+			}
+
 			if (_depthTextDirty)
 			{
 				_depthTextDirty = false;
 				var drawn = SafetyContourDrawnMetres;
-				var unitText = DisplayUnits.Symbol(_unit);
-				var safety = double.IsNaN(drawn) ? "---" : InstrumentFormat.Fixed(DisplayUnits.Distance(drawn, _unit), 0);
-				var requested = InstrumentFormat.Fixed(DisplayUnits.Distance(_safety, _unit), _unit == DistanceUnit.Feet ? 0 : 1);
-				PaletteRoles.SetText(_depthLabel, "DEPTHS " + unitText + " MLLW · SAFETY " + safety + " " + unitText + (drawn == _safety || double.IsNaN(drawn) ? string.Empty : " (SET " + requested + " " + unitText + ")"));
+				_depthTextDrawn = drawn;
+				PaletteRoles.SetText(_depthLabel, DepthTextFor(drawn));
 			}
 
 			if (_statusLabel.style.display != (live ? DisplayStyle.None : DisplayStyle.Flex))
@@ -779,6 +892,47 @@ namespace FerrySim.Chartplotter
 			PaletteRoles.SetText(_headingLabel, live ? HeadingTexts.Heading(_ownHeading) : "HDG ---");
 			PaletteRoles.SetText(_courseLabel, live && courseKnown ? HeadingTexts.Course(course) : "COG ---");
 			PaletteRoles.SetText(_speedLabel, live ? HeadingTexts.Speed(speed) : "SOG --- kn");
+		}
+
+		/// <summary>
+		/// The header's depth text for the contour drawn: one string per charted contour, built when the chart, the unit
+		/// or the requested safety contour changes (a setting), so a drift regeneration that draws another charted
+		/// contour allocates nothing.
+		/// </summary>
+		private string DepthTextFor(double drawn)
+		{
+			var contours = _chart != null ? _chart.ChartedContours : Array.Empty<double>();
+			if (!ReferenceEquals(_chart, _depthTextsChart) || _unit != _depthTextsUnit || _safety != _depthTextsSafety || _depthTexts.Length != contours.Length + 1)
+			{
+				_depthTextsChart = _chart;
+				_depthTextsUnit = _unit;
+				_depthTextsSafety = _safety;
+				_depthTexts = new string[contours.Length + 1];
+				for (var i = 0; i < contours.Length; i++)
+				{
+					_depthTexts[i] = BuildDepthText(contours[i]);
+				}
+
+				_depthTexts[contours.Length] = BuildDepthText(double.NaN);
+			}
+
+			for (var i = 0; i < contours.Length; i++)
+			{
+				if (contours[i] == drawn)
+				{
+					return _depthTexts[i];
+				}
+			}
+
+			return double.IsNaN(drawn) ? _depthTexts[contours.Length] : BuildDepthText(drawn);
+		}
+
+		private string BuildDepthText(double drawn)
+		{
+			var unitText = DisplayUnits.Symbol(_unit);
+			var safety = double.IsNaN(drawn) ? "---" : InstrumentFormat.Fixed(DisplayUnits.Distance(drawn, _unit), 0);
+			var requested = InstrumentFormat.Fixed(DisplayUnits.Distance(_safety, _unit), _unit == DistanceUnit.Feet ? 0 : 1);
+			return "DEPTHS " + unitText + " MLLW · SAFETY " + safety + " " + unitText + (drawn == _safety || double.IsNaN(drawn) ? string.Empty : " (SET " + requested + " " + unitText + ")");
 		}
 
 		/// <summary>Bounded readout strings for the footer, built once.</summary>

@@ -74,6 +74,49 @@ namespace FerrySim.Chartplotter.Tests.PlayMode
 			Assert.That(total, Is.Zero, "refresh allocated");
 		}
 
+		/// <summary>The alarm keys (v0.3.1): a limit step or a mute builds its readout once, on that frame; every refresh after it allocates nothing.</summary>
+		[UnityTest]
+		public IEnumerator AfterAlarmKeyChanges_RefreshAllocatesNothing_WhileTheSettingsHold()
+		{
+			_rig = new PlotterRig(1280, 720, new Rect(0, 0, 1280, 720));
+			for (var t = 0; t < 40; t++)
+			{
+				_rig.Targets.Add("T" + t, 100000 + t, -1500 + t * 40, -800 + t * 30, 2 * Math.Sin(t), 2 * Math.Cos(t), 20 + t % 5, 6, t % 7 != 0);
+			}
+
+			_rig.View.SpanNauticalMiles = 2.0;
+			for (var i = 0; i < 60; i++)
+			{
+				_rig.Own.Place(i * 0.1, -1000 + i * 0.3, 0, 30 + i * 0.1, 6);
+				yield return null;
+			}
+
+			// Keys pressed: wider CPA, shorter TCPA, muted. The next refresh may build the readout; the ones after must not.
+			_rig.View.StepCpaLimit(1);
+			_rig.View.StepTcpaLimit(-1);
+			_rig.View.ToggleAlarmMute();
+			yield return null;
+			Assert.That(_rig.View.LimitsText, Is.EqualTo("LIMITS 0.15 NM · 5:00"));
+			Assert.That(_rig.View.AlarmMuted, Is.True);
+			var requests = _rig.View.Canvas.RequestCount;
+			var recorder = Calibrated();
+			var total = 0;
+			for (var i = 61; i < 300; i++)
+			{
+				_rig.Own.Place(i * 0.1, -1000 + i * 0.3, 0, 30 + i * 0.1, 6);
+				recorder.enabled = true;
+				_rig.Display.Refresh();
+				recorder.enabled = false;
+				total += recorder.sampleBlockCount;
+				yield return null;
+			}
+
+			recorder.CollectFromAllThreads();
+			TestContext.WriteLine("refresh after alarm key changes: " + total + " GC.Alloc samples over 239 frames, alarms " + _rig.View.Ranking.AlarmCount + " (muted)");
+			Assert.That(_rig.View.Canvas.RequestCount, Is.EqualTo(requests), "the static chart held");
+			Assert.That(total, Is.Zero, "refresh allocated with the alarm settings changed");
+		}
+
 		[UnityTest]
 		public IEnumerator WholeFrames_WithTheDisplay_AllocateNoMoreThanWithout()
 		{

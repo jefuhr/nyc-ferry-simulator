@@ -771,6 +771,51 @@
 					"processors": "",
 					"interactions": "",
 					"initialStateCheck": false
+				},
+				{
+					"name": "ChartCpaLimitDown",
+					"type": "Button",
+					"id": "5fa8cc2a-2560-5dc4-9c76-da3365961f92",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "ChartCpaLimitUp",
+					"type": "Button",
+					"id": "fba5b8d6-45c9-59a6-89d1-f9d092324e5f",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "ChartTcpaLimitDown",
+					"type": "Button",
+					"id": "72d21a05-abb4-5b8d-a794-cb846ffaae58",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "ChartTcpaLimitUp",
+					"type": "Button",
+					"id": "e19d60ce-6618-54d0-8ece-ac082f3237e5",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "ChartAlarmMute",
+					"type": "Button",
+					"id": "6ec0a068-af59-5915-af4f-65b5d17d1d86",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
 				}
 			],
 			"bindings": [
@@ -1046,6 +1091,61 @@
 					"processors": "",
 					"groups": "Keyboard",
 					"action": "RadarSeaUp",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "866a50c1-a9b5-5f72-8062-9e7af2839a3b",
+					"path": "<Keyboard>/7",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ChartCpaLimitDown",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "40bbf476-c002-5e1e-ab6f-51ea97703e5d",
+					"path": "<Keyboard>/8",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ChartCpaLimitUp",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "8ae90a40-1d9c-5ab3-82d7-0c8694b8c008",
+					"path": "<Keyboard>/9",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ChartTcpaLimitDown",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "d6a96b3d-a686-59db-a6fc-75321286bcbf",
+					"path": "<Keyboard>/0",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ChartTcpaLimitUp",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "31c67f76-5263-5e73-9e6e-52657a7af181",
+					"path": "<Keyboard>/g",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ChartAlarmMute",
 					"isComposite": false,
 					"isPartOfComposite": false
 				}

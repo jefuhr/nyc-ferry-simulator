@@ -28,7 +28,11 @@ namespace FerrySim.Chartplotter
 	/// by the chart's rotation about the canvas centre: <see cref="Layout"/> does that for all of them at a render, and
 	/// <see cref="SetRotation"/> plus <see cref="StepRotation"/> redo it a few per frame when the chart turns. Each label
 	/// centres itself on its point by negative margins measured after layout, and is placed by a translate so no
-	/// repositioning ever triggers a layout pass.
+	/// repositioning ever triggers a layout pass. Two ways of filling it: in order (<see cref="Begin"/>, <see cref="Place"/>,
+	/// <see cref="End"/>: the first labels of the pool, in the order offered), or keyed (<see cref="BeginKeyed"/>,
+	/// <see cref="TryReuse"/>, <see cref="AssignFree"/>, <see cref="EndKeyed"/>: a label that showed the same key last
+	/// time keeps its slot and its text, so a regeneration that moves the chart a little changes few texts, and the
+	/// shown slots may have gaps, so iterate to <see cref="Extent"/> and check <see cref="IsShown"/>).
 	/// </summary>
 	public sealed class ChartLabelPool
 	{
@@ -39,7 +43,12 @@ namespace FerrySim.Chartplotter
 		private readonly float[] _alternateY;
 		private readonly bool[] _alternate;
 		private readonly bool[] _hidden;
+		private readonly bool[] _shown;
+		private readonly bool[] _claimed;
+		private readonly int[] _key;
 		private int _used;
+		private int _count;
+		private int _freeCursor;
 		private float _rotation;
 		private float _targetRotation;
 		private float _half, _centreX, _centreY;
@@ -54,8 +63,12 @@ namespace FerrySim.Chartplotter
 			_alternateY = new float[capacity];
 			_alternate = new bool[capacity];
 			_hidden = new bool[capacity];
+			_shown = new bool[capacity];
+			_claimed = new bool[capacity];
+			_key = new int[capacity];
 			for (var i = 0; i < capacity; i++)
 			{
+				_key[i] = -1;
 				var label = new Label(string.Empty) { pickingMode = PickingMode.Ignore };
 				label.AddToClassList("fs-label");
 				label.style.position = UnityEngine.UIElements.Position.Absolute;
@@ -83,8 +96,16 @@ namespace FerrySim.Chartplotter
 
 		public int Capacity => _labels.Length;
 
-		/// <summary>Labels shown by the last <see cref="End"/>.</summary>
-		public int Count => _used;
+		/// <summary>Labels shown by the last <see cref="End"/> or <see cref="EndKeyed"/>.</summary>
+		public int Count => _count;
+
+		/// <summary>One past the highest slot that may be shown: iterate to here and check <see cref="IsShown"/> (keyed filling leaves gaps).</summary>
+		public int Extent => _used;
+
+		public bool IsShown(int index) => index >= 0 && index < _used && _shown[index];
+
+		/// <summary>The key the slot last showed (keyed filling), or -1.</summary>
+		public int KeyOf(int index) => _key[index];
 
 		public Label this[int index] => _labels[index];
 
@@ -98,7 +119,7 @@ namespace FerrySim.Chartplotter
 		{
 			for (var i = 0; i < _used; i++)
 			{
-				if (_labels[i].text == text)
+				if (_shown[i] && _labels[i].text == text)
 				{
 					return i;
 				}
@@ -107,7 +128,11 @@ namespace FerrySim.Chartplotter
 			return -1;
 		}
 
-		public void Begin() => _used = 0;
+		public void Begin()
+		{
+			_used = 0;
+			_count = 0;
+		}
 
 		/// <summary>Shows the next label at a canvas-local anchor, with an alternate anchor it falls back to when it must give way; false when the pool is exhausted.</summary>
 		public bool Place(string text, float x, float y, Color color, float alternateX = float.NaN, float alternateY = float.NaN)
@@ -117,15 +142,24 @@ namespace FerrySim.Chartplotter
 				return false;
 			}
 
-			var label = _labels[_used];
-			_anchorX[_used] = x;
-			_anchorY[_used] = y;
-			_alternateX[_used] = float.IsNaN(alternateX) ? x : alternateX;
-			_alternateY[_used] = float.IsNaN(alternateY) ? y : alternateY;
-			_alternate[_used] = false;
-			_hidden[_used] = false;
-			label.style.visibility = Visibility.Visible;
+			Show(_used, -1, text, x, y, color, alternateX, alternateY);
 			_used++;
+			_count++;
+			return true;
+		}
+
+		private void Show(int slot, int key, string text, float x, float y, Color color, float alternateX, float alternateY)
+		{
+			var label = _labels[slot];
+			_key[slot] = key;
+			_anchorX[slot] = x;
+			_anchorY[slot] = y;
+			_alternateX[slot] = float.IsNaN(alternateX) ? x : alternateX;
+			_alternateY[slot] = float.IsNaN(alternateY) ? y : alternateY;
+			_alternate[slot] = false;
+			_hidden[slot] = false;
+			_shown[slot] = true;
+			label.style.visibility = Visibility.Visible;
 			if (!ReferenceEquals(label.text, text) && label.text != text)
 			{
 				label.text = text;
@@ -136,8 +170,15 @@ namespace FerrySim.Chartplotter
 			{
 				label.style.display = DisplayStyle.Flex;
 			}
+		}
 
-			return true;
+		private void Hide(int slot)
+		{
+			_shown[slot] = false;
+			if (_labels[slot].style.display != DisplayStyle.None)
+			{
+				_labels[slot].style.display = DisplayStyle.None;
+			}
 		}
 
 		/// <summary>Hides the labels not placed this time.</summary>
@@ -145,9 +186,76 @@ namespace FerrySim.Chartplotter
 		{
 			for (var i = _used; i < _labels.Length; i++)
 			{
-				if (_labels[i].style.display != DisplayStyle.None)
+				Hide(i);
+			}
+		}
+
+		/// <summary>Starts a keyed filling: nothing is claimed yet; slots keep their last keys and texts until claimed or hidden.</summary>
+		public void BeginKeyed()
+		{
+			System.Array.Clear(_claimed, 0, _claimed.Length);
+			_freeCursor = 0;
+		}
+
+		/// <summary>Keeps a key in the slot it showed last time (its text unchanged), with a new anchor; false when the slot is not that key's or is already claimed.</summary>
+		public bool TryReuse(int slot, int key, float x, float y, Color color)
+		{
+			if (slot < 0 || slot >= _labels.Length || _key[slot] != key || _claimed[slot])
+			{
+				return false;
+			}
+
+			_claimed[slot] = true;
+			var label = _labels[slot];
+			_anchorX[slot] = x;
+			_anchorY[slot] = y;
+			_alternateX[slot] = x;
+			_alternateY[slot] = y;
+			_alternate[slot] = false;
+			_hidden[slot] = false;
+			if (!_shown[slot])
+			{
+				_shown[slot] = true;
+				label.style.visibility = Visibility.Visible;
+				label.style.display = DisplayStyle.Flex;
+			}
+
+			label.style.color = color;
+			return true;
+		}
+
+		/// <summary>Shows a key in the next unclaimed slot (hidden or holding a key not reused this time); the slot, or -1 when the pool is full.</summary>
+		public int AssignFree(int key, string text, float x, float y, Color color)
+		{
+			for (; _freeCursor < _labels.Length; _freeCursor++)
+			{
+				if (!_claimed[_freeCursor])
 				{
-					_labels[i].style.display = DisplayStyle.None;
+					var slot = _freeCursor++;
+					_claimed[slot] = true;
+					Show(slot, key, text, x, y, color, float.NaN, float.NaN);
+					return slot;
+				}
+			}
+
+			return -1;
+		}
+
+		/// <summary>Hides every unclaimed slot and settles the counts.</summary>
+		public void EndKeyed()
+		{
+			_used = 0;
+			_count = 0;
+			for (var i = 0; i < _labels.Length; i++)
+			{
+				if (_claimed[i])
+				{
+					_used = i + 1;
+					_count++;
+				}
+				else if (_shown[i])
+				{
+					Hide(i);
 				}
 			}
 		}
@@ -245,6 +353,11 @@ namespace FerrySim.Chartplotter
 
 		private void Place(int i)
 		{
+			if (!_shown[i])
+			{
+				return;
+			}
+
 			var radians = _rotation * Mathf.Deg2Rad;
 			var cos = Mathf.Cos(radians);
 			var sin = Mathf.Sin(radians);

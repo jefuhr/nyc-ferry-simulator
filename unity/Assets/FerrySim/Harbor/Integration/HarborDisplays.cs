@@ -74,6 +74,7 @@ namespace FerrySim.Harbor
 		// say: a key in the same update as the picker opening or the view leaving the wheelhouse does nothing.
 		private int _pendingRadarToggle, _pendingChartToggle, _pendingChartZoom, _pendingChartOrientation, _pendingChartCentre, _pendingChartPanX, _pendingChartPanY;
 		private int _pendingChartPalette, _pendingChartNextTarget, _pendingChartClearSelection, _pendingRadarRange, _pendingRadarOrientation, _pendingRadarPalette;
+		private int _pendingChartCpaLimit, _pendingChartTcpaLimit, _pendingChartAlarmMute;
 		private int _pendingRadarEbl, _pendingRadarVrm, _pendingRadarGain, _pendingRadarSea;
 		private double _composedAt = double.NaN;
 		private double _readyAt = double.NaN;
@@ -194,6 +195,9 @@ namespace FerrySim.Harbor
 				_mapper.ChartPaletteRequested += OnChartPalette;
 				_mapper.ChartNextTargetRequested += OnChartNextTarget;
 				_mapper.ChartClearSelectionRequested += OnChartClearSelection;
+				_mapper.ChartCpaLimitRequested += OnChartCpaLimit;
+				_mapper.ChartTcpaLimitRequested += OnChartTcpaLimit;
+				_mapper.ChartAlarmMuteRequested += OnChartAlarmMute;
 				_mapper.RadarRangeRequested += OnRadarRange;
 				_mapper.RadarOrientationRequested += OnRadarOrientation;
 				_mapper.RadarPaletteRequested += OnRadarPalette;
@@ -475,6 +479,9 @@ namespace FerrySim.Harbor
 		private void OnChartPalette() => _pendingChartPalette++;
 		private void OnChartNextTarget() => _pendingChartNextTarget++;
 		private void OnChartClearSelection() => _pendingChartClearSelection++;
+		private void OnChartCpaLimit(int direction) => _pendingChartCpaLimit += direction;
+		private void OnChartTcpaLimit(int direction) => _pendingChartTcpaLimit += direction;
+		private void OnChartAlarmMute() => _pendingChartAlarmMute++;
 		private void OnRadarRange(int direction) => _pendingRadarRange += direction;
 		private void OnRadarOrientation() => _pendingRadarOrientation++;
 		private void OnRadarPalette() => _pendingRadarPalette++;
@@ -511,10 +518,16 @@ namespace FerrySim.Harbor
 				for (var i = 0; i < _pendingChartPalette; i++) view.CyclePalette();
 				for (var i = 0; i < _pendingChartNextTarget; i++) view.SelectNextTarget();
 				if (_pendingChartClearSelection != 0) view.ClearSelection();
+				for (; _pendingChartCpaLimit > 0; _pendingChartCpaLimit--) view.StepCpaLimit(1);
+				for (; _pendingChartCpaLimit < 0; _pendingChartCpaLimit++) view.StepCpaLimit(-1);
+				for (; _pendingChartTcpaLimit > 0; _pendingChartTcpaLimit--) view.StepTcpaLimit(1);
+				for (; _pendingChartTcpaLimit < 0; _pendingChartTcpaLimit++) view.StepTcpaLimit(-1);
+				if ((_pendingChartAlarmMute & 1) != 0) view.ToggleAlarmMute();
 			}
 
 			_pendingChartZoom = 0; _pendingChartOrientation = 0; _pendingChartCentre = 0; _pendingChartPanX = 0; _pendingChartPanY = 0;
 			_pendingChartPalette = 0; _pendingChartNextTarget = 0; _pendingChartClearSelection = 0;
+			_pendingChartCpaLimit = 0; _pendingChartTcpaLimit = 0; _pendingChartAlarmMute = 0;
 			if (RadarReady)
 			{
 				var view = _radar.View;

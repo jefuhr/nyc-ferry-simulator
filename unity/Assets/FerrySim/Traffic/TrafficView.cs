@@ -27,6 +27,7 @@ namespace FerrySim.Traffic
 	[DisallowMultipleComponent]
 	public sealed class TrafficView : MonoBehaviour
 	{
+		private static readonly Unity.Profiling.ProfilerMarker PlaceMarker = new Unity.Profiling.ProfilerMarker("FerrySim.Traffic.Place");
 		/// <summary>Default view range, m: vessels farther from the camera are not drawn.</summary>
 		public const float DefaultViewRange = 4000f;
 
@@ -336,6 +337,7 @@ namespace FerrySim.Traffic
 		/// <summary>Places every hull for the runner's current drawn time. Called every frame after the runner; tests call it directly.</summary>
 		public void Place()
 		{
+			using var profile = PlaceMarker.Auto();
 			var traffic = _built;
 			if (traffic == null || runner == null || runner.Driver == null || !ReferenceEquals(runner.Traffic, traffic))
 			{

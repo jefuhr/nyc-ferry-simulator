@@ -34,15 +34,24 @@ dotnet test core/dotnet --logger "trx;LogFilePrefix=core" --results-directory ar
 
 ## Releases
 
-Releases are a universal macOS app and a Windows x64 player, published on the private repository's Releases page. [docs/releasing.md](docs/releasing.md) covers building one and installing it.
+Releases are a universal macOS app and a Windows x64 player, published as prereleases on this repository's Releases page. [docs/releasing.md](docs/releasing.md) covers building one and installing it.
 
 ## Status
 
-Milestone M2 is the drivable Lower East River slice, from Pier 11 to DUMBO and South Williamsburg. It has the T-class on the twin-screw dynamics, landing contact physics, the wheelhouse instruments, every control type, and record and replay. End-to-end trip tests cover it. Not done yet:
-- currents, wind and real depths in the slice
-- the K-class in the slice
-- a crew review session
+The current release covers the whole New York Harbor from the Upper Bay up the East River to Astoria and Soundview, with 24 landings (every route stop except Rockaway). It has:
+- the T-class and K-class on the twin-screw dynamics, with the crew-reported 20° rudder and turning circle;
+- real tide, currents (the station blend), wind and depth for 28 days, with the matching real AIS traffic;
+- streamed terrain and an LoD1 skyline, night lights and fog;
+- radar and a chartplotter;
+- landing contact physics, record and replay, and end-to-end journey tests.
+
+Not done yet:
+- crew calibration of most handling parameters (most are still estimated);
+- three landing faces that wait for crew confirmation (St. George, East 90th St, Sunset Park/BAT);
+- Rockaway, waves and wakes;
+- VHF and audio;
+- the trainer: lessons, scoring and instructor mode.
 
 ## Disclaimer
 
-Not affiliated with or endorsed by NYC Ferry, NYCEDC or Hornblower. Not for navigation. The NYC Ferry name and livery belong to their owners. Public release requires their permission.
+This is an unofficial training project. It is not affiliated with or endorsed by NYC Ferry, NYCEDC or Hornblower, and it uses none of their logos or livery. It is not for navigation: depths, currents, traffic and handling are approximations and must never be used to plan or conduct a real voyage.

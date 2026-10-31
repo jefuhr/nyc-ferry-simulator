@@ -1,0 +1,9 @@
+{
+	"name": "FerrySim.FrameStalls.Tests.EditMode",
+	"references": ["FerrySim.Radar", "FerrySim.Unity.Sim", "FerrySim.Unity.Traffic", "FerrySim.Core", "FerrySim.Core.Serialization", "FerrySim.Harbor.Journeys", "FerrySim.Harbor.Journeys.Editor"],
+	"includePlatforms": ["Editor"],
+	"optionalUnityReferences": ["TestAssemblies"],
+	"overrideReferences": true,
+	"precompiledReferences": ["nunit.framework.dll", "Newtonsoft.Json.dll"],
+	"autoReferenced": false
+}

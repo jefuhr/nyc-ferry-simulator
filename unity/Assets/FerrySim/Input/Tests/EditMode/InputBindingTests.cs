@@ -96,7 +96,7 @@ namespace FerrySim.Controls.Tests
 			try
 			{
 				var map = asset.FindActionMap(DisplayInputMapper.MapName, throwIfNotFound: true);
-				Assert.That(map.actions.Count, Is.EqualTo(25));
+				Assert.That(map.actions.Count, Is.EqualTo(30));
 				foreach (var action in map.actions)
 				{
 					Assert.That(action.type, Is.EqualTo(InputActionType.Button), action.name);
@@ -108,6 +108,53 @@ namespace FerrySim.Controls.Tests
 				{
 					Assert.That(mapper.Map, Is.SameAs(map));
 					Assert.That(mapper.Enabled, Is.False, "the composition root enables the map only in the wheelhouse view");
+				}
+			}
+			finally
+			{
+				Object.DestroyImmediate(asset);
+			}
+		}
+
+		/// <summary>The CPA alarm keys (v0.3.1): the documented keys, bound once, and none of them a key the picker's search field, the helm, the bow view or the cameras read.</summary>
+		[Test]
+		public void TheChartAlarmKeysAreTheDocumentedOnes_AndClashWithNothing()
+		{
+			var asset = Load();
+			try
+			{
+				var expected = new Dictionary<string, string>
+				{
+					{ "ChartCpaLimitDown", "<Keyboard>/7" }, { "ChartCpaLimitUp", "<Keyboard>/8" },
+					{ "ChartTcpaLimitDown", "<Keyboard>/9" }, { "ChartTcpaLimitUp", "<Keyboard>/0" },
+					{ "ChartAlarmMute", "<Keyboard>/g" },
+				};
+				var map = asset.FindActionMap(DisplayInputMapper.MapName, throwIfNotFound: true);
+				foreach (var pair in expected)
+				{
+					var action = map.FindAction(pair.Key, throwIfNotFound: true);
+					Assert.That(action.bindings.Count, Is.EqualTo(1), pair.Key);
+					Assert.That(action.bindings[0].path, Is.EqualTo(pair.Value), pair.Key);
+				}
+
+				// Every other binding in every map, and every key read outside the asset, stays off those keys.
+				var reserved = new HashSet<string>(ReservedKeys);
+				foreach (var otherMap in asset.actionMaps)
+				{
+					foreach (var binding in otherMap.bindings)
+					{
+						if (binding.isComposite || expected.ContainsKey(binding.action) && otherMap.name == DisplayInputMapper.MapName)
+						{
+							continue;
+						}
+
+						Assert.That(expected.Values, Does.Not.Contain(binding.path), otherMap.name + "/" + binding.action + " shares " + binding.path);
+					}
+				}
+
+				foreach (var path in expected.Values)
+				{
+					Assert.That(reserved, Does.Not.Contain(path), path + " is read directly by the camera, the bow view or the picker");
 				}
 			}
 			finally

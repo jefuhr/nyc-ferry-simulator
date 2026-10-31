@@ -25,6 +25,7 @@ namespace FerrySim.Sim
 	[DisallowMultipleComponent]
 	public sealed class VesselSimulationRunner : MonoBehaviour, IVesselTelemetrySource, IEnvironmentReadoutSource, ITrafficReadoutSource, IRunHoldSource
 	{
+		private static readonly Unity.Profiling.ProfilerMarker UpdateMarker = new Unity.Profiling.ProfilerMarker("FerrySim.Sim.RunnerUpdate");
 		private const double DropReportIntervalSeconds = 5.0;
 		private static long _nextRunId;
 
@@ -352,8 +353,21 @@ namespace FerrySim.Sim
 			IControlInputSource controls = null, VesselParameters parameters = null,
 			Action<PreparedHarborStart, VesselParameters, VesselState> validateStart = null)
 		{
+			var transition = System.Diagnostics.Stopwatch.GetTimestamp();
+			// Reclaim retired runs and decoding temporaries before allocating the next candidate. The active run stays
+			// bound until every candidate check succeeds; collection can never occur after this start's first full view.
+			var collectionMs = 0.0;
+			long reclaimed = 0;
+			if (IsInitialized)
+			{
+				var beforeCollection = GC.GetTotalMemory(false);
+				GC.Collect();
+				reclaimed = Math.Max(0, beforeCollection - GC.GetTotalMemory(false));
+				collectionMs = StartMilliseconds(transition);
+			}
 			var packs = _packs ??= EnvironmentPacks.Default;
 			var candidate = packs.PrepareHarbor(settings, runtimeFolder, parseContacts, TrafficPacks);
+			var phase = System.Diagnostics.Stopwatch.GetTimestamp();
 			var vessel = RunRecorder.LoadVesselSnapshot(settings.vesselFile, parameters, out var vesselDigest);
 			var initial = settings.InitialState(candidate.Environment.Observer);
 			if (!candidate.Runtime.Geoid.TrySample(initial.North, initial.East, out _))
@@ -362,10 +376,14 @@ namespace FerrySim.Sim
 			}
 
 			validateStart?.Invoke(candidate, vessel, initial);
+			var vesselMs = StartMilliseconds(phase);
+			phase = System.Diagnostics.Stopwatch.GetTimestamp();
 			var outline = candidate.Traffic != null ? TrafficOutline(vessel, settings.name) : null;
 			var simulation = Factory.Create(vessel, candidate.Environment.StartRun(), candidate.Contacts, initial);
 			var trafficObserver = candidate.Traffic != null ? new TrafficStepObserver(candidate.Traffic.StartRun(outline, _trafficLimits)) : null;
 			var input = controls ?? FindControlSource();
+			var coreMs = StartMilliseconds(phase);
+			phase = System.Diagnostics.Stopwatch.GetTimestamp();
 
 			EndRun();
 			_replay = null;
@@ -383,7 +401,12 @@ namespace FerrySim.Sim
 			_runTrafficLimits = _trafficLimits;
 			_initialState = initial;
 			StartRun(input, simulation, trafficObserver);
+			HarborLoadTimings = candidate.Timings.WithTransition(collectionMs, reclaimed, vesselMs, coreMs,
+				StartMilliseconds(phase), StartMilliseconds(transition));
 		}
+
+		private static double StartMilliseconds(long start) =>
+			(System.Diagnostics.Stopwatch.GetTimestamp() - start) * (1000.0 / System.Diagnostics.Stopwatch.Frequency);
 
 		/// <summary>
 		/// Plays back <paramref name="run"/> from its recorded start, checking every row as it goes. Not re-recorded. A pack
@@ -580,6 +603,7 @@ namespace FerrySim.Sim
 
 		private void Update()
 		{
+			using var profile = UpdateMarker.Auto();
 			if (!IsInitialized)
 			{
 				return;

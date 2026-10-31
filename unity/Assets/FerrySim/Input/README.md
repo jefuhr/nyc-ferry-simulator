@@ -48,7 +48,11 @@ Keyboard only, for the harbor wheelhouse's chartplotter and radar (`Harbor/Integ
 | `ChartPanUp` / `ChartPanLeft` / `ChartPanDown` / `ChartPanRight` 40 px | I / J / K / L | `RadarVrmIn` / `RadarVrmOut` 2 % of range | ; / ' |
 | `ChartPalette` day, dusk, night | F | `RadarPalette` day, dusk, night | X |
 | `ChartNextTarget` / `ChartClearSelection` | T / Y | `RadarGainDown` / `RadarGainUp` 0.1 | 3 / 4 |
-| | | `RadarSeaDown` / `RadarSeaUp` 0.05 | 5 / 6 |
+| `ChartCpaLimitDown` / `ChartCpaLimitUp` 0.05 NM (0.05 … 1 NM) | 7 / 8 | `RadarSeaDown` / `RadarSeaUp` 0.05 | 5 / 6 |
+| `ChartTcpaLimitDown` / `ChartTcpaLimitUp` 1 min (1 … 30 min) | 9 / 0 | | |
+| `ChartAlarmMute` mute / unmute the CPA alarm | G | | |
+
+The CPA alarm keys (v0.3.1) are display settings on the chartplotter view: they are never recorded and never part of a run's digest, they are separate from the run's own `TrafficAlarmLimits`, they hold across runs in a session and reset to 0.1 NM and 6 min, unmuted, at launch. Muting hides only the alarm treatment (the banner and the row and target fill); the targets and their CPA/TCPA values stay. Like every display key they act only while the chartplotter is shown, and never while the scenario picker is open (typing digits or G into the landing search changes nothing on the plotter).
 
 Palettes follow the scene's light: at night both displays hold their night palette, so F and X cycle back to it at once; by day a palette chosen with F or X holds until the next night resets it.
 

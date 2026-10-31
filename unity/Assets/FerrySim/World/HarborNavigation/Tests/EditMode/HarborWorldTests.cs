@@ -52,6 +52,25 @@ namespace FerrySim.World.HarborNavigation.Tests
 			Assert.That(math.distance(position, barge.GetComponent<CesiumGlobeAnchor>().positionGlobeFixed), Is.LessThan(.001));
 		}
 
+		[Test] public void BillboardLabelsKeepTheirGlobePositionAcrossRepeatedOriginShifts()
+		{
+			var camera = new GameObject("moving label camera").AddComponent<Camera>();
+			camera.transform.SetParent(_root.transform, false);
+			var positions = new double3[_world.Labels.Count];
+			for (var i = 0; i < positions.Length; i++) positions[i] = _world.Labels[i].GetComponent<CesiumGlobeAnchor>().positionGlobeFixed;
+			var origins = new[] { new double3(-73.99, 40.72, 10), new double3(-74.03, 40.69, -5), new double3(-73.98, 40.71, 0) };
+			for (var shift = 0; shift < origins.Length; shift++)
+			{
+				camera.transform.position = _world.Labels[0].transform.position + new Vector3(120 + shift * 40, 8, 90);
+				camera.transform.rotation = Quaternion.Euler(5 + shift, 37 + shift * 60, 0);
+				_world.Tick(0, camera, "1", shift % 2 == 0, 0);
+				var origin = origins[shift];
+				_geo.SetOriginLongitudeLatitudeHeight(origin.x, origin.y, origin.z);
+				for (var i = 0; i < positions.Length; i++)
+					Assert.That(math.distance(positions[i], _world.Labels[i].GetComponent<CesiumGlobeAnchor>().positionGlobeFixed), Is.LessThan(.001), "label " + i + " shift " + shift);
+			}
+		}
+
 		[Test] public void UnknownSpanBoundsRemainUnknownAndDisplayHeightsNeverReachQueries()
 		{
 			foreach (var span in _world.Spans)

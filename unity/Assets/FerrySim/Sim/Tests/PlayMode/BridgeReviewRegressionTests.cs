@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading;
 using FerrySim.Core.Contracts;
 using NUnit.Framework;
 using UnityEngine;
@@ -107,17 +108,19 @@ namespace FerrySim.Sim.PlayModeTests
 		[TestCase(false, true)]
 		public void RecorderFailure_DetachesClosesAndReports_WithoutChangingAnyPhysics(bool flushFailure, bool disposeFailure)
 		{
-			var runner = Runner(PlayModeSupport.FreshArtifactFolder("review-recorder-failure"));
+			var folder = PlayModeSupport.FreshArtifactFolder("review-recorder-failure");
+			var runner = Runner();
 			var reference = Runner();
 			var log = new StepLog();
 			runner.Driver.AddObserver(log);
-			var recorder = runner.Recorder;
-			var writerField = typeof(RunRecorder).GetField("_telemetry", BindingFlags.Instance | BindingFlags.NonPublic);
-			var writer = new FailingWriter((TextWriter)writerField.GetValue(recorder), flushFailure, disposeFailure);
-			writerField.SetValue(recorder, writer);
-			var inputsField = typeof(RunRecorder).GetField("_inputs", BindingFlags.Instance | BindingFlags.NonPublic);
-			var inputs = new FailingWriter((TextWriter)inputsField.GetValue(recorder), false, false);
-			inputsField.SetValue(recorder, inputs);
+			FailingWriter writer = null, inputs = null;
+			using var recorder = RunRecorder.Create(folder, "injected", 100, new List<KeyValuePair<string, string>>(), null, null,
+				path => path.EndsWith(RunRecorder.InputsSuffix, StringComparison.Ordinal)
+					? inputs = new FailingWriter(new StreamWriter(path), false, false)
+					: writer = new FailingWriter(new StreamWriter(path), flushFailure, disposeFailure));
+			// Inject at the storage boundary; replacing private producer fields would bypass their owning worker.
+			typeof(VesselSimulationRunner).GetField("_recorder", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(runner, recorder);
+			runner.Driver.AddObserver(recorder);
 			runner.AdvanceFrame(0.1);
 			reference.AdvanceFrame(0.1);
 			writer.Fail = true;
@@ -132,8 +135,16 @@ namespace FerrySim.Sim.PlayModeTests
 					Assert.That(runner.Driver.StepCount, Is.EqualTo(reference.Driver.StepCount));
 					Assert.That(runner.Driver.Accumulator, Is.EqualTo(reference.Driver.Accumulator));
 				}
+				Assert.That(SpinWait.SpinUntil(() => recorder.Failure != null, 5000), Is.True, "the storage thread must observe the injected fault");
+				runner.AdvanceFrame(0.1);
+				reference.AdvanceFrame(0.1);
+				Assert.That(runner.State, Is.EqualTo(reference.State));
+				Assert.That(runner.Driver.StepCount, Is.EqualTo(reference.Driver.StepCount));
+				Assert.That(runner.Driver.Accumulator, Is.EqualTo(reference.Driver.Accumulator));
 				Assert.That(runner.Recorder, Is.Null);
 				Assert.That(runner.Driver.RemoveObserver(recorder), Is.False, "failed recorder detached");
+				Assert.That(SpinWait.SpinUntil(() => recorder.IsOutputClosed, 5000), Is.True, "failure cleanup completes off the physics thread");
+				Assert.That(writer.CallbackThread, Is.Not.EqualTo(Thread.CurrentThread.ManagedThreadId));
 				Assert.That(writer.Closed, Is.True);
 				Assert.That(inputs.Closed, Is.True, "both writers close even if the first close fails");
 				Assert.That(log.States.Count, Is.EqualTo(runner.Driver.StepCount), "unrelated observers still receive every step");
@@ -147,6 +158,8 @@ namespace FerrySim.Sim.PlayModeTests
 			{
 				writer.Fail = false;
 				writer.ThrowOnDispose = false;
+				recorder.Dispose();
+				Assert.That(SpinWait.SpinUntil(() => recorder.IsOutputClosed, 5000), Is.True, "do not leave a storage producer after a failed assertion");
 			}
 		}
 
@@ -458,9 +471,10 @@ namespace FerrySim.Sim.PlayModeTests
 		{
 			private readonly TextWriter _inner;
 			private readonly bool _flushFailure;
-			public bool Fail;
-			public bool ThrowOnDispose;
+			public volatile bool Fail;
+			public volatile bool ThrowOnDispose;
 			public bool Closed;
+			public int CallbackThread;
 			public FailingWriter(TextWriter inner, bool flushFailure, bool disposeFailure)
 			{
 				_inner = inner;
@@ -468,11 +482,13 @@ namespace FerrySim.Sim.PlayModeTests
 				ThrowOnDispose = disposeFailure;
 			}
 			public override System.Text.Encoding Encoding => _inner.Encoding;
+			public override void Write(char[] buffer, int index, int count) { if (Fail && !_flushFailure) throw new IOException("injected recorder write failure"); _inner.Write(buffer, index, count); }
 			public override void Write(string value) { if (Fail && !_flushFailure) throw new IOException("injected recorder write failure"); _inner.Write(value); }
 			public override void Write(char value) { if (Fail && !_flushFailure) throw new IOException("injected recorder write failure"); _inner.Write(value); }
 			public override void Flush() { if (Fail && _flushFailure) throw new IOException("injected recorder flush failure"); _inner.Flush(); }
 			protected override void Dispose(bool disposing)
 			{
+				CallbackThread = Thread.CurrentThread.ManagedThreadId;
 				Closed = true;
 				_inner.Dispose();
 				if (Fail && ThrowOnDispose) throw new IOException("injected recorder close failure");

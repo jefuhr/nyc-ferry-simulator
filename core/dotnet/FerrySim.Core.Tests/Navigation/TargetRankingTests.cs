@@ -125,6 +125,82 @@ namespace FerrySim.Core.Tests.Navigation
 			}
 		}
 
+		// Failure modes of the plotter's limit keys: a step that leaves the grid, a step past a bound, drift after many
+		// steps, one limit's step touching the other, and a default off the grid.
+		[Test]
+		public void Limits_StepCpa_InStepsOfATwentiethOfAMile_ClampedToTheBounds()
+		{
+			var limits = CpaAlarmLimits.Default;
+			Assert.That(CpaAlarmLimits.CpaStep, Is.EqualTo(92.6).Within(1e-12), "0.05 nautical mile");
+			Assert.That(CpaAlarmLimits.MinimumCpa, Is.EqualTo(92.6).Within(1e-12));
+			Assert.That(CpaAlarmLimits.MaximumCpa, Is.EqualTo(1852.0).Within(1e-12), "1 nautical mile");
+			var up = limits.StepCpa(1);
+			Assert.That(up.Cpa, Is.EqualTo(277.8).Within(1e-9), "0.10 up to 0.15 nm");
+			Assert.That(up.Tcpa, Is.EqualTo(limits.Tcpa), "the TCPA limit is untouched");
+			var down = limits.StepCpa(-1);
+			Assert.That(down.Cpa, Is.EqualTo(92.6).Within(1e-9), "0.10 down to 0.05 nm");
+			Assert.That(down.StepCpa(-1).Cpa, Is.EqualTo(CpaAlarmLimits.MinimumCpa), "and it stays at the floor");
+			var top = limits;
+			for (var i = 0; i < 40; i++) top = top.StepCpa(1);
+			Assert.That(top.Cpa, Is.EqualTo(CpaAlarmLimits.MaximumCpa), "and at the ceiling");
+			Assert.That(limits.StepCpa(0).Cpa, Is.EqualTo(limits.Cpa));
+			// Off the grid (a programmatic 0.07 nm): a step lands on the next grid value in that direction.
+			var off = new CpaAlarmLimits(0.07 * 1852.0, 360.0);
+			Assert.That(off.StepCpa(1).Cpa, Is.EqualTo(185.2).Within(1e-9), "0.07 up to 0.10");
+			Assert.That(off.StepCpa(-1).Cpa, Is.EqualTo(92.6).Within(1e-9), "0.07 down to 0.05");
+			// Many steps never drift: twenty up and twenty down is the same double again.
+			var walked = limits;
+			for (var i = 0; i < 20; i++) walked = walked.StepCpa(1);
+			for (var i = 0; i < 20; i++) walked = walked.StepCpa(-1);
+			for (var i = 0; i < 20; i++) walked = walked.StepCpa(-1);
+			for (var i = 0; i < 1; i++) walked = walked.StepCpa(1);
+			Assert.That(walked.Cpa, Is.EqualTo(limits.Cpa), "back on the default exactly");
+		}
+
+		[Test]
+		public void Limits_StepTcpa_InMinutes_ClampedToTheBounds()
+		{
+			var limits = CpaAlarmLimits.Default;
+			Assert.That(CpaAlarmLimits.TcpaStep, Is.EqualTo(60.0));
+			Assert.That(CpaAlarmLimits.MinimumTcpa, Is.EqualTo(60.0), "1 minute");
+			Assert.That(CpaAlarmLimits.MaximumTcpa, Is.EqualTo(1800.0), "30 minutes");
+			Assert.That(limits.StepTcpa(1).Tcpa, Is.EqualTo(420.0), "6 up to 7 min");
+			Assert.That(limits.StepTcpa(1).Cpa, Is.EqualTo(limits.Cpa), "the CPA limit is untouched");
+			Assert.That(limits.StepTcpa(-1).Tcpa, Is.EqualTo(300.0));
+			var floor = limits;
+			for (var i = 0; i < 10; i++) floor = floor.StepTcpa(-1);
+			Assert.That(floor.Tcpa, Is.EqualTo(CpaAlarmLimits.MinimumTcpa));
+			var ceiling = limits;
+			for (var i = 0; i < 40; i++) ceiling = ceiling.StepTcpa(1);
+			Assert.That(ceiling.Tcpa, Is.EqualTo(CpaAlarmLimits.MaximumTcpa));
+			Assert.That(new CpaAlarmLimits(185.2, 90.0).StepTcpa(1).Tcpa, Is.EqualTo(120.0), "1:30 up to 2 min");
+			Assert.That(new CpaAlarmLimits(185.2, 90.0).StepTcpa(-1).Tcpa, Is.EqualTo(60.0), "1:30 down to 1 min");
+			Assert.That(limits.StepTcpa(0).Tcpa, Is.EqualTo(limits.Tcpa));
+		}
+
+		[Test]
+		public void Limits_StepsNeverChangeTheRankingPolicy_AlarmsStillLead()
+		{
+			// Under any limits an alarm leads: widen the CPA limit until the far target becomes an alarm too, and it still sorts by CPA among the alarms.
+			var wide = CpaAlarmLimits.Default;
+			for (var i = 0; i < 40; i++) wide = wide.StepCpa(1);
+			var ranking = new TargetRanking(4);
+			ranking.Begin();
+			ranking.Add(0, Encounter.Between(0, 0, 5, 0, 0, 20, 5, 0), wide); // abeam on a parallel course, CPA 20: no alarm whatever the limits
+			ranking.Add(1, Encounter.Between(0, 0, 5, 0, 2000, 1500, -5, 0), wide); // closing, CPA 1500 m: an alarm only under the wide limit
+			ranking.Add(2, Encounter.Between(0, 0, 5, 0, 1000, 300, -5, 0), wide); // closing, CPA 300 m
+			Assert.That(ranking.AlarmCount, Is.EqualTo(2));
+			Assert.That(ranking.Target(0), Is.EqualTo(2), "the nearer alarm leads");
+			Assert.That(ranking.Target(1), Is.EqualTo(1));
+			Assert.That(ranking.Target(2), Is.EqualTo(0), "the parallel target, nearer than both, follows the alarms");
+			ranking.Begin();
+			ranking.Add(0, Encounter.Between(0, 0, 5, 0, 0, 20, 5, 0), CpaAlarmLimits.Default);
+			ranking.Add(1, Encounter.Between(0, 0, 5, 0, 2000, 1500, -5, 0), CpaAlarmLimits.Default);
+			ranking.Add(2, Encounter.Between(0, 0, 5, 0, 1000, 300, -5, 0), CpaAlarmLimits.Default);
+			Assert.That(ranking.AlarmCount, Is.Zero, "under the default limits none is an alarm");
+			Assert.That(ranking.Target(0), Is.EqualTo(0), "so the active targets sort by CPA alone");
+		}
+
 		[Test]
 		public void Limits_RejectNonPositiveOrInfinite()
 		{

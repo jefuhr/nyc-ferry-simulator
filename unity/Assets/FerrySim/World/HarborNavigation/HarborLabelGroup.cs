@@ -16,10 +16,13 @@ namespace FerrySim.World.HarborNavigation
 		private bool? _night;
 		public void Initialize(Font font, Material material, string text)
 		{
-			Text = gameObject.AddComponent<TextMesh>();
+			// Cesium Sync treats any anchored transform change as a new globe pose.
+			// Billboard only the unanchored child, leaving the placed root untouched.
+			var visual = new GameObject("Billboard"); visual.transform.SetParent(transform, false);
+			Text = visual.AddComponent<TextMesh>();
 			Text.font = font; Text.fontSize = 48; Text.characterSize = .12f;
 			Text.anchor = TextAnchor.LowerCenter; Text.alignment = TextAlignment.Center; Text.text = text;
-			_renderer = GetComponent<Renderer>(); _renderer.sharedMaterial = material;
+			_renderer = Text.GetComponent<Renderer>(); _renderer.sharedMaterial = material;
 		}
 		public void Refresh(Camera camera, string selectedStop, bool night)
 		{
@@ -27,8 +30,8 @@ namespace FerrySim.World.HarborNavigation
 			var distance = camera != null ? Vector3.Distance(camera.transform.position, transform.position) : 0;
 			_renderer.enabled = Source.Id == selectedStop || distance <= 750;
 			if (camera == null) return;
-			transform.rotation = camera.transform.rotation;
-			transform.localScale = Vector3.one * Mathf.Clamp(distance * .018f, 1, 35);
+			Text.transform.rotation = camera.transform.rotation;
+			Text.transform.localScale = Vector3.one * Mathf.Clamp(distance * .018f, 1, 35);
 		}
 	}
 }

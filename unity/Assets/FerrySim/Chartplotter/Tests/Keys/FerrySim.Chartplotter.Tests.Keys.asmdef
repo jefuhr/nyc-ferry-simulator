@@ -1,0 +1,14 @@
+{
+	"name": "FerrySim.Chartplotter.Tests.Keys",
+	"rootNamespace": "FerrySim.Chartplotter.Tests.Keys",
+	"references": ["FerrySim.Core", "FerrySim.Core.Serialization", "FerrySim.Unity.Sim", "FerrySim.Unity.UI", "FerrySim.Unity.Input", "FerrySim.Unity.World", "FerrySim.Radar", "FerrySim.Harbor.Integration", "FerrySim.Harbor.Runtime", "FerrySim.Chartplotter", "FerrySim.Chartplotter.Tests.Fixtures", "Unity.InputSystem", "Unity.InputSystem.TestFramework", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
+	"includePlatforms": [],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": true,
+	"precompiledReferences": ["nunit.framework.dll"],
+	"autoReferenced": false,
+	"defineConstraints": ["UNITY_INCLUDE_TESTS"],
+	"versionDefines": [],
+	"noEngineReferences": false
+}

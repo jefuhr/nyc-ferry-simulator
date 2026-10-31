@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using FerrySim.Core.Contracts;
@@ -14,7 +15,7 @@ using UnityEngine.Profiling;
 
 namespace FerrySim.Sim.Tests
 {
-	/// <summary>Failure modes: partial bundle binds, changed contacts/day/runtime accepted, leaked observer counters and late coverage holds.</summary>
+	/// <summary>Failure modes: duplicate resident data, retained retired packs, partial binds, changed candidates and late coverage holds.</summary>
 	public class HarborStartTests
 	{
 		private string _root;
@@ -125,6 +126,99 @@ namespace FerrySim.Sim.Tests
 			Assert.That(_runner.RunEnvironment, Is.SameAs(env));
 			Assert.That(_runner.WorldGeometry, Is.SameAs(geometry));
 			Assert.That(_runner.AdvanceFrame(0.02).Steps, Is.EqualTo(2));
+		}
+
+		[Test]
+		public void FirstHarborStartSkipsRetiredRunCollection_ThenSwitchCollects()
+		{
+			var host = new GameObject("fresh harbor start");
+			try
+			{
+				var fresh = host.AddComponent<VesselSimulationRunner>();
+				fresh.EnvironmentPacks = _runner.EnvironmentPacks;
+				fresh.RecordRuns = false;
+				fresh.InitializeHarbor(_settings, _runtime, (json, file) => EmptyWorldGeometry.Instance, Controls);
+				Assert.That(fresh.HarborLoadTimings.CollectionMilliseconds, Is.Zero, "a fresh runner has no retired run to collect");
+				fresh.InitializeHarbor(_settings, _runtime, (json, file) => EmptyWorldGeometry.Instance, Controls);
+				Assert.That(fresh.HarborLoadTimings.CollectionMilliseconds, Is.GreaterThan(0), "switch collection is measured inside the transition");
+			}
+			finally { UnityEngine.Object.DestroyImmediate(host); }
+		}
+
+		[Test]
+		public void PreviewedDay_IsTheAtomicStartsSnapshot_WithoutReadingOrDecodingItAgain()
+		{
+			var preview = _runner.EnvironmentPacks.LoadHarborDay(_settings.environment.pack);
+			var repeated = _runner.EnvironmentPacks.LoadHarborDay(_settings.environment.pack);
+			Assert.That(repeated, Is.SameAs(preview), "field changes reuse one verified preview snapshot");
+			_runner.InitializeHarbor(_settings, _runtime, (json, file) => EmptyWorldGeometry.Instance, Controls);
+			Assert.That(_runner.RunEnvironment.Pack, Is.SameAs(preview));
+			Assert.That(_runner.RunEnvironment.Pack.Digest, Is.EqualTo(preview.Digest));
+			Assert.That(_runner.HarborLoadTimings.Day.TotalMilliseconds, Is.Zero, "a reused day has no read/hash/decode phase");
+		}
+
+		[Test]
+		public void FreshAndPreviewedStarts_RecordAndReplayIdenticalStateAndTrafficDigests()
+		{
+			WriteTraffic();
+			_runner.RecordRuns = true;
+			_runner.RecordingDirectory = Path.Combine(_root, "recordings");
+			RecordedRun Record()
+			{
+				_runner.InitializeHarbor(_settings, _runtime, (json, file) => EmptyWorldGeometry.Instance, Controls);
+				for (var frame = 0; frame < 100; frame++) _runner.AdvanceFrame(.02);
+				_runner.EndRun();
+				Assert.That(_runner.RecordingError, Is.Null);
+				return RecordedRun.Load(_runner.LastRecordingPath);
+			}
+
+			var fresh = Record();
+			_runner.EnvironmentPacks = new EnvironmentPacks(_root);
+			_runner.EnvironmentPacks.LoadHarborDay(_settings.environment.pack);
+			var previewed = Record();
+			Assert.That(previewed.StateDigest, Is.EqualTo(fresh.StateDigest));
+			Assert.That(previewed.TrafficEvents.Digest, Is.EqualTo(fresh.TrafficEvents.Digest));
+			Assert.That(previewed.Header[RunEnvironment.DigestKey], Is.EqualTo(fresh.Header[RunEnvironment.DigestKey]));
+			foreach (var run in new[] { fresh, previewed })
+			{
+				var replay = ReplayPlayer.Verify(run, _runner.Parameters, new VesselDynamicsFactory(),
+					packs: _runner.EnvironmentPacks, trafficPacks: _runner.TrafficPacks);
+				Assert.That(replay.Matches, Is.True, replay.ToString());
+			}
+			TestContext.WriteLine("state " + fresh.StateDigest + ", traffic " + fresh.TrafficEvents.Digest);
+		}
+
+		[Test]
+		public void SwitchingDaysAndTraffic_ReleasesThePreviousRunPacks()
+		{
+			WriteTraffic();
+			var retired = StartAndCaptureRetiredData();
+			var pack = SyntheticPacks.Pack(SyntheticPacks.WinterDate);
+			var depth = new DepthSet("harbor", "NAVD88", pack.Depth.OutsideDepth, pack.Depth.Grids, pack.Depth.Sources, "");
+			var harbor = new EnvironmentPack("harbor", pack.Date, pack.EpochUtc, pack.CoverageStart, pack.CoverageEnd, depth,
+				pack.CurrentStations, pack.WaterLevelStations, pack.WindStations, pack.Notes, "");
+			EnvironmentPackWriter.Write(harbor, Path.Combine(_root, "harbor/env"));
+			_settings.environment.pack = "harbor/" + pack.Date;
+			_settings.scenarioStartUtc = EnvironmentPacks.Iso(pack.EpochUtc);
+			_settings.traffic = new ScenarioTraffic();
+			_runner.InitializeHarbor(_settings, _runtime, (json, file) => EmptyWorldGeometry.Instance, Controls);
+			GC.Collect();
+			GC.WaitForPendingFinalizers();
+			GC.Collect();
+			foreach (var reference in retired)
+			{
+				Assert.That(reference.IsAlive, Is.False, "the runner, observers and one-day cache must release retired data");
+			}
+			Assert.That(_runner.RunEnvironment.Pack.Date, Is.EqualTo(pack.Date));
+			Assert.That(_runner.AdvanceFrame(.02).Steps, Is.EqualTo(2));
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private WeakReference[] StartAndCaptureRetiredData()
+		{
+			_runner.InitializeHarbor(_settings, _runtime, (json, file) => EmptyWorldGeometry.Instance, Controls);
+			return new[] { new WeakReference(_runner.RunEnvironment), new WeakReference(_runner.RunEnvironment.Pack),
+				new WeakReference(_runner.Traffic), new WeakReference(_runner.Traffic.Pack), new WeakReference(_runner.TrafficMonitor) };
 		}
 
 		[Test]

@@ -17,8 +17,9 @@ namespace FerrySim.Sim
 	/// the layout the data pipeline writes: the day in <c>&lt;root&gt;/&lt;region&gt;/env/days/&lt;date&gt;</c> and the region's
 	/// depth set beside it in <c>&lt;root&gt;/&lt;region&gt;/env/depth</c>. The roots are searched in order. <see cref="Default"/>
 	/// is StreamingAssets' <c>data/processed</c>, where every player build copies the slice's packs, then the repository's.
-	/// Listing a day reads only its manifest (<see cref="EnvironmentPackDay"/>); <see cref="Load"/> verifies every byte through
-	/// <see cref="EnvironmentPackJson"/> and refuses any mismatch, naming the file.
+	/// Listing a day reads only its manifest (<see cref="EnvironmentPackDay"/>); <see cref="Load"/> verifies a snapshot through
+	/// <see cref="EnvironmentPackJson"/> and refuses any mismatch, naming the file. Harbor callers share the selected
+	/// verified snapshot while its folder and digest match; offline payloads are immutable for the scene's lifetime.
 	/// </summary>
 	public sealed class EnvironmentPacks
 	{
@@ -32,6 +33,11 @@ namespace FerrySim.Sim
 		private readonly string[] _roots;
 		private VerifiedDepth _harborDepth;
 		private string _harborDepthFolder;
+		private EnvironmentPack _harborDay;
+		private string _harborDayFolder;
+		private HarborRuntimePack _harborRuntime;
+		private IWorldGeometry _harborContacts;
+		private string _harborRuntimeFolder;
 
 		/// <summary>Packs under <paramref name="roots"/>, absolute folders searched in order, each laid out like <c>data/processed</c>.</summary>
 		public EnvironmentPacks(params string[] roots)
@@ -179,8 +185,9 @@ namespace FerrySim.Sim
 		}
 
 		/// <summary>
-		/// Loads and verifies the pack: every file against its manifest's SHA-256, both DIGEST files, the day's depth digest and
-		/// the manifests (<see cref="EnvironmentPackJson"/>). Throws <see cref="FileNotFoundException"/> when it is not found and
+		/// Loads and verifies a pack snapshot: every file against its manifest's SHA-256, both DIGEST files, the day's depth digest
+		/// and the manifests (<see cref="EnvironmentPackJson"/>). Harbor calls reuse the selected verified snapshot when its folder
+		/// and DIGEST still match, without re-reading its immutable payloads. Throws <see cref="FileNotFoundException"/> when not found and
 		/// <see cref="EnvironmentPackException"/>, naming the file, for any mismatch.
 		/// </summary>
 		public EnvironmentPack Load(string name) => Load(name, out _);
@@ -192,7 +199,7 @@ namespace FerrySim.Sim
 			// Replays use this general entry point too. Harbor previews, starts and replays share one verified set;
 			// the slice keeps its existing loader and verification behaviour.
 			var pack = name.StartsWith("harbor/", StringComparison.Ordinal)
-				? EnvironmentPackJson.Load(dayFolder, HarborDepth(EnvironmentPackJson.DepthFolderOf(dayFolder), out _))
+				? HarborDay(name, dayFolder, out _, out _)
 				: EnvironmentPackJson.Load(dayFolder);
 			if (pack.Name != name)
 			{
@@ -200,6 +207,16 @@ namespace FerrySim.Sim
 			}
 
 			return pack;
+		}
+
+		/// <summary>Binds the scene's verified offline runtime snapshot and its already parsed contacts for subsequent starts.</summary>
+		public void BindHarborRuntime(string runtimeFolder, HarborRuntimePack runtime, IWorldGeometry contacts)
+		{
+			if (runtime == null) throw new ArgumentNullException(nameof(runtime));
+			if (contacts == null) throw new ArgumentNullException(nameof(contacts));
+			_harborRuntimeFolder = Path.GetFullPath(runtimeFolder ?? throw new ArgumentNullException(nameof(runtimeFolder)));
+			_harborRuntime = runtime;
+			_harborContacts = contacts;
 		}
 
 		/// <summary>Prepares all resident harbor inputs before the runner changes any current binding.</summary>
@@ -224,16 +241,16 @@ namespace FerrySim.Sim
 			}
 
 			var dayFolder = DayFolder(name) ?? throw new FileNotFoundException(NotFound(name));
-			var depth = HarborDepth(EnvironmentPackJson.DepthFolderOf(dayFolder), out var loadedDepth);
-			var day = EnvironmentPackJson.Load(dayFolder, depth, out var dayTimings);
+			var day = HarborDay(name, dayFolder, out var loadedDepth, out var dayTimings);
 			if (day.Name != name)
 			{
 				throw new EnvironmentPackException(Path.Combine(dayFolder, ManifestFile), $"is {day.Name}, expected {name}.");
 			}
 
 			var phase = Stopwatch.GetTimestamp();
-			var runtime = HarborRuntimePackJson.Load(runtimeFolder);
-			var runtimeMs = ElapsedMilliseconds(phase);
+			var resident = _harborRuntime != null && _harborRuntimeFolder == Path.GetFullPath(runtimeFolder);
+			var runtime = resident ? _harborRuntime : HarborRuntimePackJson.Load(runtimeFolder);
+			var runtimeMs = resident ? 0 : ElapsedMilliseconds(phase);
 			if (runtime.EnvironmentDepthDigest != day.Depth.Digest)
 			{
 				throw new HarborRuntimePackException(Path.Combine(runtimeFolder, ManifestFile),
@@ -242,8 +259,8 @@ namespace FerrySim.Sim
 
 			phase = Stopwatch.GetTimestamp();
 			var contactsPath = Path.Combine(runtimeFolder, "contacts.json");
-			var contacts = parseContacts(runtime.ContactsJson, contactsPath) ?? throw new InvalidOperationException(contactsPath + ": contact parser returned no geometry.");
-			var contactMs = ElapsedMilliseconds(phase);
+			var contacts = resident ? _harborContacts : parseContacts(runtime.ContactsJson, contactsPath) ?? throw new InvalidOperationException(contactsPath + ": contact parser returned no geometry.");
+			var contactMs = resident ? 0 : ElapsedMilliseconds(phase);
 			phase = Stopwatch.GetTimestamp();
 			var traffic = settings.CreateTraffic(trafficPacks ?? ScenarioTraffic.DefaultPacks);
 			var trafficMs = ElapsedMilliseconds(phase);
@@ -253,19 +270,38 @@ namespace FerrySim.Sim
 		}
 
 		/// <summary>
-		/// Loads and verifies a harbor day against the resident verified depth set, loading that set once, so a depth
-		/// preview and the atomic start share one copy (decision 0005, Resident data). Throws as <see cref="Load(string)"/> does.
+		/// Loads and verifies a harbor day against the resident verified depth set. Preview, atomic start and replay share
+		/// the selected immutable day snapshot (decision 0005, Resident data). Throws as <see cref="Load(string)"/> does.
 		/// </summary>
 		public EnvironmentPack LoadHarborDay(string name)
 		{
 			var dayFolder = DayFolder(name) ?? throw new FileNotFoundException(NotFound(name) + ".");
-			var depth = HarborDepth(EnvironmentPackJson.DepthFolderOf(dayFolder), out _);
-			var pack = EnvironmentPackJson.Load(dayFolder, depth);
+			return HarborDay(name, dayFolder, out _, out _);
+		}
+
+		// The verified snapshot is keyed by its exact folder and digest. Keep only the selected day; the runner keeps
+		// the active day alive until a candidate commits. Payloads are immutable offline exports, never live-swapped.
+		private EnvironmentPack HarborDay(string name, string dayFolder, out bool loadedDepth, out EnvironmentLoadTimings timings)
+		{
+			loadedDepth = false;
+			timings = default;
+			if (_harborDay != null && _harborDayFolder == dayFolder && _harborDay.Name == name &&
+				File.ReadAllText(Path.Combine(dayFolder, "DIGEST")) == _harborDay.Digest + "\n")
+			{
+				return _harborDay;
+			}
+
+			_harborDay = null;
+			_harborDayFolder = null;
+			var depth = HarborDepth(EnvironmentPackJson.DepthFolderOf(dayFolder), out loadedDepth);
+			var pack = EnvironmentPackJson.Load(dayFolder, depth, out timings);
 			if (pack.Name != name)
 			{
 				throw new EnvironmentPackException(Path.Combine(dayFolder, ManifestFile), $"is the pack {pack.Name}, but it is in the folder of {name}.");
 			}
 
+			_harborDay = pack;
+			_harborDayFolder = dayFolder;
 			return pack;
 		}
 
@@ -405,7 +441,8 @@ namespace FerrySim.Sim
 	/// <summary>Preparation costs, including separate environment phases and the whole candidate bundle.</summary>
 	public readonly struct HarborStartTimings
 	{
-		internal HarborStartTimings(EnvironmentLoadTimings depth, EnvironmentLoadTimings day, double runtime, double contacts, double traffic, double total)
+		internal HarborStartTimings(EnvironmentLoadTimings depth, EnvironmentLoadTimings day, double runtime, double contacts, double traffic, double total,
+			double collection = 0, long reclaimed = 0, double vessel = 0, double core = 0, double bindings = 0, double transition = 0)
 		{
 			Depth = depth;
 			Day = day;
@@ -413,18 +450,46 @@ namespace FerrySim.Sim
 			ContactsMilliseconds = contacts;
 			TrafficMilliseconds = traffic;
 			TotalMilliseconds = total;
+			CollectionMilliseconds = collection;
+			CollectionReclaimedBytes = reclaimed;
+			VesselMilliseconds = vessel;
+			CoreMilliseconds = core;
+			BindingsMilliseconds = bindings;
+			TransitionMilliseconds = transition;
 		}
+
+		internal HarborStartTimings WithTransition(double collection, long reclaimed, double vessel, double core, double bindings, double transition) =>
+			new HarborStartTimings(Depth, Day, RuntimeMilliseconds, ContactsMilliseconds, TrafficMilliseconds, TotalMilliseconds,
+				collection, reclaimed, vessel, core, bindings, transition);
+
+		/// <summary>Synchronous collection before loading a candidate, always before its first full view.</summary>
+		public double CollectionMilliseconds { get; }
+
+		/// <summary>Managed used bytes reclaimed at that boundary; this is not a process-memory measurement.</summary>
+		public long CollectionReclaimedBytes { get; }
+
+		/// <summary>Vessel snapshot, initial-state and start-gate work.</summary>
+		public double VesselMilliseconds { get; }
+
+		/// <summary>Candidate simulation and traffic-monitor creation before commit.</summary>
+		public double CoreMilliseconds { get; }
+
+		/// <summary>Commit, recording, water, traffic and initial-view bindings.</summary>
+		public double BindingsMilliseconds { get; }
+
+		/// <summary>The complete synchronous transition, including collection and all bindings.</summary>
+		public double TransitionMilliseconds { get; }
 
 		/// <summary>Initial depth load phases; zero when the verified snapshot was reused.</summary>
 		public EnvironmentLoadTimings Depth { get; }
 
-		/// <summary>Read, hash, decode, validation and total costs for the candidate day.</summary>
+		/// <summary>Read, hash, decode, validation and total costs for the candidate day; zero for a reused snapshot.</summary>
 		public EnvironmentLoadTimings Day { get; }
 
-		/// <summary>Runtime export verification and parsing cost in milliseconds.</summary>
+		/// <summary>Runtime verification and parsing cost; zero for the scene's resident snapshot.</summary>
 		public double RuntimeMilliseconds { get; }
 
-		/// <summary>Authoritative contact parser cost in milliseconds.</summary>
+		/// <summary>Contact parser cost; zero for the scene's already parsed geometry.</summary>
 		public double ContactsMilliseconds { get; }
 
 		/// <summary>Optional traffic preparation cost in milliseconds.</summary>

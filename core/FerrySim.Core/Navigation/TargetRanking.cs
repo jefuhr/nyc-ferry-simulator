@@ -8,7 +8,9 @@ namespace FerrySim.Core.Navigation
 	/// it is ahead and within <see cref="Tcpa"/>. A target already past its closest point (negative TCPA), or one that
 	/// never comes closer than the threshold, is not an alarm however near it is. The encounter itself comes from the
 	/// core's <see cref="Encounter"/> (the same formula the run's monitor uses). The defaults are the task's estimates
-	/// for a harbor ferry (0.1 nautical mile, 6 minutes), not published or crew figures; both are settable.
+	/// for a harbor ferry (0.1 nautical mile, 6 minutes), not published or crew figures; both are settable, and the
+	/// plotter's keys step them (<see cref="StepCpa"/>, <see cref="StepTcpa"/>) on a grid of 0.05 nautical mile and
+	/// 1 minute within 0.05 to 1 nautical mile and 1 to 30 minutes (display settings, estimated bounds, never recorded).
 	/// </summary>
 	public readonly struct CpaAlarmLimits
 	{
@@ -17,6 +19,24 @@ namespace FerrySim.Core.Navigation
 
 		/// <summary>Default TCPA limit, s: 6 minutes (estimated).</summary>
 		public const double DefaultTcpa = 360.0;
+
+		/// <summary>The CPA limit steps by 0.05 nautical mile, m (a display choice).</summary>
+		public const double CpaStep = 92.6;
+
+		/// <summary>The lowest CPA limit the keys reach, m: 0.05 nautical mile.</summary>
+		public const double MinimumCpa = 92.6;
+
+		/// <summary>The highest CPA limit the keys reach, m: 1 nautical mile.</summary>
+		public const double MaximumCpa = 1852.0;
+
+		/// <summary>The TCPA limit steps by a minute, s.</summary>
+		public const double TcpaStep = 60.0;
+
+		/// <summary>The shortest TCPA limit the keys reach, s: 1 minute.</summary>
+		public const double MinimumTcpa = 60.0;
+
+		/// <summary>The longest TCPA limit the keys reach, s: 30 minutes.</summary>
+		public const double MaximumTcpa = 1800.0;
 
 		public CpaAlarmLimits(double cpa, double tcpa)
 		{
@@ -40,6 +60,35 @@ namespace FerrySim.Core.Navigation
 		/// <summary>True when the CPA is under the threshold and the TCPA is in (0, limit].</summary>
 		public bool IsAlarm(in Encounter encounter) =>
 			encounter.Cpa < Cpa && encounter.Tcpa > 0.0 && encounter.Tcpa <= Tcpa;
+
+		/// <summary>
+		/// The limits with the CPA threshold moved <paramref name="direction"/> steps of <see cref="CpaStep"/> (positive
+		/// widens it), landing on the grid and clamped to [<see cref="MinimumCpa"/>, <see cref="MaximumCpa"/>]. A value
+		/// off the grid moves to the next grid value in that direction. The TCPA limit is unchanged.
+		/// </summary>
+		public CpaAlarmLimits StepCpa(int direction) => new CpaAlarmLimits(Stepped(Cpa, direction, CpaStep, MinimumCpa, MaximumCpa), Tcpa);
+
+		/// <summary>The limits with the TCPA limit moved <paramref name="direction"/> minutes, on the grid and clamped to [1, 30] minutes; the CPA threshold is unchanged.</summary>
+		public CpaAlarmLimits StepTcpa(int direction) => new CpaAlarmLimits(Cpa, Stepped(Tcpa, direction, TcpaStep, MinimumTcpa, MaximumTcpa));
+
+		/// <summary>
+		/// Steps on an integer grid so that any walk of steps lands on the same doubles again (no drift): the value's
+		/// grid index moves whole steps in the direction, and the result is index times step, clamped.
+		/// </summary>
+		private static double Stepped(double value, int direction, double step, double minimum, double maximum)
+		{
+			if (direction == 0)
+			{
+				return value;
+			}
+
+			var exact = value / step;
+			var index = direction > 0 ? Math.Floor(exact + 1e-9) + direction : Math.Ceiling(exact - 1e-9) + direction;
+			var lowest = Math.Round(minimum / step);
+			var highest = Math.Round(maximum / step);
+			index = Math.Max(lowest, Math.Min(highest, index));
+			return index * step;
+		}
 	}
 
 	/// <summary>

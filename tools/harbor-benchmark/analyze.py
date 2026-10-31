@@ -2,6 +2,7 @@
 import argparse
 import csv
 import json
+import math
 from pathlib import Path
 import zipfile
 
@@ -11,6 +12,50 @@ def rows(path):
 		return []
 	with path.open(newline='', encoding='utf-8-sig') as stream:
 		return list(csv.DictReader(stream))
+
+
+def frame_tail(frames, events, stress=False):
+	"""The v0.3.1 gate includes every running frame, whether or not streaming emitted an event."""
+	boundaries = []
+	for event in events:
+		if event['kind'] == 'start_accepted':
+			boundaries.append((int(event['frame']), False))
+		elif event['kind'] == 'view_ready':
+			boundaries.append((int(event.get('related_frame') or int(event['frame']) - 1), True))
+	boundaries.sort(key=lambda item: item[0])
+	event_frames = {int(e['frame']) for e in events if e['kind'] in
+		('tile_created', 'tile_enabled', 'tile_disabled', 'tile_destroyed', 'load_progress', 'origin_shift', 'tileset_failure')}
+	values, bad, invalid = [], [], []
+	seen = set()
+	boundary = 0
+	active = False
+	for row in sorted(frames, key=lambda item: int(item['frame'])):
+		frame = int(row['frame'])
+		while boundary < len(boundaries) and boundaries[boundary][0] <= frame:
+			active = boundaries[boundary][1]
+			boundary += 1
+		if row.get('phase') in ('capture', 'replay', 'finish'):
+			continue
+		if not (active if boundaries else row.get('phase') == 'drive'):
+			continue
+		try:
+			value = float(row['wall_ms'])
+			if not math.isfinite(value) or value < 0 or frame in seen:
+				raise ValueError('invalid or duplicate frame interval')
+		except (KeyError, TypeError, ValueError):
+			invalid.append(frame)
+			continue
+		seen.add(frame)
+		values.append(value)
+		if value > 20:
+			bad.append(frame)
+	event_bad = len(set(bad) & event_frames)
+	return {'verdict': 'unverified' if stress else ('fail' if bad else ('unverified' if invalid or not values else 'pass')),
+		'frames': len(values), 'max_ms': max(values, default=None), 'mean_ms': sum(values) / len(values) if values else None,
+		'p95_ms': percentile(values, .95), 'p99_ms': percentile(values, .99), 'over_20ms': len(bad),
+		'event_over_20ms': event_bad, 'non_event_over_20ms': len(bad) - event_bad,
+		'violating_frames': bad, 'invalid_frames': invalid,
+		'note': 'all frames from first full view to the next accepted Start; capture/replay/finalization separate; no control-stall subtraction'}
 
 
 def streaming(frames, events, stress=False):
@@ -188,6 +233,7 @@ def analyze(folder):
 	wrong_resolution = [int(r['frame']) for r in resolution_frames if int(r.get('width', 0)) != 1920 or int(r.get('height', 0)) != 1080]
 	result = {'resolution': {'verdict': 'fail' if wrong_resolution else ('pass' if resolution_frames else 'unverified'), 'wrong_frames': wrong_resolution}, 'scenario': scenario, 'memory': memory(rows(folder / 'memory.csv'), int(process.get('peak_rss_bytes') or 0)),
 		'streaming': streaming(frames, rows(folder / 'events.csv'), scenario.get('stress', False)),
+		'frame_tail': frame_tail(frames, rows(folder / 'events.csv'), scenario.get('stress', False)),
 		'first_view': {'verdict': 'unverified', 'seconds': scenario.get('start_to_ready_s')},
 		'displays': {'verdict': 'unverified', 'note': 'requires a matched displays-off scenario and valid player CPU/GPU timing'},
 		'platform': scenario.get('platform'), 'overall': 'unverified','frame_cost':cost}
@@ -240,7 +286,7 @@ def analyze(folder):
 		result['first_view']['verdict'] = 'pass' if ready <= 3 else 'fail'
 	if scenario.get('streaming_instrumentation_complete') is not True and result['streaming']['verdict'] == 'pass':
 		result['streaming']['verdict'] = 'unverified'
-	if any(x['verdict'] == 'fail' for x in (result['memory'], result['streaming'], result['first_view'], result['resolution'])) or scenario.get('failures'):
+	if any(x['verdict'] == 'fail' for x in (result['memory'], result['streaming'], result['frame_tail'], result['first_view'], result['resolution'])) or scenario.get('failures'):
 		result['overall'] = 'fail'
 	return result
 
