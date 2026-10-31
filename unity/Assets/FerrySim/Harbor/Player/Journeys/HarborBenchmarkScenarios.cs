@@ -44,9 +44,9 @@ namespace FerrySim.Harbor.Player.Journeys
 			}
 			else if (_name == "switches")
 			{
-				for (var i=0;i<3*_switchCycles;i++) foreach (var stop in new[] {"87","137","89","112"}) choices.Add(new ScenarioChoice(stop,"2025-07-16",738,"t-class"));
+				for (var i=0;i<3*_switchCycles;i++) foreach (var stop in new[] {"87","137","89","112"}) choices.Add(new ScenarioChoice(stop,"2025-07-16",738,"t-class",traffic: _traffic));
 			}
-			else choices.Add(new ScenarioChoice(_name.Substring(6),"2025-07-16",738,"t-class"));
+			else choices.Add(new ScenarioChoice(_name.Substring(6),"2025-07-16",738,"t-class",traffic: _traffic));
 			foreach (var choice in choices)
 			{
 				SetPhase(6);

@@ -74,7 +74,12 @@ namespace FerrySim.Harbor
 			var runtimeFolder = SimPaths.Resolve(settings.runtimePackFolder);
 			var pack = HarborRuntimePackJson.Load(runtimeFolder);
 			var surfaces = LandingSurfaceTable.Parse(landingSurfaces.text, SurfacesName);
-			var landings = HarborContacts.Load(SimPaths.Resolve(settings.contactsFile), landingSurfaces.text, SurfacesName);
+			var contactsFile = SimPaths.Resolve(settings.contactsFile);
+			if (File.ReadAllText(contactsFile) != pack.ContactsJson)
+			{
+				throw new InvalidOperationException(contactsFile + ": does not match the verified runtime contacts snapshot.");
+			}
+			var landings = LandingGeometry.Parse(pack.ContactsJson, contactsFile, surfaces);
 			var audit = HarborLandingAudit.Parse(landingAudit.text, AuditName);
 			if (audit.DepthDigest != pack.EnvironmentDepthDigest)
 			{
@@ -85,6 +90,7 @@ namespace FerrySim.Harbor
 			var runner = context.Runner;
 			var packs = runner.EnvironmentPacks;
 			runner.EnvironmentPacks = packs;
+			packs.BindHarborRuntime(runtimeFolder, pack, landings.Geometry);
 			var launcher = new HarborLauncher(runner, runtimeFolder, landings, surfaces);
 			var catalog = new HarborScenarioCatalog(landings, LoadVessels(), packs, trafficPacks: runner.TrafficPacks, marks: audit.Marks, launcher: launcher,
 				depths: new SharedDepthEnvironments(packs));
@@ -144,6 +150,8 @@ namespace FerrySim.Harbor
 		private readonly string _indexFile;
 		private readonly List<HarborWaterPatch> _patches = new List<HarborWaterPatch>();
 		private ScenarioPicker _picker;
+		private WheelhouseView _view;
+		private string _activeStopId = string.Empty;
 		private bool _disposed;
 
 		public HarborIntegrationServices(HarborSceneContext context, HarborRuntimePack pack, LandingGeometry landings, HarborScenarioCatalog catalog,
@@ -160,6 +168,7 @@ namespace FerrySim.Harbor
 			_indexFile = indexFile;
 			// Before the navigation and traffic builders run: their run callbacks must see the new water first.
 			_runner.RunStarted += OnRunStarted;
+			_runner.RunEnded += SyncSelection;
 			BuildNavigation = BuildNavigationWorld;
 			BuildTraffic = BuildTrafficView;
 		}
@@ -208,25 +217,42 @@ namespace FerrySim.Harbor
 				return;
 			}
 
+			_activeStopId = HarborCatalog.StartStopId(_runner.Scenario);
+			HarborCatalog.ReleaseDepthPreview();
+			SyncSelection();
 			var service = new HarborWaterService(new HarborDatum((_runner.HarborRuntime ?? Pack).Geoid), _runner.RunEnvironment);
 			Water.Bind(service);
 			RebuildPatches(service);
+			// A hidden radar does not Update. Rebind its run now so it cannot retain retired traffic packs.
+			if (Displays != null && Displays.Connected) Displays.Radar.Refresh();
 			RunsBound++;
 		}
 
 		private void RebuildPatches(HarborWaterService service)
 		{
-			ClearPatches();
+			var grids = _runner.RunEnvironment.Pack.Depth.Grids;
+			if (_patches.Count != grids.Count) ClearPatches();
+			var index = 0;
 			foreach (var grid in _runner.RunEnvironment.Pack.Depth.Grids)
 			{
-				var host = new GameObject("Harbor water " + grid.Id);
-				host.layer = WorldLayers.Water;
-				host.transform.SetParent(_context.WaterRoot, false);
-				var patch = host.AddComponent<HarborWaterPatch>();
+				HarborWaterPatch patch;
+				if (index < _patches.Count)
+				{
+					patch = _patches[index];
+				}
+				else
+				{
+					var host = new GameObject("Harbor water " + grid.Id);
+					host.layer = WorldLayers.Water;
+					host.transform.SetParent(_context.WaterRoot, false);
+					patch = host.AddComponent<HarborWaterPatch>();
+					_patches.Add(patch);
+				}
+				patch.name = "Harbor water " + grid.Id;
 				var rows = Cells((grid.Rows - 1) * grid.CellSize);
 				var columns = Cells((grid.Columns - 1) * grid.CellSize);
 				patch.Configure(service, Index(grid.OriginNorth), Index(grid.OriginEast), rows, columns, _waterMaterial, _runner);
-				_patches.Add(patch);
+				index++;
 			}
 		}
 
@@ -274,27 +300,53 @@ namespace FerrySim.Harbor
 		/// <summary>Binds the picker's landing selection to the navigation labels once the wheelhouse view exists.</summary>
 		public void FollowPicker(WheelhouseUI ui)
 		{
-			if (_picker != null || Navigation == null || ui == null || ui.View == null || ui.View.Picker == null)
+			var view = ui != null ? ui.View : null;
+			if (ReferenceEquals(_view, view)) return;
+			DetachPicker();
+			if (Navigation == null || view?.Picker == null)
 			{
+				SyncSelection();
 				return;
 			}
-
-			_picker = ui.View.Picker;
+			_view = view;
+			_picker = view.Picker;
 			_picker.Landings.SelectionChanged += SyncSelection;
 			_picker.Started += OnPickerStarted;
+			_view.PickerVisibilityChanged += OnPickerVisibilityChanged;
 			SyncSelection();
 		}
 
-		private void OnPickerStarted(ScenarioChoice choice) => SyncSelection();
+		private void OnPickerStarted(ScenarioChoice choice)
+		{
+			_activeStopId = choice.StopId ?? string.Empty;
+			SyncSelection();
+		}
+
+		private void OnPickerVisibilityChanged(bool visible) => SyncSelection();
 
 		private void SyncSelection()
 		{
-			if (Navigation == null || _picker == null)
+			if (Navigation == null) return;
+			if (_view != null && _view.PickerVisible)
 			{
-				return;
+				Navigation.SelectedStopId = _picker.Landings.SelectedIndex >= 0 ? _picker.Choice.StopId ?? string.Empty : string.Empty;
 			}
+			else
+			{
+				Navigation.SelectedStopId = _runner.IsRunActive ? _activeStopId : string.Empty;
+			}
+		}
 
-			Navigation.SelectedStopId = _picker.Landings.SelectedIndex >= 0 ? _picker.Choice.StopId ?? string.Empty : string.Empty;
+		private void DetachPicker()
+		{
+			if (_picker != null)
+			{
+				_picker.Landings.SelectionChanged -= SyncSelection;
+				_picker.Started -= OnPickerStarted;
+			}
+			if (_view != null) _view.PickerVisibilityChanged -= OnPickerVisibilityChanged;
+			_picker = null;
+			_view = null;
 		}
 
 		public void Dispose()
@@ -308,14 +360,10 @@ namespace FerrySim.Harbor
 			if (_runner != null)
 			{
 				_runner.RunStarted -= OnRunStarted;
+				_runner.RunEnded -= SyncSelection;
 			}
 
-			if (_picker != null)
-			{
-				_picker.Landings.SelectionChanged -= SyncSelection;
-				_picker.Started -= OnPickerStarted;
-				_picker = null;
-			}
+			DetachPicker();
 
 			ClearPatches();
 			if (Displays != null)

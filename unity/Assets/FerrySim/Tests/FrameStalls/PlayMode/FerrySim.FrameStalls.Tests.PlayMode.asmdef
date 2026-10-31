@@ -1,0 +1,8 @@
+{
+	"name": "FerrySim.FrameStalls.Tests.PlayMode",
+	"references": ["FerrySim.Harbor.Journeys"],
+	"optionalUnityReferences": ["TestAssemblies"],
+	"overrideReferences": true,
+	"precompiledReferences": ["nunit.framework.dll", "Newtonsoft.Json.dll"],
+	"autoReferenced": false
+}

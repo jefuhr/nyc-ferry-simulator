@@ -20,4 +20,6 @@ class MacMemory:
 		if self.call(pid,4,ctypes.byref(self.buffer)):
 			error=ctypes.get_errno()
 			raise OSError(error,'proc_pid_rusage')
-		return {'resident_bytes':int(self.buffer.resident_size),'physical_footprint_bytes':int(self.buffer.phys_footprint),'peak_physical_footprint_bytes':int(self.buffer.lifetime_max_phys_footprint)}
+		return {'resident_bytes':int(self.buffer.resident_size),'physical_footprint_bytes':int(self.buffer.phys_footprint),'peak_physical_footprint_bytes':int(self.buffer.lifetime_max_phys_footprint),
+			'pageins':int(self.buffer.pageins),'disk_read_bytes':int(self.buffer.diskio_bytesread),'disk_write_bytes':int(self.buffer.diskio_byteswritten),
+			'user_time_native':int(self.buffer.user_time),'system_time_native':int(self.buffer.system_time),'runnable_time_native':int(self.buffer.runnable_time)}

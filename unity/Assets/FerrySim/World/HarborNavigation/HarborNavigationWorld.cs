@@ -21,6 +21,9 @@ namespace FerrySim.World.HarborNavigation
 		private readonly List<SignalLight> _bridgeLights = new List<SignalLight>();
 		private readonly List<UnityEngine.Object> _owned = new List<UnityEngine.Object>();
 		private readonly List<GameObject> _roots = new List<GameObject>();
+		private readonly Dictionary<(int North, int East), NavigationAnchor> _regions = new Dictionary<(int North, int East), NavigationAnchor>();
+		// A rendering estimate: at most 1 km per horizontal axis from each cell centre.
+		private const double RegionSize = 2000;
 		private IWaterSurface _water;
 		private Atmosphere _atmosphere;
 		private VesselSimulationRunner _runner;
@@ -84,7 +87,7 @@ namespace FerrySim.World.HarborNavigation
 				if (aid.SourceId == "0226022294660032" || aid.SourceId == "02260222946E0032") { BoundaryAidsOmitted++; continue; }
 				if (!pack.Geoid.TrySample(aid.Position.North, aid.Position.East, out var datum)) throw new ArgumentException("Aid outside canonical datum: " + aid.Id);
 				var host = Root(aid.Properties["name"].Text ?? aid.Id, georeference.transform);
-				new NavigationAnchor(host, georeference, aid.Position.North, aid.Position.East, datum);
+				StaticAnchor(host, georeference, aid.Position.North, aid.Position.East, datum);
 				var view = host.AddComponent<HarborAidView>(); view.Source = aid;
 				var body = Box(host.transform, "Aid body (dimensions estimated)", new Vector3(0, 1.5f, 0), new Vector3(1.2f, 3, 1.2f), _aidMaterial);
 				view.Body = body.GetComponent<Renderer>();
@@ -206,7 +209,7 @@ namespace FerrySim.World.HarborNavigation
 			double? clearance = null;
 			if (span.Clearances != null) foreach (var item in span.Clearances) if (item["clearance_datum"].Text == "MHW") { clearance = item["vertical_clearance_m"].Number ?? item["vertical_clearance_closed_m"].Number; if (clearance.HasValue) break; }
 			var underside = span.VerticalBounds.Minimum ?? (clearance.HasValue ? mhw + clearance.Value : 15.0);
-			var anchor = new NavigationAnchor(host, geo, n, e, datum);
+			var anchor = StaticAnchor(host, geo, n, e, datum);
 			view.DisplayUndersideNavd88 = underside;
 			view.DisplayHeightBasis = clearance.HasValue ? basis + "; per-span MHW clearance; deck thickness 3 m estimated" : "no charted clearance; display underside NAVD88 +15 m estimated";
 			Mesh(host, NavigationMesh.Extrude(span.Geometry, anchor, datum + underside, datum + underside + 3), _structure);
@@ -234,6 +237,18 @@ namespace FerrySim.World.HarborNavigation
 				}
 				_bridgeLights.Add(SignalLight.Create(host.transform, "Nominal bridge centre signal (placement estimated)", middle + across * (side * 4) + Vector3.up * (float)(underside - .5), Quaternion.identity, SignalColour.Green, LightSector.AllRound, SignalLightOptics.IntensityForRange(BridgeLights.RangeMetres)));
 			}
+		}
+
+		private NavigationAnchor StaticAnchor(GameObject host, CesiumGeoreference geo, double north, double east, double height)
+		{
+			var key = ((int)Math.Floor(north / RegionSize), (int)Math.Floor(east / RegionSize));
+			if (!_regions.TryGetValue(key, out var region))
+			{
+				var root = Root("Static navigation " + key.Item1 + "," + key.Item2, geo.transform);
+				region = new NavigationAnchor(root, geo, (key.Item1 + .5) * RegionSize, (key.Item2 + .5) * RegionSize, 0);
+				_regions.Add(key, region);
+			}
+			return new NavigationAnchor(host, geo, north, east, height, region);
 		}
 
 		private static string BargeDetails(HarborBarge barge)

@@ -55,6 +55,53 @@ namespace FerrySim.HarborE2E.Tests.PlayMode
 			}
 		}
 
+		[UnityTest, Explicit("Sequential starts through the real catalog retain the correct nearby world label")]
+		public IEnumerator WarmCatalogSwitchesKeepTheStartedLandingLabelNearOwnShip()
+		{
+			yield return SceneManager.LoadSceneAsync("Assets/FerrySim/Harbor/Scenes/Harbor.unity", LoadSceneMode.Additive);
+			_scene = SceneManager.GetSceneByPath("Assets/FerrySim/Harbor/Scenes/Harbor.unity");
+			HarborBootstrap bootstrap = null;
+			foreach (var root in _scene.GetRootGameObjects())
+			{
+				var found = root.GetComponentInChildren<HarborBootstrap>(true);
+				if (found != null) bootstrap = found;
+			}
+			var until = Time.realtimeSinceStartupAsDouble + 120;
+			while (bootstrap.Services == null && bootstrap.Problem == null && Time.realtimeSinceStartupAsDouble < until) yield return null;
+			Assert.That(bootstrap.Problem, Is.Null);
+			Assert.That(bootstrap.Services, Is.Not.Null);
+			var services = (HarborIntegrationServices)bootstrap.Services;
+			var camera = bootstrap.CameraRig.GetComponentInChildren<Camera>();
+			foreach (var stopId in new[] { "87", "89", "112", "87", "112" })
+			{
+				var choice = new FerrySim.Sim.ScenarioChoice(stopId, "2025-07-16", 738, "t-class");
+				Assert.That(services.HarborCatalog.TryCreate(choice, out var settings, out var problem), Is.True, problem);
+				Assert.That(bootstrap.TryStart(settings, out problem), Is.True, problem);
+				// Direct catalog starts bypass the picker; exercise placement independently of its binding.
+				services.Navigation.SelectedStopId = choice.StopId;
+				bootstrap.WheelhouseUI.View.PickerVisible = false;
+				bootstrap.WheelhouseUI.View.DebriefVisible = false;
+				until = Time.realtimeSinceStartupAsDouble + 90;
+				while (bootstrap.ViewState != HarborViewState.Ready && bootstrap.Problem == null && Time.realtimeSinceStartupAsDouble < until) yield return null;
+				Assert.That(bootstrap.Problem, Is.Null);
+				Assert.That(bootstrap.ViewState, Is.EqualTo(HarborViewState.Ready));
+				bootstrap.Runner.Pause();
+				yield return null;
+				FerrySim.World.HarborNavigation.HarborLabelGroup nearest = null;
+				var distance = float.PositiveInfinity;
+				foreach (var label in services.Navigation.Labels)
+				{
+					if (!label.Shown) continue;
+					var candidate = Vector3.Distance(camera.transform.position, label.Text.transform.position);
+					if (candidate < distance) { nearest = label; distance = candidate; }
+				}
+				Assert.That(nearest, Is.Not.Null);
+				Assert.That(nearest.Source.Id, Is.EqualTo(stopId), "nearby label after warm start");
+				Assert.That(nearest.Text.text, Does.StartWith(nearest.Source.Name));
+				Assert.That(distance, Is.LessThan(750), "started stop label remains near own ship");
+			}
+		}
+
 		[UnityTest, Explicit("Real harbor packs; verifies renderer and floating-origin independence in the actual scene")]
 		public IEnumerator QueriesDoNotChangeWhenTilesCameraAndOriginChange()
 		{

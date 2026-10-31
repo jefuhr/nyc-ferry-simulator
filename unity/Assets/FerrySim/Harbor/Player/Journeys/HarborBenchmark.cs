@@ -56,8 +56,10 @@ namespace FerrySim.Harbor.Player.Journeys
 		private HarborJourney _route;
 		private HarborTileset[] _layers;
 		private ProfilerRecorder _system, _gfx, _texture, _mesh, _main, _render, _radarTick, _chartTick;
+		private HarborFrameProfile _profile;
+		private bool _displayMarkersBound;
 		private static readonly string[] Phases = { "prepare", "ready", "drive", "capture", "replay", "finish", "switch" };
-		private static readonly string[] Kinds = { "tile_created", "tile_enabled", "tile_disabled", "tile_destroyed", "load_progress", "origin_shift", "tileset_failure", "start_accepted", "view_ready", "screenshot", "scene_loaded", "scene_unloaded", "frame_dropped" };
+		private static readonly string[] Kinds = { "tile_created", "tile_enabled", "tile_disabled", "tile_destroyed", "load_progress", "origin_shift", "tileset_failure", "start_accepted", "view_ready", "screenshot", "scene_loaded", "scene_unloaded", "frame_dropped", "profile_setup" };
 
 		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
 		private static void Boot()
@@ -80,6 +82,11 @@ namespace FerrySim.Harbor.Player.Journeys
 			run._minute = int.Parse(Option(args, "-ferrysim-minute", "-1"), CultureInfo.InvariantCulture);
 			run._visibility = double.Parse(Option(args, "-ferrysim-visibility", "0"), CultureInfo.InvariantCulture);
 			run._timing = Option(args, "-ferrysim-timing", "0") == "1";
+			if (Option(args, "-ferrysim-profile", "0") == "1")
+			{
+				if (!Debug.isDebugBuild) throw new InvalidOperationException("Frame profiling requires the diagnostic development player.");
+				run._profile = new HarborFrameProfile();
+			}
 			run._rate = double.Parse(Option(args, "-ferrysim-rate", "1"), CultureInfo.InvariantCulture);
 			run._switchDiagnostics = Option(args,"-ferrysim-switch-diagnostics","0") == "1";
 			run._switchCollect = Option(args,"-ferrysim-switch-collect","0") == "1";
@@ -158,10 +165,14 @@ namespace FerrySim.Harbor.Player.Journeys
 			if (!_arrivalSelected && _controls != null && _route != null && _controls.Phase >= _route.Points.Length)
 			{ _arrivalSelected=true; _services.Navigation.SelectedStopId=_route.Arrival; }
 			var now = Time.realtimeSinceStartupAsDouble;
-			if (_timing) FrameTimingManager.CaptureFrameTimings();
 			if (_pendingFrame >= 0)
 			{
 				_pending.WallMs = (now - _lastWall) * 1000;
+				_profile?.Sample(_pending.Frame, _pending.Phase, _pending.WallMs);
+			}
+			if (_timing) FrameTimingManager.CaptureFrameTimings();
+			if (_pendingFrame >= 0)
+			{
 				_pending.Cpu = Counter(_main) * 1e-6; _pending.Render = Counter(_render) * 1e-6;
 				_pending.Radar = Counter(_radarTick) * 1e-6; _pending.Chart = _services != null && _services.Displays.ChartplotterVisible ? _services.Displays.Chartplotter.LastRefreshMilliseconds : 0;
 				if (_timing && FrameTimingManager.GetLatestTimings(1, _frameTiming) > 0)
@@ -179,6 +190,13 @@ namespace FerrySim.Harbor.Player.Journeys
 			{
 				var progress = _layers[i].LoadProgress;
 				if (progress != _progress[i]) { _progress[i] = progress; Event(4, i, 0, progress); }
+			}
+			if (!_displayMarkersBound && _services != null && _services.Displays.Connected)
+			{
+				if (_profile != null) { _profile.RefreshMarkers(); Event(13, -1, 0, 0); }
+				_displayMarkersBound = true;
+				// The radar marker is registered when its controller is created after the shared chart load.
+				_radarTick.Dispose(); _radarTick = ProfilerRecorder.StartNew(ProfilerCategory.Scripts, "RadarController.Refresh");
 			}
 		}
 		private void SetPhase(int phase) { _phase=phase; if (_pendingFrame==Time.frameCount) _pending.Phase=phase; }
@@ -401,7 +419,7 @@ namespace FerrySim.Harbor.Player.Journeys
 				["layers"] = layers, ["streaming_assets"] = Application.streamingAssetsPath,
 				["system_used_counter_valid"] = _system.Valid, ["main_thread_counter_valid"] = _main.Valid, ["render_thread_counter_valid"] = _render.Valid,
 				["radar_counter_valid"] = _radarTick.Valid, ["gfx_counter_valid"] = _gfx.Valid, ["mesh_counter_valid"] = _mesh.Valid,
-				["cpu_timing_source"] = "ProfilerRecorder previous completed frame; wall interval is joined to the frame that actually executed",
+				["cpu_timing_source"] = _timing ? "FrameTimingManager latest native timestamp; CPU/GPU capture latency is not inferred or joined to Unity frame IDs" : "ProfilerRecorder previous completed frame; wall interval is joined to the frame that actually executed",
 				["gpu_timing"] = _timing ? "FrameTimingManager latest capture; raw frameStartTimestamp retained, GPU capture latency is not inferred" : "disabled in shipping build; diagnostic benchmark enables frame timing; zero is not evidence", ["queue_counts"] = "Cesium 1.26.0 exposes no public queue counter; load-progress events are a proxy, complete queue coverage unverified" };
 			try { HarborProcessMemory.Read(out var rss, out var peak, out var commit, out var source); identity["native_process_memory"] = new JObject { ["working_bytes"] = rss, ["peak_bytes"] = peak, ["pagefile_usage_bytes"] = commit, ["source"] = source }; }
 			catch (Exception e) { identity["native_process_memory_error"] = e.Message; }
@@ -415,15 +433,21 @@ namespace FerrySim.Harbor.Player.Journeys
 			_finished = true;
 			if (_runner != null && _runner.IsRunActive) _runner.EndRun();
 			if (_overflow) _failures.Add("Evidence buffer overflow; run is incomplete");
+			if (_profile != null && _profile.Overflow) _failures.Add("Profile tail buffer overflow; attribution is incomplete");
 			_scenario["platform"] = Application.platform.ToString(); _scenario["route"] = _name; _scenario["traffic"] = _traffic; _scenario["displays"] = _displays; _scenario["render_mode"] = _renderMode;
 			_scenario["visibility_m"] = _visibility; _scenario["minute"] = _minute; if (_scenario["stress"] == null) _scenario["stress"] = _rate > 1;
 			_scenario["requested_duration_s"] = _duration; _scenario["simulation_rate"] = _rate; _scenario["capture_pass"] = _capture;
 			_scenario["streaming_instrumentation_complete"] = false;
+			_scenario["development_profile"] = _profile != null;
 			_scenario["start_to_ready_s"] = _ready > 0 ? (JToken)(_ready - _startAccepted) : null;
 			_scenario["request_to_first_frame_s"] = _firstFrame > 0 ? (JToken)(_firstFrame - _startAccepted) : null;
 			_scenario["first_frame_to_ready_s"] = _firstFrame > 0 && _ready > 0 ? (JToken)(_ready - _firstFrame) : null;
 			_scenario["failures"] = new JArray(_failures); _scenario["functional_verdict"] = _failures.Count == 0 ? "pass" : "fail";
 			Directory.CreateDirectory(_output);
+			if (_profile != null)
+			{
+				_profile.Write(_output);
+			}
 			WriteCsv();
 			File.WriteAllText(Path.Combine(_output, "scenario.json"), _scenario.ToString() + "\n");
 			Application.Quit(_failures.Count == 0 ? 0 : 2);
@@ -457,6 +481,7 @@ namespace FerrySim.Harbor.Player.Journeys
 			SceneManager.sceneLoaded -= SceneLoaded; SceneManager.sceneUnloaded -= SceneUnloaded;
 			Cesium3DTileset.OnCesium3DTilesetLoadFailure -= TilesetFailure; Application.logMessageReceived -= Log;
 			_system.Dispose(); _gfx.Dispose(); _texture.Dispose(); _mesh.Dispose(); _main.Dispose(); _render.Dispose(); _radarTick.Dispose(); _chartTick.Dispose();
+			_profile?.Dispose();
 		}
 	}
 	public sealed class HarborBenchmarkTile : MonoBehaviour

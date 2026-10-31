@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using FerrySim.Core.Contracts;
 using FerrySim.Core.Env;
 using FerrySim.Core.Serialization;
@@ -64,6 +65,7 @@ namespace FerrySim.Harbor
 		private readonly List<ScenarioVessel> _vesselList = new List<ScenarioVessel>();
 		private readonly Dictionary<string, VesselParameters> _vessels = new Dictionary<string, VesselParameters>(StringComparer.Ordinal);
 		private readonly List<string> _excluded = new List<string>();
+		private readonly ConditionalWeakTable<ScenarioSettings, LandingSelection> _startLandings = new ConditionalWeakTable<ScenarioSettings, LandingSelection>();
 		private string _residentDay;
 		private DataEnvironment _residentEnvironment;
 
@@ -135,6 +137,23 @@ namespace FerrySim.Harbor
 			return null;
 		}
 
+		/// <summary>The catalog's stop for these exact settings; empty for a fixture or a non-catalog start.</summary>
+		public string StartStopId(ScenarioSettings settings) =>
+			settings != null && _startLandings.TryGetValue(settings, out var landing) ? landing.StopId : string.Empty;
+
+		/// <summary>Releases the preview observer after commit; immutable day data remains shared with the runner.</summary>
+		public void ReleaseDepthPreview()
+		{
+			_residentDay = null;
+			_residentEnvironment = null;
+		}
+
+		private sealed class LandingSelection
+		{
+			public LandingSelection(string stopId) => StopId = stopId;
+			public string StopId { get; }
+		}
+
 		public bool TryCreate(ScenarioChoice choice, out ScenarioSettings settings, out string problem)
 		{
 			if (!TryCreateCandidate(choice, out settings, out problem)) return false;
@@ -145,6 +164,7 @@ namespace FerrySim.Harbor
 					"This start would be aground: minimum depth is {0:F2} m and vessel draft is {1:F2} m.", depth.MinimumDepth, depth.MaximumDraft);
 				return false;
 			}
+			_startLandings.Add(settings, new LandingSelection(choice.StopId));
 			return true;
 		}
 

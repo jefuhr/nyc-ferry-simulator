@@ -5,6 +5,7 @@ using FerrySim.Core.World;
 using FerrySim.Core.World.Chart;
 using FerrySim.Sim;
 using FerrySim.UI;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -13,6 +14,7 @@ namespace FerrySim.Radar
 	/// <summary>Read-only adapter. Packs are supplied once by the composition root; no scene search or pack loading.</summary>
 	public sealed class RadarController : MonoBehaviour
 	{
+		private static readonly ProfilerMarker RefreshMarker = new ProfilerMarker("RadarController.Refresh");
 		private IVesselTelemetrySource _source;
 		private IEnvironmentReadoutSource _environment;
 		private VesselSimulationRunner _runner;
@@ -58,6 +60,7 @@ namespace FerrySim.Radar
 		private void Update() => Refresh();
 		public void Refresh()
 		{
+			using var profile = RefreshMarker.Auto();
 			if (_source == null) return;
 			if (_runId != _source.RunId)
 			{

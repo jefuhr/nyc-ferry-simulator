@@ -10,13 +10,27 @@ namespace FerrySim.Chartplotter
 	/// The CPA/TCPA list: the closest targets from a <see cref="TargetRanking"/> (active threats first, by CPA; PAST rows dimmed), one row each with the name (or MMSI),
 	/// the CPA in nautical miles, the TCPA as m:ss (PAST once behind) and the true bearing and range. An alarm row is
 	/// filled in the alarm colour, and a banner above the rows says CPA ALARM while any target is one; it is steady, never
-	/// flashing. Row text comes from bounded string tables, so updating allocates nothing.
+	/// flashing. Muted, the banner says CPA / TCPA · MUTED in the caution colour and no row is filled, while the rows and
+	/// their values stay. A readout under the banner shows the alarm limits in force. Row text comes from bounded string
+	/// tables, so updating allocates nothing.
 	/// </summary>
 	public sealed class CpaList : VisualElement
 	{
 		public const int DefaultRows = 6;
 
+		public const string BannerText = "CPA / TCPA";
+		public const string AlarmText = "CPA ALARM";
+		public const string MutedText = "CPA / TCPA · MUTED";
+
+		private enum BannerState
+		{
+			Normal,
+			Alarm,
+			Muted,
+		}
+
 		private readonly Label _banner;
+		private readonly Label _limits;
 		private readonly Label _heading;
 		private readonly VisualElement[] _rows;
 		private readonly Label[] _names;
@@ -28,6 +42,7 @@ namespace FerrySim.Chartplotter
 		private ChartPalette _palette = ChartPalette.Day;
 		private ITargetSource _lastSource;
 		private long _lastGeneration = long.MinValue;
+		private BannerState _bannerState = BannerState.Normal;
 
 		public CpaList(int rows = DefaultRows)
 		{
@@ -38,12 +53,16 @@ namespace FerrySim.Chartplotter
 			style.paddingRight = 6;
 			style.paddingTop = 4;
 			style.borderLeftWidth = 1;
-			_banner = Caption("CPA / TCPA", 11, true);
+			_banner = Caption(BannerText, 11, true);
 			_banner.style.height = 18;
 			_banner.style.paddingLeft = 4;
 			_banner.style.marginBottom = 2;
 			Add(_banner);
-			_heading = Caption("TARGET      CPA   TCPA   BRG", 9, false);
+			_limits = Caption(string.Empty, 10, false, true);
+			_limits.style.paddingLeft = 4;
+			_limits.style.marginBottom = 1;
+			Add(_limits);
+			_heading = Caption("TARGET      CPA   TCPA   BRG", 9, false, true);
 			_heading.style.marginBottom = 2;
 			Add(_heading);
 			_rows = new VisualElement[rows];
@@ -57,20 +76,21 @@ namespace FerrySim.Chartplotter
 			{
 				var row = new VisualElement { pickingMode = PickingMode.Ignore };
 				row.style.flexDirection = FlexDirection.Column;
+				row.style.flexShrink = 0; // Never squashed into clipping its values: the rows are sized to fit.
 				row.style.paddingLeft = 4;
 				row.style.paddingRight = 4;
 				row.style.paddingTop = 2;
 				row.style.paddingBottom = 2;
 				row.style.marginBottom = 2;
 				row.style.borderBottomWidth = 1;
-				_names[i] = Caption(string.Empty, 11, true);
+				_names[i] = Caption(string.Empty, 11, true, true);
 				row.Add(_names[i]);
 				var values = new VisualElement { pickingMode = PickingMode.Ignore };
 				values.style.flexDirection = FlexDirection.Row;
 				values.style.justifyContent = Justify.SpaceBetween;
-				_cpas[i] = Caption(string.Empty, 11, false);
-				_tcpas[i] = Caption(string.Empty, 11, false);
-				_bearings[i] = Caption(string.Empty, 11, false);
+				_cpas[i] = Caption(string.Empty, 11, false, true);
+				_tcpas[i] = Caption(string.Empty, 11, false, true);
+				_bearings[i] = Caption(string.Empty, 11, false, true);
 				values.Add(_cpas[i]);
 				values.Add(_tcpas[i]);
 				values.Add(_bearings[i]);
@@ -87,8 +107,24 @@ namespace FerrySim.Chartplotter
 		/// <summary>Rows shown by the last update.</summary>
 		public int Shown { get; private set; }
 
-		/// <summary>True while the banner shows the alarm.</summary>
-		public bool AlarmShown { get; private set; }
+		/// <summary>True while the banner shows the alarm (an alarm target and the alarm not muted).</summary>
+		public bool AlarmShown => _bannerState == BannerState.Alarm;
+
+		/// <summary>True while the banner says the alarm is muted.</summary>
+		public bool MutedShown => _bannerState == BannerState.Muted;
+
+		public string BannerShown => _banner.text;
+
+		/// <summary>The alarm limits readout under the banner.</summary>
+		public string LimitsText => _limits.text;
+
+		/// <summary>The banner's and the readout's text colours as set (the palette's roles).</summary>
+		public Color BannerColour => _banner.style.color.value;
+
+		public Color LimitsColour => _limits.style.color.value;
+
+		/// <summary>True when the row is filled in the alarm colour.</summary>
+		public bool RowFilled(int row) => _rows[row].style.backgroundColor == _palette.TargetAlarm;
 
 		public string RowName(int row) => _names[row].text;
 
@@ -105,12 +141,21 @@ namespace FerrySim.Chartplotter
 		/// <summary>True when the row's text is dimmed (a target past its closest point).</summary>
 		public bool RowDimmed(int row) => _names[row].style.color == _palette.TextDim;
 
-		private static Label Caption(string text, int size, bool bold)
+		private static Label Caption(string text, int size, bool bold, bool compact = false)
 		{
 			var label = new Label(text) { pickingMode = PickingMode.Ignore };
 			label.AddToClassList("fs-label");
 			label.style.fontSize = size;
 			label.style.unityFontStyleAndWeight = bold ? FontStyle.Bold : FontStyle.Normal;
+			if (compact)
+			{
+				// No vertical padding or margin: six rows, the banner, the limits readout and the heading fit the 358 px body at the shipping size.
+				label.style.paddingTop = 0;
+				label.style.paddingBottom = 0;
+				label.style.marginTop = 0;
+				label.style.marginBottom = 0;
+			}
+
 			return label;
 		}
 
@@ -120,32 +165,35 @@ namespace FerrySim.Chartplotter
 			style.backgroundColor = _palette.Panel;
 			style.borderLeftColor = _palette.Bezel;
 			_heading.style.color = _palette.TextDim;
+			_limits.style.color = _palette.TextDim;
 			for (var i = 0; i < _rows.Length; i++)
 			{
 				_rows[i].style.borderBottomColor = _palette.Bezel;
 			}
 
-			AlarmShown = !AlarmShown; // Force the banner colours to be reapplied.
-			SetBanner(!AlarmShown);
+			ApplyBanner(_bannerState, true); // The banner colours come from the new palette.
 		}
 
-		private void SetBanner(bool alarm)
+		/// <summary>Sets the alarm limits readout (a string built by the view on a change, never per frame).</summary>
+		public void SetLimitsText(string text) => PaletteRoles.SetText(_limits, text);
+
+		private void ApplyBanner(BannerState state, bool force)
 		{
-			if (alarm == AlarmShown)
+			if (state == _bannerState && !force)
 			{
 				return;
 			}
 
-			AlarmShown = alarm;
-			PaletteRoles.SetText(_banner, alarm ? "CPA ALARM" : "CPA / TCPA");
-			_banner.style.backgroundColor = alarm ? _palette.TargetAlarm : _palette.Panel;
-			_banner.style.color = alarm ? _palette.TargetAlarmText : _palette.Text;
+			_bannerState = state;
+			PaletteRoles.SetText(_banner, state == BannerState.Alarm ? AlarmText : state == BannerState.Muted ? MutedText : BannerText);
+			_banner.style.backgroundColor = state == BannerState.Alarm ? _palette.TargetAlarm : _palette.Panel;
+			_banner.style.color = state == BannerState.Alarm ? _palette.TargetAlarmText : state == BannerState.Muted ? _palette.Instruments.Caution : _palette.Text;
 		}
 
-		/// <summary>Fills the rows from a ranking; names come from the source as existing strings.</summary>
-		public void Update(TargetRanking ranking, ITargetSource source)
+		/// <summary>Fills the rows from a ranking; names come from the source as existing strings. Muted, no alarm treatment is drawn.</summary>
+		public void Update(TargetRanking ranking, ITargetSource source, bool muted = false)
 		{
-			SetBanner(ranking != null && ranking.Alarm);
+			ApplyBanner(muted ? BannerState.Muted : ranking != null && ranking.Alarm ? BannerState.Alarm : BannerState.Normal, false);
 			var generation = source != null ? source.Generation : long.MinValue;
 			if (!ReferenceEquals(source, _lastSource) || generation != _lastGeneration)
 			{
@@ -175,7 +223,7 @@ namespace FerrySim.Chartplotter
 
 				var target = ranking.Target(i);
 				var encounter = ranking.Encounter(i);
-				var alarm = ranking.IsAlarm(i);
+				var alarm = ranking.IsAlarm(i) && !muted;
 				var name = source != null ? source.Name(target) : string.Empty;
 				if (string.IsNullOrEmpty(name))
 				{

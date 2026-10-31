@@ -33,6 +33,53 @@ namespace FerrySim.Chartplotter.Tests.EditMode
 			view.Targets.Dispose();
 		}
 
+		// Failure modes of the alarm keys: a step that leaves the grid or passes a bound, mute changing the limits or the
+		// ranking, and the readout string not following a change (or being rebuilt without one).
+		[Test]
+		public void AlarmLimitKeys_StepAndClampOnTheGrid_AndMuteIsSeparate()
+		{
+			var view = new ChartplotterView();
+			Assert.That(view.AlarmLimits.Cpa, Is.EqualTo(CpaAlarmLimits.DefaultCpa));
+			Assert.That(view.AlarmLimits.Tcpa, Is.EqualTo(CpaAlarmLimits.DefaultTcpa));
+			Assert.That(view.AlarmMuted, Is.False, "a new view starts unmuted");
+			view.StepCpaLimit(1);
+			Assert.That(view.AlarmLimits.Cpa, Is.EqualTo(277.8).Within(1e-9), "0.10 to 0.15 nm");
+			view.StepCpaLimit(-1);
+			view.StepCpaLimit(-1);
+			Assert.That(view.AlarmLimits.Cpa, Is.EqualTo(CpaAlarmLimits.MinimumCpa), "0.05 nm floor");
+			view.StepCpaLimit(-1);
+			Assert.That(view.AlarmLimits.Cpa, Is.EqualTo(CpaAlarmLimits.MinimumCpa), "held at the floor");
+			for (var i = 0; i < 30; i++) view.StepCpaLimit(1);
+			Assert.That(view.AlarmLimits.Cpa, Is.EqualTo(CpaAlarmLimits.MaximumCpa), "1 nm ceiling");
+			Assert.That(view.AlarmLimits.Tcpa, Is.EqualTo(CpaAlarmLimits.DefaultTcpa), "the CPA keys leave the TCPA limit alone");
+			view.StepTcpaLimit(1);
+			Assert.That(view.AlarmLimits.Tcpa, Is.EqualTo(420.0), "6 to 7 min");
+			for (var i = 0; i < 10; i++) view.StepTcpaLimit(-1);
+			Assert.That(view.AlarmLimits.Tcpa, Is.EqualTo(CpaAlarmLimits.MinimumTcpa), "1 min floor");
+			for (var i = 0; i < 40; i++) view.StepTcpaLimit(1);
+			Assert.That(view.AlarmLimits.Tcpa, Is.EqualTo(CpaAlarmLimits.MaximumTcpa), "30 min ceiling");
+			Assert.That(view.AlarmLimits.Cpa, Is.EqualTo(CpaAlarmLimits.MaximumCpa), "the TCPA keys leave the CPA limit alone");
+			view.ToggleAlarmMute();
+			Assert.That(view.AlarmMuted, Is.True);
+			Assert.That(view.AlarmLimits.Cpa, Is.EqualTo(CpaAlarmLimits.MaximumCpa), "mute changes no limit");
+			Assert.That(view.AlarmLimits.Tcpa, Is.EqualTo(CpaAlarmLimits.MaximumTcpa));
+			view.ToggleAlarmMute();
+			Assert.That(view.AlarmMuted, Is.False);
+			view.AlarmLimits = CpaAlarmLimits.Default;
+			Assert.That(view.AlarmLimits.Cpa, Is.EqualTo(CpaAlarmLimits.DefaultCpa));
+			view.Canvas.Dispose();
+			view.Targets.Dispose();
+		}
+
+		[Test]
+		public void AlarmLimitReadout_IsBuiltFromTheLimits()
+		{
+			Assert.That(PlotterStrings.AlarmLimits(CpaAlarmLimits.Default), Is.EqualTo("LIMITS 0.10 NM · 6:00"));
+			Assert.That(PlotterStrings.AlarmLimits(new CpaAlarmLimits(CpaAlarmLimits.MinimumCpa, CpaAlarmLimits.MinimumTcpa)), Is.EqualTo("LIMITS 0.05 NM · 1:00"));
+			Assert.That(PlotterStrings.AlarmLimits(new CpaAlarmLimits(CpaAlarmLimits.MaximumCpa, CpaAlarmLimits.MaximumTcpa)), Is.EqualTo("LIMITS 1.00 NM · 30:00"));
+			Assert.That(CpaList.MutedText, Is.EqualTo("CPA / TCPA · MUTED"));
+		}
+
 		[Test]
 		public void Orientation_Centring_AndLimits()
 		{

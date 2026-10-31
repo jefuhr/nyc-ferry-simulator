@@ -78,6 +78,9 @@ namespace FerrySim.Chartplotter
 			return MinutesSeconds[(int)Math.Round(seconds, MidpointRounding.AwayFromZero)];
 		}
 
+		/// <summary>The CPA alarm limits for the list's readout: "LIMITS 0.10 NM · 6:00". Built on a change only, never per frame.</summary>
+		public static string AlarmLimits(CpaAlarmLimits limits) => "LIMITS " + MilesHundredths(limits.Cpa) + " NM · " + MinutesAndSeconds(limits.Tcpa);
+
 		/// <summary>A view span: "0.25 NM", "0.5 NM", "2 NM".</summary>
 		public static string Span(double nauticalMiles) =>
 			(nauticalMiles < 1.0 ? nauticalMiles.ToString("0.##", CultureInfo.InvariantCulture) : nauticalMiles.ToString("0.#", CultureInfo.InvariantCulture)) + " NM";

@@ -119,6 +119,9 @@ namespace FerrySim.Chartplotter
 
 		public float TargetY(int target) => _y[target];
 
+		/// <summary>True when the target is drawn with the alarm treatment (an alarm and the alarm not muted).</summary>
+		public bool TargetAlarmShown(int target) => target >= 0 && target < _targetCount && _present[target] && _alarm[target];
+
 		public void SetPalette(ChartPalette palette)
 		{
 			_palette = palette ?? ChartPalette.Day;

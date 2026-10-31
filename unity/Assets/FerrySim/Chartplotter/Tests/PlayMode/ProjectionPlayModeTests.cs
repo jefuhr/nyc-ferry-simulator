@@ -78,16 +78,20 @@ namespace FerrySim.Chartplotter.Tests.PlayMode
 			var soundings = view.Canvas.SoundingLabelPool;
 			if (soundings.Count > 0)
 			{
-				var text = soundings[0].text;
+				// Keyed slots may leave gaps: the first shown slot.
+				var slot = 0;
+				while (!soundings.IsShown(slot)) slot++;
+				var text = soundings[slot].text;
 				var i = -1;
 				for (var k = 0; k < view.Chart.Soundings.Count && i < 0; k++)
 				{
-					if (view.Chart.Soundings.TextFeet[k] == text && Mathf.Abs(soundings.AnchorX(0) - CanvasX(rendered, k)) < 0.01f && Mathf.Abs(soundings.AnchorY(0) - CanvasY(rendered, k)) < 0.01f) i = k;
+					if (view.Chart.Soundings.TextFeet[k] == text && Mathf.Abs(soundings.AnchorX(slot) - CanvasX(rendered, k)) < 0.01f && Mathf.Abs(soundings.AnchorY(slot) - CanvasY(rendered, k)) < 0.01f) i = k;
 				}
 
 				Assert.That(i, Is.GreaterThanOrEqualTo(0), what + ": the first sounding label belongs to a sounding");
+				Assert.That(soundings.KeyOf(slot), Is.EqualTo(i), what + ": the slot is keyed by that sounding");
 				current.ToScreen(view.Chart.Soundings.North[i], view.Chart.Soundings.East[i], out var sx, out var sy);
-				var soundingCentre = soundings[0].worldBound.center - viewport.position;
+				var soundingCentre = soundings[slot].worldBound.center - viewport.position;
 				Assert.That(soundingCentre.x, Is.EqualTo(sx).Within(2.0), what + ": sounding x");
 				Assert.That(soundingCentre.y, Is.EqualTo(sy).Within(2.0), what + ": sounding y");
 			}

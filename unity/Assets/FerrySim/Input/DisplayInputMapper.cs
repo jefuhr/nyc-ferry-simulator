@@ -34,6 +34,7 @@ namespace FerrySim.Controls
 				"ChartPalette", "ChartNextTarget", "ChartClearSelection",
 				"RadarRangeUp", "RadarRangeDown", "RadarOrientation", "RadarPalette", "RadarEblLeft", "RadarEblRight", "RadarVrmIn", "RadarVrmOut",
 				"RadarGainDown", "RadarGainUp", "RadarSeaDown", "RadarSeaUp",
+				"ChartCpaLimitDown", "ChartCpaLimitUp", "ChartTcpaLimitDown", "ChartTcpaLimitUp", "ChartAlarmMute",
 			};
 			_actions = new InputAction[names.Length];
 			_handlers = new Action<InputAction.CallbackContext>[names.Length];
@@ -59,6 +60,15 @@ namespace FerrySim.Controls
 		public event Action ChartPaletteRequested;
 		public event Action ChartNextTargetRequested;
 		public event Action ChartClearSelectionRequested;
+
+		/// <summary>+1 widens the chartplotter's CPA alarm limit one step, −1 narrows it.</summary>
+		public event Action<int> ChartCpaLimitRequested;
+
+		/// <summary>+1 lengthens the chartplotter's TCPA alarm limit one step, −1 shortens it.</summary>
+		public event Action<int> ChartTcpaLimitRequested;
+
+		/// <summary>Mutes the chartplotter's CPA alarm, or unmutes it.</summary>
+		public event Action ChartAlarmMuteRequested;
 
 		/// <summary>+1 is the next longer range scale, −1 the next shorter.</summary>
 		public event Action<int> RadarRangeRequested;
@@ -110,6 +120,11 @@ namespace FerrySim.Controls
 				case 22: RadarGainRequested?.Invoke(1); break;
 				case 23: RadarSeaRequested?.Invoke(-1); break;
 				case 24: RadarSeaRequested?.Invoke(1); break;
+				case 25: ChartCpaLimitRequested?.Invoke(-1); break;
+				case 26: ChartCpaLimitRequested?.Invoke(1); break;
+				case 27: ChartTcpaLimitRequested?.Invoke(-1); break;
+				case 28: ChartTcpaLimitRequested?.Invoke(1); break;
+				case 29: ChartAlarmMuteRequested?.Invoke(); break;
 			}
 		}
 

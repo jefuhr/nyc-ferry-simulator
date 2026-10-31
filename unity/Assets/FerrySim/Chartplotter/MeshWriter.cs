@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Unity.Collections;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -6,50 +7,143 @@ using UnityEngine.UIElements;
 namespace FerrySim.Chartplotter
 {
 	/// <summary>
-	/// Writes solid-colour triangles, quads and line segments into a UI Toolkit mesh in chunks, so one element can draw
-	/// far more than the 65,535 vertices a single allocation holds. The staging arrays are made once: filling
-	/// a chunk allocates no managed memory, and each full chunk becomes one <see cref="MeshGenerationContext.Allocate"/>.
-	/// Positions are element-local pixels. Dispose it with the element that owns it.
+	/// Writes solid-colour triangles, quads and line segments into UI Toolkit meshes in chunks, so one element can draw
+	/// far more than the 65,535 vertices a single allocation holds. Positions are element-local pixels. Two ways of
+	/// working: <b>direct</b> (<see cref="Begin"/> with a paint's context, every full chunk becomes one
+	/// <see cref="MeshGenerationContext.Allocate"/> at once, <see cref="End"/> sends the last; the moving layer paints
+	/// this way), and <b>staged</b> (<see cref="BeginStaged"/>, the chunks are kept in managed arrays across frames,
+	/// <see cref="EndStaged"/> seals them, and <see cref="Upload"/> sends them at a later paint, as many times as the
+	/// element is repainted; the static chart is generated this way, a slice per frame). The staging arrays are made
+	/// once and grow only when a chart needs more chunks than any before it, so a generation allocates nothing after
+	/// its first; a vertex is staged as 12 bytes and widened to UI Toolkit's <see cref="Vertex"/> at the upload through one managed chunk buffer. Dispose
+	/// it with the element that owns it.
 	/// </summary>
 	public sealed class MeshWriter : IDisposable
 	{
 		/// <summary>Vertices per chunk: within the ushort index range with room for a last quad.</summary>
 		public const int ChunkVertices = 32768;
 
-		private readonly Vertex[] _vertices = new Vertex[ChunkVertices];
-		private readonly ushort[] _indices = new ushort[ChunkVertices * 3];
+		private const int ChunkIndices = ChunkVertices * 3;
+
+		/// <summary>A staged vertex: the position in element pixels and the tint, 12 bytes.</summary>
+		private struct Staged
+		{
+			public float X, Y;
+			public Color32 Tint;
+		}
+
+		private readonly List<Staged[]> _chunkVertices = new List<Staged[]>();
+		private readonly List<ushort[]> _chunkIndices = new List<ushort[]>();
+		private readonly List<int> _chunkVertexCounts = new List<int>();
+		private readonly List<int> _chunkIndexCounts = new List<int>();
+		private readonly Vertex[] _widened = new Vertex[ChunkVertices];
 		private NativeArray<Vertex> _nativeVertices;
 		private NativeArray<ushort> _nativeIndices;
+		private Staged[] _vertices;
+		private ushort[] _indices;
+		private int _chunk;
 		private int _vertexCount;
 		private int _indexCount;
+		private int _sealed;
+		private bool _staging;
 		private MeshGenerationContext _context;
 
 		public MeshWriter()
 		{
 			_nativeVertices = new NativeArray<Vertex>(ChunkVertices, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-			_nativeIndices = new NativeArray<ushort>(ChunkVertices * 3, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+			_nativeIndices = new NativeArray<ushort>(ChunkIndices, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+			EnsureChunk(0);
+			_vertices = _chunkVertices[0];
+			_indices = _chunkIndices[0];
 		}
 
-		/// <summary>Vertices written since <see cref="Begin"/>, over every chunk.</summary>
+		/// <summary>Vertices written since <see cref="Begin"/> or <see cref="BeginStaged"/>, over every chunk.</summary>
 		public int TotalVertices { get; private set; }
 
-		/// <summary>Chunks flushed since <see cref="Begin"/>.</summary>
+		/// <summary>Chunks sent to the context by the last paint (<see cref="End"/> or <see cref="Upload"/>).</summary>
 		public int Chunks { get; private set; }
 
+		/// <summary>Chunks sealed by the last staged generation.</summary>
+		public int StagedChunks => _sealed;
+
+		/// <summary>Managed bytes held by the staging arrays (all chunks ever needed, kept).</summary>
+		public long StagedBytes => (long)_chunkVertices.Count * (ChunkVertices * 12L + ChunkIndices * 2L);
+
+		/// <summary>True between <see cref="BeginStaged"/> and <see cref="EndStaged"/>.</summary>
+		public bool Staging => _staging;
+
+		/// <summary>Direct mode: writes go straight to this paint's context, chunk by chunk.</summary>
 		public void Begin(MeshGenerationContext context)
 		{
 			_context = context;
+			_staging = false;
+			Reset();
+		}
+
+		/// <summary>Sends the last chunk of a direct paint. Call once at the end of it.</summary>
+		public void End()
+		{
+			if (_vertexCount > 0 && _context != null)
+			{
+				UploadChunk(_context, _vertices, _indices, _vertexCount, _indexCount);
+			}
+
 			_vertexCount = 0;
 			_indexCount = 0;
+			_context = null;
+		}
+
+		/// <summary>Staged mode: writes fill the kept chunk arrays, across as many frames as the caller likes, until <see cref="EndStaged"/>.</summary>
+		public void BeginStaged()
+		{
+			_context = null;
+			_staging = true;
+			Reset();
+		}
+
+		/// <summary>Seals the staged chunks for <see cref="Upload"/>.</summary>
+		public void EndStaged()
+		{
+			if (_vertexCount > 0)
+			{
+				Seal();
+			}
+
+			_staging = false;
+		}
+
+		/// <summary>Sends every sealed chunk to a paint's context (repeatable: each repaint uploads the same chunks again).</summary>
+		public void Upload(MeshGenerationContext context)
+		{
+			Chunks = 0;
+			for (var c = 0; c < _sealed; c++)
+			{
+				UploadChunk(context, _chunkVertices[c], _chunkIndices[c], _chunkVertexCounts[c], _chunkIndexCounts[c]);
+			}
+		}
+
+		private void Reset()
+		{
+			_chunk = 0;
+			_vertices = _chunkVertices[0];
+			_indices = _chunkIndices[0];
+			_vertexCount = 0;
+			_indexCount = 0;
+			_sealed = 0;
 			TotalVertices = 0;
 			Chunks = 0;
 		}
 
-		/// <summary>Sends the last chunk. Call once at the end of a paint.</summary>
-		public void End()
+		private void EnsureChunk(int index)
 		{
-			Flush();
-			_context = null;
+			while (_chunkVertices.Count <= index)
+			{
+				// Growth only: a chart that needs more chunks than any before it allocates them once, and they are kept.
+				_chunkVertices.Add(new Staged[ChunkVertices]);
+				_chunkIndices.Add(new ushort[ChunkIndices]);
+				_chunkVertexCounts.Add(0);
+				_chunkIndexCounts.Add(0);
+			}
 		}
 
 		/// <summary>
@@ -66,9 +160,9 @@ namespace FerrySim.Chartplotter
 
 			Reserve(3, 3);
 			var b = _vertexCount;
-			_vertices[b] = Vertex(x0, y0, color);
-			_vertices[b + 1] = Vertex(x1, y1, color);
-			_vertices[b + 2] = Vertex(x2, y2, color);
+			_vertices[b] = new Staged { X = x0, Y = y0, Tint = color };
+			_vertices[b + 1] = new Staged { X = x1, Y = y1, Tint = color };
+			_vertices[b + 2] = new Staged { X = x2, Y = y2, Tint = color };
 			_indices[_indexCount] = (ushort)b;
 			_indices[_indexCount + 1] = (ushort)(b + 1);
 			_indices[_indexCount + 2] = (ushort)(b + 2);
@@ -90,10 +184,10 @@ namespace FerrySim.Chartplotter
 
 			Reserve(4, 6);
 			var b = _vertexCount;
-			_vertices[b] = Vertex(x0, y0, color);
-			_vertices[b + 1] = Vertex(x1, y1, color);
-			_vertices[b + 2] = Vertex(x2, y2, color);
-			_vertices[b + 3] = Vertex(x3, y3, color);
+			_vertices[b] = new Staged { X = x0, Y = y0, Tint = color };
+			_vertices[b + 1] = new Staged { X = x1, Y = y1, Tint = color };
+			_vertices[b + 2] = new Staged { X = x2, Y = y2, Tint = color };
+			_vertices[b + 3] = new Staged { X = x3, Y = y3, Tint = color };
 			_indices[_indexCount] = (ushort)b;
 			_indices[_indexCount + 1] = (ushort)(b + 1);
 			_indices[_indexCount + 2] = (ushort)(b + 2);
@@ -188,33 +282,60 @@ namespace FerrySim.Chartplotter
 
 		private void Reserve(int vertices, int indices)
 		{
-			if (_vertexCount + vertices > ChunkVertices || _indexCount + indices > _indices.Length)
+			if (_vertexCount + vertices > ChunkVertices || _indexCount + indices > ChunkIndices)
 			{
-				Flush();
+				if (_staging)
+				{
+					Seal();
+				}
+				else
+				{
+					Flush();
+				}
 			}
 		}
 
+		/// <summary>Direct mode: the full chunk goes to the context now and the chunk array is reused.</summary>
 		private void Flush()
 		{
-			if (_vertexCount == 0 || _context == null)
+			if (_vertexCount > 0 && _context != null)
 			{
-				_vertexCount = 0;
-				_indexCount = 0;
-				return;
+				UploadChunk(_context, _vertices, _indices, _vertexCount, _indexCount);
 			}
 
-			var data = _context.Allocate(_vertexCount, _indexCount);
-			// Managed staging is written element by element without native safety checks; one block copy per chunk moves it over.
-			NativeArray<Vertex>.Copy(_vertices, 0, _nativeVertices, 0, _vertexCount);
-			NativeArray<ushort>.Copy(_indices, 0, _nativeIndices, 0, _indexCount);
-			data.SetAllVertices(_nativeVertices.Slice(0, _vertexCount));
-			data.SetAllIndices(_nativeIndices.Slice(0, _indexCount));
-			Chunks++;
 			_vertexCount = 0;
 			_indexCount = 0;
 		}
 
-		private static Vertex Vertex(float x, float y, Color32 color) => new Vertex { position = new Vector3(x, y, 0f), tint = color };
+		/// <summary>Staged mode: the full chunk is kept and writing moves to the next chunk array.</summary>
+		private void Seal()
+		{
+			_chunkVertexCounts[_chunk] = _vertexCount;
+			_chunkIndexCounts[_chunk] = _indexCount;
+			_sealed = _chunk + 1;
+			_chunk++;
+			EnsureChunk(_chunk);
+			_vertices = _chunkVertices[_chunk];
+			_indices = _chunkIndices[_chunk];
+			_vertexCount = 0;
+			_indexCount = 0;
+		}
+
+		private void UploadChunk(MeshGenerationContext context, Staged[] vertices, ushort[] indices, int vertexCount, int indexCount)
+		{
+			var data = context.Allocate(vertexCount, indexCount);
+			// The staged vertices are widened in a managed pass (no native safety checks per element), then block-copied with the indices.
+			for (var i = 0; i < vertexCount; i++)
+			{
+				_widened[i] = new Vertex { position = new Vector3(vertices[i].X, vertices[i].Y, 0f), tint = vertices[i].Tint };
+			}
+
+			NativeArray<Vertex>.Copy(_widened, 0, _nativeVertices, 0, vertexCount);
+			NativeArray<ushort>.Copy(indices, 0, _nativeIndices, 0, indexCount);
+			data.SetAllVertices(_nativeVertices.Slice(0, vertexCount));
+			data.SetAllIndices(_nativeIndices.Slice(0, indexCount));
+			Chunks++;
+		}
 
 		public void Dispose()
 		{

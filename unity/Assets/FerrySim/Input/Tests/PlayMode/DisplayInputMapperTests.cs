@@ -38,6 +38,9 @@ namespace FerrySim.Controls.Tests.PlayMode
 			_mapper.ChartPaletteRequested += () => _events.Add("chart-palette");
 			_mapper.ChartNextTargetRequested += () => _events.Add("chart-next-target");
 			_mapper.ChartClearSelectionRequested += () => _events.Add("chart-clear-selection");
+			_mapper.ChartCpaLimitRequested += d => _events.Add("chart-cpa-limit " + d);
+			_mapper.ChartTcpaLimitRequested += d => _events.Add("chart-tcpa-limit " + d);
+			_mapper.ChartAlarmMuteRequested += () => _events.Add("chart-alarm-mute");
 			_mapper.RadarRangeRequested += d => _events.Add("radar-range " + d);
 			_mapper.RadarOrientationRequested += () => _events.Add("radar-orientation");
 			_mapper.RadarPaletteRequested += () => _events.Add("radar-palette");
@@ -86,6 +89,11 @@ namespace FerrySim.Controls.Tests.PlayMode
 		[TestCase(Key.Digit4, "radar-gain 1")]
 		[TestCase(Key.Digit5, "radar-sea -1")]
 		[TestCase(Key.Digit6, "radar-sea 1")]
+		[TestCase(Key.Digit7, "chart-cpa-limit -1")]
+		[TestCase(Key.Digit8, "chart-cpa-limit 1")]
+		[TestCase(Key.Digit9, "chart-tcpa-limit -1")]
+		[TestCase(Key.Digit0, "chart-tcpa-limit 1")]
+		[TestCase(Key.G, "chart-alarm-mute")]
 		public void EachDisplayKeyRaisesExactlyItsEventAndNothingOnTheHelm(Key key, string expected)
 		{
 			Press(_keyboard[key]);
@@ -101,6 +109,13 @@ namespace FerrySim.Controls.Tests.PlayMode
 			Release(_keyboard.digit1Key);
 			Press(_keyboard.rightBracketKey);
 			Release(_keyboard.rightBracketKey);
+			// The alarm keys too: typed into the picker's search field (the map is disabled there), 7 8 9 0 G change nothing.
+			Press(_keyboard.digit7Key);
+			Release(_keyboard.digit7Key);
+			Press(_keyboard.digit0Key);
+			Release(_keyboard.digit0Key);
+			Press(_keyboard.gKey);
+			Release(_keyboard.gKey);
 			Assert.That(_events, Is.Empty);
 			_mapper.Enable();
 			Press(_keyboard.digit2Key);

@@ -4,8 +4,10 @@ using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using FerrySim.Core.Contracts;
 using FerrySim.Core.Traffic;
+using Unity.Profiling;
 
 namespace FerrySim.Sim
 {
@@ -21,9 +23,17 @@ namespace FerrySim.Sim
 	/// also writes <c>&lt;name&gt;.traffic.csv</c>, its traffic events and, when it ends, the snapshot of the episodes still open
 	/// (<see cref="TrafficEventLog"/>), and its header names the traffic pack (<see cref="TrafficHeader"/>); a run without traffic
 	/// writes exactly the two files above.
+	/// The file factory submits rows to bounded, preallocated character rings and one storage thread. Steps never wait for
+	/// disk I/O or free buffer space; overflow ends the optional recording through Failure. Finish drains and closes before
+	/// replay. Only explicit failures rename closed files to .failed; crash-shortened normal filenames remain compatible.
 	/// </summary>
 	public sealed class RunRecorder : IStepObserver, ITrafficEventSink, IDisposable
 	{
+		private static readonly ProfilerMarker StepMarker = new ProfilerMarker("FerrySim.RunRecorder.BeforeStep");
+		private static readonly ProfilerMarker FlushMarker = new ProfilerMarker("FerrySim.RunRecorder.Flush");
+		private static readonly ProfilerMarker RowMarker = new ProfilerMarker("FerrySim.RunRecorder.WriteRow");
+		private static readonly ProfilerMarker BackgroundWriteMarker = new ProfilerMarker("FerrySim.RunRecorder.BackgroundWrite");
+		private static readonly ProfilerMarker BackgroundFlushMarker = new ProfilerMarker("FerrySim.RunRecorder.BackgroundFlush");
 		public const string InputsSuffix = ".inputs.csv";
 		public const string StepsKey = "steps";
 		public const string DigestKey = "state_digest";
@@ -45,9 +55,12 @@ namespace FerrySim.Sim
 		/// <summary>The header key naming the traffic event log beside the telemetry.</summary>
 		public const string TrafficEventsKey = "traffic_events";
 
-		private readonly TextWriter _telemetry;
-		private readonly TextWriter _inputs;
+		private TextWriter _telemetry;
+		private TextWriter _inputs;
 		private TextWriter _traffic;
+		private BufferedOutput _buffered;
+		private char[] _rowBuffer;
+		private Exception _failure;
 		private TrafficRun _trafficRun;
 		private TrafficMonitor _trafficMonitor;
 		private readonly StateDigest _digest = new StateDigest();
@@ -58,6 +71,7 @@ namespace FerrySim.Sim
 		private long _lastStepSeen = -1;
 		private bool _finished;
 		private bool _disposed;
+		private bool _outputClosed;
 
 		public RunRecorder(TextWriter telemetry, TextWriter inputs, int sampleHz, IEnumerable<KeyValuePair<string, string>> header, IEnumerable<string> inputComments = null)
 		{
@@ -100,7 +114,20 @@ namespace FerrySim.Sim
 		public bool IsFinished => _finished;
 
 		/// <summary>Non-null when recording was cut short by a write, flush or close failure.</summary>
-		public Exception Failure { get; private set; }
+		public Exception Failure
+		{
+			get => Volatile.Read(ref _failure);
+			private set => Interlocked.CompareExchange(ref _failure, value, null);
+		}
+
+		/// <summary>Queued characters awaiting the storage thread; zero for a synchronous recorder.</summary>
+		public long PendingWriteCharacters => _buffered?.PendingCharacters ?? 0;
+
+		/// <summary>Preallocated character-ring storage, excluding the small reusable formatting buffer.</summary>
+		public int OutputBufferBytes => _buffered?.CapacityBytes ?? 0;
+
+		/// <summary>All sinks are closed and any failed-file cleanup has completed.</summary>
+		public bool IsOutputClosed => Volatile.Read(ref _outputClosed);
 
 		/// <summary>Digest of every state so far, written to the control trace when the run ends.</summary>
 		public StateDigest Digest => _digest;
@@ -117,8 +144,10 @@ namespace FerrySim.Sim
 		/// <c>&lt;baseName&gt;.traffic.csv</c>, named in the header as <c>traffic_events</c>, for the events of
 		/// <paramref name="monitor"/> (which this recorder receives as their sink).
 		/// </summary>
-		public static RunRecorder Create(string directory, string baseName, int sampleHz, List<KeyValuePair<string, string>> header, TrafficRun traffic, TrafficMonitor monitor)
+		public static RunRecorder Create(string directory, string baseName, int sampleHz, List<KeyValuePair<string, string>> header, TrafficRun traffic, TrafficMonitor monitor,
+			Func<string, TextWriter> writerFactory = null, int bufferCharacters = 0)
 		{
+			if (bufferCharacters < 0) throw new ArgumentOutOfRangeException(nameof(bufferCharacters));
 			Directory.CreateDirectory(directory);
 			var telemetryPath = Path.Combine(directory, baseName + ".csv");
 			var inputsPath = Path.Combine(directory, baseName + InputsSuffix);
@@ -130,12 +159,13 @@ namespace FerrySim.Sim
 			}
 
 			var encoding = new UTF8Encoding(false);
-			var telemetry = new StreamWriter(telemetryPath, false, encoding) { NewLine = "\n" };
-			StreamWriter inputs = null;
-			StreamWriter events = null;
+			TextWriter Open(string path) => writerFactory != null ? writerFactory(path) : new StreamWriter(path, false, encoding) { NewLine = "\n" };
+			var telemetry = Open(telemetryPath);
+			TextWriter inputs = null;
+			TextWriter events = null;
 			try
 			{
-				inputs = new StreamWriter(inputsPath, false, encoding) { NewLine = "\n" };
+				inputs = Open(inputsPath);
 				var comments = new[] { "ferrysim control trace recorded by Unity, for " + Path.GetFileName(telemetryPath) };
 				var recorder = new RunRecorder(telemetry, inputs, sampleHz, fullHeader, comments)
 				{
@@ -144,11 +174,12 @@ namespace FerrySim.Sim
 				};
 				if (trafficPath != null)
 				{
-					events = new StreamWriter(trafficPath, false, encoding) { NewLine = "\n" };
+					events = Open(trafficPath);
 					recorder.AttachTraffic(events, traffic, monitor, Path.GetFileName(telemetryPath));
 					recorder.TrafficPath = trafficPath;
 				}
 
+				recorder.EnableBuffering(bufferCharacters);
 				return recorder;
 			}
 			catch
@@ -162,6 +193,17 @@ namespace FerrySim.Sim
 
 				throw;
 			}
+		}
+
+		private void EnableBuffering(int capacity)
+		{
+			var maximumName = 0;
+			if (_trafficRun != null)
+				foreach (var vessel in _trafficRun.Pack.Vessels) maximumName = Math.Max(maximumName, vessel.Name.Length);
+			_rowBuffer = new char[checked(8192 + 2 * maximumName)];
+			_buffered = new BufferedOutput(this, _telemetry, _inputs, _traffic, capacity);
+			_telemetry = _buffered.Telemetry; _inputs = _buffered.Inputs; _traffic = _buffered.Traffic;
+			_buffered.Start();
 		}
 
 		/// <summary>
@@ -200,8 +242,13 @@ namespace FerrySim.Sim
 
 			try
 			{
-				_traffic.Write(TrafficEventLog.FormatRow(trafficEvent, _trafficRun.Pack.Vessels[trafficEvent.Vessel]));
-				_traffic.Write('\n');
+				if (Failure != null) throw Failure;
+				if (_buffered != null) TelemetryCsv.WriteTrafficRow(_traffic, _rowBuffer, trafficEvent, _trafficRun.Pack.Vessels[trafficEvent.Vessel]);
+				else
+				{
+					_traffic.Write(TrafficEventLog.FormatRow(trafficEvent, _trafficRun.Pack.Vessels[trafficEvent.Vessel]));
+					_traffic.Write('\n');
+				}
 				TrafficRowCount++;
 			}
 			catch (Exception exception)
@@ -352,6 +399,7 @@ namespace FerrySim.Sim
 
 		public void BeforeStep(long step, in VesselState state, in VesselTelemetry telemetry, in ControlInputs controls)
 		{
+			using var profile = StepMarker.Auto();
 			if (_finished)
 			{
 				return;
@@ -359,6 +407,7 @@ namespace FerrySim.Sim
 
 			try
 			{
+				if (Failure != null) throw Failure;
 				if (step % _stepsPerSample == 0)
 				{
 					WriteRow(state, telemetry, controls);
@@ -373,6 +422,7 @@ namespace FerrySim.Sim
 				_lastStepSeen = step;
 				if (step % _stepsPerFlush == 0)
 				{
+					using var flush = FlushMarker.Auto();
 					_telemetry.Flush();
 					_inputs.Flush();
 					_traffic?.Flush();
@@ -410,6 +460,8 @@ namespace FerrySim.Sim
 			_finished = true;
 			try
 			{
+				// Finalization may wait; an owed physics step never does. Make room for the final rows and trailer.
+				_buffered?.Drain();
 				if (stepCount != _lastStepSeen + 1)
 				{
 					throw new InvalidOperationException($"The recorder saw steps up to {_lastStepSeen} but the run ended after {stepCount} steps.");
@@ -446,12 +498,19 @@ namespace FerrySim.Sim
 			if (_disposed) return;
 			_disposed = true;
 			_finished = true;
+			if (_buffered != null)
+			{
+				if (Failure == null) _buffered.Complete();
+				else _buffered.Abort();
+				return;
+			}
 			Close(_telemetry);
 			Close(_inputs);
 			if (_traffic != null)
 			{
 				Close(_traffic);
 			}
+			Volatile.Write(ref _outputClosed, true);
 		}
 
 		private void Close(TextWriter writer)
@@ -462,20 +521,210 @@ namespace FerrySim.Sim
 
 		private void WriteRow(in VesselState state, in VesselTelemetry telemetry, in ControlInputs controls)
 		{
-			_telemetry.Write(TelemetryCsv.FormatRow(state, telemetry, controls));
-			_telemetry.Write('\n');
+			using var profile = RowMarker.Auto();
+			if (_buffered != null) TelemetryCsv.WriteRow(_telemetry, _rowBuffer, state, telemetry, controls);
+			else
+			{
+				_telemetry.Write(TelemetryCsv.FormatRow(state, telemetry, controls));
+				_telemetry.Write('\n');
+			}
 			RowCount++;
 		}
 
 		private void WriteTraceRow(long step, in ControlInputs controls)
 		{
-			_inputs.Write(ControlTrace.FormatRow(step, controls));
-			_inputs.Write('\n');
+			if (_buffered != null) TelemetryCsv.WriteTraceRow(_inputs, _rowBuffer, step, controls);
+			else
+			{
+				_inputs.Write(ControlTrace.FormatRow(step, controls));
+				_inputs.Write('\n');
+			}
 			_lastTraceStep = step;
 			TraceRowCount++;
 		}
 
 		private static KeyValuePair<string, string> Pair(string key, string value) => new KeyValuePair<string, string>(key, value);
+
+		private void RenameFailedFiles()
+		{
+			RenameFailedFile(InputsPath);
+			RenameFailedFile(TrafficPath);
+			RenameFailedFile(TelemetryPath);
+		}
+
+		private void RenameFailedFile(string path)
+		{
+			if (path == null || !File.Exists(path)) return;
+			try { File.Move(path, path + ".failed"); }
+			catch (Exception error)
+			{
+				var failure = new IOException("Could not mark failed recording file '" + path + "' as .failed.", error);
+				Interlocked.Exchange(ref _failure, new AggregateException(Failure, failure));
+				// The runner may already have detached the failed recorder; retain and report this later cleanup error too.
+				UnityEngine.Debug.LogWarning("[FerrySim] Recording incomplete: " + failure.Message);
+			}
+		}
+
+		/// <summary>One storage thread, fixed character rings, and no producer wait for free capacity.</summary>
+		private sealed class BufferedOutput
+		{
+			private readonly RunRecorder _owner;
+			private readonly RingWriter[] _writers;
+			private readonly AutoResetEvent _work = new AutoResetEvent(false), _progress = new AutoResetEvent(false);
+			private readonly Thread _thread;
+			private bool _closing;
+			public TextWriter Telemetry => _writers[0];
+			public TextWriter Inputs => _writers[1];
+			public TextWriter Traffic => _writers.Length > 2 ? _writers[2] : null;
+			public int CapacityBytes { get; }
+			public long PendingCharacters
+			{
+				get
+				{
+					var pending = 0L;
+					foreach (var writer in _writers) pending += writer.Pending;
+					return pending;
+				}
+			}
+
+			public BufferedOutput(RunRecorder owner, TextWriter telemetry, TextWriter inputs, TextWriter traffic, int capacity)
+			{
+				_owner = owner;
+				_writers = new RingWriter[traffic == null ? 2 : 3];
+				// A full 100 Hz Astoria run wrote 16,665 ASCII telemetry bytes/s: this ring holds about 126 seconds.
+				// All three UTF-16 rings occupy 6,815,744 bytes; zero capacity selects these bounded defaults.
+				_writers[0] = new RingWriter(this, telemetry, capacity == 0 ? 2 * 1024 * 1024 : capacity);
+				_writers[1] = new RingWriter(this, inputs, capacity == 0 ? 1024 * 1024 : capacity);
+				if (traffic != null) _writers[2] = new RingWriter(this, traffic, capacity == 0 ? 256 * 1024 : capacity);
+				foreach (var writer in _writers) CapacityBytes += writer.Capacity * sizeof(char);
+				_thread = new Thread(Work) { IsBackground = true, Name = "FerrySim recording" };
+			}
+
+			public void Start() => _thread.Start();
+			private void Signal() => _work.Set();
+			private void CheckWritable()
+			{
+				if (_owner.Failure != null) throw _owner.Failure;
+				if (Volatile.Read(ref _closing)) throw new ObjectDisposedException(nameof(RunRecorder));
+			}
+			public void Drain()
+			{
+				foreach (var writer in _writers) writer.Flush();
+				while (true)
+				{
+					if (_owner.Failure != null) throw _owner.Failure;
+					var pending = false;
+					foreach (var writer in _writers) pending |= writer.Pending != 0 || writer.FlushPending;
+					if (!pending) return;
+					_progress.WaitOne();
+				}
+			}
+			public void Complete()
+			{
+				Volatile.Write(ref _closing, true); Signal();
+				_thread.Join();
+				_work.Dispose(); _progress.Dispose();
+			}
+			public void Abort()
+			{
+				Volatile.Write(ref _closing, true); Signal();
+			}
+			private void Work()
+			{
+				try
+				{
+					while (_owner.Failure == null)
+					{
+						var worked = false;
+						foreach (var writer in _writers) worked |= writer.Consume();
+						if (worked) _progress.Set();
+						if (Volatile.Read(ref _closing) && PendingCharacters == 0) break;
+						if (!worked) _work.WaitOne();
+					}
+				}
+				catch (Exception error) { _owner.Failure = error; }
+				finally
+				{
+					foreach (var writer in _writers) _owner.Close(writer.Sink);
+					if (_owner.Failure != null) _owner.RenameFailedFiles();
+					Volatile.Write(ref _owner._outputClosed, true);
+					_progress.Set();
+				}
+			}
+
+			private sealed class RingWriter : TextWriter
+			{
+				private readonly BufferedOutput _output;
+				private readonly char[] _characters;
+				private long _written, _read, _flushRequested = -1, _flushCompleted = -1;
+				public TextWriter Sink { get; }
+				public int Capacity => _characters.Length;
+				public long Pending => Volatile.Read(ref _written) - Volatile.Read(ref _read);
+				public bool FlushPending => Volatile.Read(ref _flushRequested) > Volatile.Read(ref _flushCompleted);
+				public override Encoding Encoding => Sink.Encoding;
+				public RingWriter(BufferedOutput output, TextWriter sink, int capacity)
+				{
+					_output = output; Sink = sink; _characters = new char[capacity];
+				}
+				private int Reserve(int count)
+				{
+					_output.CheckWritable();
+					if (count > Capacity - (_written - Volatile.Read(ref _read)))
+						throw new IOException("The bounded recording buffer is full; recording stopped while physics continues.");
+					return (int)(_written % Capacity);
+				}
+				private void Publish(int count)
+				{
+					Volatile.Write(ref _written, _written + count); _output.Signal();
+				}
+				public override void Write(char[] buffer, int index, int count)
+				{
+					if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+					if (index < 0 || count < 0 || index > buffer.Length - count) throw new ArgumentOutOfRangeException(nameof(count));
+					var at = Reserve(count); var first = Math.Min(count, Capacity - at);
+					Array.Copy(buffer, index, _characters, at, first);
+					Array.Copy(buffer, index + first, _characters, 0, count - first);
+					Publish(count);
+				}
+				public override void Write(string value)
+				{
+					if (value == null) return;
+					var at = Reserve(value.Length); var first = Math.Min(value.Length, Capacity - at);
+					value.CopyTo(0, _characters, at, first); value.CopyTo(first, _characters, 0, value.Length - first);
+					Publish(value.Length);
+				}
+				public override void Write(char value)
+				{
+					_characters[Reserve(1)] = value; Publish(1);
+				}
+				public override void Flush()
+				{
+					_output.CheckWritable(); Volatile.Write(ref _flushRequested, _written); _output.Signal();
+				}
+				public bool Consume()
+				{
+					var worked = false;
+					// Acquire publication before the request: a later write also publishes every earlier flush.
+					// Stop at that complete write boundary; the physical ring end can split a surrogate pair.
+					var written = Volatile.Read(ref _written);
+					var requested = Volatile.Read(ref _flushRequested);
+					var limit = requested > _flushCompleted ? Math.Min(written, requested) : written;
+					var available = limit - _read;
+					if (available > 0)
+					{
+						var at = (int)(_read % Capacity); var count = (int)Math.Min(available, Capacity - at);
+						using (BackgroundWriteMarker.Auto()) Sink.Write(_characters, at, count);
+						Volatile.Write(ref _read, _read + count); worked = true;
+					}
+					if (requested >= 0 && _read >= requested && _flushCompleted < requested)
+					{
+						using (BackgroundFlushMarker.Auto()) Sink.Flush();
+						Volatile.Write(ref _flushCompleted, requested); worked = true;
+					}
+					return worked;
+				}
+			}
+		}
 
 		/// <summary>Writes the traffic log's open-episode snapshot rows when the run ends.</summary>
 		private sealed class SnapshotWriter : ITrafficEventSink

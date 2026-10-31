@@ -67,11 +67,16 @@ namespace FerrySim.Chartplotter
 		int Mmsi(int target);
 	}
 
-	/// <summary>The run's traffic as targets, read from the runner the way the traffic view reads it: never written to.</summary>
+	/// <summary>
+	/// The run's traffic as targets, read from the runner the way the traffic view reads it: never written to. The adapter
+	/// tracks which run's traffic it last saw without owning it (a weak reference), so a hidden chart, which is never
+	/// queried, cannot keep a retired run's traffic pack alive after the runner has replaced it.
+	/// </summary>
 	public sealed class TrafficRunTargets : ITargetSource
 	{
 		private readonly VesselSimulationRunner _runner;
-		private TrafficRun _seen;
+		private readonly WeakReference<TrafficRun> _seen = new WeakReference<TrafficRun>(null);
+		private bool _seenAny;
 		private long _generation;
 
 		public TrafficRunTargets(VesselSimulationRunner runner)
@@ -84,9 +89,13 @@ namespace FerrySim.Chartplotter
 			get
 			{
 				var traffic = _runner.Traffic;
-				if (!ReferenceEquals(traffic, _seen))
+				// The same run's traffic as last time: the weak target is still that object. A collected old run reads as a
+				// change too, which is right: the runner has replaced it since.
+				var same = traffic == null ? !_seenAny : _seen.TryGetTarget(out var seen) && ReferenceEquals(seen, traffic);
+				if (!same)
 				{
-					_seen = traffic;
+					_seen.SetTarget(traffic);
+					_seenAny = traffic != null;
 					_generation++;
 				}
 

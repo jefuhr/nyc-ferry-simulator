@@ -14,7 +14,7 @@ from analyze import analyze
 from mac_memory import MacMemory
 
 
-def run(player, definitions, out, scenario, timeout, timing=False):
+def run(player, definitions, out, scenario, timeout, timing=False, profile=False):
 	out.mkdir(parents=True, exist_ok=False)
 	args = [str(player), '-ferrysim-route', scenario['route'], '-ferrysim-route-file', str(definitions),
 		'-ferrysim-benchmark-output', str(out), '-ferrysim-traffic', str(int(scenario['traffic'])),
@@ -23,6 +23,7 @@ def run(player, definitions, out, scenario, timeout, timing=False):
 		'-ferrysim-visibility', str(scenario['visibility']), '-ferrysim-capture', str(int(scenario['capture'])),
 		'-ferrysim-timing', str(int(timing)), '-ferrysim-rate', str(scenario.get('rate', 1)), '-screen-width', '1920', '-screen-height', '1080', '-screen-fullscreen', '0', '-logFile', str(out / 'Player.log')]
 	args += ['-ferrysim-switch-diagnostics',str(int(scenario.get('switch_diagnostics',False))),'-ferrysim-switch-cycles',str(scenario.get('switch_cycles',1)),'-ferrysim-switch-collect',str(int(scenario.get('switch_collect',False)))]
+	if profile: args += ['-ferrysim-profile', '1']
 	(out / 'command.json').write_text(json.dumps(args, indent=2)+'\n')
 	launch = time.time()
 	load_at_launch = os.getloadavg()
@@ -31,7 +32,7 @@ def run(player, definitions, out, scenario, timeout, timing=False):
 	native_memory=MacMemory()
 	with tempfile.TemporaryDirectory(prefix='ferrysim-harbor-empty-') as empty:
 		with (out / 'stdout.log').open('wb') as log, (out / 'os-memory.csv').open('w', newline='') as memory:
-			writer = csv.writer(memory);writer.writerow(['unix_s','wall_s','rss_bytes','cpu_percent','native_resident_bytes','physical_footprint_bytes','peak_physical_footprint_bytes'])
+			writer = csv.writer(memory);writer.writerow(['unix_s','wall_s','rss_bytes','cpu_percent','native_resident_bytes','physical_footprint_bytes','peak_physical_footprint_bytes','pageins','disk_read_bytes','disk_write_bytes','user_time_native','system_time_native','runnable_time_native'])
 			process = subprocess.Popen(args, cwd=empty, stdout=log, stderr=subprocess.STDOUT,
 				env={'HOME': os.environ['HOME'], 'USER': os.environ.get('USER',''), 'PATH':'/usr/bin:/bin', 'TMPDIR':os.environ.get('TMPDIR','/tmp')})
 			usage = None
@@ -58,13 +59,14 @@ def run(player, definitions, out, scenario, timeout, timing=False):
 					if len(data) >= 2:
 						rss = int(data[0])*1024;peak_sampled=max(peak_sampled,rss)
 						native=native_memory.read(process.pid);peak_footprint=max(peak_footprint,native['peak_physical_footprint_bytes'])
-						writer.writerow([time.time(),time.time()-launch,rss,float(data[1]),native['resident_bytes'],native['physical_footprint_bytes'],native['peak_physical_footprint_bytes']])
+						writer.writerow([time.time(),time.time()-launch,rss,float(data[1]),native['resident_bytes'],native['physical_footprint_bytes'],native['peak_physical_footprint_bytes'],native['pageins'],native['disk_read_bytes'],native['disk_write_bytes'],native['user_time_native'],native['system_time_native'],native['runnable_time_native']])
 				except (subprocess.CalledProcessError, ValueError, OSError):
 					pass
 				time.sleep(.1)
 	result = {'exit_code':process.returncode,'launch_unix_s':launch,'complete_wall_s':time.time()-launch,
 		'peak_rss_bytes':int(usage.ru_maxrss),'sampled_peak_rss_bytes':peak_sampled, 'kernel_peak_physical_footprint_bytes':peak_footprint,'physical_footprint_source':'proc_pid_rusage RUSAGE_INFO_V4 lifetime_max_phys_footprint; sampled through process life', 'peak_source':'wait4 ru_maxrss (bytes on Darwin); complete child lifetime',
-		'system':platform.platform(),'load_average_at_launch':load_at_launch,'load_average_at_end':os.getloadavg(),'process_cache':'cold process, OS cache uncontrolled'}
+		'system':platform.platform(),'load_average_at_launch':load_at_launch,'load_average_at_end':os.getloadavg(),'process_cache':'cold process, OS cache uncontrolled',
+		'native_activity_counters':'proc_pid_rusage RUSAGE_INFO_V4 cumulative process pageins, disk bytes and raw native CPU/runnable time; 100 ms context, not per-frame causal attribution'}
 	(out / 'process.json').write_text(json.dumps(result,indent=2)+'\n')
 	(out / 'verdict.json').write_text(json.dumps(analyze(out),indent=2)+'\n')
 	return result
@@ -78,9 +80,11 @@ def main():
 	p.add_argument('--scenario',action='append',help='exact matrix id; omitted runs full matrix')
 	p.add_argument('--timeout',type=float,default=20000)
 	p.add_argument('--timing',action='store_true',help='diagnostic FrameTimingStats build only; never a shipping verdict')
+	p.add_argument('--profile',action='store_true',help='development player only; bounded per-marker slow-frame attribution, implies --timing')
 	p.add_argument('--already-locked',action='store_true')
 	p.add_argument('--quick',action='store_true',help='60 simulated seconds, explicitly incomplete journey, for instrumentation verification')
 	a=p.parse_args()
+	if a.profile: a.timing=True
 	player=a.player.resolve();definitions=a.routes.resolve();root=a.out.resolve()
 	root.mkdir(parents=True,exist_ok=True)
 	(root/'matrix.json').write_text(json.dumps(matrix(),indent=2)+'\n')
@@ -97,10 +101,11 @@ def main():
 				'--scenario',s['id'],'--timeout',str(a.timeout)]
 			if a.quick:command.append('--quick')
 			if a.timing:command.append('--timing')
+			if a.profile:command.append('--profile')
 			status=subprocess.run(command).returncode
 			print(s['id'],'harness_exit',status,flush=True)
 		else:
-			print(s['id'],run(player,definitions,out,s,a.timeout,a.timing),flush=True)
+			print(s['id'],run(player,definitions,out,s,a.timeout,a.timing,a.profile),flush=True)
 
 
 if __name__=='__main__':main()
