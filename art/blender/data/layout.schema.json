@@ -1,0 +1,38 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://ferrysim.local/art/layout.schema.json",
+	"title": "Ferry simulator layout data",
+	"type": "object",
+	"required": ["schema_version", "subject", "kind", "values"],
+	"additionalProperties": false,
+	"properties": {
+		"schema_version": {"const": 1},
+		"subject": {"type": "string", "description": "t-class, k-class, or a landing stop id"},
+		"kind": {"enum": ["hull", "wheelhouse", "landing-looks"]},
+		"notes": {"type": "string"},
+		"values": {
+			"type": "object",
+			"additionalProperties": {
+				"oneOf": [
+					{"$ref": "#/$defs/value"},
+					{"type": "object", "additionalProperties": {"$ref": "#/$defs/value"}}
+				]
+			}
+		}
+	},
+	"$defs": {
+		"value": {
+			"type": "object",
+			"required": ["value", "unit", "source", "method", "confidence"],
+			"additionalProperties": false,
+			"properties": {
+				"value": {"oneOf": [{"type": "number"}, {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 3}]},
+				"unit": {"enum": ["m", "deg", "count", "ratio"]},
+				"source": {"type": "string", "minLength": 1},
+				"method": {"enum": ["drawing-scale", "known-dimension", "photo-estimate", "video-estimate", "crew-confirmed", "published", "simulator-estimate"]},
+				"confidence": {"enum": ["high", "medium", "low"]},
+				"note": {"type": "string"}
+			}
+		}
+	}
+}
