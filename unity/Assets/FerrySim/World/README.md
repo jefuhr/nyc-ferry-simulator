@@ -37,15 +37,17 @@ In the editor: **FerrySim > World > Rebuild All** (or the greybox and scene step
 
 - `CesiumGeoreference` sits at the shared world origin (40.7000, -74.0150, ellipsoidal height 0) with scale 1. No Cesium ion or Google tileset is used, so no token is needed.
 - `World` (under the georeference) carries `WorldFrame` and a `CesiumGlobeAnchor` pinned to the world tangent plane. Its children use world coordinates as local positions with the conventions' mapping: **x = east, y = up (-down), z = north**.
-- The main camera has a `CesiumGlobeAnchor` and `CesiumOriginShift` (shift distance 100 m). When the camera moves, Cesium moves the georeference origin to it and re-places `World`, so everything stays put on the globe and coordinates near the camera stay small. Across the slice the Cesium-vs-core error stays under a millimetre (0.23 mm for Pier 11 with the origin shifted to Hunters Point).
+- The slice and Lower East River main cameras have a `CesiumGlobeAnchor` and `CesiumOriginShift` (shift distance 100 m). When the camera moves, Cesium moves the georeference origin to it and re-places `World`, so everything stays put on the globe and coordinates near the camera stay small. Across the slice the Cesium-vs-core error stays under a millimetre (0.23 mm for Pier 11 with the origin shifted to Hunters Point).
 - `GeoreferenceCheck` runs on Start: it converts the Wall St/Pier 11 GTFS stop (stop 87, from `landings.geojson`) through Cesium and through `LocalTangentPlane.World` plus the mapping, and logs an error if they differ by more than 0.05 m, the scale is not 1 or the world frame has drifted.
+
+The harbor uses `HarborOriginShift` with the same double-precision 100 m threshold and physics synchronization. Its frozen scene has no Cesium subscenes, so it validates that at configuration and avoids recursively scanning the georeference hierarchy every frame. The slice and Lower East River scenes retain the Cesium driver.
 
 ### Placing things (bridge task)
 
 - Parent the vessel under `World` and set `localPosition = WorldFrame.ToLocal(north, east, down)` and `localRotation = Quaternion.Euler(0, heading in degrees, 0)`. Unity world positions then follow every origin shift. `WorldFrame.ToUnityPosition` and `HeadingToUnityRotation` do the same for objects outside the frame.
 - `WaterSurface.EllipsoidalHeight(north, east)` is the water surface's WGS84 ellipsoidal height (geoid offset there plus the NAVD88 water level), for a globe-anchored vessel and the `IWaterSurface` adapter. `WaterSurface.SurfaceUp(north, east)` is the same surface as a height in the world frame (it includes Earth curvature).
 - Parent `World/WheelhouseMount` (`WheelhouseCameraMount`) to the vessel at the helm eye point, forward = bow, or assign another mount to `CameraRig.WheelhouseMount`. Set `CameraRig.ChaseTarget` to the vessel.
-- Camera controllers run in `LateUpdate` at execution order -100, before `CesiumOriginShift`, and call `CameraAnchor.Commit` after moving the camera. Anything else that moves the main camera must do the same, or the camera jumps by the shift.
+- Camera controllers run in `LateUpdate` at execution order -100, before the origin driver at order 0 (`CesiumOriginShift` in the slice and `HarborOriginShift` in the harbor), and call `CameraAnchor.Commit` after moving the camera. Anything else that moves the main camera must do the same, or the camera jumps by the shift.
 
 ## Vertical datums and the water
 

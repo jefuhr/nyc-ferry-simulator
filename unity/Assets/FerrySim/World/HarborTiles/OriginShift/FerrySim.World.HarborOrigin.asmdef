@@ -1,0 +1,5 @@
+{
+	"name": "FerrySim.World.HarborOrigin",
+	"references": ["CesiumForUnity", "Unity.Mathematics"],
+	"autoReferenced": true
+}

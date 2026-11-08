@@ -96,7 +96,7 @@ namespace FerrySim.Harbor.EditorTools
 			var anchor = cameraObject.AddComponent<CesiumGlobeAnchor>();
 			anchor.adjustOrientationForGlobeWhenMoving = false;
 			anchor.detectTransformChanges = true;
-			cameraObject.AddComponent<CesiumOriginShift>().distance = settings.originShiftMetres;
+			cameraObject.AddComponent<HarborOriginShift>().Configure(reference, anchor, settings.originShiftMetres);
 			var freeFly = cameraObject.AddComponent<FreeFlyCameraController>();
 			var chase = cameraObject.AddComponent<ChaseCameraController>();
 			var wheelhouse = cameraObject.AddComponent<WheelhouseCameraController>();

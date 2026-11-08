@@ -18,6 +18,10 @@ namespace FerrySim.Harbor.Player.Journeys
 		{
 			"Main Thread", "Render Thread", "PlayerLoop", "Update.ScriptRunBehaviourUpdate",
 			"PreLateUpdate.ScriptRunBehaviourLateUpdate", "PostLateUpdate.FinishFrameRendering",
+			"FerrySim.Cesium.OriginShift", "FerrySim.Cesium.SubsceneScan", "FerrySim.Harbor.OriginShift",
+			"BehaviourUpdate", "Physics.SyncTransforms", "PreLateUpdate.UIElementsUpdatePanels",
+			"PostLateUpdate.UIElementsRepaintPanels", "PostLateUpdate.UIElementsRenderBatchModeOffscreen",
+			"UIElements.UpdateLayout", "UIElements.UpdateStyle", "UIElements.UpdateRenderData",
 			"PostLateUpdate.UpdateAllRenderers", "Gfx.WaitForPresentOnGfxThread", "Gfx.PresentFrame",
 			"Gfx.WaitForGfxCommandsFromMainThread", "Gfx.ProcessCommands", "Gfx.WaitForRenderThread",
 			"GfxDeviceMetal.WaitForLastPresent", "CPU Main Thread Frame Time", "CPU Render Thread Frame Time", "WaitForTargetFPS",
@@ -29,6 +33,7 @@ namespace FerrySim.Harbor.Player.Journeys
 			"Loading.ReadObject", "Loading.ReadObjectThreaded", "AsyncUploadManager.AsyncResourceUpload",
 			"AsyncReadManager.ReadFile", "File.Read", "File.Write",
 			"RadarController.Refresh", "FerrySim.Chartplotter.Refresh",
+			"FerrySim.Chartplotter.StaticChart", "FerrySim.Chartplotter.TargetLayer",
 			"FerrySim.RunRecorder.BeforeStep", "FerrySim.RunRecorder.Flush", "FerrySim.RunRecorder.WriteRow",
 			"FerrySim.RunRecorder.BackgroundWrite", "FerrySim.RunRecorder.BackgroundFlush",
 			"FerrySim.TelemetryCsv.FormatRow", "FerrySim.Traffic.Place", "FerrySim.Sim.RunnerUpdate", "Cesium3DTileset.Update()"

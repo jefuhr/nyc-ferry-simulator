@@ -56,6 +56,8 @@ The helm's camera-cycle and new-run commands use the existing camera rig and pic
 
 Terrain and skyline are sibling tilesets under the shared georeference at 40.7000 N, -74.0150 E, scale 1, with a 100 m origin shift. Editor paths resolve under the repository; player paths resolve only under StreamingAssets, at the same `data/processed/harbor/...` relative paths. Packaging remains coordinator-owned.
 
+The camera uses `HarborOriginShift` after the camera controllers in LateUpdate. It retains the same double-precision 100 m threshold, georeference relocation and physics synchronization as Cesium, but checks for unsupported subscenes at configuration instead of scanning the whole hierarchy each frame. The harbor has no Cesium subscenes; the slice and Lower East River scenes keep `CesiumOriginShift`.
+
 `HarborTileInventory` checks every indexed file's size/SHA-256 and refuses missing, remote, escaped, or unlisted content before enabling Cesium. Cesium stays pinned at the project's 1.26.0 version. Physics meshes and editor streaming are off. Screen-space error is 16; the checked configuration starts with a 192 MiB terrain cache and a 64 MiB skyline cache. This 256 MiB combined allowance is an experiment from the design, not a process-memory cap or final budget acceptance.
 
 `FerrySim/HarborSurface` draws pipeline vertex colours with the existing sun, sky ambient globals, shadows and URP fog. Both layer materials use it. Ambient strength 0.65 is a rendering estimate. Skyline adds no decorative emission or navigation lights; its silhouettes remain separate from terrain and contacts.

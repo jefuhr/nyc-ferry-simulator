@@ -56,7 +56,7 @@ The runner uses the first `IVesselPlacement` on its GameObject. Without one it u
 **`CesiumVesselPlacement`** (in `FerrySim.Unity.Sim.Cesium`) drives a `CesiumGlobeAnchor`:
 - the vessel sits at `LocalTangentPlane.World.ToGeodetic(north, east)`, at the water surface's ellipsoidal height minus heave;
 - it is oriented in the local east-up-north frame there;
-- curvature is therefore right (about a metre 3.6 km out), and the vessel stays put when the georeference origin moves (`CesiumOriginShift`).
+- curvature is therefore right (about a metre 3.6 km out), and the vessel stays put when the georeference origin moves (`CesiumOriginShift` in the slice and `HarborOriginShift` in the harbor).
 
 Heights come from `IWaterSurface.EllipsoidalHeight(north, east, time)`: metres above WGS84, the geoid offset plus the NAVD88 water level. The world task owns the real surface. Until it is wired in, `ConstantWaterSurface` is used, with no value ever assumed:
 - the offset is read from `data/processed/lower-east-river/geoid_offset.json` (slice centre), regenerated with `uv run --project data-pipeline python data-pipeline/ferrydata build --slice lower-east-river`;
