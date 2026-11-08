@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using FerrySim.Core.Contracts.Geodesy;
+using FerrySim.World.Landings;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -225,6 +226,14 @@ namespace FerrySim.World.EditorTools
 			Box(barge.transform, "BerthingFace", middle + normal * 0.3, BargeFreeboard - 0.3f, new Vector3(0.6f, 1.2f, (float)length), Bearing(along), materials.Face);
 			Box(barge.transform, "FaceNormal", middle + normal * 3.0, BargeFreeboard + 0.25f, new Vector3(0.4f, 0.4f, 5f), Bearing(normal), materials.Face);
 
+			// Keep the source diagnostic meshes for inspection, but render the parametric kit instead.
+			hull.GetComponent<MeshRenderer>().enabled = false;
+			barge.transform.Find("BerthingFace").gameObject.SetActive(false);
+			barge.transform.Find("FaceNormal").gameObject.SetActive(false);
+			BuildLandingKit(barge.transform, relative, new[] { new FerrySim.World.Landings.LandingFace(
+				LocalLandingPoint(start - centroid), LocalLandingPoint(end - centroid), LocalLandingPoint(normal)) },
+				face.StopId, meshFolder, "Barge_" + face.StopId, parent);
+
 			var component = barge.AddComponent<LandingBarge>();
 			component.Assign(new LandingBargeValues
 			{
@@ -256,6 +265,27 @@ namespace FerrySim.World.EditorTools
 			return (barge, centroid);
 		}
 
+		private static Vector3 LocalLandingPoint(PlanePoint point) => new Vector3((float)point.East, 0, (float)point.North);
+
+		private static void BuildLandingKit(Transform parent, List<PlanePoint> outline, FerrySim.World.Landings.LandingFace[] faces,
+			string stopId, string meshFolder, string identity, Transform tideParent)
+		{
+			var style = LandingLookLibrary.Load().ForStop(stopId);
+			var kit = LandingKit.Build(parent, outline.Select(LocalLandingPoint).ToArray(), faces, style);
+			kit.FollowSliceTide(tideParent);
+			var index = 0;
+			foreach (var filter in kit.GetComponentsInChildren<MeshFilter>())
+			{
+				// Save copies: the temporary runtime kit owns the generated originals and shared ramp reference.
+				var meshName = filter.transform == kit.Gangway
+					? "Barge_SharedGangway_" + style.GangwayWidth.ToString("R", CultureInfo.InvariantCulture) + "_" + style.GangwayLength.ToString("R", CultureInfo.InvariantCulture)
+					: identity + "_Kit_" + index;
+				filter.sharedMesh = UpsertMesh($"{meshFolder}/{meshName}.asset", Object.Instantiate(filter.sharedMesh));
+				index++;
+			}
+			kit.UseBakedMeshes();
+		}
+
 		private static void BuildStructures(string stop, List<StructurePolyline> polylines, Dictionary<string, (GameObject Barge, PlanePoint Centroid)> barges, SliceDatum datum,
 			GreyboxMaterials materials, Transform landings, Transform structures, GreyboxReport report, string meshFolder, HashSet<string> written)
 		{
@@ -270,6 +300,7 @@ namespace FerrySim.World.EditorTools
 			var own = polylines.Where(p => p.Role == "landing").ToList();
 			var fenders = Strips(own, landing.Centroid, (point, navd88) => navd88, FenderBottom, BargeFreeboard + FenderOffset, FenderOffset, 0f, report);
 			MeshChild(landing.Barge.transform, "Fenders", UpsertMesh($"{meshFolder}/Fenders_{stop}.asset", fenders), materials, written, $"{meshFolder}/Fenders_{stop}.asset");
+			landing.Barge.transform.Find("Fenders").GetComponent<MeshRenderer>().enabled = false;
 			report.Structures.Add($"{stop}: {own.Sum(p => p.Segments.Count)} barge segments");
 
 			// The stop's other berths and nearby pontoons float with the landings, each its own prism.
@@ -299,6 +330,18 @@ namespace FerrySim.World.EditorTools
 				written.Add(hullPath);
 				var strips = Strips(new[] { polyline }, centroid, (point, navd88) => navd88, FenderBottom, BargeFreeboard + FenderOffset, FenderOffset, 0f, report);
 				MeshChild(floating.transform, "Fenders", UpsertMesh($"{meshFolder}/Fenders_{stop}_{identity}.asset", strips), materials, written, $"{meshFolder}/Fenders_{stop}_{identity}.asset");
+				hull.GetComponent<MeshRenderer>().enabled = false;
+				floating.transform.Find("Fenders").GetComponent<MeshRenderer>().enabled = false;
+				var kitFaces = new List<FerrySim.World.Landings.LandingFace>();
+				foreach (var segment in polyline.Segments.Where(s => s.Kind == "berth-face"))
+				{
+					var a = ToPlane(polyline.LonLat[segment.Index]) - centroid;
+					var b = ToPlane(polyline.LonLat[segment.Index + 1]) - centroid;
+					var direction = LocalLandingPoint(b - a);
+					kitFaces.Add(new FerrySim.World.Landings.LandingFace(LocalLandingPoint(a), LocalLandingPoint(b), Vector3.Cross(direction, Vector3.up)));
+				}
+				BuildLandingKit(floating.transform, ring.Select(p => p - centroid).ToList(), kitFaces.ToArray(), stop,
+					meshFolder, "Barge_" + stop + "_" + identity, landings);
 				if (!string.IsNullOrEmpty(polyline.BerthUseCrewNote))
 					Label(floating.transform, new Vector3(0f, BargeFreeboard + 2.5f + 12f * polyline.BerthOrder, 0f), polyline.StopName + BerthUseLabel(polyline.BerthName, polyline.BerthUseCrewNote),
 						materials.LabelColor(polyline.Segments[0].Confidence), materials.LabelBacking, materials.LabelText, 0.05f);

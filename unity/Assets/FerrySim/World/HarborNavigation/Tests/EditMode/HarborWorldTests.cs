@@ -33,11 +33,11 @@ namespace FerrySim.World.HarborNavigation.Tests
 			Assert.That(_world.Barges.Count, Is.EqualTo(_pack.Barges.Count));
 			Assert.That(_world.Labels.Count, Is.EqualTo(_pack.Stops.Count));
 			Assert.That(_world.Barges[0].Source, Is.SameAs(_pack.Barges[0]));
-			Assert.That(_world.Barges[0].Freeboard, Is.EqualTo(1.2f));
-			Assert.That(_world.Barges[0].Draft, Is.EqualTo(1.5f));
+			Assert.That(_world.Barges[0].Freeboard, Is.EqualTo(2.1336f));
+			Assert.That(_world.Barges[0].Draft, Is.EqualTo(1.2192f).Within(.000001f));
 			Assert.That(_root.GetComponentsInChildren<Collider>(true), Is.Empty);
 			Assert.That(_world.Queries, Is.SameAs(_pack.Queries));
-			Assert.That(_world.Barges[0].GetComponent<MeshFilter>().sharedMesh.vertexCount, Is.GreaterThanOrEqualTo(8));
+			Assert.That(_world.Barges[0].GetComponentInChildren<MeshFilter>().sharedMesh.vertexCount, Is.GreaterThanOrEqualTo(8));
 		}
 
 		[Test] public void BargeSamplesItsOwnTideAndRetainsDoubleAnchorAfterOriginShift()

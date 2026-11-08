@@ -1,0 +1,28 @@
+{
+	"name": "FerrySim.World.Landings.Tests.EditMode",
+	"references": [
+		"FerrySim.World.Landings",
+		"FerrySim.World.HarborNavigation",
+		"FerrySim.Unity.World",
+		"FerrySim.Core",
+		"FerrySim.Core.Serialization",
+		"FerrySim.Unity.Sim",
+		"FerrySim.Unity.Slice",
+		"CesiumForUnity",
+		"Unity.Mathematics",
+		"UnityEngine.TestRunner",
+		"UnityEditor.TestRunner",
+		"FerrySim.Unity.World.Editor"
+	],
+	"includePlatforms": [
+		"Editor"
+	],
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"nunit.framework.dll"
+	],
+	"autoReferenced": false,
+	"defineConstraints": [
+		"UNITY_INCLUDE_TESTS"
+	]
+}

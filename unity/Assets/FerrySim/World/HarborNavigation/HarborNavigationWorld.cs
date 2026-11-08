@@ -6,6 +6,7 @@ using FerrySim.Core.Contracts;
 using FerrySim.Core.World;
 using FerrySim.Sim;
 using FerrySim.World.Import;
+using FerrySim.World.Landings;
 using UnityEngine;
 
 namespace FerrySim.World.HarborNavigation
@@ -57,6 +58,8 @@ namespace FerrySim.World.HarborNavigation
 			_labelMaterial = Material("FerrySim/HarborLabel", Color.white); _labelMaterial.mainTexture = _font.material.mainTexture;
 			_cube = Cube(); _owned.Add(_cube);
 			var identities = new HashSet<string>(StringComparer.Ordinal);
+			var landingLooks = LandingLookLibrary.Load();
+			var landingFaces = HarborBargeView.ReadVisualFaces(pack.Barges.Count == 0 ? "[]" : pack.ContactsJson);
 			foreach (var barge in pack.Barges)
 			{
 				if (!identities.Add(barge.Id)) throw new ArgumentException("Duplicate barge structure: " + barge.Id);
@@ -65,7 +68,7 @@ namespace FerrySim.World.HarborNavigation
 				var anchor = new NavigationAnchor(host, georeference, n, e, water.EllipsoidalHeight(n, e, 0));
 				var view = host.AddComponent<HarborBargeView>(); view.Source = barge; view.Anchor = anchor;
 				view.Details = BargeDetails(barge);
-				Mesh(host, NavigationMesh.Extrude(barge.Geometry, anchor, anchor.Height - view.Draft, anchor.Height + view.Freeboard), _structure);
+				view.BuildKit(landingLooks, landingFaces);
 				_barges.Add(view);
 			}
 			foreach (var stop in pack.Stops)
@@ -122,7 +125,7 @@ namespace FerrySim.World.HarborNavigation
 		/// <summary>No geodesy, parsing, allocation, or mesh/collider construction in the run loop.</summary>
 		public void Tick(double renderTime, Camera camera, string selectedStopId, bool night, double visibilityMetres)
 		{
-			for (var i = 0; i < _barges.Count; i++) { var a = _barges[i].Anchor; a.SetHeight(_water.EllipsoidalHeight(a.North, a.East, renderTime)); }
+			for (var i = 0; i < _barges.Count; i++) { var a = _barges[i].Anchor; _barges[i].SetWaterHeight(_water.EllipsoidalHeight(a.North, a.East, renderTime)); }
 			for (var i = 0; i < _labels.Count; i++) _labels[i].Refresh(camera, selectedStopId, night);
 			var nearDistance = visibilityMetres > 0 ? Math.Min(2000, visibilityMetres) : 2000;
 			for (var i = 0; i < _aids.Count; i++)
@@ -253,7 +256,7 @@ namespace FerrySim.World.HarborNavigation
 
 		private static string BargeDetails(HarborBarge barge)
 		{
-			var text = new StringBuilder(barge.Id).Append("; freeboard 1.2 m and draft 1.5 m estimated; ");
+			var text = new StringBuilder(barge.Id).Append("; source outline preserved; ");
 			var sources = barge.Record["provenance"].Items;
 			if (sources != null) foreach (var source in sources)
 			{

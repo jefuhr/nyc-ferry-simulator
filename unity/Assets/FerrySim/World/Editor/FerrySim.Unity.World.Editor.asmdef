@@ -2,6 +2,7 @@
 	"name": "FerrySim.Unity.World.Editor",
 	"rootNamespace": "FerrySim.World.EditorTools",
 	"references": [
+		"FerrySim.World.Landings",
 		"FerrySim.Core",
 		"FerrySim.Unity.World",
 		"CesiumForUnity",
