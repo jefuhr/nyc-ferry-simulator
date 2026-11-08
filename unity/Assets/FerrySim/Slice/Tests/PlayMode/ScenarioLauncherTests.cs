@@ -40,6 +40,14 @@ namespace FerrySim.Slice.PlayModeTests
 			yield return SliceScene.Unload();
 		}
 
+		// The camera rides the class's interior Eye mount; only a class without an interior falls back to the greybox eye.
+		private Vector3 InteriorEye(GreyboxDimensions d)
+		{
+			var vessel = _scene.Runner.transform;
+			var mount = vessel.Find(WheelhouseControlsView.RootName + "/Eye");
+			return mount != null ? vessel.InverseTransformPoint(mount.position) : new Vector3(0f, (float)d.BridgeEyeHeight, (float)d.BridgeEyeForward);
+		}
+
 		private ScenarioSettings Create(string stop, string date, int minutes, string vessel = "t-class")
 		{
 			Assert.That(_scene.Bootstrap.ScenarioCatalog.TryCreate(new ScenarioChoice(stop, date, minutes, vessel, berthId: stop == "87" ? "enc:0226015B0512B198" : null), out var settings, out var problem), Is.True, problem);
@@ -136,18 +144,21 @@ namespace FerrySim.Slice.PlayModeTests
 			var greybox = _scene.Runner.GetComponent<VesselGreybox>();
 			var hull = _scene.Runner.transform.Find(VesselGreybox.RootName + "/PortHull");
 			var eye = _scene.Rig.WheelhouseMount.transform.localPosition;
+			var kEye = InteriorEye(kSize);
 			Assert.That(_scene.Runner.Parameters.Id, Is.EqualTo("k-class"));
+			Assert.That(_scene.Runner.transform.Find(WheelhouseControlsView.RootName + "/Eye"), Is.Not.Null, "the K-class interior aboard");
 			Assert.That(greybox.Dimensions.LengthOverall, Is.EqualTo(29.6).Within(1e-9));
 			Assert.That(hull.localScale.z, Is.EqualTo((float)kSize.LengthOverall));
 			Assert.That(hull.localScale.x, Is.EqualTo((float)kSize.DemihullBeam));
-			Assert.That(eye.y, Is.EqualTo((float)kSize.BridgeEyeHeight), "the wheelhouse eye at the K-class's helm");
-			Assert.That(eye.z, Is.EqualTo((float)kSize.BridgeEyeForward));
+			// Within a millimetre: the expected eye goes through world space after the vessel has moved a few frames.
+			Assert.That(eye.y, Is.EqualTo(kEye.y).Within(1e-3f), "the wheelhouse eye at the K-class's helm");
+			Assert.That(eye.z, Is.EqualTo(kEye.z).Within(1e-3f));
 			Assert.That(kSize.BridgeEyeHeight, Is.Not.EqualTo(tSize.BridgeEyeHeight));
 			Assert.That(_scene.Bootstrap.StartRefusal, Is.Null);
 
 			Assert.That(_scene.Bootstrap.ScenarioLauncher.TryStart(Create("87", "2025-07-14", 600, "t-class"), out problem), Is.True, problem);
 			yield return SliceScene.Frames(3);
-			Assert.That(_scene.Rig.WheelhouseMount.transform.localPosition.y, Is.EqualTo((float)tSize.BridgeEyeHeight), "back to the T-class's eye");
+			Assert.That(_scene.Rig.WheelhouseMount.transform.localPosition.y, Is.EqualTo(InteriorEye(tSize).y).Within(1e-3f), "back to the T-class's eye");
 			Assert.That(_scene.Runner.transform.Find(VesselGreybox.RootName + "/PortHull").localScale.z, Is.EqualTo((float)tSize.LengthOverall));
 		}
 
