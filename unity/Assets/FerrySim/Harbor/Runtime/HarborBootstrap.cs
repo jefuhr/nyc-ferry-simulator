@@ -220,8 +220,7 @@ namespace FerrySim.Harbor
 			var mount = cameraRig.WheelhouseMount;
 			if (mount != null)
 			{
-				var eye = GreyboxDimensions.From(runner.Parameters);
-				mount.transform.localPosition = new Vector3(0, (float)eye.BridgeEyeHeight, (float)eye.BridgeEyeForward);
+				WheelhouseControlsView.PlaceEye(runner.transform, mount, runner.Parameters, runner);
 				mount.ApproachFaces = BowApproachFaces.From(_services.Landings);
 			}
 			cameraRig.ChaseTarget = runner.transform;
