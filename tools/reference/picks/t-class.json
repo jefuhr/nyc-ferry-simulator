@@ -1,0 +1,331 @@
+{
+	"schema_version": 1,
+	"subject": "t-class",
+	"kind": "hull",
+	"image": "drawings/t-class/IC16018-general-arrangement.jpg",
+	"image_size": [
+		833,
+		1200
+	],
+	"image_sha256": "e3491956e77c4d975b49ebebda0083cfb7d9923c44ee12cad5d7d79733dcf8f8",
+	"notes": "Builder general arrangement (private), IC16018 prototype. The image is private and is not stored in Git. All heights use design waterline y=0; longitudinal z=0 is half LOA. This drawing is not the IC16019 as-built design used by parts of vessels/t-class.json. Printed dimensions are retained exactly; pixel picks are approximate. No hull surface or drawing artwork is reproduced.",
+	"axis": [
+		[
+			166,
+			281
+		],
+		[
+			596,
+			281
+		]
+	],
+	"origin": [
+		410,
+		237
+	],
+	"calibration": {
+		"method": "drawing-scale",
+		"scale": "1:75",
+		"pixels_per_printed_mm": 1.4930555555555556,
+		"transverse_pixels_per_printed_mm": 1.5,
+		"note": "Effective raster scale, not file DPI: frames 0 to 18 span 430 px and 18 x 1200 mm real = 288 printed mm at 1:75. Two printed 2400 mm deck rises span 96 px = 64 printed mm vertically. These calibration anchors are not independent accuracy checks."
+	},
+	"measurements": {
+		"length_overall": {
+			"confidence": "high",
+			"points": [
+				[
+					150,
+					909
+				],
+				[
+					670,
+					909
+				]
+			],
+			"operation": "x",
+			"printed_m": 26,
+			"note": "Printed LOA excludes appendages; raster endpoints are the hull plan ends."
+		},
+		"length_waterline": {
+			"confidence": "high",
+			"points": [
+				[
+					166,
+					237
+				],
+				[
+					653,
+					237
+				]
+			],
+			"operation": "x",
+			"printed_m": 24.5,
+			"note": "Printed LWL for IC16018; do not replace the IC16019 physics LWL without a separate review."
+		},
+		"beam": {
+			"confidence": "high",
+			"points": [
+				[
+					357,
+					988
+				],
+				[
+					357,
+					828
+				]
+			],
+			"operation": "y",
+			"printed_m": 8.03,
+			"note": "Printed beam excludes sponsons."
+		},
+		"baseline_height": {
+			"confidence": "high",
+			"printed_m": 0,
+			"note": "Baseline datum; translated by the printed 1261 mm hull draft to design waterline coordinates.",
+			"offset_m": -1.261
+		},
+		"waterline_height": {
+			"confidence": "high",
+			"points": [
+				[
+					80,
+					261
+				],
+				[
+					80,
+					237
+				]
+			],
+			"operation": "y",
+			"printed_m": 1.261,
+			"note": "Printed hull draft 1261 mm; waterline becomes y=0.",
+			"offset_m": -1.261
+		},
+		"underwing_height": {
+			"confidence": "medium",
+			"points": [
+				[
+					80,
+					237
+				],
+				[
+					80,
+					205
+				]
+			],
+			"operation": "y",
+			"note": "Raster height above design waterline. The small printed underwing dimension is ambiguous at this resolution and is deliberately not transcribed."
+		},
+		"main_deck_height": {
+			"confidence": "high",
+			"points": [
+				[
+					80,
+					261
+				],
+				[
+					80,
+					193
+				]
+			],
+			"operation": "y",
+			"printed_m": 3.5,
+			"note": "Printed baseline-to-main-deck height 3500 mm, minus printed hull draft.",
+			"offset_m": -1.261
+		},
+		"upper_deck_height": {
+			"confidence": "high",
+			"points": [
+				[
+					80,
+					261
+				],
+				[
+					80,
+					145
+				]
+			],
+			"operation": "y",
+			"printed_m": 5.9,
+			"note": "Printed dimension chain: 3500 + 2400 mm above baseline, minus printed hull draft.",
+			"offset_m": -1.261
+		},
+		"wheelhouse_roof_height": {
+			"confidence": "high",
+			"points": [
+				[
+					80,
+					261
+				],
+				[
+					80,
+					97
+				]
+			],
+			"operation": "y",
+			"printed_m": 8.3,
+			"note": "Printed dimension chain: 3500 + 2400 + 2400 mm above baseline; agrees with 7039 mm printed above waterline.",
+			"offset_m": -1.261
+		},
+		"prop_tip_height": {
+			"confidence": "high",
+			"points": [
+				[
+					80,
+					261
+				],
+				[
+					80,
+					274
+				]
+			],
+			"operation": "y",
+			"printed_m": -0.63,
+			"note": "Printed maximum draft 1891 mm minus hull draft 1261 mm gives prop tip 630 mm below baseline.",
+			"offset_m": -1.261
+		},
+		"main_to_upper_deck_height": {
+			"confidence": "high",
+			"points": [
+				[
+					80,
+					193
+				],
+				[
+					80,
+					145
+				]
+			],
+			"operation": "y",
+			"printed_m": 2.4,
+			"note": "Printed deck rise; vertical calibration anchor.",
+			"calibration_anchor": true
+		},
+		"upper_deck_to_roof_height": {
+			"confidence": "high",
+			"points": [
+				[
+					80,
+					145
+				],
+				[
+					80,
+					97
+				]
+			],
+			"operation": "y",
+			"printed_m": 2.4,
+			"note": "Printed deck rise; vertical calibration anchor.",
+			"calibration_anchor": true
+		},
+		"frame_spacing": {
+			"confidence": "high",
+			"points": [
+				[
+					166,
+					281
+				],
+				[
+					190,
+					281
+				]
+			],
+			"operation": "x",
+			"printed_m": 1.2,
+			"note": "Printed typical 1200 mm spacing; frames 0 through 19 use this interval. Frame 19 to 20 is the separate printed 900 mm interval.",
+			"calibration_anchor": true
+		},
+		"last_frame_spacing": {
+			"confidence": "high",
+			"points": [
+				[
+					619,
+					281
+				],
+				[
+					637,
+					281
+				]
+			],
+			"operation": "x",
+			"printed_m": 0.9,
+			"note": "Printed final 900 mm interval from frame 19 to frame 20."
+		},
+		"frame_zero_z": {
+			"confidence": "medium",
+			"points": [
+				[
+					410,
+					531
+				],
+				[
+					166,
+					531
+				]
+			],
+			"operation": "x",
+			"note": "Frame 0, upper-deck station grid, relative to hull-plan midpoint x=410 px."
+		},
+		"wheelhouse_aft_z": {
+			"confidence": "medium",
+			"points": [
+				[
+					410,
+					432
+				],
+				[
+					454,
+					432
+				]
+			],
+			"operation": "x",
+			"note": "Aft wheelhouse enclosure wall on upper-deck plan; approximately frame 12."
+		},
+		"wheelhouse_fore_z": {
+			"confidence": "medium",
+			"points": [
+				[
+					410,
+					432
+				],
+				[
+					545,
+					432
+				]
+			],
+			"operation": "x",
+			"note": "Forward curved enclosure outline on upper-deck plan; approximately frame 16, not the console front."
+		},
+		"wheelhouse_width": {
+			"confidence": "medium",
+			"points": [
+				[
+					480,
+					458
+				],
+				[
+					480,
+					406
+				]
+			],
+			"operation": "y",
+			"note": "Enclosure width across parallel upper-deck side walls, excluding door swing."
+		},
+		"demihull_width": {
+			"confidence": "low",
+			"points": [
+				[
+					357,
+					881
+				],
+				[
+					357,
+					830
+				]
+			],
+			"operation": "y",
+			"note": "Approximate port demihull breadth at frame 8 from hull-plan outer side to inner hull line. Adjacent underwing line and line weight make this tentative; not a waterline section or sponson width."
+		}
+	}
+}

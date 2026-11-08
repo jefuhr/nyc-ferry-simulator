@@ -1,0 +1,9 @@
+[project]
+name = "ferrysim-reference"
+version = "0.1.0"
+description = "Private reference cataloguing and provenance-preserving layout measurements"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.uv]
+package = false
