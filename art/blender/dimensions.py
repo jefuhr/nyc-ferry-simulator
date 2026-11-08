@@ -95,9 +95,11 @@ def dimensions(v, layout=None, wheelhouse=None):
 	elif 'eye_seated' in wheelhouse['values']:
 		floor = measured(wheelhouse['values']['floor_origin'])
 		seated = measured(wheelhouse['values']['eye_seated'])
-		if len(floor) != 3 or len(seated) != 3 or not math.isclose(floor[1], d['upper_deck_height'], abs_tol=.001):
+		footprint = measured(wheelhouse['values']['footprint'])
+		if len(floor) != 3 or len(seated) != 3 or len(footprint) != 3 or not math.isclose(floor[1], d['upper_deck_height'], abs_tol=.001):
 			raise ValueError('Interior floor must match the hull upper-deck datum')
-		d['eye_position'] = [seated[0], floor[1]+seated[1], seated[2]]
+		# Same contract as interior.py: y above the floor, z offset from the wheelhouse front (floor centre plus half its length).
+		d['eye_position'] = [seated[0], floor[1]+seated[1], floor[2]+footprint[2]/2+seated[2]]
 	else:
 		d['eye_position'] = legacy_eye(v)
 	if not isinstance(d['eye_position'], list) or len(d['eye_position']) != 3:

@@ -154,7 +154,7 @@ namespace FerrySim.Vessels.Editor
 			public LightValues light_mounts;
 		}
 		[Serializable] private sealed class Layout { public string subject, kind; public int schema_version; public Values values; public Surface[] materials; }
-		[Serializable] private sealed class EyeValues { public Point eye_position, eye_seated, floor_origin; }
+		[Serializable] private sealed class EyeValues { public Point eye_position, eye_seated, floor_origin, footprint; }
 		[Serializable] private sealed class EyeLayout { public EyeValues values; }
 
 		private static Layout ReadLayout(string repo, string id)
@@ -186,9 +186,11 @@ namespace FerrySim.Vessels.Editor
 			{
 				var floor = Vector(values.floor_origin.value);
 				var eye = Vector(values.eye_seated.value);
+				var footprint = Vector(values.footprint?.value);
 				if (Mathf.Abs(floor.y - ReadLayout(repo, id).values.upper_deck_height.value) > .001f)
 				{ throw new InvalidDataException("Interior floor differs from the hull upper deck"); }
-				return new Vector3(eye.x, floor.y + eye.y, eye.z);
+				// The interior's contract: y above the floor, z offset from the wheelhouse front.
+				return new Vector3(eye.x, floor.y + eye.y, floor.z + footprint.z / 2f + eye.z);
 			}
 			// Eye ownership remains with the interior layout; preserve today's fallback until provided.
 			var d = GreyboxDimensions.From(VesselParametersJson.Load(Path.Combine(repo, "vessels", id + ".json")));

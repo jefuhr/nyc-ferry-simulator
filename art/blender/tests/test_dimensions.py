@@ -71,9 +71,12 @@ class DimensionsTests(unittest.TestCase):
 		v = self.vessel('t-class')
 		layout = subject.load_layout('t-class')
 		floor = layout['values']['upper_deck_height']['value']
-		interior = {'values': {'floor_origin': point([0,floor,4.5]), 'eye_seated': point([-.28,1.8,5.75])}}
+		# z is an offset from the wheelhouse front: floor centre 4.5 plus half the 4.0 m footprint, then 0.7 m aft.
+		interior = {'values': {'floor_origin': point([0,floor,4.5]), 'footprint': point([2.6,2.4,4.0]), 'eye_seated': point([-.28,1.8,-.7])}}
 		d = subject.dimensions(v, layout, wheelhouse=interior)
-		self.assertEqual(subject.mounts(d)['Eye'], [-.28,floor+1.8,5.75])
+		eye = subject.mounts(d)['Eye']
+		self.assertEqual(eye[:2], [-.28,floor+1.8])
+		self.assertAlmostEqual(eye[2], 5.8)
 		interior['values']['floor_origin']['value'][1] += .2
 		with self.assertRaises(ValueError):
 			subject.dimensions(v, layout, wheelhouse=interior)

@@ -69,7 +69,7 @@ namespace FerrySim.Vessels.Tests
 			public LightValues light_mounts;
 		}
 		[Serializable] public class HullLayout { public HullValues values; public Surface[] materials; }
-		[Serializable] public class EyeValues { public Point eye_position, eye_seated, floor_origin; }
+		[Serializable] public class EyeValues { public Point eye_position, eye_seated, floor_origin, footprint; }
 		[Serializable] public class EyeLayout { public EyeValues values; }
 		private static string Repo => Path.GetFullPath(Path.Combine(Application.dataPath, "../.."));
 		private static HullLayout ReadLayout(string id) => JsonUtility.FromJson<HullLayout>(File.ReadAllText(Path.Combine(Repo, "art/blender/data/" + id + "-hull.json")));
@@ -81,8 +81,10 @@ namespace FerrySim.Vessels.Tests
 			if (values?.eye_position?.value != null) { return Vector(values.eye_position.value); }
 			if (values?.eye_seated?.value != null)
 			{
+				// The interior's contract: y above the floor, z offset from the wheelhouse front.
 				var eye = Vector(values.eye_seated.value);
-				return new Vector3(eye.x, values.floor_origin.value[1] + eye.y, eye.z);
+				var front = values.floor_origin.value[2] + values.footprint.value[2] / 2f;
+				return new Vector3(eye.x, values.floor_origin.value[1] + eye.y, front + eye.z);
 			}
 			var d = GreyboxDimensions.From(VesselParametersJson.Load(Path.Combine(Repo, "vessels", id + ".json")));
 			return new Vector3(0, (float)d.BridgeEyeHeight, (float)d.BridgeEyeForward);
