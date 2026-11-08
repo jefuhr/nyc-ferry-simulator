@@ -1,0 +1,160 @@
+{
+	"kind": "hull",
+	"notes": "Builder general arrangement (private), IC16018 prototype. The image is private and is not stored in Git. All heights use design waterline y=0; longitudinal z=0 is half LOA. This drawing is not the IC16019 as-built design used by parts of vessels/t-class.json. Printed dimensions are retained exactly; pixel picks are approximate. No hull surface or drawing artwork is reproduced.",
+	"schema_version": 1,
+	"subject": "t-class",
+	"values": {
+		"baseline_height": {
+			"confidence": "high",
+			"method": "drawing-scale",
+			"note": "Printed dimension: 0 m; not a pixel-derived value. Baseline datum; translated by the printed 1261 mm hull draft to design waterline coordinates.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": -1.261
+		},
+		"beam": {
+			"confidence": "high",
+			"method": "drawing-scale",
+			"note": "Printed dimension: 8.03 m; not a pixel-derived value. Printed beam excludes sponsons.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": 8.03
+		},
+		"demihull_width": {
+			"confidence": "low",
+			"method": "drawing-scale",
+			"note": "Approximate port demihull breadth at frame 8 from hull-plan outer side to inner hull line. Adjacent underwing line and line weight make this tentative; not a waterline section or sponson width.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": 2.55
+		},
+		"frame_spacing": {
+			"confidence": "high",
+			"method": "drawing-scale",
+			"note": "Printed dimension: 1.2 m; not a pixel-derived value. Printed typical 1200 mm spacing; frames 0 through 19 use this interval. Frame 19 to 20 is the separate printed 900 mm interval.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": 1.2
+		},
+		"frame_zero_z": {
+			"confidence": "medium",
+			"method": "drawing-scale",
+			"note": "Frame 0, upper-deck station grid, relative to hull-plan midpoint x=410 px.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": -12.256744
+		},
+		"last_frame_spacing": {
+			"confidence": "high",
+			"method": "drawing-scale",
+			"note": "Printed dimension: 0.9 m; not a pixel-derived value. Printed final 900 mm interval from frame 19 to frame 20.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": 0.9
+		},
+		"length_overall": {
+			"confidence": "high",
+			"method": "drawing-scale",
+			"note": "Printed dimension: 26 m; not a pixel-derived value. Printed LOA excludes appendages; raster endpoints are the hull plan ends.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": 26.0
+		},
+		"length_waterline": {
+			"confidence": "high",
+			"method": "drawing-scale",
+			"note": "Printed dimension: 24.5 m; not a pixel-derived value. Printed LWL for IC16018; do not replace the IC16019 physics LWL without a separate review.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": 24.5
+		},
+		"main_deck_height": {
+			"confidence": "high",
+			"method": "drawing-scale",
+			"note": "Printed dimension: 3.5 m; not a pixel-derived value. Printed baseline-to-main-deck height 3500 mm, minus printed hull draft.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": 2.239
+		},
+		"main_to_upper_deck_height": {
+			"confidence": "high",
+			"method": "drawing-scale",
+			"note": "Printed dimension: 2.4 m; not a pixel-derived value. Printed deck rise; vertical calibration anchor.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": 2.4
+		},
+		"prop_tip_height": {
+			"confidence": "high",
+			"method": "drawing-scale",
+			"note": "Printed dimension: -0.63 m; not a pixel-derived value. Printed maximum draft 1891 mm minus hull draft 1261 mm gives prop tip 630 mm below baseline.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": -1.891
+		},
+		"underwing_height": {
+			"confidence": "medium",
+			"method": "drawing-scale",
+			"note": "Raster height above design waterline. The small printed underwing dimension is ambiguous at this resolution and is deliberately not transcribed.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": 1.6
+		},
+		"upper_deck_height": {
+			"confidence": "high",
+			"method": "drawing-scale",
+			"note": "Printed dimension: 5.9 m; not a pixel-derived value. Printed dimension chain: 3500 + 2400 mm above baseline, minus printed hull draft.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": 4.639
+		},
+		"upper_deck_to_roof_height": {
+			"confidence": "high",
+			"method": "drawing-scale",
+			"note": "Printed dimension: 2.4 m; not a pixel-derived value. Printed deck rise; vertical calibration anchor.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": 2.4
+		},
+		"waterline_height": {
+			"confidence": "high",
+			"method": "drawing-scale",
+			"note": "Printed dimension: 1.261 m; not a pixel-derived value. Printed hull draft 1261 mm; waterline becomes y=0.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": 0.0
+		},
+		"wheelhouse_aft_z": {
+			"confidence": "medium",
+			"method": "drawing-scale",
+			"note": "Aft wheelhouse enclosure wall on upper-deck plan; approximately frame 12.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": 2.210233
+		},
+		"wheelhouse_fore_z": {
+			"confidence": "medium",
+			"method": "drawing-scale",
+			"note": "Forward curved enclosure outline on upper-deck plan; approximately frame 16, not the console front.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": 6.781395
+		},
+		"wheelhouse_roof_height": {
+			"confidence": "high",
+			"method": "drawing-scale",
+			"note": "Printed dimension: 8.3 m; not a pixel-derived value. Printed dimension chain: 3500 + 2400 + 2400 mm above baseline; agrees with 7039 mm printed above waterline.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": 7.039
+		},
+		"wheelhouse_width": {
+			"confidence": "medium",
+			"method": "drawing-scale",
+			"note": "Enclosure width across parallel upper-deck side walls, excluding door swing.",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"unit": "m",
+			"value": 2.6
+		}
+	}
+}

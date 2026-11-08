@@ -20,6 +20,16 @@ This simulator is only as realistic as its reference material. Public sources gi
 - Keep one short notes file per session: date, vessel, conditions and what you captured.
 - Only notes the operator is comfortable sharing get written up into `docs/`, as summaries and numbers, not copies of internal documents.
 
+## Intake: private media to measured layout data
+
+1. **Discord intake:** The consented crew-media bot is an intake source, not a publishing step. Keep raw originals, contributor identities and the bot database private, outside this repository. Intake consent does not authorize publishing a drawing or using withdrawn material; check the current consent and withdrawal record before promoting a batch. Do not start the bot or backfill media as part of measurement work.
+2. **Privacy screen:** An authorized local processing step removes faces, paperwork, personal/security screens and identifying metadata, and makes video silent. Review the result before release. A blurred or removed patch is missing evidence, never a feature to model. Keep raw and intermediate screening material inaccessible to measurement workers; never upload raw media to a cloud processor.
+3. **Approved sheets:** Release only the screened subset into a private `sheets/` folder with a README describing provenance, vessel class, allowed use and remaining uncertainty. Workers read that README and the approved sheets only. Credit by role, for example “crew reference photos (private), 2026-11” or “builder general arrangement (private)”; contributor names, operator names and boat names do not enter layout data. Proprietary drawings are measurement sources, not tracing or reproduction assets.
+4. **Numeric picks:** Use [tools/reference](../tools/reference/README.md) to catalog the approved set, then record image-relative points, calibration, source-relative path and confidence in a pick file. The catalog includes private filenames, so it stays outside every Git repository, including ignored artifact directories. Only reviewed numbers, neutral observations and source-relative drawing paths enter Git. Bind picks to image dimensions and SHA-256 so a replaced/resized sheet cannot silently reuse the calibration.
+5. **Layout review:** Measure, compare against printed dimensions, validate, then export into `art/blender/data/`. Preserve higher-confidence existing values unless a reviewer explicitly chooses `--force`. Printed values, pixel measurements and estimates must remain distinguishable. Use the waterline/half-LOA coordinate frame from the layout README; do not silently change physics parameters when a drawing describes another vessel revision. Ask for the specific missing shot or dimension when geometry is unresolved.
+
+These steps describe the intake contract, not evidence that a bot is currently running or that every future batch has passed screening. The measurement tool checks paths and provenance structure; it cannot verify consent, detect sensitive pixels or establish as-built accuracy. Retain a private mapping from approved sources to their consent records so withdrawal can identify affected picks and generated assets.
+
 ## Priority 1: how the boat is driven (these define the handling model)
 
 ### Engine control heads (one lever per engine?)

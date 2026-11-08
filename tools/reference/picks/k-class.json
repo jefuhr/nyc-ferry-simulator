@@ -1,0 +1,235 @@
+{
+	"schema_version": 1,
+	"subject": "k-class",
+	"kind": "hull",
+	"image": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+	"image_size": [
+		1680,
+		2520
+	],
+	"image_sha256": "8f8d6959013a5102fa350a1fc2d212975a50918c8d2dbe268ab08634d1aee7d1",
+	"notes": "Builder general arrangement (private), IC16112 plan. The image is private and is not stored in Git. Sheet explicitly says NOT TO SCALE: longitudinal and transverse calibration use separate printed dimensions, and unprinted plan measurements are tentative. Heights are low-confidence simulator estimates because no K-class profile is supplied. All heights use waterline y=0; z=0 is half LOA. No safety-system details or drawing artwork are reproduced.",
+	"axis": [
+		[
+			68,
+			1823
+		],
+		[
+			1198,
+			1823
+		]
+	],
+	"origin": [
+		633,
+		1823
+	],
+	"calibration": {
+		"method": "known-dimension",
+		"points": [
+			[
+				68,
+				1823
+			],
+			[
+				1198,
+				1823
+			]
+		],
+		"length_m": 29.6,
+		"cross_dimension": {
+			"points": [
+				[
+					510,
+					1989
+				],
+				[
+					510,
+					1659
+				]
+			],
+			"length_m": 8.5
+		},
+		"note": "Independent x/y calibration from printed LOA and beam. Both checks are anchors, not independent evidence that this not-to-scale sheet preserves local geometry."
+	},
+	"measurements": {
+		"length_overall": {
+			"confidence": "high",
+			"points": [
+				[
+					68,
+					1823
+				],
+				[
+					1198,
+					1823
+				]
+			],
+			"operation": "x",
+			"printed_m": 29.6,
+			"note": "Printed LOA excludes appendages; longitudinal calibration anchor.",
+			"calibration_anchor": true
+		},
+		"length_waterline": {
+			"confidence": "high",
+			"printed_m": 28.1,
+			"note": "Printed LWL transcribed directly; there is no profile to pick waterline endpoints independently."
+		},
+		"beam": {
+			"confidence": "high",
+			"points": [
+				[
+					510,
+					1989
+				],
+				[
+					510,
+					1659
+				]
+			],
+			"operation": "y",
+			"printed_m": 8.5,
+			"note": "Printed beam excludes sponsons; transverse calibration anchor.",
+			"calibration_anchor": true
+		},
+		"frame_spacing": {
+			"confidence": "low",
+			"points": [
+				[
+					99,
+					1082
+				],
+				[
+					144.66666666666666,
+					1082
+				]
+			],
+			"operation": "x",
+			"note": "Mean of 18 visible station intervals: picked frame 0 at x=99 and frame 18 at x=921; second point is the interpolated one-bay endpoint, not a new observed station. Not-to-scale plan."
+		},
+		"frame_zero_z": {
+			"confidence": "low",
+			"points": [
+				[
+					633,
+					1082
+				],
+				[
+					99,
+					1082
+				]
+			],
+			"operation": "x",
+			"note": "Upper-deck frame 0 relative to hull-plan midpoint; not-to-scale plan."
+		},
+		"wheelhouse_aft_z": {
+			"confidence": "low",
+			"points": [
+				[
+					633,
+					853
+				],
+				[
+					810,
+					853
+				]
+			],
+			"operation": "x",
+			"note": "Aft control-space enclosure wall on upper-deck plan, near frame 15.6; not-to-scale plan."
+		},
+		"wheelhouse_fore_z": {
+			"confidence": "low",
+			"points": [
+				[
+					633,
+					853
+				],
+				[
+					961,
+					853
+				]
+			],
+			"operation": "x",
+			"note": "Forward curved enclosure wall on upper-deck plan, near frame 18.9; not-to-scale plan."
+		},
+		"wheelhouse_width": {
+			"confidence": "low",
+			"points": [
+				[
+					860,
+					902
+				],
+				[
+					860,
+					803
+				]
+			],
+			"operation": "y",
+			"note": "Parallel enclosure side walls; not-to-scale plan."
+		},
+		"demihull_width": {
+			"confidence": "low",
+			"points": [
+				[
+					464,
+					1771
+				],
+				[
+					464,
+					1659
+				]
+			],
+			"operation": "y",
+			"note": "Approximate port demihull width at frame 8 from hull plan. Not a measured waterline section; not-to-scale plan."
+		}
+	},
+	"estimates": {
+		"baseline_height": {
+			"value": -1,
+			"unit": "m",
+			"source": "vessels/k-class.json",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Estimated baseline from published 1.0 m hull draft; no K-class profile has been supplied."
+		},
+		"waterline_height": {
+			"value": 0,
+			"unit": "m",
+			"source": "vessels/k-class.json",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Coordinate datum only; no K-class height is measured."
+		},
+		"underwing_height": {
+			"value": 1.8,
+			"unit": "m",
+			"source": "vessels/k-class.json",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Unmeasured visual placeholder, 0.7 m below the estimated main deck. Needs K-class profile or crew measurement."
+		},
+		"main_deck_height": {
+			"value": 2.5,
+			"unit": "m",
+			"source": "vessels/k-class.json",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Unmeasured assumption: published depth 3.5 m corresponds to main-deck elevation above baseline, less 1.0 m hull draft. Verify datum and deck camber."
+		},
+		"upper_deck_height": {
+			"value": 4.9,
+			"unit": "m",
+			"source": "art/blender/data/t-class-hull.json",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Unmeasured K-class assumption: estimated main deck 2.5 m plus T-class 2.4 m deck rise. Needs K-class profile."
+		},
+		"wheelhouse_roof_height": {
+			"value": 7.3,
+			"unit": "m",
+			"source": "art/blender/data/t-class-hull.json",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Unmeasured K-class assumption: estimated upper deck 4.9 m plus T-class 2.4 m roof rise. Needs K-class profile."
+		}
+	}
+}
