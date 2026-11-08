@@ -6,11 +6,11 @@
 			"file": "engine-idle.wav",
 			"loop": true,
 			"loopStartSample": 0,
-			"loopEndSample": 0,
+			"loopEndSample": 170888,
 			"baseGain": 0.55,
-			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
-			"date": "2026-11-02",
-			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+			"source": "crew recording (private), 2026-11",
+			"date": "2026-11-08",
+			"edits": "Recipe engine-idle: source frames [617400, 970200) at 44100 Hz; mono arithmetic downmix; resampled to 22050 Hz; highpass 30 Hz, lowpass 0 Hz; -26 LUFS target, ebur128 measured -26.0 LUFS; equal-power overlap 5512 frames, circular rotation 5331 frames; one-shot fades 0 frames; PCM16, metadata removed; listening review pending"
 		},
 		{
 			"id": "engine-mid",
@@ -28,33 +28,33 @@
 			"file": "engine-high.wav",
 			"loop": true,
 			"loopStartSample": 0,
-			"loopEndSample": 0,
+			"loopEndSample": 341775,
 			"baseGain": 0.55,
-			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
-			"date": "2026-11-02",
-			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+			"source": "crew recording (private), 2026-11",
+			"date": "2026-11-08",
+			"edits": "Recipe engine-high: source frames [2880000, 3648000) at 48000 Hz; mono arithmetic downmix; resampled to 22050 Hz; highpass 30 Hz, lowpass 0 Hz; -26 LUFS target, ebur128 measured -26.0 LUFS; equal-power overlap 11025 frames, circular rotation 4535 frames; one-shot fades 0 frames; PCM16, metadata removed; listening review pending"
 		},
 		{
 			"id": "engine-low",
 			"file": "engine-low.wav",
 			"loop": true,
 			"loopStartSample": 0,
-			"loopEndSample": 0,
+			"loopEndSample": 253575,
 			"baseGain": 0.35,
-			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
-			"date": "2026-11-02",
-			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+			"source": "crew recording (private), 2026-11",
+			"date": "2026-11-08",
+			"edits": "Recipe engine-low: source frames [88200, 617400) at 44100 Hz; mono arithmetic downmix; resampled to 22050 Hz; highpass 30 Hz, lowpass 240 Hz; -30 LUFS target, ebur128 measured -30.0 LUFS; equal-power overlap 11025 frames, circular rotation 5941 frames; one-shot fades 0 frames; PCM16, metadata removed; listening review pending"
 		},
 		{
 			"id": "propeller",
 			"file": "propeller.wav",
 			"loop": true,
 			"loopStartSample": 0,
-			"loopEndSample": 0,
+			"loopEndSample": 297675,
 			"baseGain": 0.45,
-			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
-			"date": "2026-11-02",
-			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+			"source": "crew recording (private), 2026-11",
+			"date": "2026-11-08",
+			"edits": "Recipe propeller: source frames [1764000, 2381400) at 44100 Hz; mono arithmetic downmix; resampled to 22050 Hz; highpass 180 Hz, lowpass 2400 Hz; -30 LUFS target, ebur128 measured -30.0 LUFS; equal-power overlap 11025 frames, circular rotation 3172 frames; one-shot fades 0 frames; PCM16, metadata removed; listening review pending"
 		},
 		{
 			"id": "clutch-engage",
@@ -63,9 +63,9 @@
 			"loopStartSample": 0,
 			"loopEndSample": 0,
 			"baseGain": 0.45,
-			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
-			"date": "2026-11-02",
-			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+			"source": "crew recording (private), 2026-11",
+			"date": "2026-11-08",
+			"edits": "Recipe clutch-engage: source frames [1704465, 1775025) at 44100 Hz; mono arithmetic downmix; resampled to 22050 Hz; highpass 30 Hz, lowpass 0 Hz; -26 LUFS target, ebur128 measured -26.0 LUFS; equal-power overlap 0 frames, circular rotation 0 frames; one-shot fades 662 frames; PCM16, metadata removed; listening review pending"
 		},
 		{
 			"id": "clutch-disengage",
@@ -74,9 +74,9 @@
 			"loopStartSample": 0,
 			"loopEndSample": 0,
 			"baseGain": 0.35,
-			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
-			"date": "2026-11-02",
-			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+			"source": "crew recording (private), 2026-11",
+			"date": "2026-11-08",
+			"edits": "Recipe clutch-disengage: source frames [1900710, 1971270) at 44100 Hz; mono arithmetic downmix; resampled to 22050 Hz; highpass 30 Hz, lowpass 0 Hz; -26 LUFS target, ebur128 measured -26.0 LUFS; equal-power overlap 0 frames, circular rotation 0 frames; one-shot fades 662 frames; PCM16, metadata removed; listening review pending"
 		},
 		{
 			"id": "horn",
@@ -94,11 +94,11 @@
 			"file": "water-wash.wav",
 			"loop": true,
 			"loopStartSample": 0,
-			"loopEndSample": 0,
+			"loopEndSample": 518175,
 			"baseGain": 0.35,
-			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
-			"date": "2026-11-02",
-			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+			"source": "crew recording (private), 2026-11",
+			"date": "2026-11-08",
+			"edits": "Recipe water-wash: source frames [2822400, 3880800) at 44100 Hz; mono arithmetic downmix; resampled to 22050 Hz; highpass 60 Hz, lowpass 0 Hz; -32 LUFS target, ebur128 measured -32.0 LUFS; equal-power overlap 11025 frames, circular rotation 9944 frames; one-shot fades 0 frames; PCM16, metadata removed; listening review pending"
 		},
 		{
 			"id": "wind",

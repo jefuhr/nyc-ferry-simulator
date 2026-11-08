@@ -51,6 +51,53 @@ namespace FerrySim.Audio.Tests
 		}
 
 		[Test]
+		public void PreparedCrewRecordingsResolveWithMonoVorbisAndStreamingPolicy()
+		{
+			AudioCatalogBuilder.Rebuild();
+			var catalog = AssetDatabase.LoadAssetAtPath<AudioClipCatalog>(AudioCatalogBuilder.CatalogPath);
+			var manifest = ClipManifest.Parse(catalog.manifest.text);
+			var real = new[] { "engine-idle", "engine-high", "engine-low", "propeller", "clutch-engage", "clutch-disengage", "water-wash" };
+			var sizes = "slot,source_wav_bytes,loop_wav_bytes,editor_audio_util_sound_size_bytes\n";
+			// This load-dependent editor diagnostic is not a compressed/player-size measurement. Streaming clips can return zero.
+			var audioUtil = typeof(AudioImporter).Assembly.GetType("UnityEditor.AudioUtil");
+			var soundSize = audioUtil?.GetMethod("GetSoundSize", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic,
+				null, new[] { typeof(AudioClip) }, null);
+			using (var provider = new AudioClipProvider(catalog))
+			{
+				foreach (var id in real)
+				{
+					var slot = manifest.Find(id);
+					Assert.That(slot.source, Is.EqualTo("crew recording (private), 2026-11"), id);
+					var resolved = provider.Get(id);
+					Assert.That(resolved.IsPlaceholder, Is.False, id);
+					Assert.That(resolved.Clip.channels, Is.EqualTo(1), id);
+					Assert.That(resolved.Clip.frequency, Is.EqualTo(22050), id);
+					var path = AssetDatabase.GetAssetPath(resolved.Clip);
+					var importer = (AudioImporter)AssetImporter.GetAtPath(path);
+					Assert.That(importer.forceToMono, Is.True, id);
+					Assert.That(importer.defaultSampleSettings.compressionFormat, Is.EqualTo(AudioCompressionFormat.Vorbis), id);
+					var streaming = slot.loop && WaveLoop.Duration(path) >= AudioImportPolicy.StreamingSeconds;
+					Assert.That(importer.defaultSampleSettings.loadType, Is.EqualTo(streaming ? AudioClipLoadType.Streaming : AudioClipLoadType.DecompressOnLoad), id);
+					Assert.That(importer.defaultSampleSettings.preloadAudioData, Is.EqualTo(!streaming), id);
+					if (slot.loop)
+					{
+						Assert.That(slot.loopStartSample, Is.Zero, id);
+						Assert.That(slot.loopEndSample, Is.EqualTo(resolved.Clip.samples), id);
+					}
+					var sourceBytes = new FileInfo(AudioCatalogBuilder.ClipsPath + "/" + slot.file).Length;
+					var loopBytes = slot.loop ? new FileInfo(AudioCatalogBuilder.LoopPath(id)).Length : 0;
+					var editorSoundSize = soundSize == null ? "unavailable" : Convert.ToString(soundSize.Invoke(null, new object[] { resolved.Clip }), System.Globalization.CultureInfo.InvariantCulture);
+					sizes += id + "," + sourceBytes + "," + loopBytes + "," + editorSoundSize + "\n";
+				}
+				foreach (var id in new[] { "engine-mid", "horn", "wind", "gull", "fender", "barge-creak" })
+					Assert.That(provider.Get(id).IsPlaceholder, Is.True, id + " has no verified real source");
+			}
+			var evidence = Path.GetFullPath(Path.Combine(Application.dataPath, "../../artifacts/ferry-audio-real"));
+			Directory.CreateDirectory(evidence);
+			File.WriteAllText(Path.Combine(evidence, "unity-audio-sizes.csv"), sizes);
+		}
+
+		[Test]
 		public void InvalidManifestCannotEscapeClipFolderOrHideBadLoopPoints()
 		{
 			var json = JsonUtility.ToJson(Fixture(), true);

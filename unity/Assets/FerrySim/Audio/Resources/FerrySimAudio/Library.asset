@@ -15,23 +15,23 @@ MonoBehaviour:
   manifest: {fileID: 4900000, guid: c5154b6850b359d6bb128ba729ea6726, type: 3}
   clips:
   - id: engine-idle
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: 93f8a1569f228480bbd57b263a67f33b, type: 3}
   - id: engine-mid
     clip: {fileID: 0}
   - id: engine-high
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: f64d9dd71d3984860a418ebd24cadde8, type: 3}
   - id: engine-low
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: 6a5050b676be3439180e35e3c18ad4fa, type: 3}
   - id: propeller
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: a74701bbe8ca04853a64598adf1a7cd9, type: 3}
   - id: clutch-engage
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: 2bee9b4f20fc94b6e9f4708aa0b52df3, type: 3}
   - id: clutch-disengage
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: fd13026d62ada4ef693e1588cfde7185, type: 3}
   - id: horn
     clip: {fileID: 0}
   - id: water-wash
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: b81a0b3d41f0245c39e8e31d6b7079b5, type: 3}
   - id: wind
     clip: {fileID: 0}
   - id: gull
