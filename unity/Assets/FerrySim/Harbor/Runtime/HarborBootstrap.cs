@@ -126,6 +126,8 @@ namespace FerrySim.Harbor
 				if (services.BuildNavigation == null || services.BuildTraffic == null) throw new InvalidOperationException("Missing harbor navigation or traffic builder.");
 				services.BuildNavigation(Context);
 				services.BuildTraffic(Context);
+				FerrySim.Audio.FerryAudioRig.Attach(runner, helm, cameraRig, sun,
+					trafficRoot.GetComponentInChildren<FerrySim.Traffic.TrafficView>(), () => wheelhouseUI.Document);
 				_services = services;
 				placement.WaterSurface = services.WaterSurface;
 				Shader.SetGlobalTexture("_FerrySimWaterNormals", WaterNormalMap.Get());

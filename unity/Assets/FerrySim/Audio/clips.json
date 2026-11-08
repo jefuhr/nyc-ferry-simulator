@@ -1,0 +1,148 @@
+{
+	"version": 1,
+	"slots": [
+		{
+			"id": "engine-idle",
+			"file": "engine-idle.wav",
+			"loop": true,
+			"loopStartSample": 0,
+			"loopEndSample": 0,
+			"baseGain": 0.55,
+			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
+			"date": "2026-11-02",
+			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+		},
+		{
+			"id": "engine-mid",
+			"file": "engine-mid.wav",
+			"loop": true,
+			"loopStartSample": 0,
+			"loopEndSample": 0,
+			"baseGain": 0.55,
+			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
+			"date": "2026-11-02",
+			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+		},
+		{
+			"id": "engine-high",
+			"file": "engine-high.wav",
+			"loop": true,
+			"loopStartSample": 0,
+			"loopEndSample": 0,
+			"baseGain": 0.55,
+			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
+			"date": "2026-11-02",
+			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+		},
+		{
+			"id": "engine-low",
+			"file": "engine-low.wav",
+			"loop": true,
+			"loopStartSample": 0,
+			"loopEndSample": 0,
+			"baseGain": 0.35,
+			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
+			"date": "2026-11-02",
+			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+		},
+		{
+			"id": "propeller",
+			"file": "propeller.wav",
+			"loop": true,
+			"loopStartSample": 0,
+			"loopEndSample": 0,
+			"baseGain": 0.45,
+			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
+			"date": "2026-11-02",
+			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+		},
+		{
+			"id": "clutch-engage",
+			"file": "clutch-engage.wav",
+			"loop": false,
+			"loopStartSample": 0,
+			"loopEndSample": 0,
+			"baseGain": 0.45,
+			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
+			"date": "2026-11-02",
+			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+		},
+		{
+			"id": "clutch-disengage",
+			"file": "clutch-disengage.wav",
+			"loop": false,
+			"loopStartSample": 0,
+			"loopEndSample": 0,
+			"baseGain": 0.35,
+			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
+			"date": "2026-11-02",
+			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+		},
+		{
+			"id": "horn",
+			"file": "horn.wav",
+			"loop": true,
+			"loopStartSample": 0,
+			"loopEndSample": 0,
+			"baseGain": 0.8,
+			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
+			"date": "2026-11-02",
+			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+		},
+		{
+			"id": "water-wash",
+			"file": "water-wash.wav",
+			"loop": true,
+			"loopStartSample": 0,
+			"loopEndSample": 0,
+			"baseGain": 0.35,
+			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
+			"date": "2026-11-02",
+			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+		},
+		{
+			"id": "wind",
+			"file": "wind.wav",
+			"loop": true,
+			"loopStartSample": 0,
+			"loopEndSample": 0,
+			"baseGain": 0.25,
+			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
+			"date": "2026-11-02",
+			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+		},
+		{
+			"id": "gull",
+			"file": "gull.wav",
+			"loop": false,
+			"loopStartSample": 0,
+			"loopEndSample": 0,
+			"baseGain": 0.25,
+			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
+			"date": "2026-11-02",
+			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+		},
+		{
+			"id": "fender",
+			"file": "fender.wav",
+			"loop": false,
+			"loopStartSample": 0,
+			"loopEndSample": 0,
+			"baseGain": 0.35,
+			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
+			"date": "2026-11-02",
+			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+		},
+		{
+			"id": "barge-creak",
+			"file": "barge-creak.wav",
+			"loop": false,
+			"loopStartSample": 0,
+			"loopEndSample": 0,
+			"baseGain": 0.3,
+			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
+			"date": "2026-11-02",
+			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+		}
+	]
+}

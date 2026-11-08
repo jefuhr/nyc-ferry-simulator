@@ -1,4 +1,5 @@
 using System;
+using FerrySim.Audio.Clips;
 using FerrySim.Sim;
 using UnityEngine;
 
@@ -116,13 +117,13 @@ namespace FerrySim.World
 		{
 			_source = gameObject.AddComponent<AudioSource>();
 			_source.playOnAwake = false;
-			_source.loop = false;
+			_source.loop = true;
 			_source.spatialBlend = 1f;
 			_source.rolloffMode = AudioRolloffMode.Logarithmic;
 			_source.minDistance = 15f;
 			_source.maxDistance = 3000f;
 			_source.dopplerLevel = 0f;
-			_clip = WhistleTone.Clip();
+			_clip = AudioClipProvider.Shared.Get("horn").Clip;
 			if (_clip == null)
 			{
 				Debug.LogWarning("[FerrySim] The fog signal's whistle tone could not be made (no audio?); the signals are still recorded.", this);
@@ -134,10 +135,7 @@ namespace FerrySim.World
 		private void OnDestroy()
 		{
 			Follow(null);
-			if (_clip != null)
-			{
-				Destroy(_clip);
-			}
+			// The provider owns the shared clip; held horns and traffic may still use it.
 		}
 
 		private void OnRunStarted()
@@ -199,9 +197,9 @@ namespace FerrySim.World
 				_sourcePaused = false;
 			}
 
-			if (_clip != null && !_source.isPlaying && BlastSeconds < _clip.length - 0.05f)
+			if (_clip != null && !_source.isPlaying)
 			{
-				_source.time = (float)BlastSeconds;
+				_source.time = (float)(BlastSeconds % _clip.length);
 				_source.Play();
 			}
 		}
