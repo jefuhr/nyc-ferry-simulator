@@ -1,17 +1,81 @@
 {
-	"kind": "hull",
-	"notes": "Builder general arrangement (private), IC16112 plan. The image is private and is not stored in Git. Sheet explicitly says NOT TO SCALE: longitudinal and transverse calibration use separate printed dimensions, and unprinted plan measurements are tentative. Heights are low-confidence simulator estimates because no K-class profile is supplied. All heights use waterline y=0; z=0 is half LOA. No safety-system details or drawing artwork are reproduced.",
 	"schema_version": 1,
 	"subject": "k-class",
-	"values": {
-		"baseline_height": {
-			"confidence": "low",
-			"method": "simulator-estimate",
-			"note": "Estimated baseline from published 1.0 m hull draft; no K-class profile has been supplied.",
-			"source": "vessels/k-class.json",
-			"unit": "m",
-			"value": -1
+	"kind": "hull",
+	"notes": "Builder general arrangement (private), IC16112 plan. The image is private and is not stored in Git. Sheet explicitly says NOT TO SCALE: longitudinal and transverse calibration use separate printed dimensions, and unprinted plan measurements are tentative. Heights are low-confidence simulator estimates because no K-class profile is supplied. All heights use waterline y=0; z=0 is half LOA. No safety-system details or drawing artwork are reproduced. Reference-import numeric picks merged into exterior layout; additional coarse points and visual details remain estimates. Sponson projection is unresolved; the provisional model extends 0.16 m per side including rubber beyond the printed beam, an explicit low-confidence visual placeholder. Neutral palette is simulator art direction.",
+	"materials": [
+		{
+			"name": "HullWhite",
+			"colour": [
+				0.82,
+				0.85,
+				0.85
+			],
+			"metal": 0,
+			"smoothness": 0.62
 		},
+		{
+			"name": "DeckGrey",
+			"colour": [
+				0.37,
+				0.41,
+				0.43
+			],
+			"metal": 0,
+			"smoothness": 0.15
+		},
+		{
+			"name": "WindowGlass",
+			"colour": [
+				0.025,
+				0.055,
+				0.065
+			],
+			"metal": 0,
+			"smoothness": 0.92
+		},
+		{
+			"name": "DarkMetal",
+			"colour": [
+				0.19,
+				0.23,
+				0.25
+			],
+			"metal": 0.25,
+			"smoothness": 0.55
+		},
+		{
+			"name": "BlackFender",
+			"colour": [
+				0.055,
+				0.065,
+				0.07
+			],
+			"metal": 0,
+			"smoothness": 0.05
+		},
+		{
+			"name": "RailMetal",
+			"colour": [
+				0.65,
+				0.69,
+				0.7
+			],
+			"metal": 0.8,
+			"smoothness": 0.78
+		},
+		{
+			"name": "CabinWhite",
+			"colour": [
+				0.93,
+				0.93,
+				0.91
+			],
+			"metal": 0,
+			"smoothness": 0.68
+		}
+	],
+	"values": {
 		"beam": {
 			"confidence": "high",
 			"method": "known-dimension",
@@ -19,6 +83,719 @@
 			"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
 			"unit": "m",
 			"value": 8.5
+		},
+		"upper_deck_height": {
+			"confidence": "low",
+			"method": "simulator-estimate",
+			"note": "Unmeasured K-class assumption: estimated main deck 2.5 m plus T-class 2.4 m deck rise. Needs K-class profile.",
+			"source": "art/blender/data/t-class-hull.json",
+			"unit": "m",
+			"value": 4.9
+		},
+		"wheelhouse_roof_height": {
+			"confidence": "low",
+			"method": "simulator-estimate",
+			"note": "Unmeasured K-class assumption: estimated upper deck 4.9 m plus T-class 2.4 m roof rise. Needs K-class profile.",
+			"source": "art/blender/data/t-class-hull.json",
+			"unit": "m",
+			"value": 7.3
+		},
+		"bow_height": {
+			"confidence": "low",
+			"method": "simulator-estimate",
+			"note": "Unmeasured assumption: published depth 3.5 m corresponds to main-deck elevation above baseline, less 1.0 m hull draft. Verify datum and deck camber. Foredeck assumed level with main-deck datum; camber is unresolved.",
+			"source": "vessels/k-class.json",
+			"unit": "m",
+			"value": 2.5
+		},
+		"underwing_height": {
+			"confidence": "low",
+			"method": "simulator-estimate",
+			"note": "Unmeasured visual placeholder, 0.7 m below the estimated main deck. Needs K-class profile or crew measurement.",
+			"source": "vessels/k-class.json",
+			"unit": "m",
+			"value": 1.8
+		},
+		"wheelhouse_roof_inset": {
+			"value": 0.1,
+			"unit": "m",
+			"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Small wall rake; needs orthogonal wheelhouse exterior photograph."
+		},
+		"wheelhouse_sill_height": {
+			"value": 0.35,
+			"unit": "m",
+			"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Low solid sill above upper deck, glazing above; interior owned separately."
+		},
+		"deck_thickness": {
+			"value": 0.18,
+			"unit": "m",
+			"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Visual structural slab thickness; no structural claim."
+		},
+		"sponson_depth": {
+			"value": 0.4,
+			"unit": "m",
+			"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Coarse outer longitudinal volume; no measured projection available. Section dimensions are unmeasured visual placeholders, not a measurement from video."
+		},
+		"fender_radius": {
+			"value": 0.08,
+			"unit": "m",
+			"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Unbranded rubber strake, kept inside provisional beam. Section dimensions are unmeasured visual placeholders, not a measurement from video."
+		},
+		"rail_height": {
+			"value": 1.05,
+			"unit": "m",
+			"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Visual estimate pending deck detail measurements."
+		},
+		"rail_spacing": {
+			"value": 1.4,
+			"unit": "m",
+			"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Visual post spacing estimate."
+		},
+		"window_bottom": {
+			"value": 3.2,
+			"unit": "m",
+			"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Main saloon glass lower edge; needs full side photograph."
+		},
+		"window_top": {
+			"value": 4.45,
+			"unit": "m",
+			"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Main saloon glass upper edge."
+		},
+		"window_bays": {
+			"value": 14,
+			"unit": "count",
+			"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Visual subdivision count pending full side photograph."
+		},
+		"main_outline": {
+			"p00": {
+				"value": [
+					3.45,
+					-14.8
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Starboard deck-edge control points [x,z], mirrored port; LOA/beam calibrated from plan. Rounded broad silhouette only. K sheet is not to scale; plan measurements are tentative."
+			},
+			"p01": {
+				"value": [
+					4.25,
+					-13.8
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Starboard deck-edge control points [x,z], mirrored port; LOA/beam calibrated from plan. Rounded broad silhouette only. K sheet is not to scale; plan measurements are tentative."
+			},
+			"p02": {
+				"value": [
+					4.25,
+					7.7
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Starboard deck-edge control points [x,z], mirrored port; LOA/beam calibrated from plan. Rounded broad silhouette only. K sheet is not to scale; plan measurements are tentative."
+			},
+			"p03": {
+				"value": [
+					3.95,
+					12.5
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Starboard deck-edge control points [x,z], mirrored port; LOA/beam calibrated from plan. Rounded broad silhouette only. K sheet is not to scale; plan measurements are tentative."
+			},
+			"p04": {
+				"value": [
+					3.5,
+					14.4
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Coarse broad bow-deck half-width [x,z], kept over the two bow stems. Raster front edge and appendages are unresolved; not surveyed."
+			},
+			"p05": {
+				"value": [
+					3.2,
+					14.8
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Coarse broad bow-deck half-width [x,z], kept over the two bow stems. Raster front edge and appendages are unresolved; not surveyed."
+			}
+		},
+		"upper_outline": {
+			"p00": {
+				"value": [
+					3.35,
+					-14.2
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Upper-deck slab starboard [x,z] control points; mirrored port. Coarse plan measurements. K sheet is not to scale; plan measurements are tentative."
+			},
+			"p01": {
+				"value": [
+					4.0,
+					-13.2
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Upper-deck slab starboard [x,z] control points; mirrored port. Coarse plan measurements. K sheet is not to scale; plan measurements are tentative."
+			},
+			"p02": {
+				"value": [
+					4.0,
+					8.4
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Upper-deck slab starboard [x,z] control points; mirrored port. Coarse plan measurements. K sheet is not to scale; plan measurements are tentative."
+			},
+			"p03": {
+				"value": [
+					3.5,
+					9.3
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Upper-deck slab starboard [x,z] control points; mirrored port. Coarse plan measurements. K sheet is not to scale; plan measurements are tentative."
+			}
+		},
+		"cabin_outline": {
+			"p00": {
+				"value": [
+					3.75,
+					-11.35
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Main saloon lower plan outline [x,z]; rounded four-station interpretation, not detailed wall tracing. K sheet is not to scale; plan measurements are tentative."
+			},
+			"p01": {
+				"value": [
+					3.9,
+					-10.6
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Main saloon lower plan outline [x,z]; rounded four-station interpretation, not detailed wall tracing. K sheet is not to scale; plan measurements are tentative."
+			},
+			"p02": {
+				"value": [
+					3.9,
+					8.3
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Main saloon lower plan outline [x,z]; rounded four-station interpretation, not detailed wall tracing. K sheet is not to scale; plan measurements are tentative."
+			},
+			"p03": {
+				"value": [
+					3.4,
+					9.05
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Main saloon lower plan outline [x,z]; rounded four-station interpretation, not detailed wall tracing. K sheet is not to scale; plan measurements are tentative."
+			}
+		},
+		"sheer_profile": {
+			"p00": {
+				"value": [
+					-14.8,
+					0
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "[z, vertical offset from main_deck_height]. Flat sheer is the unresolved provisional profile; the printed main-deck datum remains authoritative. No invented curve."
+			},
+			"p01": {
+				"value": [
+					-8.0,
+					0
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "[z, vertical offset from main_deck_height]. Flat sheer is the unresolved provisional profile; the printed main-deck datum remains authoritative. No invented curve."
+			},
+			"p02": {
+				"value": [
+					0.0,
+					0
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "[z, vertical offset from main_deck_height]. Flat sheer is the unresolved provisional profile; the printed main-deck datum remains authoritative. No invented curve."
+			},
+			"p03": {
+				"value": [
+					8.0,
+					0
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "[z, vertical offset from main_deck_height]. Flat sheer is the unresolved provisional profile; the printed main-deck datum remains authoritative. No invented curve."
+			},
+			"p04": {
+				"value": [
+					14.8,
+					0
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "[z, vertical offset from main_deck_height]. Flat sheer is the unresolved provisional profile; the printed main-deck datum remains authoritative. No invented curve."
+			}
+		},
+		"hull_stations": {
+			"p00": {
+				"value": [
+					-13.987965,
+					0.95,
+					-1
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Transom station [z, half-width, keel y]; aft waterline assumed at measured frame zero. Width is estimated; printed baseline anchors keel."
+			},
+			"p01": {
+				"value": [
+					-13.3,
+					1.15,
+					-1
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "[z, half-width, keel y]. Broad hull-plan taper interpreted from builder plan; underwater keel/rake not surveyed. Replace with offsets table."
+			},
+			"p02": {
+				"value": [
+					-6.0,
+					1.442424,
+					-1
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "[z, half-width, keel y]. Broad hull-plan taper interpreted from builder plan; underwater keel/rake not surveyed. Replace with offsets table."
+			},
+			"p03": {
+				"value": [
+					0.0,
+					1.442424,
+					-1
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "[z, half-width, keel y]. Broad hull-plan taper interpreted from builder plan; underwater keel/rake not surveyed. Replace with offsets table."
+			},
+			"p04": {
+				"value": [
+					5.0,
+					1.2,
+					-1
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "[z, half-width, keel y]. Broad hull-plan taper interpreted from builder plan; underwater keel/rake not surveyed. Replace with offsets table."
+			},
+			"p05": {
+				"value": [
+					9.0,
+					0.95,
+					-0.9
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "[z, half-width, keel y]. Broad hull-plan taper interpreted from builder plan; underwater keel/rake not surveyed. Replace with offsets table."
+			},
+			"p06": {
+				"value": [
+					14.112035,
+					0.12,
+					0
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Waterline entrance [z, half-width, keel y], z constrained to frame-zero aft assumption plus printed LWL. Aft waterline at frame zero is an estimate, so the absolute placement remains low confidence."
+			},
+			"p07": {
+				"value": [
+					14.8,
+					0.025,
+					0.25
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "[z, half-width, keel y]. Broad hull-plan taper interpreted from builder plan; underwater keel/rake not surveyed. Replace with offsets table."
+			}
+		},
+		"hull_section": {
+			"p00": {
+				"value": [
+					-1,
+					1
+				],
+				"unit": "ratio",
+				"source": "drawings/t-class/IC16019-cross-section/frame-01.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Dimensionless transverse offsets [x, vertical fraction from keel to deck]; chined section informed by current T cross-section video, not measured."
+			},
+			"p01": {
+				"value": [
+					1,
+					1
+				],
+				"unit": "ratio",
+				"source": "drawings/t-class/IC16019-cross-section/frame-01.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Dimensionless transverse offsets [x, vertical fraction from keel to deck]; chined section informed by current T cross-section video, not measured."
+			},
+			"p02": {
+				"value": [
+					1,
+					0.55
+				],
+				"unit": "ratio",
+				"source": "drawings/t-class/IC16019-cross-section/frame-01.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Dimensionless transverse offsets [x, vertical fraction from keel to deck]; chined section informed by current T cross-section video, not measured."
+			},
+			"p03": {
+				"value": [
+					0.8,
+					0.15
+				],
+				"unit": "ratio",
+				"source": "drawings/t-class/IC16019-cross-section/frame-01.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Dimensionless transverse offsets [x, vertical fraction from keel to deck]; chined section informed by current T cross-section video, not measured."
+			},
+			"p04": {
+				"value": [
+					0.25,
+					0
+				],
+				"unit": "ratio",
+				"source": "drawings/t-class/IC16019-cross-section/frame-01.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Dimensionless transverse offsets [x, vertical fraction from keel to deck]; chined section informed by current T cross-section video, not measured."
+			},
+			"p05": {
+				"value": [
+					-0.25,
+					0
+				],
+				"unit": "ratio",
+				"source": "drawings/t-class/IC16019-cross-section/frame-01.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Dimensionless transverse offsets [x, vertical fraction from keel to deck]; chined section informed by current T cross-section video, not measured."
+			},
+			"p06": {
+				"value": [
+					-0.8,
+					0.15
+				],
+				"unit": "ratio",
+				"source": "drawings/t-class/IC16019-cross-section/frame-01.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Dimensionless transverse offsets [x, vertical fraction from keel to deck]; chined section informed by current T cross-section video, not measured."
+			},
+			"p07": {
+				"value": [
+					-1,
+					0.55
+				],
+				"unit": "ratio",
+				"source": "drawings/t-class/IC16019-cross-section/frame-01.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Dimensionless transverse offsets [x, vertical fraction from keel to deck]; chined section informed by current T cross-section video, not measured."
+			}
+		},
+		"sponson_path": {
+			"p00": {
+				"value": [
+					4.2,
+					2.25,
+					-13.8
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Starboard [x,y,z] coarse sponson centreline, mirrored port; unresolved section and outboard projection use explicit low-confidence placeholders."
+			},
+			"p01": {
+				"value": [
+					4.2,
+					2.25,
+					7.7
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Starboard [x,y,z] coarse sponson centreline, mirrored port; unresolved section and outboard projection use explicit low-confidence placeholders."
+			},
+			"p02": {
+				"value": [
+					4.05,
+					2.25,
+					12.0
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Starboard [x,y,z] coarse sponson centreline, mirrored port; unresolved section and outboard projection use explicit low-confidence placeholders."
+			},
+			"p03": {
+				"value": [
+					3.15,
+					2.25,
+					14.3
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Starboard [x,y,z] coarse sponson centreline, mirrored port; unresolved section and outboard projection use explicit low-confidence placeholders."
+			}
+		},
+		"stair_start": {
+			"p00": {
+				"value": [
+					-2.75,
+					2.5,
+					-13.7
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Two aft companionways visible in plan; foot position rounded. K sheet is not to scale; plan measurements are tentative."
+			},
+			"p01": {
+				"value": [
+					2.75,
+					2.5,
+					-13.7
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Two aft companionways visible in plan; foot position rounded. K sheet is not to scale; plan measurements are tentative."
+			}
+		},
+		"stair_end": {
+			"p00": {
+				"value": [
+					-2.75,
+					4.9,
+					-11.45
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Provisional upper companionway entry just aft of the saloon bulkhead, with a real deck opening. Exact stair run and landing geometry require crew measurements."
+			},
+			"p01": {
+				"value": [
+					2.75,
+					4.9,
+					-11.45
+				],
+				"unit": "m",
+				"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+				"method": "drawing-scale",
+				"confidence": "low",
+				"note": "Provisional upper companionway entry just aft of the saloon bulkhead, with a real deck opening. Exact stair run and landing geometry require crew measurements."
+			}
+		},
+		"light_mounts": {
+			"Masthead": {
+				"value": [
+					0,
+					8.600000000000001,
+					7.55
+				],
+				"unit": "m",
+				"source": "unity/Assets/FerrySim/World/Atmosphere/NavigationLightRules.cs",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Placement estimate preserving masthead above/forward of sidelights; inactive after lights are retained for existing rule support."
+			},
+			"PortSidelight": {
+				"value": [
+					-4.0,
+					5.4,
+					7.05
+				],
+				"unit": "m",
+				"source": "unity/Assets/FerrySim/World/Atmosphere/NavigationLightRules.cs",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Placement estimate preserving masthead above/forward of sidelights; inactive after lights are retained for existing rule support."
+			},
+			"StarboardSidelight": {
+				"value": [
+					4.0,
+					5.4,
+					7.05
+				],
+				"unit": "m",
+				"source": "unity/Assets/FerrySim/World/Atmosphere/NavigationLightRules.cs",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Placement estimate preserving masthead above/forward of sidelights; inactive after lights are retained for existing rule support."
+			},
+			"Sternlight": {
+				"value": [
+					0,
+					3.5,
+					-14.5
+				],
+				"unit": "m",
+				"source": "unity/Assets/FerrySim/World/Atmosphere/NavigationLightRules.cs",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Placement estimate preserving masthead above/forward of sidelights; inactive after lights are retained for existing rule support."
+			},
+			"ForwardAnchor": {
+				"value": [
+					0,
+					9.200000000000001,
+					7.55
+				],
+				"unit": "m",
+				"source": "unity/Assets/FerrySim/World/Atmosphere/NavigationLightRules.cs",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Placement estimate preserving masthead above/forward of sidelights; inactive after lights are retained for existing rule support."
+			},
+			"AfterAnchor": {
+				"value": [
+					0,
+					9.200000000000001,
+					7.55
+				],
+				"unit": "m",
+				"source": "unity/Assets/FerrySim/World/Atmosphere/NavigationLightRules.cs",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Placement estimate preserving masthead above/forward of sidelights; inactive after lights are retained for existing rule support."
+			},
+			"AfterMasthead": {
+				"value": [
+					0,
+					13.100000000000001,
+					-7.250000000000001
+				],
+				"unit": "m",
+				"source": "unity/Assets/FerrySim/World/Atmosphere/NavigationLightRules.cs",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Placement estimate preserving masthead above/forward of sidelights; inactive after lights are retained for existing rule support."
+			}
+		},
+		"baseline_height": {
+			"confidence": "low",
+			"method": "simulator-estimate",
+			"note": "Estimated baseline from published 1.0 m hull draft; no K-class profile has been supplied.",
+			"source": "vessels/k-class.json",
+			"unit": "m",
+			"value": -1
 		},
 		"demihull_width": {
 			"confidence": "low",
@@ -68,22 +845,6 @@
 			"unit": "m",
 			"value": 2.5
 		},
-		"underwing_height": {
-			"confidence": "low",
-			"method": "simulator-estimate",
-			"note": "Unmeasured visual placeholder, 0.7 m below the estimated main deck. Needs K-class profile or crew measurement.",
-			"source": "vessels/k-class.json",
-			"unit": "m",
-			"value": 1.8
-		},
-		"upper_deck_height": {
-			"confidence": "low",
-			"method": "simulator-estimate",
-			"note": "Unmeasured K-class assumption: estimated main deck 2.5 m plus T-class 2.4 m deck rise. Needs K-class profile.",
-			"source": "art/blender/data/t-class-hull.json",
-			"unit": "m",
-			"value": 4.9
-		},
 		"waterline_height": {
 			"confidence": "low",
 			"method": "simulator-estimate",
@@ -108,14 +869,6 @@
 			"unit": "m",
 			"value": 8.591858
 		},
-		"wheelhouse_roof_height": {
-			"confidence": "low",
-			"method": "simulator-estimate",
-			"note": "Unmeasured K-class assumption: estimated upper deck 4.9 m plus T-class 2.4 m roof rise. Needs K-class profile.",
-			"source": "art/blender/data/t-class-hull.json",
-			"unit": "m",
-			"value": 7.3
-		},
 		"wheelhouse_width": {
 			"confidence": "low",
 			"method": "known-dimension",
@@ -123,6 +876,124 @@
 			"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
 			"unit": "m",
 			"value": 2.55
+		},
+		"hull_separation": {
+			"confidence": "low",
+			"method": "known-dimension",
+			"note": "Derived as printed beam minus approximate demihull width; outer hull sides at printed beam. Sponson width excluded and unresolved.",
+			"source": "drawings/k-class/IC16112-fire-safety-plan.jpg",
+			"unit": "m",
+			"value": 5.615152
+		},
+		"exhaust_stacks": {
+			"p00": {
+				"value": [
+					-3.0,
+					4.9,
+					-10.7
+				],
+				"unit": "m",
+				"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Aft upper-deck exhaust enclosure centre; T coarse profile/plan observation, K transferred estimate pending profile."
+			},
+			"p01": {
+				"value": [
+					3.0,
+					4.9,
+					-10.7
+				],
+				"unit": "m",
+				"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Aft upper-deck exhaust enclosure centre; T coarse profile/plan observation, K transferred estimate pending profile."
+			}
+		},
+		"exhaust_height": {
+			"value": 2.55,
+			"unit": "m",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Coarse T profile rise above upper deck; K transferred estimate."
+		},
+		"exhaust_width": {
+			"value": 0.55,
+			"unit": "m",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Unmeasured enclosure transverse thickness."
+		},
+		"exhaust_base_length": {
+			"value": 1.7,
+			"unit": "m",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Coarse T enclosure longitudinal foot length; K transferred estimate."
+		},
+		"exhaust_top_length": {
+			"value": 0.75,
+			"unit": "m",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Coarse T enclosure upper longitudinal length; K transferred estimate."
+		},
+		"exhaust_rake": {
+			"value": -0.6,
+			"unit": "m",
+			"source": "drawings/t-class/IC16018-general-arrangement.jpg",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Aft rake of enclosure top, estimated from T profile; K transferred estimate."
+		},
+		"bow_gate_half_width": {
+			"value": 1.2,
+			"unit": "m",
+			"source": "landings/approach-01.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "Central opening placeholder; reference confirms forward rails and gates but exact gate positions and dimensions require a deck plan/detail shot."
+		},
+		"sponson_projection": {
+			"value": 0.16,
+			"unit": "m",
+			"source": "art/blender/ferries.py",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Unmeasured provisional outboard extent INCLUDING rubber beyond printed beam, each side. Pure visual placeholder; needs transverse measurement. Not a verified maximum beam."
+		},
+		"fender_outboard_offset": {
+			"value": 0.13,
+			"unit": "m",
+			"source": "art/blender/ferries.py",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Rubber centre offset outboard of provisional sponson centreline; a visible strake outside the solid, not a surveyed section."
+		},
+		"boarding_threshold_size": {
+			"value": [
+				2.3,
+				0.05,
+				0.8
+			],
+			"unit": "m",
+			"source": "landings/approach-01.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "Provisional forward boarding threshold [width,height,run]. A small raised lip preserves the measured bow-deck target through cosmetic edge beveling; dimensions need crew measurement."
+		},
+		"stair_clear_width": {
+			"value": 1.05,
+			"unit": "m",
+			"source": "art/blender/ferries.py",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Provisional clear width of each upper-deck companionway opening; keeps estimated stair and handrail geometry inside the opening."
 		}
 	}
 }

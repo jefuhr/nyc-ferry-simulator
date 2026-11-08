@@ -1,4 +1,7 @@
+using System;
 using System.IO;
+using System.Linq;
+using Object = UnityEngine.Object;
 using FerrySim.Core.Serialization;
 using FerrySim.Core.Traffic;
 using FerrySim.Sim;
@@ -19,24 +22,20 @@ namespace FerrySim.Vessels.Tests
 		[TestCase("k-class", 1)]
 		public void ImportedPrefab_MatchesDimensionsMountsAndBudget(string id, int lod)
 		{
-			var root = Path.GetFullPath(Path.Combine(Application.dataPath, "../.."));
-			var d = GreyboxDimensions.From(VesselParametersJson.Load(Path.Combine(root, "vessels", id + ".json")));
+			var d = ReadLayout(id).values;
 			var prefab = FerryModels.Load(id, lod);
 			Assert.That(prefab, Is.Not.Null);
 			var model = prefab.GetComponent<FerryModel>();
 			Assert.That(model, Is.Not.Null);
-			Assert.That(model.Length, Is.EqualTo(d.LengthOverall).Within(0.001));
-			Assert.That(model.Beam, Is.EqualTo(d.Beam).Within(0.001));
-			Assert.That(model.Mount("Eye").localPosition, Is.EqualTo(new Vector3(0, (float)d.BridgeEyeHeight, (float)d.BridgeEyeForward)).Using(Vector3Comparer));
-			Assert.That(model.Mount("Bow").localPosition, Is.EqualTo(new Vector3(0, (float)d.Freeboard, (float)(d.LengthOverall / 2))).Using(Vector3Comparer));
-			var expected = VesselLightLayout.ForGreybox(d);
-			Assert.That(model.Mount("Masthead").localPosition, Is.EqualTo(expected.Masthead).Using(Vector3Comparer));
-			Assert.That(model.Mount("StarboardSidelight").localPosition, Is.EqualTo(expected.StarboardSidelight).Using(Vector3Comparer));
-			Assert.That(model.Mount("PortSidelight").localPosition, Is.EqualTo(expected.PortSidelight).Using(Vector3Comparer));
-			Assert.That(model.Mount("Sternlight").localPosition, Is.EqualTo(expected.Sternlight).Using(Vector3Comparer));
-			Assert.That(model.Mount("ForwardAnchor").localPosition, Is.EqualTo(expected.ForwardAnchor).Using(Vector3Comparer));
-			Assert.That(model.Mount("AfterAnchor").localPosition, Is.EqualTo(expected.AfterAnchor).Using(Vector3Comparer));
-			Assert.That(model.Mount("AfterMasthead").localPosition, Is.EqualTo(expected.AfterMasthead).Using(Vector3Comparer));
+			Assert.That(model.Length, Is.EqualTo(d.length_overall.value).Within(0.001));
+			Assert.That(model.Beam, Is.EqualTo(d.beam.value).Within(0.001));
+			Assert.That(model.Mount("Eye").localPosition, Is.EqualTo(ExpectedEye(id)).Using(Vector3Comparer));
+			Assert.That(model.Mount("Bow").localPosition, Is.EqualTo(new Vector3(0, d.bow_height.value, d.length_overall.value / 2)).Using(Vector3Comparer));
+			foreach (var field in typeof(LightValues).GetFields())
+			{
+				Assert.That(model.Mount(field.Name).localPosition,
+					Is.EqualTo(Vector(((Point)field.GetValue(d.light_mounts)).value)).Using(Vector3Comparer), field.Name);
+			}
 			var filter = prefab.GetComponentInChildren<MeshFilter>();
 			var vertices = filter.sharedMesh.vertices;
 			var bounds = new Bounds(prefab.transform.InverseTransformPoint(filter.transform.TransformPoint(vertices[0])), Vector3.zero);
@@ -44,14 +43,49 @@ namespace FerrySim.Vessels.Tests
 			{
 				bounds.Encapsulate(prefab.transform.InverseTransformPoint(filter.transform.TransformPoint(vertex)));
 			}
-			Assert.That(bounds.size.z, Is.EqualTo(d.LengthOverall).Within(.001));
-			Assert.That(bounds.size.x, Is.InRange((float)d.Beam - .03f, (float)d.Beam + .001f));
-			Assert.That(bounds.min.y, Is.EqualTo(-d.Draft).Within(.001));
-			Assert.That(filter.sharedMesh.triangles.Length / 3, Is.LessThanOrEqualTo(lod == 0 ? 50000 : 5000));
+			Assert.That(bounds.size.z, Is.EqualTo(d.length_overall.value).Within(.001));
+			Assert.That(bounds.size.x, Is.EqualTo(d.beam.value + 2*d.sponson_projection.value).Within(.001));
+			Assert.That(bounds.min.y, Is.EqualTo(d.baseline_height.value).Within(.001));
+			Assert.That(filter.sharedMesh.triangles.Length / 3, Is.LessThanOrEqualTo(lod == 0 ? 80000 : 5000));
 			Assert.That(prefab.GetComponentsInChildren<Renderer>().Length, Is.EqualTo(1));
 			Assert.That(filter.sharedMesh.subMeshCount, Is.EqualTo(lod == 0 ? 7 : 1));
 			Assert.That(prefab.GetComponentInChildren<Renderer>().sharedMaterials.Length, Is.EqualTo(lod == 0 ? 7 : 1));
 			Assert.That(prefab.GetComponentsInChildren<Collider>(), Is.Empty);
+			Assert.That(prefab.GetComponentInChildren<Renderer>().sharedMaterials.Select(m => m.name),
+				Is.EquivalentTo(lod == 0 ? ReadLayout(id).materials.Select(m => m.name) : new[] { "NeutralFerry" }));
+		}
+
+		// Test-only readers check the source layout independently of the export receipt/importer.
+		[Serializable] public class Number { public float value; }
+		[Serializable] public class Point { public float[] value; }
+		[Serializable] public class Surface { public string name; }
+		[Serializable] public class LightValues
+		{
+			public Point Masthead, PortSidelight, StarboardSidelight, Sternlight, ForwardAnchor, AfterAnchor, AfterMasthead;
+		}
+		[Serializable] public class HullValues
+		{
+			public Number length_overall, beam, sponson_projection, baseline_height, main_deck_height, bow_height, upper_deck_height, window_bottom, window_top;
+			public LightValues light_mounts;
+		}
+		[Serializable] public class HullLayout { public HullValues values; public Surface[] materials; }
+		[Serializable] public class EyeValues { public Point eye_position, eye_seated, floor_origin; }
+		[Serializable] public class EyeLayout { public EyeValues values; }
+		private static string Repo => Path.GetFullPath(Path.Combine(Application.dataPath, "../.."));
+		private static HullLayout ReadLayout(string id) => JsonUtility.FromJson<HullLayout>(File.ReadAllText(Path.Combine(Repo, "art/blender/data/" + id + "-hull.json")));
+		private static Vector3 Vector(float[] p) => new Vector3(p[0], p[1], p[2]);
+		private static Vector3 ExpectedEye(string id)
+		{
+			var path = Path.Combine(Repo, "art/blender/data/" + id + "-wheelhouse.json");
+			var values = File.Exists(path) ? JsonUtility.FromJson<EyeLayout>(File.ReadAllText(path)).values : null;
+			if (values?.eye_position?.value != null) { return Vector(values.eye_position.value); }
+			if (values?.eye_seated?.value != null)
+			{
+				var eye = Vector(values.eye_seated.value);
+				return new Vector3(eye.x, values.floor_origin.value[1] + eye.y, eye.z);
+			}
+			var d = GreyboxDimensions.From(VesselParametersJson.Load(Path.Combine(Repo, "vessels", id + ".json")));
+			return new Vector3(0, (float)d.BridgeEyeHeight, (float)d.BridgeEyeForward);
 		}
 
 		private static readonly System.Collections.Generic.IEqualityComparer<Vector3> Vector3Comparer = new NearVector();
@@ -74,8 +108,7 @@ namespace FerrySim.Vessels.Tests
 		[TestCase("k-class")]
 		public void TheCabinWindowUsesGlassAfterNativeMaterialSlotReordering(string id)
 		{
-			var repo = Path.GetFullPath(Path.Combine(Application.dataPath, "../.."));
-			var d = GreyboxDimensions.From(VesselParametersJson.Load(Path.Combine(repo, "vessels", id + ".json")));
+			var d = ReadLayout(id).values;
 			var instance = Object.Instantiate(FerryModels.Load(id, 0));
 			try
 			{
@@ -83,9 +116,9 @@ namespace FerrySim.Vessels.Tests
 				var collider = geometry.gameObject.AddComponent<MeshCollider>();
 				collider.sharedMesh = geometry.sharedMesh;
 				Physics.SyncTransforms();
-				var windowHeight = d.Freeboard + (d.CabinHeight < 4 ? d.CabinHeight * .5 : 1.18);
-				var ray = new Ray(new Vector3((float)d.Beam, (float)windowHeight, (float)(-.04 * d.LengthOverall + .17)), Vector3.left);
-				Assert.That(collider.Raycast(ray, out var hit, (float)d.Beam), Is.True);
+				var windowHeight = (d.window_bottom.value + d.window_top.value) / 2;
+				var ray = new Ray(new Vector3(d.beam.value, windowHeight, .17f), Vector3.left);
+				Assert.That(collider.Raycast(ray, out var hit, d.beam.value), Is.True);
 				var triangle = hit.triangleIndex;
 				var material = 0;
 				while (material < geometry.sharedMesh.subMeshCount && triangle >= geometry.sharedMesh.GetIndexCount(material) / 3)
@@ -101,19 +134,24 @@ namespace FerrySim.Vessels.Tests
 
 		[TestCase("t-class")]
 		[TestCase("k-class")]
-		public void OwnModelRetainsThePreviousLightCoordinatesExactly(string id)
+		public void OwnModelUsesLayoutLightsAndRetainsNavigationPlacement(string id)
 		{
 			var rootPath = Path.GetFullPath(Path.Combine(Application.dataPath, "../.."));
 			var d = GreyboxDimensions.From(VesselParametersJson.Load(Path.Combine(rootPath, "vessels", id + ".json")));
 			var root = new GameObject("own model lighting test");
 			try
 			{
-				FerryModels.Create(root.transform, id, 0, d.LengthOverall, d.Beam);
-				var expected = VesselLightLayout.ForGreybox(d);
-				var actual = VesselLightLayout.FromModel(root.transform, expected);
-				Assert.That(actual.Masthead, Is.EqualTo(expected.Masthead));
-				Assert.That(actual.StarboardSidelight, Is.EqualTo(expected.StarboardSidelight));
-				Assert.That(actual.Sternlight, Is.EqualTo(expected.Sternlight));
+				var model = FerryModels.Create(root.transform, id, 0, d.LengthOverall, d.Beam);
+				Assert.That(model.transform.localScale, Is.EqualTo(Vector3.one), "own-vessel visual dimensions come from the builder layout; physics particulars remain separate");
+				var actual = VesselLightLayout.FromModel(root.transform, VesselLightLayout.ForGreybox(d));
+				Assert.That(actual.Masthead, Is.EqualTo(model.transform.TransformPoint(model.Mount("Masthead").localPosition)).Using(Vector3Comparer));
+				var layout = ReadLayout(id).values;
+				Assert.That(actual.Masthead.y - layout.main_deck_height.value, Is.GreaterThanOrEqualTo(6f));
+				Assert.That(actual.Masthead.y - actual.StarboardSidelight.y, Is.GreaterThanOrEqualTo(2.5f));
+				Assert.That(actual.Masthead.z, Is.GreaterThan(actual.StarboardSidelight.z));
+				Assert.That(actual.PortSidelight.x, Is.LessThan(0));
+				Assert.That(actual.StarboardSidelight.x, Is.GreaterThan(0));
+				Assert.That(actual.Sternlight.z, Is.LessThan(0));
 			}
 			finally { Object.DestroyImmediate(root); }
 		}

@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 322970741072983881}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -3.8005, y: 5.749344, z: 6.374904}
+  m_LocalPosition: {x: -3.765, y: 5.139, z: 5.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -56,7 +56,7 @@ Transform:
   m_GameObject: {fileID: 390069366723447340}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 2.8094, z: -12.644704}
+  m_LocalPosition: {x: 0, y: 3.239, z: -12.7}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -215,7 +215,7 @@ Transform:
   m_GameObject: {fileID: 3345661922347269824}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 13.449344, z: -6.1298957}
+  m_LocalPosition: {x: 0, y: 12.839, z: -7.1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -246,7 +246,7 @@ Transform:
   m_GameObject: {fileID: 3436348478255828660}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.8094, z: 13.0048}
+  m_LocalPosition: {x: 0, y: 2.239, z: 13}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -277,7 +277,7 @@ Transform:
   m_GameObject: {fileID: 4499945320075983189}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 3.8005, y: 5.749344, z: 6.374904}
+  m_LocalPosition: {x: 3.765, y: 5.139, z: 5.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -339,10 +339,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: FerrySim.Unity.Vessels::FerrySim.Vessels.FerryModel
   ClassId: t-class
   Detail: 0
-  Length: 26.0096
-  Beam: 8.001
-  Draft: 0.9906
-  Height: 9.429344
+  Length: 26
+  Beam: 8.03
+  Draft: 1.261
+  Height: 8.819
 --- !u!1 &6827993723199929702
 GameObject:
   m_ObjectHideFlags: 0
@@ -368,7 +368,7 @@ Transform:
   m_GameObject: {fileID: 6827993723199929702}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 8.949344, z: 6.874904}
+  m_LocalPosition: {x: 0, y: 8.339, z: 5.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -430,7 +430,7 @@ Transform:
   m_GameObject: {fileID: 8017883607760782304}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 9.549344, z: 6.874904}
+  m_LocalPosition: {x: 0, y: 8.939, z: 5.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -461,7 +461,7 @@ Transform:
   m_GameObject: {fileID: 8519943366127242714}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 9.549344, z: 6.874904}
+  m_LocalPosition: {x: 0, y: 8.939, z: 5.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

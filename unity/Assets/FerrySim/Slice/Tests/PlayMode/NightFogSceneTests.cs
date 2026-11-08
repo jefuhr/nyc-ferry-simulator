@@ -175,7 +175,7 @@ namespace FerrySim.Slice.PlayModeTests
 		}
 
 		[UnityTest]
-		public IEnumerator AKClassRun_CarriesItsLightsOnItsOwnGreybox()
+		public IEnumerator AKClassRun_CarriesItsLightsOnItsOwnModel()
 		{
 			_scene.StepsPerFrame(5);
 			var settings = NightFogScene.OffPier11(_scene, NightFogScene.Night, MeteorologicalVisibility.Unlimited);
@@ -183,8 +183,9 @@ namespace FerrySim.Slice.PlayModeTests
 			_scene.Runner.Initialize(settings, new ConstantControls(ControlInputs.Neutral));
 			yield return SliceScene.Frames(3);
 
+			// The lanterns sit on the active model's mounts; the greybox layout covers only mounts the model lacks.
 			var atmosphere = NightFogScene.Atmosphere();
-			var expected = VesselLightLayout.ForGreybox(GreyboxDimensions.From(_scene.Runner.Parameters));
+			var expected = VesselLightLayout.FromModel(_scene.Runner.transform, VesselLightLayout.ForGreybox(GreyboxDimensions.From(_scene.Runner.Parameters)));
 			Assert.That(_scene.Runner.Parameters.Id, Is.EqualTo("k-class"));
 			Assert.That(atmosphere.OwnLights.Find(NavigationLightKind.Masthead).transform.localPosition, Is.EqualTo(expected.Masthead));
 			Assert.That(atmosphere.OwnLights.Find(NavigationLightKind.StarboardSidelight).transform.localPosition, Is.EqualTo(expected.StarboardSidelight));

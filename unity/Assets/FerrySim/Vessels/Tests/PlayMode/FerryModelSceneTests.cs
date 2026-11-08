@@ -23,7 +23,7 @@ namespace FerrySim.Vessels.Tests
 	{
 		private const string ScenePath = "Assets/FerrySim/Slice/Scenes/LowerEastRiverSlice.unity";
 		private SliceBootstrap _scene;
-		private static string Output => Path.GetFullPath(Path.Combine(Application.dataPath, "../../artifacts/ferry-models/unity"));
+		private static string Output => Path.GetFullPath(Path.Combine(Application.dataPath, "../../artifacts/ferry-exterior/romeo/scene-tests"));
 
 		[UnitySetUp]
 		public IEnumerator Load()

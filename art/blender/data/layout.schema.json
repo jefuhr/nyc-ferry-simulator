@@ -10,6 +10,20 @@
 		"subject": {"type": "string", "description": "t-class, k-class, or a landing stop id"},
 		"kind": {"enum": ["hull", "wheelhouse", "landing-looks"]},
 		"notes": {"type": "string"},
+		"materials": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"required": ["name"],
+				"additionalProperties": false,
+				"properties": {
+					"name": {"type": "string", "minLength": 1},
+					"colour": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+					"metal": {"type": "number"},
+					"smoothness": {"type": "number"}
+				}
+			}
+		},
 		"values": {
 			"type": "object",
 			"additionalProperties": {
