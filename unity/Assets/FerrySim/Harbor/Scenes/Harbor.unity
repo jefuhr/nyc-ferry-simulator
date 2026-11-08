@@ -1424,19 +1424,6 @@ Transform:
   - {fileID: 7530370596088418442}
   m_Father: {fileID: 476207049856274377}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &6509159471072294424
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7556652905437410609}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3bef32f31a547984f88be1ab98b65f04, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: CesiumForUnity::CesiumForUnity.CesiumOriginShift
-  _distance: 100
 --- !u!1 &6648109069204040513
 GameObject:
   m_ObjectHideFlags: 0
@@ -1597,6 +1584,21 @@ AudioListener:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7556652905437410609}
   m_Enabled: 1
+--- !u!114 &7492700177518560044
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7556652905437410609}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f13cc70ab4c94afc9a8de28e2e0a4c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FerrySim.World.HarborOrigin::FerrySim.World.HarborTiles.HarborOriginShift
+  _georeference: {fileID: 5387996397547741271}
+  _anchor: {fileID: 4481383365380211775}
+  _distance: 100
 --- !u!4 &7530370596088418442
 Transform:
   m_ObjectHideFlags: 0
@@ -1690,7 +1692,7 @@ GameObject:
   - component: {fileID: 1782548843252022699}
   - component: {fileID: 7401753444975706179}
   - component: {fileID: 4481383365380211775}
-  - component: {fileID: 6509159471072294424}
+  - component: {fileID: 7492700177518560044}
   - component: {fileID: 5996757054620737131}
   - component: {fileID: 3092045168949437414}
   - component: {fileID: 2179910524532110870}

@@ -42,7 +42,8 @@ namespace FerrySim.Harbor.Tests
 			Assert.That(reference.latitude, Is.EqualTo(40.7));
 			Assert.That(reference.longitude, Is.EqualTo(-74.015));
 			Assert.That(reference.scale, Is.EqualTo(1));
-			Assert.That(All<CesiumOriginShift>().Single().distance, Is.EqualTo(100));
+			Assert.That(All<HarborOriginShift>().Single().Distance, Is.EqualTo(100));
+			Assert.That(All<CesiumOriginShift>(), Is.Empty, "only the harbor origin driver may shift this scene");
 			Assert.That(All<HarborTileset>().Length, Is.EqualTo(2));
 			Assert.That(All<Cesium3DTileset>().Sum(layer => layer.maximumCachedBytes), Is.EqualTo(256L * 1024 * 1024));
 			foreach (var layer in All<Cesium3DTileset>())

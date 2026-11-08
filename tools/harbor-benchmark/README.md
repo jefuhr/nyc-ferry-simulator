@@ -35,6 +35,8 @@ python3 tools/harbor-benchmark/run_mac.py \
 
 Select one matrix entry with `--scenario astoria-traffic0-displays1`. `--quick` runs only 60 simulated seconds, labels the journey incomplete and is instrumentation verification. It cannot accept a long route. Existing result folders are refused. The evidence includes every raw frame, including minute stalls and captures. Controls explain tails; they never erase an event-frame violation.
 
+Repeat `--player-arg` to append literal player arguments, for example `--player-arg=-ferrysim-audio-volume --player-arg=0`. Use the equals form for a token beginning with a hyphen. Tokens retain their order through the lock-owning child process and are recorded in `command.json` and `process.json`'s `extra_player_args`.
+
 ## Windows, from an empty working folder
 
 Extract the supplied `windows-handoff.zip` under `C:/ferrysim`; it contains the shipping player under `windows`, the separately identified timing player under `diagnostic`, and the scripts under `benchmark`. Use Windows PowerShell; no Python or third-party package is required to collect evidence. All input paths resolve beside the script. The matrix may take several hours.
@@ -70,6 +72,19 @@ python3 tools/harbor-benchmark/profile_analysis.py /absolute/scenario-folder \
 ```
 
 The v0.3.1 `frame_tail` verdict gates every frame from first full view, including frames with no streaming event. It reports both event and non-event tails separately, preserves the Start/readiness boundaries, and never subtracts control stalls. The narrower `streaming` verdict remains available alongside it for comparison with v0.3.0.
+
+Analyze one measurement session at a time to report the machine-stall split. The session root must contain its own no-tile controls and route captures; do not combine captures from different sessions to train the classifier. `frame_tail_classification` partitions the existing violating frame IDs into `machine_stall_frames` and `other_frames`, while `frame_tail` is unchanged. The `no-tile-control-second-recurrence/2` rule uses only macOS, traffic-off, `render_mode=none` controls with matching OS/CPU/GPU identity. A second qualifies only when an over-20 ms frame from first full view occurs at that exact UTC second in at least two distinct UTC minutes, accounting for at least 10% of the control's distinct slow UTC seconds. This concentration guard rejects diffuse noise that happens to repeat everywhere. The second is `floor(utc_zero_unix_s + wall_s) % 60`, using the recorded interval start. Multiple frames in one burst count as one minute, no neighboring-second padding is used, and no unobserved half-minute harmonic is inferred. Evidence frame IDs and minute counts are retained in `_machine_stall_model`.
+
+The machine-stall bucket is **control-correlated, not causal proof** that an individual frame was stalled outside the process. No-tile controls still execute the simulation and displays. Missing controls, unsupported platforms/host identity, insufficient recurrence or missing timestamps leave frames in `other`; Windows keeps its full gate. Longer controls improve coverage but cannot prove a cause from timestamps alone. The classifier is reporting only and never turns a failed gate into a pass.
+
+To reanalyze an immutable baseline without rewriting its verdicts or switch-memory tables, use an output outside its directory:
+
+```sh
+python3 tools/harbor-benchmark/analyze.py /absolute/session \
+  --read-only --output "$PWD/artifacts/frame-tail/baseline-analysis.json"
+```
+
+`--read-only` requires an extracted directory and refuses an output inside that source tree.
 
 Recorder submission and storage have separate markers: `FerrySim.RunRecorder.BeforeStep`, `Flush` and `WriteRow` cover the physics-thread submission; `BackgroundWrite` and `BackgroundFlush` collect storage-thread scopes across all threads. A background operation can span several rendered frames, so its reported completion sample is not time spent on the main thread and must not be added to that frame's duration. The Mac observer also retains cumulative process pageins, disk-read/write bytes and raw native CPU/runnable counters from the existing `proc_pid_rusage` sample. Differences between 100 ms samples include neighboring frames and other player threads; they provide context without uniquely identifying a stall's cause.
 

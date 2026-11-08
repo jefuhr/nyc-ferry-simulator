@@ -58,6 +58,99 @@ def frame_tail(frames, events, stress=False):
 		'note': 'all frames from first full view to the next accepted Start; capture/replay/finalization separate; no control-stall subtraction'}
 
 
+_STALL_RULE = 'no-tile-control-second-recurrence/2'
+_HOST_FIELDS = ('platform', 'os', 'cpu', 'gpu')
+
+
+def _host_key(identity):
+	key = tuple(identity.get(field) for field in _HOST_FIELDS)
+	return key if key[0] == 'OSXPlayer' and all(isinstance(value, str) and value for value in key) else None
+
+
+def _utc_second(row, identity):
+	try:
+		zero = float(identity['utc_zero_unix_s'])
+		wall = float(row['wall_s'])
+		if not math.isfinite(zero) or zero <= 0 or not math.isfinite(wall) or wall < 0:
+			return None
+		return math.floor(zero + wall)
+	except (KeyError, TypeError, ValueError, OverflowError):
+		return None
+
+
+def detect_machine_stalls(controls):
+	"""Learn exact recurring UTC seconds from this analysis session's no-tile controls.
+
+	Two distinct UTC minutes and 10% of slow control seconds are required.
+	Multiple frames in one second count once; diffuse noise establishes no period.
+	This is a conservative correlation label, never proof of a frame's cause.
+	"""
+	hosts = {}
+	for control in controls:
+		scenario, identity = control['scenario'], control['identity']
+		key = _host_key(identity)
+		if key is None or scenario.get('platform') != 'OSXPlayer' or scenario.get('render_mode') != 'none' or scenario.get('traffic') is not False:
+			continue
+		if _utc_second({'wall_s': 0}, identity) is None:
+			continue
+		host = hosts.setdefault(key, {'sources': set(), 'seconds': {}})
+		host['sources'].add(control['source'])
+		tail = frame_tail(control['frames'], control['events'])
+		bad = set(tail['violating_frames']) - set(tail['invalid_frames'])
+		for row in control['frames']:
+			frame = int(row['frame'])
+			stamp = _utc_second(row, identity)
+			if frame not in bad or stamp is None:
+				continue
+			second = host['seconds'].setdefault(stamp % 60, {'minutes': set(), 'frames': set()})
+			second['minutes'].add(stamp // 60)
+			second['frames'].add((control['source'], frame))
+	result = []
+	for key, host in sorted(hosts.items()):
+		occurrences = sum(len(data['minutes']) for data in host['seconds'].values())
+		evidence = [{'second': second, 'minute_count': len(data['minutes']), 'utc_minutes': sorted(data['minutes']),
+			'frames': [{'source': source, 'frame': frame} for source, frame in sorted(data['frames'])]}
+			for second, data in sorted(host['seconds'].items())
+			if len(data['minutes']) >= 2 and len(data['minutes']) * 10 >= occurrences]
+		result.append({'identity': dict(zip(_HOST_FIELDS, key)), 'sources': sorted(host['sources']),
+			'seconds': [item['second'] for item in evidence], 'evidence': evidence, 'slow_control_second_occurrences': occurrences})
+	return {'rule': _STALL_RULE, 'minimum_distinct_minutes': 2, 'minimum_slow_second_fraction': .1, 'hosts': result,
+		'note': 'same analysis session only; no-tile traffic-off controls; exact floor(utc_zero_unix_s + wall_s) modulo 60; no adjacent-second padding or assumed periodic harmonics; timing correlation does not establish causality'}
+
+
+def split_machine_stalls(frames, tail, identity, model=None):
+	"""Partition the existing violating-frame IDs without modifying any gate."""
+	key = _host_key(identity)
+	host = next((host for host in (model or {}).get('hosts', [])
+		if key is not None and _host_key(host['identity']) == key), None)
+	seconds = set(host['seconds']) if host else set()
+	lookup = {int(row['frame']): row for row in frames}
+	machine, other, unknown = [], [], []
+	for frame in tail['violating_frames']:
+		stamp = _utc_second(lookup[frame], identity)
+		if stamp is None:
+			unknown.append(frame)
+		(machine if stamp is not None and stamp % 60 in seconds else other).append(frame)
+	return {'rule': _STALL_RULE, 'status': 'control_correlated' if seconds else 'unverified',
+		'machine_stall_over_20ms': len(machine), 'other_over_20ms': len(other),
+		'machine_stall_frames': machine, 'other_frames': other, 'unclassified_timestamp_frames': unknown,
+		'detected_seconds': sorted(seconds), 'control_sources': host['sources'] if host else [],
+		'causal_attribution_proven': False,
+		'note': 'reporting only; machine stall means recurring control-second correlation, not proven external causality; unsupported or missing timestamps stay other; frame_tail still gates every violation'}
+
+
+def session_machine_stalls(root, folders):
+	controls = []
+	for folder in folders:
+		scenario = json.loads((folder/'scenario.json').read_text(encoding='utf-8-sig'))
+		if scenario.get('render_mode') != 'none' or not (folder/'identity.json').is_file():
+			continue
+		controls.append({'source': str(folder.relative_to(root)), 'scenario': scenario,
+			'identity': json.loads((folder/'identity.json').read_text(encoding='utf-8-sig')),
+			'frames': rows(folder/'frames.csv'), 'events': rows(folder/'events.csv')})
+	return detect_machine_stalls(controls)
+
+
 def streaming(frames, events, stress=False):
 	lookup = {int(f['frame']): f for f in frames}
 	windows = []
@@ -219,7 +312,7 @@ def camera_evidence(folder, scenario):
 	return {'verdict':'pass' if valid else 'fail','evidence_validity':'valid' if valid else 'invalid','samples':len(samples),'requested_distance_m':requested,'expected_sample_distance_m':expected_distance,'observed_distance_m':observed_distance,'max_error_m':max_error,'ordered_frames_and_time':ordered,'note':'positions are sampled after rendering with the follow controllers disabled; every sample is checked, no stationary sweep claim'}
 
 
-def analyze(folder):
+def analyze(folder, stall_model=None, write_tables=True):
 	required = ['frames.csv', 'events.csv', 'memory.csv', 'scenario.json', 'process.json', 'identity.json']
 	missing = [name for name in required if not (folder / name).is_file()]
 	if missing:
@@ -237,8 +330,9 @@ def analyze(folder):
 		'first_view': {'verdict': 'unverified', 'seconds': scenario.get('start_to_ready_s')},
 		'displays': {'verdict': 'unverified', 'note': 'requires a matched displays-off scenario and valid player CPU/GPU timing'},
 		'platform': scenario.get('platform'), 'overall': 'unverified','frame_cost':cost}
+	result['frame_tail_classification'] = split_machine_stalls(frames, result['frame_tail'], identity, stall_model)
 	result['switch_memory_table']=switch_memory_table(folder)
-	if result['switch_memory_table']:
+	if result['switch_memory_table'] and write_tables:
 		columns=sorted({key for row in result['switch_memory_table'] for key in row})
 		with (folder/'switch-memory.csv').open('w',newline='') as stream:
 			writer=csv.DictWriter(stream,fieldnames=columns);writer.writeheader();writer.writerows(result['switch_memory_table'])
@@ -343,8 +437,13 @@ def main():
 	p = argparse.ArgumentParser()
 	p.add_argument('source', type=Path)
 	p.add_argument('--output', type=Path)
+	p.add_argument('--read-only', action='store_true', help='write only --output outside the source tree; never rewrite raw-evidence verdicts or tables')
 	a = p.parse_args()
 	source = a.source.resolve()
+	if a.read_only and source.suffix.lower() == '.zip':
+		raise SystemExit('--read-only requires an already extracted evidence directory')
+	if a.read_only and a.output and a.output.resolve().is_relative_to(source):
+		raise SystemExit('--read-only output must be outside the source evidence directory')
 	if source.suffix.lower() == '.zip':
 		target = a.output or source.with_suffix('')
 		if target.exists():
@@ -356,11 +455,14 @@ def main():
 			archive.extractall(target)
 		source = target
 	folders = sorted({p.parent for p in source.rglob('scenario.json')})
-	results = {str(f.relative_to(source)): analyze(f) for f in folders}
+	stall_model = session_machine_stalls(source, folders)
+	results = {str(f.relative_to(source)): analyze(f, stall_model, write_tables=not a.read_only) for f in folders}
 	if not results:
-		results = {'.': analyze(source)}
-	for folder in folders:
-		(folder / 'verdict.json').write_text(json.dumps(results[str(folder.relative_to(source))], indent=2, allow_nan=False)+'\n')
+		results = {'.': analyze(source, stall_model, write_tables=not a.read_only)}
+	if not a.read_only:
+		for folder in folders:
+			(folder / 'verdict.json').write_text(json.dumps(results[str(folder.relative_to(source))], indent=2, allow_nan=False)+'\n')
+	results['_machine_stall_model'] = stall_model
 	results['_display_pairs'] = display_pairs(source, folders)
 	output = a.output if a.source.suffix.lower() != '.zip' else source / 'analysis.json'
 	text = json.dumps(results, indent=2, allow_nan=False) + '\n'
