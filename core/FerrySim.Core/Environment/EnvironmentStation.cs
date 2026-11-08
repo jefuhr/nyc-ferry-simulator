@@ -144,7 +144,7 @@ namespace FerrySim.Core.Env
 		/// <summary>Mean wind velocity (the direction the air moves toward), m/s.</summary>
 		public VectorSeries Velocity { get; }
 
-		/// <summary>Gust speed at sample <paramref name="index"/>, m/s; NaN when the source has none. Not applied in v1.</summary>
+		/// <summary>Gust speed at sample <paramref name="index"/>, m/s; NaN when the source has none. Applied only with explicit GustOptions opt-in.</summary>
 		public double Gust(int index) => _gusts[index];
 	}
 
