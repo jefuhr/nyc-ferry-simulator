@@ -1,6 +1,7 @@
 {
 	"name": "FerrySim.World.HarborNavigation",
 	"references": [
+		"FerrySim.World.Landings",
 		"FerrySim.Core",
 		"FerrySim.Unity.World",
 		"FerrySim.Unity.Sim",

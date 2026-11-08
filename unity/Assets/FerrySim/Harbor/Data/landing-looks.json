@@ -1,0 +1,292 @@
+{
+	"schema_version": 1,
+	"subject": "harbor-landings",
+	"kind": "landing-looks",
+	"notes": "Crew reference video (private), 2026-11. Values are visual estimates. All 24 stops use defaults; five identified stops have clip-based overrides. Hull polygons and contact surfaces remain authoritative and unchanged. Shoreward direction is inferred opposite the primary berthing face; shore endpoint, pile siting, canopy size and ramp placement need measured confirmation. Multiple berths on one barge share one shelter and one estimated shore gangway. No livery or logos.",
+	"values": {
+		"defaults": {
+			"freeboard": {
+				"value": 2.1336,
+				"unit": "m",
+				"source": "docs/research/routes-and-landings.md:L04",
+				"method": "published",
+				"confidence": "medium",
+				"note": "ASCE approximate landing barge dimensions, converted from feet; visual only, not universal as-built dimensions."
+			},
+			"depth": {
+				"value": 3.3528,
+				"unit": "m",
+				"source": "docs/research/routes-and-landings.md:L04",
+				"method": "published",
+				"confidence": "medium",
+				"note": "ASCE approximate landing barge dimensions, converted from feet; visual only, not universal as-built dimensions."
+			},
+			"fender_spacing": {
+				"value": 0.9,
+				"unit": "m",
+				"source": "art/blender/data/README.md",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Generic visual placeholder; shore end and pile location are unsurveyed. Canopy is fitted inside source outline."
+			},
+			"fender_width": {
+				"value": 0.45,
+				"unit": "m",
+				"source": "art/blender/data/README.md",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Generic visual placeholder; shore end and pile location are unsurveyed. Canopy is fitted inside source outline."
+			},
+			"fender_height": {
+				"value": 3.5,
+				"unit": "m",
+				"source": "art/blender/data/README.md",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Generic visual placeholder; shore end and pile location are unsurveyed. Canopy is fitted inside source outline. Panel height; its bottom is visually set 0.25 m below water."
+			},
+			"canopy_length": {
+				"value": 22,
+				"unit": "m",
+				"source": "art/blender/data/README.md",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Generic visual placeholder; shore end and pile location are unsurveyed. Canopy is fitted inside source outline."
+			},
+			"canopy_width": {
+				"value": 7.5,
+				"unit": "m",
+				"source": "art/blender/data/README.md",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Generic visual placeholder; shore end and pile location are unsurveyed. Canopy is fitted inside source outline."
+			},
+			"canopy_height": {
+				"value": 3.4,
+				"unit": "m",
+				"source": "art/blender/data/README.md",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Generic visual placeholder; shore end and pile location are unsurveyed. Canopy is fitted inside source outline. Vertical deck-to-eave clearance."
+			},
+			"canopy_rise": {
+				"value": 0.65,
+				"unit": "m",
+				"source": "art/blender/data/README.md",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Generic visual placeholder; shore end and pile location are unsurveyed. Canopy is fitted inside source outline. Centre roof rise above the eave."
+			},
+			"gangway_length": {
+				"value": 14,
+				"unit": "m",
+				"source": "art/blender/data/README.md",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Generic visual placeholder; shore end and pile location are unsurveyed. Canopy is fitted inside source outline. Horizontal shoreward span; the shore endpoint is not surveyed."
+			},
+			"gangway_width": {
+				"value": 1.8,
+				"unit": "m",
+				"source": "art/blender/data/README.md",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Generic visual placeholder; shore end and pile location are unsurveyed. Canopy is fitted inside source outline."
+			},
+			"shore_height": {
+				"value": 3.2,
+				"unit": "m",
+				"source": "art/blender/data/README.md",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Generic visual placeholder; shore end and pile location are unsurveyed. Canopy is fitted inside source outline. Fixed shore hinge height above build-time water, not a surveyed datum."
+			},
+			"pile_height": {
+				"value": 8,
+				"unit": "m",
+				"source": "art/blender/data/README.md",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Generic visual placeholder; shore end and pile location are unsurveyed. Canopy is fitted inside source outline. Pile top above build-time water; fixed during tide motion."
+			},
+			"pile_diameter": {
+				"value": 0.85,
+				"unit": "m",
+				"source": "art/blender/data/README.md",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Generic visual placeholder; shore end and pile location are unsurveyed. Canopy is fitted inside source outline."
+			}
+		},
+		"20": {
+			"pile_height": {
+				"value": 7.5,
+				"unit": "m",
+				"source": "landings/dumbo-west-flood-sw10kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Tall cylindrical guide piles and vertical dark fenders; canopy is occluded, no canopy claim. Pile top above build-time water; fixed during tide motion."
+			},
+			"fender_height": {
+				"value": 3.5,
+				"unit": "m",
+				"source": "landings/dumbo-west-flood-sw10kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Tall cylindrical guide piles and vertical dark fenders; canopy is occluded, no canopy claim. Panel height; its bottom is visually set 0.25 m below water."
+			}
+		},
+		"115": {
+			"canopy_length": {
+				"value": 22,
+				"unit": "m",
+				"source": "landings/corlears-east-flood-s2-3kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Curved pale shelter, repeated diagonal frame and closely spaced pale/dark vertical face panels."
+			},
+			"canopy_width": {
+				"value": 8,
+				"unit": "m",
+				"source": "landings/corlears-east-flood-s2-3kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Curved pale shelter, repeated diagonal frame and closely spaced pale/dark vertical face panels."
+			},
+			"canopy_height": {
+				"value": 3.6,
+				"unit": "m",
+				"source": "landings/corlears-east-flood-s2-3kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Curved pale shelter, repeated diagonal frame and closely spaced pale/dark vertical face panels. Vertical deck-to-eave clearance."
+			},
+			"canopy_rise": {
+				"value": 0.7,
+				"unit": "m",
+				"source": "landings/corlears-east-flood-s2-3kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Curved pale shelter, repeated diagonal frame and closely spaced pale/dark vertical face panels. Centre roof rise above the eave."
+			},
+			"fender_spacing": {
+				"value": 0.85,
+				"unit": "m",
+				"source": "landings/corlears-east-flood-s2-3kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Curved pale shelter, repeated diagonal frame and closely spaced pale/dark vertical face panels."
+			}
+		},
+		"25": {
+			"canopy_length": {
+				"value": 22,
+				"unit": "m",
+				"source": "landings/roosevelt-flood-s10g15kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Long curved pale roof with exposed diagonal braces behind tall guide piles; dimensions estimated by proportion."
+			},
+			"canopy_width": {
+				"value": 7.5,
+				"unit": "m",
+				"source": "landings/roosevelt-flood-s10g15kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Long curved pale roof with exposed diagonal braces behind tall guide piles; dimensions estimated by proportion."
+			},
+			"canopy_height": {
+				"value": 3.4,
+				"unit": "m",
+				"source": "landings/roosevelt-flood-s10g15kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Long curved pale roof with exposed diagonal braces behind tall guide piles; dimensions estimated by proportion. Vertical deck-to-eave clearance."
+			},
+			"canopy_rise": {
+				"value": 0.65,
+				"unit": "m",
+				"source": "landings/roosevelt-flood-s10g15kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Long curved pale roof with exposed diagonal braces behind tall guide piles; dimensions estimated by proportion. Centre roof rise above the eave."
+			}
+		},
+		"87": {
+			"canopy_length": {
+				"value": 22,
+				"unit": "m",
+				"source": "landings/pier11-c-to-b-ebb.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Low long shelter silhouette and tall dark guide piles; oblique distant view, low confidence."
+			},
+			"canopy_width": {
+				"value": 7,
+				"unit": "m",
+				"source": "landings/pier11-c-to-b-ebb.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Low long shelter silhouette and tall dark guide piles; oblique distant view, low confidence."
+			},
+			"canopy_height": {
+				"value": 3.1,
+				"unit": "m",
+				"source": "landings/pier11-c-to-b-ebb.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Low long shelter silhouette and tall dark guide piles; oblique distant view, low confidence. Vertical deck-to-eave clearance."
+			},
+			"canopy_rise": {
+				"value": 0.2,
+				"unit": "m",
+				"source": "landings/pier11-c-to-b-ebb.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Low long shelter silhouette and tall dark guide piles; oblique distant view, low confidence. Centre roof rise above the eave."
+			}
+		},
+		"137": {
+			"canopy_length": {
+				"value": 22,
+				"unit": "m",
+				"source": "landings/stg-east-night.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Pale lit shelter and repeated diagonal frames; paired dark/pale vertical fender panels. No new start eligibility implied."
+			},
+			"canopy_width": {
+				"value": 9,
+				"unit": "m",
+				"source": "landings/stg-east-night.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Pale lit shelter and repeated diagonal frames; paired dark/pale vertical fender panels. No new start eligibility implied."
+			},
+			"canopy_height": {
+				"value": 3.5,
+				"unit": "m",
+				"source": "landings/stg-east-night.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Pale lit shelter and repeated diagonal frames; paired dark/pale vertical fender panels. No new start eligibility implied. Vertical deck-to-eave clearance."
+			},
+			"canopy_rise": {
+				"value": 0.65,
+				"unit": "m",
+				"source": "landings/stg-east-night.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Pale lit shelter and repeated diagonal frames; paired dark/pale vertical fender panels. No new start eligibility implied. Centre roof rise above the eave."
+			},
+			"fender_spacing": {
+				"value": 0.85,
+				"unit": "m",
+				"source": "landings/stg-east-night.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Pale lit shelter and repeated diagonal frames; paired dark/pale vertical fender panels. No new start eligibility implied."
+			}
+		}
+	}
+}

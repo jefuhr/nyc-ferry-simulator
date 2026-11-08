@@ -1,0 +1,9 @@
+{
+	"name": "FerrySim.World.Landings",
+	"references": [],
+	"autoReferenced": false,
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"Newtonsoft.Json.dll"
+	]
+}
