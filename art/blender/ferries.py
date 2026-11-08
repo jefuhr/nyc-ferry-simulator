@@ -1,4 +1,4 @@
-"""Build the generic passenger catamarans from scratch, export FBX and geometry receipts.
+"""Build layout-driven passenger catamarans, export FBX and geometry receipts.
 Run with Blender --background --factory-startup --python art/blender/ferries.py -- --out DIR.
 Optional --renders DIR creates four studio views of each LOD. No .blend is written.
 """
@@ -14,11 +14,9 @@ import bmesh
 from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from dimensions import dimensions, mounts, audited_classes
+from dimensions import dimensions, mounts, audited_classes, load_layout
 
 ROOT = Path(__file__).resolve().parents[2]
-# Neutral, deliberately unbranded paint, deck, glass, metal and rubber.
-PALETTE = [(0.82, 0.85, 0.85, 1), (.37, .41, .43, 1), (.025, .055, .065, 1), (.19, .23, .25, 1), (.055, .065, .07, 1), (.65, .69, .70, 1), (.93, .93, .91, 1), (.28, .30, .31, 1)]
 
 
 def blender(v):
@@ -54,38 +52,68 @@ class Geometry:
 		faces += [(i,(i+1)%sides,(i+1)%sides+sides,i+sides) for i in range(sides)]
 		self.part(verts, faces, colour)
 
-	def rail(self, a, b, base, lod):
+	def rail(self, a, b, base, lod, d):
 		length = (Vector(b)-Vector(a)).length
-		posts = max(1, math.ceil(length / (2.4 if lod else 1.4)))
+		posts = max(1, math.ceil(length / (d['rail_spacing'] * (2 if lod else 1))))
 		for i in range(posts+1):
 			x, z = (a[j]+(b[j]-a[j])*i/posts for j in range(2))
-			self.rod((x,base,z),(x,base+1.05,z),.035,5,4 if lod else 12)
-		for h in ([1.05] if lod else [.48,1.05]):
+			self.rod((x,base,z),(x,base+d['rail_height'],z),.035,5,4 if lod else 12)
+		for h in ([d['rail_height']] if lod else [d['rail_height']/2,d['rail_height']]):
 			self.rod((a[0],base+h,a[1]),(b[0],base+h,b[1]),.035,5,4 if lod else 12)
 
+	def prism(self, outline, lower, upper, colour):
+		# An outline is ordered around a horizontal footprint; elevations may follow sheer.
+		n = len(outline)
+		verts = [(x, y(z) if callable(y) else y, z) for y in (lower, upper) for x, z in outline]
+		faces = [tuple(range(n-1,-1,-1)), tuple(range(n,2*n))]
+		faces += [(i,(i+1)%n,(i+1)%n+n,i+n) for i in range(n)]
+		self.part(verts, faces, colour)
+
+	def upper_deck(self, d):
+		# Shared-vertex slab cells leave real companionway openings, without overlapping faces.
+		outline=list(d['upper_outline'].values())
+		holes=[(start[0]-d['stair_clear_width']/2,start[0]+d['stair_clear_width']/2,
+			min(start[2],end[2])-.15,max(start[2],end[2])+.15)
+			for start,end in zip(d['stair_start'].values(),d['stair_end'].values())]
+		cuts=sorted({p[1] for p in outline} | {z for hole in holes for z in hole[2:] if outline[0][1]<z<outline[-1][1]})
+		xcuts=sorted({x for hole in holes for x in hole[:2]})
+		def width(z):
+			for (wa,za),(wb,zb) in zip(outline,outline[1:]):
+				if z<=zb:return wa+(wb-wa)*(z-za)/(zb-za)
+			return outline[-1][0]
+		verts=[];indices={};tops=[];edges={}
+		def vertex(x,z):
+			key=(round(x,7),round(z,7))
+			if key not in indices:
+				indices[key]=len(verts);verts.append((x,d['upper_deck_height'],z))
+			return indices[key]
+		for za,zb in zip(cuts,cuts[1:]):
+			wa,wb=width(za),width(zb)
+			fixed=[x for x in xcuts if -min(wa,wb)<x<min(wa,wb)]
+			xa,xb=[-wa]+fixed+[wa],[-wb]+fixed+[wb]
+			for i in range(len(xa)-1):
+				x=(xa[i]+xa[i+1]+xb[i]+xb[i+1])/4;z=(za+zb)/2
+				if any(x0<x<x1 and z0<z<z1 for x0,x1,z0,z1 in holes):continue
+				face=(vertex(xa[i],za),vertex(xb[i],zb),vertex(xb[i+1],zb),vertex(xa[i+1],za))
+				tops.append(face)
+				for a,b in zip(face,face[1:]+face[:1]):
+					key=tuple(sorted((a,b)));edges[key]=edges.get(key,[])+[(a,b)]
+		n=len(verts)
+		verts += [(x,y-d['deck_thickness'],z) for x,y,z in verts[:]]
+		faces=tops+[tuple(i+n for i in reversed(face)) for face in tops]
+		faces += [(a,a+n,b+n,b) for uses in edges.values() if len(uses)==1 for a,b in uses]
+		self.part(verts,faces,6)
+
 	def hull(self, x, d, lod):
-		L, w, f, draft = d['length'], d['demihull_beam']/2, d['freeboard'], d['draft']
-		stations = [(-.5, .86, .72),(-.35,1,1),(.15,1,1),(.33,.78,.85),(.44,.35,.5),(.5,.035,.03)]
-		if not lod:
-			stations=[(-.5,.86,.72),(-.47,.93,.9),(-.4,.98,.98),(-.3,1,1),(-.12,1,1),(.08,1,1),(.2,.96,.98),(.3,.83,.9),(.38,.61,.7),(.44,.35,.5),(.48,.13,.22),(.5,.035,.03)]
-		verts=[]
-		section=[(-1,f),(1,f),(1,.05),(.68,-.72*draft),(.25,-draft),(-.25,-draft),(-.68,-.72*draft),(-1,.05)]
-		if not lod:
-			section=[(-1,f),(1,f),(1,.05),(.98,-.25*draft),(.89,-.5*draft),(.68,-.78*draft),(.43,-.94*draft),(.20,-draft),(-.20,-draft),(-.43,-.94*draft),(-.68,-.78*draft),(-.89,-.5*draft),(-.98,-.25*draft),(-1,.05)]
-		n=len(section)
-		for z, width, depth in stations:
-			# Chined demihull with fine forward entrance and transom aft.
-			for dx,y in section:
-				rake=(-.025*L if z>0 else .012*L)*(1-depth)*max(0,-y/draft)
-				verts.append((x+dx*w*width, y if y>=0 else y*depth,z*L+rake))
-		faces=[tuple(range(n-1,-1,-1)),tuple(range((len(stations)-1)*n,len(stations)*n))]
-		for station in range(len(stations)-1):
-			for i in range(n):
-				faces.append((n*station+i,n*station+(i+1)%n,n*(station+1)+(i+1)%n,n*(station+1)+i))
-		self.part(verts,faces,0)
-		# Continuous black rubber fender, kept inside the declared beam.
-		self.rod((x-w*.93,f-.18,-.46*L),(x-w*.93,f-.18,.24*L),.065,4,4 if lod else 16)
-		self.rod((x+w*.93,f-.18,-.46*L),(x+w*.93,f-.18,.24*L),.065,4,4 if lod else 16)
+		stations = list(d['hull_stations'].values())
+		section = list(d['hull_section'].values())
+		n = len(section)
+		verts = [(x+dx*width, keel+(sheer(d,z)-d['deck_thickness']-keel)*fraction, z)
+			for z,width,keel in stations for dx,fraction in section]
+		faces = [tuple(range(n-1,-1,-1)), tuple(range((len(stations)-1)*n,len(stations)*n))]
+		faces += [(n*j+i,n*j+(i+1)%n,n*(j+1)+(i+1)%n,n*(j+1)+i)
+			for j in range(len(stations)-1) for i in range(n)]
+		self.part(verts, faces, 0)
 
 	def object(self, material, lod):
 		mesh=bpy.data.meshes.new('PassengerCatamaranGeometry')
@@ -95,7 +123,7 @@ class Geometry:
 		for p,c in zip(mesh.polygons,self.colours):
 			p.material_index=0 if lod else min(c,6)
 			for i in p.loop_indices:
-				uv.data[i].uv=((c+.5)/8,.5)
+				uv.data[i].uv=((c+.5)/7,.5)
 		bm=bmesh.new()
 		bm.from_mesh(mesh)
 		bm.faces.index_update()
@@ -121,115 +149,122 @@ class Geometry:
 			uv=obj.data.uv_layers.active
 			for polygon in obj.data.polygons:
 				for i in polygon.loop_indices:
-					uv.data[i].uv=((polygon.material_index+.5)/8,.5)
+					uv.data[i].uv=((polygon.material_index+.5)/7,.5)
 		return obj
 
 
+def mirrored(points):
+	return list(points) + [(-x,z) for x,z in reversed(points)]
+
+
+def sheer(d, z):
+	points = list(d['sheer_profile'].values())
+	for (za,ya),(zb,yb) in zip(points,points[1:]):
+		if z <= zb:
+			return d['freeboard']+ya+(yb-ya)*max(0,(z-za)/(zb-za))
+	return d['freeboard']+points[-1][1]
+
+
 def build(d,lod,material):
-	g=Geometry()
-	L,B,F,H,C=d['length'],d['beam'],d['freeboard'],d['cabin_height'],d['cabin_length']
-	roof=F+H
-	fore, aft=.5*C-.04*L,-.5*C-.04*L
+	g = Geometry()
+	F,U,R = d['freeboard'],d['upper_deck_height'],d['wheelhouse_roof_height']
+	thick = d['deck_thickness']
+	main,upper,cabin = (mirrored(list(d[key].values())) for key in ('main_outline','upper_outline','cabin_outline'))
 	for sign in (-1,1):
-		g.hull(sign*.5*d['separation'],d,lod)
-	# Cross-deck terminates exactly at the bow mount. Avoid rails beyond the contact extents.
-	g.box((0,F-.16,0),(B-.02,.32,L),0)
-	g.box((0,F+.015,0),(B-.22,.03,L-.16),1)
-	g.box((0,F+H/2,-.04*L),(B-.65,H,C),6)
-	g.box((0,roof+.07,-.04*L),(B-.4,.14,C+.25),6)
-	# Cabin windows and vertical mullions, clear neutral glass strips.
-	levels = [F+H*.5] if H<4 else [F+1.18,F+3.2]
-	for y in levels:
-		for sign in (-1,1):
-			x=sign*((B-.65)/2+.008)
-			g.box((x,y,-.04*L),(.015,1.17,C-.7),2)
-			for i in range(1, (7 if lod else 12)):
-				z=aft+.35+(C-.7)*i/(7 if lod else 12)
-				g.box((x+sign*.008,y,z),(.02,1.23,.065),0)
-		g.box((0,y,fore+.01),(B-1.2,1.17,.02),2)
-		g.box((0,y,aft-.01),(B-1.3,1.17,.02),2)
-	# Hollow wheelhouse. The glazing is single-sided outward: no opaque plane across the camera.
-	E=d['eye_forward']; W=.55*B; z0=E-3.25; z1=E+1.25
-	g.box((0,roof+.17,E-1),(W,.34,4.5),6)
-	g.box((0,roof+2.25,E-1),(W+.35,.1,4.85),6)
-	g.box((0,roof+.05,E-1),(W+.35,.1,4.85),1)
-	g.part([(-W/2,roof+.36,z1),(W/2,roof+.36,z1),(W/2-.14,roof+2.2,z1-.18),(-W/2+.14,roof+2.2,z1-.18)],[(0,1,2,3)],2,preserve_winding=True)
-	g.part([(-W/2,roof+.36,z0),(-W/2+.14,roof+2.2,z0+.18),(W/2-.14,roof+2.2,z0+.18),(W/2,roof+.36,z0)],[(0,1,2,3)],2,preserve_winding=True)
+		g.hull(sign*d['separation']/2,d,lod)
+	# Measured underwing, shaped deck edges and explicit sheer; no windage-driven boxes.
+	g.prism(main,d['underwing_height'],lambda z:sheer(d,z)-thick,0)
+	g.prism(main,lambda z:sheer(d,z)-thick,lambda z:sheer(d,z),1)
+	g.prism(cabin,F,U-thick,6)
+	g.upper_deck(d)
+	# Saloon windows follow each side-wall segment, with white mullions.
+	wb,wt = d['window_bottom'],d['window_top']
 	for sign in (-1,1):
-		g.part([(sign*W/2,roof+.36,z0),(sign*W/2,roof+.36,z1),(sign*(W/2-.14),roof+2.2,z1-.18),(sign*(W/2-.14),roof+2.2,z0+.18)],[(3,2,1,0) if sign==1 else (0,1,2,3)],2,preserve_winding=True)
-		for z in (z0,z1):
-			g.rod((sign*W/2,roof+.33,z),(sign*(W/2-.14),roof+2.2,z+(.18 if z==z0 else -.18)),.065,0,4)
-	for x in (-W/6,W/6):
-		g.rod((x,roof+.34,z1+.008),(x,roof+2.2,z1-.175),.035,0,4)
-	# Upper aft passenger deck, seating, rails, and an open bow loading area.
+		points=list(d['cabin_outline'].values())
+		for a,b in zip(points,points[1:]):
+			x0,z0=sign*(a[0]+.012),a[1];x1,z1=sign*(b[0]+.012),b[1]
+			g.part([(x0,wb,z0),(x1,wb,z1),(x1,wt,z1),(x0,wt,z0)],
+				[(0,3,2,1) if sign==1 else (0,1,2,3)],2,preserve_winding=True)
+			count=max(1,round((z1-z0)/(points[-1][1]-points[0][1])*d['window_bays']))
+			for i in range(count+1):
+				t=i/count;x=x0+(x1-x0)*t;z=z0+(z1-z0)*t
+				g.rod((x,wb,z),(x,wt,z),.035,6,4)
+	# Wheelhouse block is independent of the eye. Interior controls are owned elsewhere.
+	w,z0,z1=d['wheelhouse_half_beam'],d['wheelhouse_aft'],d['wheelhouse_forward']
+	outline=mirrored([(w,z0),(w,z1-.65),(w-.30,z1)])
+	g.prism(outline,U,U+d['wheelhouse_sill_height'],6)
+	g.prism(outline,R-.10,R,6)
+	inset=d['wheelhouse_roof_inset'];sill=U+d['wheelhouse_sill_height']
+	for a,b in zip(outline,outline[1:]+outline[:1]):
+		def top(point):
+			x,z=point
+			return (x-math.copysign(inset,x),R-.1,z+inset if z==z0 else z-inset)
+		va=(a[0],sill,a[1]);vb=(b[0],sill,b[1]);ta,tb=top(a),top(b)
+		g.part([va,vb,tb,ta],[(0,3,2,1)],2,preserve_winding=True)
+		g.rod(va,ta,.045,6,4)
+		# Subdivide the forward windscreen without an opaque plane across the eye.
+		if a[1]==z1 and b[1]==z1:
+			for ratio in (.33,.67):
+				g.rod(tuple(va[j]+(vb[j]-va[j])*ratio for j in range(3)),
+					tuple(ta[j]+(tb[j]-ta[j])*ratio for j in range(3)),.03,6,4)
+	# Sponson volume and rubber strip follow the explicit centreline control points.
 	for sign in (-1,1):
-		x=sign*(B/2-.2)
-		g.rail((x,-.48*L),(x,aft-.1),F,lod)
-		g.rail((x,fore+.2),(x,.48*L),F,lod)
-		g.rail((x,aft),(x,z0-.25),roof+.14,lod)
-		g.rail((x,.48*L),(sign*1.2,.48*L),F,lod)
-		g.rail((x,-.48*L),(0,-.48*L),F,lod)
-		for z in [aft+1,aft+3,aft+5]:
-			if z<z0-.8:
-				g.box((sign*(B*.27),roof+.55,z),(1.9,.13,.43),5)
-				if not lod:
-					g.box((sign*(B*.27),roof+.9,z-.23),(1.9,.6,.08),5)
-		# Side landing bollards and longitudinal fender rub strips.
-		for z in (-.43*L,.4*L):
-			g.rod((sign*(B/2-.4),F,z),(sign*(B/2-.4),F+.3,z),.09,3,6)
-			g.rod((sign*(B/2-.4)-.18,F+.29,z),(sign*(B/2-.4)+.18,F+.29,z),.065,3,6)
-	g.rail((-B/2+.2,aft),(B/2-.2,aft),roof+.14,lod)
-	g.box((0,F+.04,.5*L-.8),(2.3,.08,1.6),3)
+		points=list(d['sponson_path'].values())
+		for a,b in zip(points,points[1:]):
+			a=(sign*a[0],a[1],a[2]);b=(sign*b[0],b[1],b[2])
+			g.rod(a,b,d['sponson_depth']/2,0,4)
+			g.rod((a[0]+sign*d['fender_outboard_offset'],a[1],a[2]),(b[0]+sign*d['fender_outboard_offset'],b[1],b[2]),d['fender_radius'],4,4 if lod else 12)
+	# Deck rails follow polygon edges; bow gate opening is left in the centre.
+	for points,base in ((main,F),(upper,U)):
+		for a,b in zip(points,points[1:]+points[:1]):
+			if a[1]==b[1] and a[1]==d['length']/2:
+				for end in (a,b):
+					g.rail((end[0]-math.copysign(.12,end[0]),end[1]-.1),(math.copysign(d['bow_gate_half_width'],end[0]),end[1]-.1),base,lod,d)
+				continue
+			pa=(a[0]-math.copysign(.12,a[0]),a[1]);pb=(b[0]-math.copysign(.12,b[0]),b[1])
+			# No aft/fore rail outside the LOA envelope.
+			pa=(pa[0],min(d['length']/2-.10,max(-d['length']/2+.10,pa[1])))
+			pb=(pb[0],min(d['length']/2-.10,max(-d['length']/2+.10,pb[1])))
+			if points is main and pa[1] != pb[1]:
+				# Saloon walls bound the passenger space; side rails belong only to exposed aft/fore decks.
+				aft,fore=cabin[0][1],max(point[1] for point in cabin)
+				cuts=sorted([0.,1.]+[(z-pa[1])/(pb[1]-pa[1]) for z in (aft,fore) if 0<(z-pa[1])/(pb[1]-pa[1])<1])
+				for t0,t1 in zip(cuts,cuts[1:]):
+					mid=pa[1]+(pb[1]-pa[1])*(t0+t1)/2
+					if aft<mid<fore:continue
+					g.rail(tuple(pa[j]+(pb[j]-pa[j])*t0 for j in range(2)),tuple(pa[j]+(pb[j]-pa[j])*t1 for j in range(2)),base,lod,d)
+			else:g.rail(pa,pb,base,lod,d)
+	# Two aft stairs are explicit endpoints, never derived from windage area.
+	for start,end in zip(d['stair_start'].values(),d['stair_end'].values()):
+		steps=12 if not lod else 6
+		for i in range(steps+1):
+			pos=[start[j]+(end[j]-start[j])*i/steps for j in range(3)]
+			g.box(pos,(.85,.10,.25),5)
+		for side in (-.47,.47):
+			g.rod((start[0]+side,start[1],start[2]),(end[0]+side,end[1],end[2]),.055,5,4)
+			g.rod((start[0]+side,start[1]+1,start[2]),(end[0]+side,end[1]+1,end[2]),.03,5,4)
+	# Raked exhaust enclosures are part of the observed aft superstructure silhouette.
+	for x,y,z in d['exhaust_stacks'].values():
+		w,h,base,top,rake=(d[key] for key in ('exhaust_width','exhaust_height','exhaust_base_length','exhaust_top_length','exhaust_rake'))
+		profile=[(y,z-base/2),(y,z+base/2),(y+h,z+rake+top/2),(y+h,z+rake-top/2)]
+		g.part([(x+side*w/2,py,pz) for side in (-1,1) for py,pz in profile],
+			[(0,3,2,1),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)],6)
+	# Neutral ancillary fittings; dimensions remain explicitly visual detail estimates.
 	if not lod:
-		for z in [(.5*L-.1)-i*.18 for i in range(9)]:
-			g.box((0,F+.085,z),(2.15,.015,.025),5)
-		# Aft companionway/stairs and roof ventilation, visual estimates only.
-		stair_run = max(.6, .5*L + aft - .3)
-		for i in range(11):
-			g.box((-B*.33,F+.15+i*H/11,aft-stair_run+i*(stair_run-.12)/10),(.8,.12,.16),5)
-		for x in (-B*.33-.43,-B*.33+.43):
-			g.rod((x,F+1,aft-stair_run),(x,roof+1,aft-.12),.035,5,6)
-		for z in (aft+1.3,aft+3.2):
-			g.box((0,roof+.3,z),(.85,.32,.9),5)
-			for i in range(5):
-				g.box((-.3+i*.15,roof+.47,z),(.04,.025,.7),3)
-	if not lod:
-		# Stair stringers, posts, bench supports and passenger doors.
-		for x in (-B*.33-.4,-B*.33+.4):
-			g.rod((x,F,aft-stair_run),(x,roof,aft-.12),.075,5,12)
-			g.rod((x,F,aft-stair_run),(x,F+1,aft-stair_run),.035,5,12)
-			g.rod((x,roof,aft-.12),(x,roof+1,aft-.12),.035,5,12)
+		for z in (-7,-4,-1):
+			for x in (-2.2,2.2):
+				g.box((x,U+.48,z),(1.5,.12,.45),5)
+				g.box((x,U+.78,z-.23),(1.5,.55,.08),5)
 		for sign in (-1,1):
-			for z in (aft+1,aft+3,aft+5):
-				for offset in (-.65,.65):
-					g.box((sign*B*.27+offset,roof+.3,z),(.12,.5,.35),5)
-			# Curved forward rubber fender and its mounting strip.
-			points=[(sign*(B/2-.13),F-.2,.23*L),(sign*(B/2-.3),F-.2,.34*L),(sign*(d['separation']/2+.48),F-.2,.43*L),(sign*d['separation']/2,F-.2,.495*L)]
-			for a,b in zip(points,points[1:]):g.rod(a,b,.10,4,16)
-			for z in (z0+1.3,z0+2.7):
-				g.rod((sign*W/2,roof+.36,z),(sign*(W/2-.14),roof+2.2,z),.045,6,8)
-			for z in (-.43*L,.4*L):
-				g.box((sign*(B/2-.4),F+.055,z),(.5,.11,.4),5)
-		# Dark glass door, metal surround and handles on both ends of the main saloon.
-		for z in (aft-.025,fore+.025):
-			g.box((0,F+1.18,z),(1.15,2.28,.045),3)
-			g.box((0,F+1.48,z+(.03 if z>0 else -.03)),(.91,1.35,.025),2)
-			for x in (-.57,.57):g.box((x,F+1.18,z),(.06,2.35,.085),5)
-			g.rod((.4,F+.95,z+.06),(.4,F+1.25,z+.06),.025,5,12)
-		# The ramp has a visible hinge, side plates, tread ribs and a light edge strip.
-		g.rod((-1.1,F+.12,.5*L-1.5),(1.1,F+.12,.5*L-1.5),.08,5,16)
-		for x in (-1.1,1.1):g.box((x,F+.13,.5*L-.8),(.09,.14,1.55),5)
-		g.box((0,F+.11,.5*L-.045),(2.23,.06,.07),6)
-		# Wheelhouse instruments are generic nonfunctional props below the downward sight line.
-		for x in (-W*.33,W*.33):
-			g.box((x,roof+.85,E+.65),(W*.21,.3,.45),3)
-			g.box((x,roof+1.04,E+.65),(.65,.08,.3),2)
-		for x in (-W/3,W/3):
-			g.rod((x,roof+.87,z1+.025),(x+.15,roof+1.75,z1-.09),.018,4,8)
-	# All lantern pedestals coincide with the established layout; colour belongs to SignalLight.
-	m=mounts(d)
-	g.rod((0,roof+2.3,E-1.18),(0,m['ForwardAnchor'][1]-.12,E-1.18),.06,5,6 if lod else 16)
-	g.rod((-.7,roof+3,E-1),(.7,roof+3,E-1),.045,5,6)
+			for z in (-d['length']/2+1.3,d['length']/2-2):
+				x=sign*(d['beam']/2-.65)
+				g.rod((x,F,z),(x,F+.30,z),.08,3,8)
+				g.rod((x-.15,F+.30,z),(x+.15,F+.30,z),.05,3,8)
+	w,h,run=d['boarding_threshold_size']
+	g.box((0,F+h/2,d['length']/2-run/2),(w,h,run),3)
+	# Navigation mounts remain explicit estimates, constrained by placement tests.
+	m=mounts(d);mast=m['Masthead'];anchor=m['ForwardAnchor']
+	g.rod((mast[0],R,mast[2]),(anchor[0],anchor[1]-.12,anchor[2]),.06,5,6 if lod else 12)
 	for name in ('Masthead','PortSidelight','StarboardSidelight','Sternlight'):
 		x,y,z=m[name]
 		g.rod((x,y-.5,z),(x,y-.14,z),.045,3,6)
@@ -237,9 +272,10 @@ def build(d,lod,material):
 	return g.object(material,lod)
 
 
-def palette(out):
-	img=bpy.data.images.new('NeutralPalette',width=8,height=1,alpha=True)
-	img.pixels=[c for rgba in PALETTE for c in rgba]
+def palette(out, surfaces_data):
+	colours=[tuple(m['colour'])+(1.,) for m in surfaces_data]
+	img=bpy.data.images.new('NeutralPalette',width=len(colours),height=1,alpha=True)
+	img.pixels=[c for rgba in colours for c in rgba]
 	img.filepath_raw=str(out/'NeutralPalette.png')
 	img.file_format='PNG'
 	img.save()
@@ -250,12 +286,13 @@ def palette(out):
 	bsdf=nodes.get('Principled BSDF');bsdf.inputs['Roughness'].default_value=.35
 	mat.node_tree.links.new(tex.outputs['Color'],bsdf.inputs['Base Color'])
 	surfaces=[]
-	for i,name in enumerate(('HullWhite','DeckGrey','WindowGlass','DarkMetal','BlackFender','RailMetal','CabinWhite')):
+	for i,source in enumerate(surfaces_data):
+		name=source['name']
 		surface=bpy.data.materials.new(name);surface.use_nodes=True
 		shader=surface.node_tree.nodes.get('Principled BSDF')
-		shader.inputs['Base Color'].default_value=PALETTE[i]
-		shader.inputs['Roughness'].default_value=(.38,.85,.08,.45,.95,.22,.32)[i]
-		shader.inputs['Metallic'].default_value=.8 if i==5 else .25 if i==3 else 0
+		shader.inputs['Base Color'].default_value=colours[i]
+		shader.inputs['Roughness'].default_value=1-source['smoothness']
+		shader.inputs['Metallic'].default_value=source['metal']
 		surfaces.append(surface)
 	return (mat,surfaces)
 
@@ -275,10 +312,10 @@ def receipt(obj,d,m,debug=None):
 		bounds_blender=[list(min(v.co[i] for v in mesh.vertices) for i in range(3)),list(max(v.co[i] for v in mesh.vertices) for i in range(3))])
 
 
-def renders(obj,name,out,d):
+def renders(obj,name,out,d,views=None):
 	scene=bpy.context.scene
-	scene.render.engine='CYCLES';scene.cycles.samples=24
-	scene.render.resolution_x=1200;scene.render.resolution_y=900;scene.render.resolution_percentage=100
+	scene.render.engine='CYCLES';scene.cycles.device='CPU';scene.cycles.samples=24
+	scene.render.resolution_x=1200;scene.render.resolution_y=450 if name=='comparison-profile' else 900;scene.render.resolution_percentage=100
 	scene.world.color=(.2,.2,.2)
 	scene.view_settings.view_transform='AgX'
 	bpy.ops.object.light_add(type='AREA',location=(10,-6,24));key=bpy.context.object;key.data.energy=10000;key.data.shape='DISK';key.data.size=15
@@ -286,7 +323,7 @@ def renders(obj,name,out,d):
 	bpy.ops.object.camera_add();cam=bpy.context.object;scene.camera=cam
 	cam.data.type='ORTHO'
 	target=blender((0,3,0))
-	for view,pos,scale in [('front',(0,7,d['length']*1.5),d['beam']*1.8),('side',(40,5,0),d['length']*1.2),('top',(0,60,.01),d['length']*1.2),('three-quarter',(30,24,38),d['length']*1.32)]:
+	for view,pos,scale in views or [('front',(0,7,d['length']*1.5),d['beam']*1.8),('side',(40,3,0),d['length']*1.2),('top',(0,60,0),d['length']*1.2),('three-quarter',(30,24,38),d['length']*1.32)]:
 		cam.location=blender(pos);cam.rotation_euler=(target-cam.location).to_track_quat('-Z','Y').to_euler()
 		rotation=cam.rotation_euler.to_matrix()
 		projected=[rotation.transposed() @ (obj.matrix_world @ v.co - cam.location) for v in obj.data.vertices]
@@ -304,15 +341,17 @@ def main():
 	a=p.parse_args(sys.argv[sys.argv.index('--')+1:]);a.out.mkdir(parents=True,exist_ok=True)
 	if a.renders:a.renders.mkdir(parents=True,exist_ok=True)
 	bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
-	mat=palette(a.out)
-	manifest={'schema':'ferrysim-models/1','frame':'Unity x starboard, y up, z forward; Blender x starboard, y forward, z up','blender':bpy.app.version_string,'models':{}}
+	surfaces=load_layout('t-class')['materials']
+	assert surfaces==load_layout('k-class')['materials'], 'Shared neutral palette must match'
+	mat=palette(a.out,surfaces)
+	manifest={'schema':'ferrysim-models/2','frame':'Unity x starboard, y up, z forward; Blender x starboard, y forward, z up','blender':bpy.app.version_string,'models':{}}
 	for name in ('t-class','k-class'):
 		d=dimensions(json.loads((ROOT/'vessels'/f'{name}.json').read_text()));m=mounts(d)
 		folder=a.out/name;folder.mkdir(exist_ok=True)
 		for lod in (0,1):
 			obj=build(d,lod,mat)
 			data=receipt(obj,d,m,folder/f'LOD{lod}-geometry.json' if a.receipt_details else None)
-			assert data['triangles']<=(5000 if lod else 50000),data
+			assert data['triangles']<=(5000 if lod else 80000),data
 			empty=[]
 			for mount,pos in m.items():
 				node=bpy.data.objects.new(mount,None);bpy.context.collection.objects.link(node);node.location=blender(pos);empty.append(node)
@@ -321,10 +360,25 @@ def main():
 			bpy.context.view_layer.objects.active=obj
 			fbx=folder/f'LOD{lod}.fbx'
 			bpy.ops.export_scene.fbx(filepath=str(fbx),use_selection=True,object_types={'MESH','EMPTY'},axis_forward='-Z',axis_up='Y',apply_unit_scale=True,bake_space_transform=True,use_mesh_modifiers=True,mesh_smooth_type='FACE',use_tspace=False,bake_anim=False,add_leaf_bones=False,path_mode='STRIP')
+			data['layout_sha256']=hashlib.sha256((ROOT/'art/blender/data'/f'{name}-hull.json').read_bytes()).hexdigest()
+			data['materials']=surfaces
 			data['fbx_sha256']=hashlib.sha256(fbx.read_bytes()).hexdigest();manifest['models'][f'{name}/LOD{lod}']=data
 			print(name,lod,'triangles',data['triangles'],'geometry',data['geometry_sha256'])
-			if a.renders:renders(obj,f'{name}-LOD{lod}',a.renders,d)
+			if a.renders and lod==0:renders(obj,f'{name}-LOD{lod}',a.renders,d)
 			for item in [obj]+empty:bpy.data.objects.remove(item,do_unlink=True)
+	if a.renders:
+		# Render the two original models together; no reference images or compositing.
+		for view,offset,position in (('profile',(0,0,18),(80,3,0)),('plan',(5.5,0,0),(0,90,0))):
+			objects=[]
+			for sign,name in ((-1,'t-class'),(1,'k-class')):
+				d=dimensions(json.loads((ROOT/'vessels'/f'{name}.json').read_text()))
+				obj=build(d,0,mat);obj.location=blender(tuple(sign*x for x in offset));objects.append(obj)
+			bpy.ops.object.select_all(action='DESELECT')
+			for obj in objects:obj.select_set(True)
+			bpy.context.view_layer.objects.active=objects[0]
+			bpy.ops.object.join();obj=bpy.context.object
+			renders(obj,'comparison-'+view,a.renders,d,[(view,position,1)])
+			bpy.data.objects.remove(obj,do_unlink=True)
 	(a.out/'manifest.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
 	(a.out/'audited-classes.json').write_text(json.dumps(audited_classes(ROOT),indent=2,sort_keys=True)+'\n')
 

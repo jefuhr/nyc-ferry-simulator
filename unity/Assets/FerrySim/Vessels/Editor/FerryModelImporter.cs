@@ -39,13 +39,14 @@ namespace FerrySim.Vessels.Editor
 			material.SetFloat("_Smoothness", .3f);
 			material.enableInstancing = true;
 			EditorUtility.SetDirty(material);
+			var repo = Path.GetFullPath(Path.Combine(Application.dataPath, "../.."));
+			var palette = ReadLayout(repo, "t-class").materials;
 			var names = new[] { "HullWhite", "DeckGrey", "WindowGlass", "DarkMetal", "BlackFender", "RailMetal", "CabinWhite" };
-			var colours = new[] { new Color(.82f,.85f,.85f), new Color(.37f,.41f,.43f), new Color(.025f,.055f,.065f),
-				new Color(.19f,.23f,.25f), new Color(.055f,.065f,.07f), new Color(.65f,.69f,.70f), new Color(.93f,.93f,.91f) };
-			var smoothness = new[] { .62f, .15f, .92f, .55f, .05f, .78f, .68f };
 			var surfaces = new Material[names.Length];
 			for (var i = 0; i < names.Length; i++)
 			{
+				if (palette.Length != names.Length || palette[i].name != names[i]) { throw new InvalidDataException("Unexpected neutral material list"); }
+				var colour = palette[i].colour;
 				var surfacePath = Folder + "/Materials/" + names[i] + ".mat";
 				var surface = AssetDatabase.LoadAssetAtPath<Material>(surfacePath);
 				if (surface == null)
@@ -54,18 +55,23 @@ namespace FerrySim.Vessels.Editor
 					AssetDatabase.CreateAsset(surface, surfacePath);
 				}
 
-				surface.SetColor("_BaseColor", colours[i]);
-				surface.SetFloat("_Smoothness", smoothness[i]);
-				surface.SetFloat("_Metallic", i == 5 ? .8f : i == 3 ? .25f : 0f);
+				surface.SetColor("_BaseColor", new Color(colour[0], colour[1], colour[2]));
+				surface.SetFloat("_Smoothness", palette[i].smoothness);
+				surface.SetFloat("_Metallic", palette[i].metal);
 				surface.enableInstancing = true;
 				EditorUtility.SetDirty(surface);
 				surfaces[i] = surface;
 			}
 
-			var repo = Path.GetFullPath(Path.Combine(Application.dataPath, "../.."));
 			foreach (var id in new[] { "t-class", "k-class" })
 			{
-				var d = GreyboxDimensions.From(VesselParametersJson.Load(Path.Combine(repo, "vessels", id + ".json")));
+				var sourceLayout = ReadLayout(repo, id);
+				if (sourceLayout.materials.Length != palette.Length) { throw new InvalidDataException("Class palettes differ"); }
+				for (var i = 0; i < palette.Length; i++)
+				{
+					if (JsonUtility.ToJson(sourceLayout.materials[i]) != JsonUtility.ToJson(palette[i])) { throw new InvalidDataException("Class palettes differ"); }
+				}
+				var d = sourceLayout.values;
 				for (var detail = 0; detail < 2; detail++)
 				{
 					var path = Folder + "/Models/" + id + "/LOD" + detail + ".fbx";
@@ -105,27 +111,22 @@ namespace FerrySim.Vessels.Editor
 						var model = root.AddComponent<FerryModel>();
 						model.ClassId = id;
 						model.Detail = detail;
-						model.Length = (float)d.LengthOverall;
-						model.Beam = (float)d.Beam;
-						model.Draft = (float)d.Draft;
+						model.Length = d.length_overall.value;
+						model.Beam = d.beam.value;
+						model.Draft = -d.baseline_height.value;
 						foreach (var renderer in root.GetComponentsInChildren<Renderer>())
 						{
 							model.Height = Mathf.Max(model.Height, renderer.bounds.max.y);
 						}
 
 						foreach (var transform in root.GetComponentsInChildren<Transform>()) { transform.gameObject.layer = LayerMask.NameToLayer("Vessel"); }
-						// Validate the FBX first, then remove only its metre/centimetre float round-trip noise.
-						// The source values are the same estimates used by Blender and the existing cameras/lights.
-						CanonicalMount(model, "Eye", new Vector3(0, (float)d.BridgeEyeHeight, (float)d.BridgeEyeForward));
-						CanonicalMount(model, "Bow", new Vector3(0, (float)d.Freeboard, (float)(d.LengthOverall * .5)));
-						var layout = VesselLightLayout.ForGreybox(d);
-						CanonicalMount(model, "Masthead", layout.Masthead);
-						CanonicalMount(model, "PortSidelight", layout.PortSidelight);
-						CanonicalMount(model, "StarboardSidelight", layout.StarboardSidelight);
-						CanonicalMount(model, "Sternlight", layout.Sternlight);
-						CanonicalMount(model, "ForwardAnchor", layout.ForwardAnchor);
-						CanonicalMount(model, "AfterAnchor", layout.AfterAnchor);
-						CanonicalMount(model, "AfterMasthead", layout.AfterMasthead);
+						// Validate FBX mount conversion against the same measured layout, then remove only float round-trip noise.
+						CanonicalMount(model, "Eye", Eye(repo, id));
+						CanonicalMount(model, "Bow", new Vector3(0, d.bow_height.value, d.length_overall.value / 2));
+						foreach (var field in typeof(LightValues).GetFields())
+						{
+							CanonicalMount(model, field.Name, Vector(((Point)field.GetValue(d.light_mounts)).value));
+						}
 
 						var output = Folder + "/Resources/FerrySimVessels/" + id;
 						Directory.CreateDirectory(output);
@@ -138,6 +139,60 @@ namespace FerrySim.Vessels.Editor
 
 			AssetDatabase.SaveAssets();
 			AssetDatabase.Refresh();
+		}
+
+		[Serializable] private sealed class Number { public float value; public string source; }
+		[Serializable] private sealed class Point { public float[] value; }
+		[Serializable] private sealed class Surface { public string name; public float[] colour; public float metal, smoothness; }
+		[Serializable] private sealed class LightValues
+		{
+			public Point Masthead, PortSidelight, StarboardSidelight, Sternlight, ForwardAnchor, AfterAnchor, AfterMasthead;
+		}
+		[Serializable] private sealed class Values
+		{
+			public Number length_overall, beam, baseline_height, bow_height, upper_deck_height;
+			public LightValues light_mounts;
+		}
+		[Serializable] private sealed class Layout { public string subject, kind; public int schema_version; public Values values; public Surface[] materials; }
+		[Serializable] private sealed class EyeValues { public Point eye_position, eye_seated, floor_origin; }
+		[Serializable] private sealed class EyeLayout { public EyeValues values; }
+
+		private static Layout ReadLayout(string repo, string id)
+		{
+			var result = JsonUtility.FromJson<Layout>(File.ReadAllText(Path.Combine(repo, "art/blender/data/" + id + "-hull.json")));
+			if (result.schema_version != 1 || result.subject != id || result.kind != "hull" || result.values == null || result.materials == null)
+			{ throw new InvalidDataException("Invalid hull layout for " + id); }
+			foreach (var value in new[] { result.values.length_overall, result.values.beam, result.values.baseline_height, result.values.bow_height })
+			{
+				if (value == null || string.IsNullOrEmpty(value.source) || float.IsNaN(value.value) || float.IsInfinity(value.value))
+				{ throw new InvalidDataException("Missing layout value or provenance for " + id); }
+			}
+			return result;
+		}
+
+		private static Vector3 Vector(float[] values)
+		{
+			if (values == null || values.Length != 3) { throw new InvalidDataException("Expected a three-component mount"); }
+			foreach (var value in values) if (float.IsNaN(value) || float.IsInfinity(value)) { throw new InvalidDataException("Non-finite mount"); }
+			return new Vector3(values[0], values[1], values[2]);
+		}
+
+		private static Vector3 Eye(string repo, string id)
+		{
+			var path = Path.Combine(repo, "art/blender/data/" + id + "-wheelhouse.json");
+			var values = File.Exists(path) ? JsonUtility.FromJson<EyeLayout>(File.ReadAllText(path)).values : null;
+			if (values?.eye_position?.value != null) { return Vector(values.eye_position.value); }
+			if (values?.eye_seated?.value != null)
+			{
+				var floor = Vector(values.floor_origin.value);
+				var eye = Vector(values.eye_seated.value);
+				if (Mathf.Abs(floor.y - ReadLayout(repo, id).values.upper_deck_height.value) > .001f)
+				{ throw new InvalidDataException("Interior floor differs from the hull upper deck"); }
+				return new Vector3(eye.x, floor.y + eye.y, eye.z);
+			}
+			// Eye ownership remains with the interior layout; preserve today's fallback until provided.
+			var d = GreyboxDimensions.From(VesselParametersJson.Load(Path.Combine(repo, "vessels", id + ".json")));
+			return new Vector3(0, (float)d.BridgeEyeHeight, (float)d.BridgeEyeForward);
 		}
 
 		private static void CanonicalMount(FerryModel model, string name, Vector3 expected)

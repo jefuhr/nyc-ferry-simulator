@@ -18,7 +18,8 @@ namespace FerrySim.Vessels
 			var host = Object.Instantiate(prefab, parent, false);
 			host.name = RootName;
 			var model = host.GetComponent<FerryModel>();
-			host.transform.localScale = new Vector3((float)beam == model.Beam ? 1f : (float)(beam / model.Beam),
+			// Own-vessel geometry keeps its measured layout; AIS traffic still scales to reported particulars.
+			host.transform.localScale = detail == 0 ? Vector3.one : new Vector3((float)beam == model.Beam ? 1f : (float)(beam / model.Beam),
 				1f, (float)length == model.Length ? 1f : (float)(length / model.Length));
 			return model;
 		}
