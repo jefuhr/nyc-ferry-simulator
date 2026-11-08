@@ -67,5 +67,358 @@
 			"water_side_crew_reported": false,
 			"limitations": "Crew establishes ramp presence and berth use only, not the side carrying the ramp, depths or clearances. Each face retains the pipeline select_face result; this note does not establish its water side."
 		}
+	],
+	"video_observations": [
+		{
+			"stop_id": "20",
+			"id": "dumbo-west-flood-video-2026-11",
+			"kind": "video-observation",
+			"date": "2026-11-08",
+			"source": "crew video (private), 2026-11",
+			"source_path": "landings/dumbo-west-flood-sw10kt.mp4",
+			"confidence": "low",
+			"statement": "The barge moves from the port-forward view toward the bow; the final view is close to square-on.",
+			"approach_side": "West (caption); bow toward the fendered barge face.",
+			"approach_angle_from_face_normal_deg": {
+				"value": 10,
+				"unit": "deg",
+				"source": "landings/dumbo-west-flood-sw10kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Rough final visual angle, about 0–20 degrees where supplied; camera perspective is not a surveyed vessel heading. Null means not identifiable."
+			},
+			"working_engine": null,
+			"working_engine_note": "Not identifiable: the sanitized silent bow-view clip shows neither control orders nor isolated propeller wash. Turning alone cannot distinguish differential thrust, rudder or current.",
+			"time_from_100m_to_contact_s": {
+				"value": null,
+				"unit": "s",
+				"source": "landings/dumbo-west-flood-sw10kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "No calibrated 100 m crossing and unambiguous first contact are both visible; do not substitute clip duration for this interval."
+			},
+			"reviewed_clip_duration_s": {
+				"value": 46.67,
+				"unit": "s",
+				"source": "landings/dumbo-west-flood-sw10kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Container duration, rounded to 0.01 s; eight evenly spaced frames inspected locally. This is not time from 100 m to contact."
+			},
+			"water_side_crew_reported": false,
+			"limitations": "Observation only; does not authorize a face, berth alias, fender law, engine command, current correction or navigation route."
+		},
+		{
+			"stop_id": "25",
+			"id": "roosevelt-flood-video-2026-11",
+			"kind": "video-observation",
+			"date": "2026-11-08",
+			"source": "crew video (private), 2026-11",
+			"source_path": "landings/roosevelt-flood-s10g15kt.mp4",
+			"confidence": "low",
+			"statement": "The canopy and fender bank draw toward the bow centre as the vessel turns into the face.",
+			"approach_side": "Bow-on toward the covered landing; exact named side is not supplied.",
+			"approach_angle_from_face_normal_deg": {
+				"value": 10,
+				"unit": "deg",
+				"source": "landings/roosevelt-flood-s10g15kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Rough final visual angle, about 0–20 degrees where supplied; camera perspective is not a surveyed vessel heading. Null means not identifiable."
+			},
+			"working_engine": null,
+			"working_engine_note": "Not identifiable: the sanitized silent bow-view clip shows neither control orders nor isolated propeller wash. Turning alone cannot distinguish differential thrust, rudder or current.",
+			"time_from_100m_to_contact_s": {
+				"value": null,
+				"unit": "s",
+				"source": "landings/roosevelt-flood-s10g15kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "No calibrated 100 m crossing and unambiguous first contact are both visible; do not substitute clip duration for this interval."
+			},
+			"reviewed_clip_duration_s": {
+				"value": 50.03,
+				"unit": "s",
+				"source": "landings/roosevelt-flood-s10g15kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Container duration, rounded to 0.01 s; eight evenly spaced frames inspected locally. This is not time from 100 m to contact."
+			},
+			"water_side_crew_reported": false,
+			"limitations": "Observation only; does not authorize a face, berth alias, fender law, engine command, current correction or navigation route."
+		},
+		{
+			"stop_id": "115",
+			"id": "corlears-east-flood-video-2026-11",
+			"kind": "video-observation",
+			"date": "2026-11-08",
+			"source": "crew video (private), 2026-11",
+			"source_path": "landings/corlears-east-flood-s2-3kt.mp4",
+			"confidence": "low",
+			"statement": "A visibly oblique approach straightens toward the ramp and vertical fenders.",
+			"approach_side": "East (caption); bow toward the ramp opening.",
+			"approach_angle_from_face_normal_deg": {
+				"value": 10,
+				"unit": "deg",
+				"source": "landings/corlears-east-flood-s2-3kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Rough final visual angle, about 0–20 degrees where supplied; camera perspective is not a surveyed vessel heading. Null means not identifiable."
+			},
+			"working_engine": null,
+			"working_engine_note": "Not identifiable: the sanitized silent bow-view clip shows neither control orders nor isolated propeller wash. Turning alone cannot distinguish differential thrust, rudder or current.",
+			"time_from_100m_to_contact_s": {
+				"value": null,
+				"unit": "s",
+				"source": "landings/corlears-east-flood-s2-3kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "No calibrated 100 m crossing and unambiguous first contact are both visible; do not substitute clip duration for this interval."
+			},
+			"reviewed_clip_duration_s": {
+				"value": 44.13,
+				"unit": "s",
+				"source": "landings/corlears-east-flood-s2-3kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Container duration, rounded to 0.01 s; eight evenly spaced frames inspected locally. This is not time from 100 m to contact."
+			},
+			"water_side_crew_reported": false,
+			"limitations": "Observation only; does not authorize a face, berth alias, fender law, engine command, current correction or navigation route."
+		},
+		{
+			"stop_id": "115",
+			"id": "corlears-west-ebb-video-2026-11",
+			"kind": "video-observation",
+			"date": "2026-11-08",
+			"source": "crew video (private), 2026-11",
+			"source_path": "landings/corlears-west-ebb-nw2-3kt.mp4",
+			"confidence": "low",
+			"statement": "The canopy and fender bank approach the bow; the clip ends before a clear, unobstructed contact view.",
+			"approach_side": "West (caption); bow toward the ramp opening.",
+			"approach_angle_from_face_normal_deg": {
+				"value": 10,
+				"unit": "deg",
+				"source": "landings/corlears-west-ebb-nw2-3kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Rough final visual angle, about 0–20 degrees where supplied; camera perspective is not a surveyed vessel heading. Null means not identifiable."
+			},
+			"working_engine": null,
+			"working_engine_note": "Not identifiable: the sanitized silent bow-view clip shows neither control orders nor isolated propeller wash. Turning alone cannot distinguish differential thrust, rudder or current.",
+			"time_from_100m_to_contact_s": {
+				"value": null,
+				"unit": "s",
+				"source": "landings/corlears-west-ebb-nw2-3kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "No calibrated 100 m crossing and unambiguous first contact are both visible; do not substitute clip duration for this interval."
+			},
+			"reviewed_clip_duration_s": {
+				"value": 38,
+				"unit": "s",
+				"source": "landings/corlears-west-ebb-nw2-3kt.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Container duration, rounded to 0.01 s; eight evenly spaced frames inspected locally. This is not time from 100 m to contact."
+			},
+			"water_side_crew_reported": false,
+			"limitations": "Observation only; does not authorize a face, berth alias, fender law, engine command, current correction or navigation route."
+		},
+		{
+			"stop_id": "136",
+			"id": "wfc-slip2-northbound-video-2026-11",
+			"kind": "video-observation",
+			"date": "2026-11-08",
+			"source": "crew video (private), 2026-11",
+			"source_path": "landings/wfc-slip2-northbound-night.mp4",
+			"confidence": "low",
+			"statement": "The slip opening approaches centrally between the fender banks; night exposure hides the contact point.",
+			"approach_side": "Northbound into Slip 2 (caption and visible slip numeral); bow-first.",
+			"approach_angle_from_face_normal_deg": {
+				"value": 5,
+				"unit": "deg",
+				"source": "landings/wfc-slip2-northbound-night.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Rough final visual angle, about 0–20 degrees where supplied; camera perspective is not a surveyed vessel heading. Null means not identifiable."
+			},
+			"working_engine": null,
+			"working_engine_note": "Not identifiable: the sanitized silent bow-view clip shows neither control orders nor isolated propeller wash. Turning alone cannot distinguish differential thrust, rudder or current.",
+			"time_from_100m_to_contact_s": {
+				"value": null,
+				"unit": "s",
+				"source": "landings/wfc-slip2-northbound-night.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "No calibrated 100 m crossing and unambiguous first contact are both visible; do not substitute clip duration for this interval."
+			},
+			"reviewed_clip_duration_s": {
+				"value": 28.8,
+				"unit": "s",
+				"source": "landings/wfc-slip2-northbound-night.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Container duration, rounded to 0.01 s; eight evenly spaced frames inspected locally. This is not time from 100 m to contact."
+			},
+			"water_side_crew_reported": false,
+			"limitations": "Observation only; does not authorize a face, berth alias, fender law, engine command, current correction or navigation route."
+		},
+		{
+			"stop_id": "137",
+			"id": "stg-east-video-2026-11",
+			"kind": "video-observation",
+			"date": "2026-11-08",
+			"source": "crew video (private), 2026-11",
+			"source_path": "landings/stg-east-night.mp4",
+			"confidence": "low",
+			"statement": "The initially oblique fender bank becomes more square to the bow gates near the end.",
+			"approach_side": "East (caption); bow toward the illuminated fender face.",
+			"approach_angle_from_face_normal_deg": {
+				"value": 10,
+				"unit": "deg",
+				"source": "landings/stg-east-night.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Rough final visual angle, about 0–20 degrees where supplied; camera perspective is not a surveyed vessel heading. Null means not identifiable."
+			},
+			"working_engine": null,
+			"working_engine_note": "Not identifiable: the sanitized silent bow-view clip shows neither control orders nor isolated propeller wash. Turning alone cannot distinguish differential thrust, rudder or current.",
+			"time_from_100m_to_contact_s": {
+				"value": null,
+				"unit": "s",
+				"source": "landings/stg-east-night.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "No calibrated 100 m crossing and unambiguous first contact are both visible; do not substitute clip duration for this interval."
+			},
+			"reviewed_clip_duration_s": {
+				"value": 27.57,
+				"unit": "s",
+				"source": "landings/stg-east-night.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Container duration, rounded to 0.01 s; eight evenly spaced frames inspected locally. This is not time from 100 m to contact."
+			},
+			"water_side_crew_reported": false,
+			"limitations": "Observation only; does not authorize a face, berth alias, fender law, engine command, current correction or navigation route."
+		},
+		{
+			"stop_id": "87",
+			"id": "pier11-charlie-to-bravo-video-2026-11",
+			"kind": "video-observation",
+			"date": "2026-11-08",
+			"source": "crew video (private), 2026-11",
+			"source_path": "landings/pier11-c-to-b-ebb.mp4",
+			"confidence": "low",
+			"statement": "A turn/reposition is visible before closing on a barge; the clip does not label the charted pontoons.",
+			"approach_side": "Charlie (Brooklyn side) to Bravo (Manhattan side), as captioned.",
+			"approach_angle_from_face_normal_deg": {
+				"value": null,
+				"unit": "deg",
+				"source": "landings/pier11-c-to-b-ebb.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Rough final visual angle, about 0–20 degrees where supplied; camera perspective is not a surveyed vessel heading. Null means not identifiable."
+			},
+			"working_engine": null,
+			"working_engine_note": "Not identifiable: the sanitized silent bow-view clip shows neither control orders nor isolated propeller wash. Turning alone cannot distinguish differential thrust, rudder or current.",
+			"time_from_100m_to_contact_s": {
+				"value": null,
+				"unit": "s",
+				"source": "landings/pier11-c-to-b-ebb.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "No calibrated 100 m crossing and unambiguous first contact are both visible; do not substitute clip duration for this interval."
+			},
+			"reviewed_clip_duration_s": {
+				"value": 59.03,
+				"unit": "s",
+				"source": "landings/pier11-c-to-b-ebb.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Container duration, rounded to 0.01 s; eight evenly spaced frames inspected locally. This is not time from 100 m to contact."
+			},
+			"water_side_crew_reported": false,
+			"limitations": "Observation only; does not authorize a face, berth alias, fender law, engine command, current correction or navigation route."
+		},
+		{
+			"stop_id": "23",
+			"id": "br-west-video-2026-11",
+			"kind": "video-observation",
+			"date": "2026-11-08",
+			"source": "crew video (private), 2026-11",
+			"source_path": "landings/br-west-landing.mp4",
+			"confidence": "low",
+			"statement": "The distant barge enters from starboard and is brought ahead of the bow during a substantial turn.",
+			"approach_side": "West (caption); BR tentatively interpreted as Bay Ridge.",
+			"approach_angle_from_face_normal_deg": {
+				"value": 10,
+				"unit": "deg",
+				"source": "landings/br-west-landing.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Rough final visual angle, about 0–20 degrees where supplied; camera perspective is not a surveyed vessel heading. Null means not identifiable."
+			},
+			"working_engine": null,
+			"working_engine_note": "Not identifiable: the sanitized silent bow-view clip shows neither control orders nor isolated propeller wash. Turning alone cannot distinguish differential thrust, rudder or current.",
+			"time_from_100m_to_contact_s": {
+				"value": null,
+				"unit": "s",
+				"source": "landings/br-west-landing.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "No calibrated 100 m crossing and unambiguous first contact are both visible; do not substitute clip duration for this interval."
+			},
+			"reviewed_clip_duration_s": {
+				"value": 76.67,
+				"unit": "s",
+				"source": "landings/br-west-landing.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Container duration, rounded to 0.01 s; eight evenly spaced frames inspected locally. This is not time from 100 m to contact."
+			},
+			"water_side_crew_reported": false,
+			"limitations": "Observation only; does not authorize a face, berth alias, fender law, engine command, current correction or navigation route."
+		},
+		{
+			"stop_id": null,
+			"id": "stuy-cove-marina-video-2026-11",
+			"kind": "video-observation",
+			"date": "2026-11-08",
+			"source": "crew video (private), 2026-11",
+			"source_path": "landings/stuy-cove-marina.mp4",
+			"confidence": "low",
+			"statement": "Already close to a marina walkway; a short nearly static final view does not establish a 100 m approach.",
+			"approach_side": "Marina north of Stuyvesant Cove, not the public stop.",
+			"approach_angle_from_face_normal_deg": {
+				"value": null,
+				"unit": "deg",
+				"source": "landings/stuy-cove-marina.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Rough final visual angle, about 0–20 degrees where supplied; camera perspective is not a surveyed vessel heading. Null means not identifiable."
+			},
+			"working_engine": null,
+			"working_engine_note": "Not identifiable: the sanitized silent bow-view clip shows neither control orders nor isolated propeller wash. Turning alone cannot distinguish differential thrust, rudder or current.",
+			"time_from_100m_to_contact_s": {
+				"value": null,
+				"unit": "s",
+				"source": "landings/stuy-cove-marina.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "No calibrated 100 m crossing and unambiguous first contact are both visible; do not substitute clip duration for this interval."
+			},
+			"reviewed_clip_duration_s": {
+				"value": 10,
+				"unit": "s",
+				"source": "landings/stuy-cove-marina.mp4",
+				"method": "video-estimate",
+				"confidence": "low",
+				"note": "Container duration, rounded to 0.01 s; eight evenly spaced frames inspected locally. This is not time from 100 m to contact."
+			},
+			"water_side_crew_reported": false,
+			"limitations": "Observation only; does not authorize a face, berth alias, fender law, engine command, current correction or navigation route."
+		}
 	]
 }

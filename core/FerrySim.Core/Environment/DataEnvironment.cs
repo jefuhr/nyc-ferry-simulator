@@ -11,7 +11,7 @@ namespace FerrySim.Core.Env
 	/// series at that time, blended between gauges by inverse distance squared. Outside every grid, or where the bed is
 	/// unknown, it is the depth set's outside depth, and the miss is counted.</item>
 	/// <item>Current: from the <see cref="ICurrentField"/>, by default the provisional <see cref="StationBlendCurrentField"/>.</item>
-	/// <item>Wind: uniform, the first wind station's mean wind at that time; gusts are not applied.</item>
+	/// <item>Wind: uniform, the first wind station's mean wind at that time; synthetic gust timing requires explicit opt-in.</item>
 	/// <item>Before or after the pack's coverage window, every value is held at the window's nearer edge, and the hold is counted.</item>
 	/// </list>
 	/// Every sample is deterministic and allocation-free. <see cref="Coverage"/> reports the misses and holds for the UI.
@@ -22,6 +22,9 @@ namespace FerrySim.Core.Env
 		private readonly DepthSet _depth;
 		private readonly ICurrentField _currentField;
 		private readonly VectorSeries _wind;
+		private readonly WindStation _windStation;
+		private readonly double[] _gustTimes;
+		private readonly GustOptions _gusts;
 		private readonly ScalarSeries[] _gauges;
 		private readonly double[] _gaugeNorth;
 		private readonly double[] _gaugeEast;
@@ -44,13 +47,26 @@ namespace FerrySim.Core.Env
 		{
 		}
 
-		/// <summary>The pack's day with a given current field.</summary>
+		/// <summary>The pack's day with a given current field, keeping the original API and mean-wind behavior.</summary>
 		public DataEnvironment(EnvironmentPack pack, DateTimeOffset scenarioStartUtc, ICurrentField currentField)
+			: this(pack, scenarioStartUtc, currentField, null)
+		{
+		}
+
+		/// <summary>The pack's day with an explicit current field and optional synthetic gust settings.</summary>
+		public DataEnvironment(EnvironmentPack pack, DateTimeOffset scenarioStartUtc, ICurrentField currentField, GustOptions gusts)
 		{
 			Pack = pack ?? throw new ArgumentNullException(nameof(pack));
 			_currentField = currentField ?? throw new ArgumentNullException(nameof(currentField));
 			_depth = pack.Depth;
-			_wind = pack.WindStations.Count > 0 ? pack.WindStations[0].Velocity : null;
+			_windStation = pack.WindStations.Count > 0 ? pack.WindStations[0] : null;
+			_wind = _windStation?.Velocity;
+			_gusts = gusts;
+			if (gusts != null && gusts.Enabled && _wind != null)
+			{
+				_gustTimes = new double[_wind.Count];
+				for (var i = 0; i < _gustTimes.Length; i++) _gustTimes[i] = _wind.Time(i);
+			}
 			var gauges = pack.WaterLevelStations;
 			_gauges = new ScalarSeries[gauges.Count];
 			_gaugeNorth = new double[gauges.Count];
@@ -108,7 +124,13 @@ namespace FerrySim.Core.Env
 		public HorizontalVector SampleWind(double north, double east, double time)
 		{
 			var packTime = HeldPackTime(time);
-			return _wind == null ? HorizontalVector.Zero : _wind.Sample(packTime);
+			var mean = _wind == null ? HorizontalVector.Zero : _wind.Sample(packTime);
+			if (_gustTimes == null) return mean;
+			SeriesTime.Locate(_gustTimes, packTime, out var lower, out var upper, out var fraction);
+			var a = _windStation.Gust(lower);
+			// Missing endpoints remain unknown; never fill a missing gust with a measured neighbour.
+			var ceiling = lower == upper || fraction == 0 ? a : a + fraction * (_windStation.Gust(upper) - a);
+			return _gusts.Apply(mean, ceiling, packTime);
 		}
 
 		public double SampleDepth(double north, double east, double time)

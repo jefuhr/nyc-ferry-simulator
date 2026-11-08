@@ -1,0 +1,50 @@
+{
+	"schema": "ferrysim-crew-landing/1",
+	"id": "dumbo-west-flood",
+	"source": "crew video (private), 2026-11",
+	"source_path": "landings/dumbo-west-flood-sw10kt.mp4",
+	"observation_id": "dumbo-west-flood-video-2026-11",
+	"base_revision": "1b640653bc1401384a7ee83ef5b20b91687f2b73",
+	"vessel_file": "t-class.json",
+	"vessel_basis": "Standardized T-class trial; the vessel class in the clip is not confirmed.",
+	"mapping": {
+		"stop_id": "20",
+		"berth_id": "derived-barge:20:02262FAC44F71C82",
+		"confidence": "low",
+		"note": "West is not a separate repo berth; the only main face is a provisional standardized proxy."
+	},
+	"blocked_reason": null,
+	"date": "2025-07-14",
+	"minute": 0,
+	"tide": {
+		"caption_phase": "flood",
+		"reference_station": "NYH1920",
+		"phase_toward_deg": 47,
+		"method": "First six-minute sample of the cached day with speed >=0.5 m/s and direction within 45 degrees of the documented phase; unspecified captions use local midnight without asserting a phase.",
+		"source": "docs/research/environment-stations.csv; data/processed/harbor/env/days/2025-07-14/currents.csv",
+		"note": "A representative simulation day, not the recording date or observed current speed."
+	},
+	"wind": {
+		"from_degrees": 225,
+		"mean_knots": 10,
+		"gust_knots": null,
+		"note": "2.5 kn is the midpoint of the caption range 2–3 kn; null means unreported and the standardized trial uses still air."
+	},
+	"start_bow_clearance_m": 400,
+	"waypoint_bow_clearance_m": 60,
+	"maximum_steps": 180000,
+	"driver": "HarborJourneyControls unchanged, including its initial 55 m astern departure phase. Standardized bow-on proxy, not recovered helm orders or a recreation of the filmed path.",
+	"gusts_enabled": false,
+	"gust_seed": 20261108,
+	"fender_overrides_enabled": false,
+	"fender_overrides": [],
+	"fender_note": "No per-landing stiffness, damping, friction or compression measurements support a distinct surface yet. Existing surfaces remain unchanged.",
+	"checks": {
+		"first_contact_knots_max": 1.5,
+		"peak_force_n_max": 414000,
+		"bottoming_allowed": false,
+		"hold_steps": 1000,
+		"hold_sog_knots_exclusive_max": 0.1,
+		"heading_error_degrees_max": 5
+	}
+}

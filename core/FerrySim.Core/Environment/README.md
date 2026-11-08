@@ -59,12 +59,37 @@ Simulation time t, seconds since the scenario start, reads the pack at t + (scen
 |---|---|
 | `SampleDepth` | Water level minus bed elevation. The level is each gauge's series at that time, blended between gauges by inverse distance squared (at a gauge it is that gauge's). The bed is bilinear between the four surrounding cell centres of the first grid that contains the point (`DepthSet.GridAt`). Outside every grid, or where one of the four is unknown (NaN), it is the depth set's `outside_depth_m`, and the miss is counted |
 | `SampleCurrent` | The `ICurrentField` at that pack time |
-| `SampleWind` | Uniform: the first wind station's mean wind at that time; gusts are not applied |
+| `SampleWind` | Uniform: the first wind station's mean wind at that time; gusts are off unless `GustOptions.Enabled` is explicitly set |
 | `SampleWaterLevel`, `SampleBedElevation` | The two parts of the depth, for rendering the water surface and charts |
 
 A series is read linearly between samples up to 1800 s apart. Across a longer gap it holds the nearer sample (the earlier one at the midpoint), and before its first or after its last sample it holds that sample. `EnvironmentPack.HeldGaps` lists where that happens inside the coverage window.
 
 Every sample is deterministic and allocation-free once the pack is loaded. The per-time caches (station values at the last time asked for) and the counters belong to one simulation thread.
+
+## Optional gust application
+
+The existing constructors still return mean wind bit-for-bit. To opt in, pass a `GustOptions`
+as the fourth argument to `DataEnvironment`, after the explicitly selected current field:
+
+```csharp
+var field = new StationBlendCurrentField(pack.CurrentStations);
+var environment = new DataEnvironment(pack, scenarioStartUtc, field,
+	new GustOptions(enabled: true, seed: 20261108, intervalSeconds: 5));
+```
+
+Keep the same current-field choice as the baseline (use `ChannelCurrentField` for a pack with
+a field). Gusts use the first wind station's reported gust speed as a ceiling. They keep its
+mean direction and add a bounded excursion between the mean and that ceiling. Missing
+gust endpoints, ceilings below the mean, missing wind and zero mean wind leave the mean
+unchanged. The gust series follows the same 1800 s interpolation and nearer-sample hold
+rules as the wind. Both known endpoints are needed to interpolate a gust ceiling.
+
+The seed hashes absolute pack-time knots, five seconds apart by default, then interpolates
+with a smoothstep. There is no random state, sampling-order dependence or allocation per
+sample. Restarting at another scenario epoch therefore samples the same wind at the same
+absolute time. Coverage-edge holds apply to gust timing too. This is an explicitly synthetic
+sensitivity experiment: neither the seed, the five-second interval, nor the pulse shape is
+inferred from the crew videos. Record all three settings with any experimental run.
 
 ## The current field
 
@@ -99,7 +124,7 @@ The vessel dynamics samples the current along the hull as well as at its referen
 
 - Packs without a field fall back to the station blend, which crosses land.
 - The channel field knows the water's shape, not its dynamics: no eddies, and the same pattern on the flood and the ebb. Its limitations are in data-pipeline/ferrydata/environment/README.md.
-- Wind is uniform and taken as the 10 m wind `IEnvironment` asks for: no correction from the sensor's height, no gusts, no shielding.
+- Wind is uniform and taken as the 10 m wind `IEnvironment` asks for: no correction from the sensor's height and no shielding. Optional gust timing is synthetic, not measured turbulence.
 - `outside_depth_m` is returned as it is, without the tide.
 - A point between two grids that do not meet belongs to neither and falls back to the outside depth. Grids that share their edge rows of centres leave no such gap, as the harbor's tile grids do.
 - The daylight-saving check knows the US rule from 2007 only.
