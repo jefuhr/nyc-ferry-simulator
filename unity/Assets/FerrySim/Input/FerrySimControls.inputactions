@@ -1150,6 +1150,34 @@
 					"isPartOfComposite": false
 				}
 			]
+		},
+		{
+			"name": "Audio",
+			"id": "1d7f60aa-83c9-5095-b827-0b63b15765bd",
+			"actions": [
+				{
+					"name": "Mute",
+					"type": "Button",
+					"id": "be268bca-5504-5a44-b518-4e278269238d",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				}
+			],
+			"bindings": [
+				{
+					"name": "",
+					"id": "a111bb23-c71c-51fd-bcb8-d5126a7449a7",
+					"path": "<Keyboard>/v",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Mute",
+					"isComposite": false,
+					"isPartOfComposite": false
+				}
+			]
 		}
 	],
 	"controlSchemes": [

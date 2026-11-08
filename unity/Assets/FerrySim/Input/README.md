@@ -6,9 +6,10 @@ Owner: **unity-sim-bridge-controls**. Assembly `FerrySim.Unity.Input` (namespace
 
 | File | Role |
 |---|---|
-| `FerrySimControls.inputactions` | The "Helm" and "Displays" action maps and default bindings |
+| `FerrySimControls.inputactions` | The "Helm", "Displays" and "Audio" action maps and default bindings |
 | `HelmInputMapper` | Turns the Helm map into lever and helm positions, plus button events |
 | `DisplayInputMapper` | Turns the Displays map into events for the harbor's chartplotter and radar |
+| `AudioInputMapper` | Turns the independent Audio map into a session-only mute event |
 | `ControlInputSmoother` | Device-independent noise smoothing, once per physics step |
 | `HelmInputController` | MonoBehaviour: the runner's `IControlInputSource`; buttons pause and reset the run, cycle the camera and sound the horn |
 
@@ -55,6 +56,10 @@ Keyboard only, for the harbor wheelhouse's chartplotter and radar (`Harbor/Integ
 The CPA alarm keys (v0.3.1) are display settings on the chartplotter view: they are never recorded and never part of a run's digest, they are separate from the run's own `TrafficAlarmLimits`, they hold across runs in a session and reset to 0.1 NM and 6 min, unmuted, at launch. Muting hides only the alarm treatment (the banner and the row and target fill); the targets and their CPA/TCPA values stay. Like every display key they act only while the chartplotter is shown, and never while the scenario picker is open (typing digits or G into the landing search changes nothing on the plotter).
 
 Palettes follow the scene's light: at night both displays hold their night palette, so F and X cycle back to it at once; by day a palette chosen with F or X holds until the next night resets it.
+
+## The Audio map
+
+`Mute` on **V** toggles the runtime audio bus (`Audio/README.md`). The rig enables its private Audio map independently of Helm and Displays, so the mute key remains available while the picker holds the helm, except while a text field has focus (typing a landing name must not change mute). It is a session setting, never a recorded input. V is free across all action maps and the camera, bow-view and picker reservations; the existing global key-map tests and audio tests guard against clashes. Player benchmarks pass `-ferrysim-audio-volume 0`, which leaves the audio graph running with zero master gain.
 
 ## How positions are set
 

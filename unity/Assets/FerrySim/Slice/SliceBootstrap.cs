@@ -238,6 +238,7 @@ namespace FerrySim.Slice
 
 			TrafficView = traffic;
 			traffic.Connect(runner, worldFrame != null ? worldFrame.transform : null, water, cameraRig != null ? cameraRig.GetComponent<Camera>() : null, sun);
+			FerrySim.Audio.FerryAudioRig.Attach(runner, helm, cameraRig, sun, traffic, () => wheelhouseUI != null ? wheelhouseUI.Document : null);
 
 			// The panel and the HUD read the run's water and air, and the picker chooses from this catalog and starts runs
 			// through this launcher, never a scene search's guess.

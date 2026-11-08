@@ -1,0 +1,6 @@
+{
+	"name": "FerrySim.Audio.Tests.PlayMode",
+	"references": ["FerrySim.Audio", "FerrySim.Audio.Clips", "FerrySim.Core", "FerrySim.Unity.Sim", "FerrySim.Unity.World", "FerrySim.Unity.Input", "FerrySim.Unity.Traffic", "FerrySim.Unity.UI", "FerrySim.Harbor.Runtime", "FerrySim.Harbor.Integration", "FerrySim.World.HarborTiles", "Unity.InputSystem"],
+	"optionalUnityReferences": ["TestAssemblies"],
+	"autoReferenced": false
+}

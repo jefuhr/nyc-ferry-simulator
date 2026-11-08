@@ -2,6 +2,7 @@
 	"name": "FerrySim.Unity.Slice",
 	"rootNamespace": "FerrySim.Slice",
 	"references": [
+		"FerrySim.Audio",
 		"FerrySim.Core",
 		"FerrySim.Core.Serialization",
 		"FerrySim.Unity.Sim",

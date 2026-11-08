@@ -1,0 +1,6 @@
+{
+	"name": "FerrySim.Audio.Editor",
+	"references": ["FerrySim.Audio.Clips"],
+	"includePlatforms": ["Editor"],
+	"autoReferenced": true
+}

@@ -1,0 +1,5 @@
+{
+	"name": "FerrySim.Audio",
+	"references": ["FerrySim.Audio.Clips", "FerrySim.Core", "FerrySim.Unity.Sim", "FerrySim.Unity.World", "FerrySim.Unity.Input", "FerrySim.Unity.Traffic", "Unity.InputSystem"],
+	"autoReferenced": true
+}
