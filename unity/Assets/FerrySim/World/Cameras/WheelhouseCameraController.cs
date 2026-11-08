@@ -87,18 +87,24 @@ namespace FerrySim.World
 		{
 			if (mount != null && mount.transform.parent != _mountParent) BindRunner();
 			if (_runner == null || _runner.Parameters == null || mount == null) return;
+			var dimensions = GreyboxDimensions.From(_runner.Parameters);
 			if (!ReferenceEquals(_parameters, _runner.Parameters))
 			{
 				_parameters = _runner.Parameters;
-				var dimensions = GreyboxDimensions.From(_parameters);
 				_bowForward = dimensions.LengthOverall * .45;
-				// The mount already has a down tilt; express the eye-to-deck ray in its frame before adding head look.
-				var direction = Quaternion.Inverse(mount.transform.localRotation) * new Vector3(0,
-					(float)(dimensions.Freeboard - dimensions.BridgeEyeHeight), (float)(_bowForward - dimensions.BridgeEyeForward));
-				_bowYaw = Mathf.Clamp(Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg, mount.YawLimits.x, mount.YawLimits.y);
-				_bowPitch = Mathf.Clamp(Mathf.Atan2(-direction.y, Mathf.Sqrt(direction.x * direction.x + direction.z * direction.z)) * Mathf.Rad2Deg,
-					mount.PitchLimits.x, mount.PitchLimits.y);
 			}
+			// Use the model eye, including a changed seated/standing pose. Keep the legacy fallback's
+			// double subtraction before float conversion so its direction remains exactly unchanged.
+			var eye = mount.transform.localPosition;
+			var greyboxEye = new Vector3(0, (float)dimensions.BridgeEyeHeight, (float)dimensions.BridgeEyeForward);
+			var offset = eye.Equals(greyboxEye)
+				? new Vector3(0, (float)(dimensions.Freeboard - dimensions.BridgeEyeHeight), (float)(_bowForward - dimensions.BridgeEyeForward))
+				: new Vector3(-eye.x, (float)(dimensions.Freeboard - eye.y), (float)(_bowForward - eye.z));
+			// The mount already has a down tilt; express the eye-to-deck ray in its frame before adding head look.
+			var direction = Quaternion.Inverse(mount.transform.localRotation) * offset;
+			_bowYaw = Mathf.Clamp(Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg, mount.YawLimits.x, mount.YawLimits.y);
+			_bowPitch = Mathf.Clamp(Mathf.Atan2(-direction.y, Mathf.Sqrt(direction.x * direction.x + direction.z * direction.z)) * Mathf.Rad2Deg,
+				mount.PitchLimits.x, mount.PitchLimits.y);
 			var state = _runner.State;
 			var distance = BowLookState.FaceDistance(mount.ApproachFaces, _faces, state.North, state.East, state.Heading, _bowForward);
 			_bow.UpdateApproach(distance, System.Math.Sqrt(state.Surge * state.Surge + state.Sway * state.Sway), AutomaticBowEnabled);

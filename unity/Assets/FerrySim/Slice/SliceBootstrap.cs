@@ -502,7 +502,7 @@ namespace FerrySim.Slice
 
 		/// <summary>
 		/// Puts the wheelhouse eye at the helm of the run's vessel, as the scene builder put it for the T-class: the eye height
-		/// and forward position of <see cref="GreyboxDimensions"/> from the vessel file, tilted as built. Only a mount aboard the
+		/// and forward position from the interior Eye mount, with GreyboxDimensions as fallback, tilted as built. Only a mount aboard the
 		/// vessel moves.
 		/// </summary>
 		private void PlaceWheelhouseEye()
@@ -513,8 +513,7 @@ namespace FerrySim.Slice
 				return;
 			}
 
-			var eye = GreyboxDimensions.From(runner.Parameters);
-			mount.transform.localPosition = new Vector3(0f, (float)eye.BridgeEyeHeight, (float)eye.BridgeEyeForward);
+			WheelhouseControlsView.PlaceEye(runner.transform, mount, runner.Parameters, runner);
 		}
 
 		/// <summary>

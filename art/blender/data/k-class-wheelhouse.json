@@ -1,0 +1,324 @@
+{
+	"schema_version": 1,
+	"subject": "k-class",
+	"kind": "wheelhouse",
+	"notes": "Crew reference photos/video (private), 2026-11; builder general arrangement (private). Photo vessel class is unconfirmed; T-class uses transferred low-confidence photo estimates. Neutral original geometry only. All placements are provisional pending crew measurements. Enclosure floor, roof, width and fore/aft limits are canonical hull-layout datums; the embedded numeric snapshots support builds before the hull files are synced and retain their confidence.",
+	"values": {
+		"footprint": {
+			"value": [
+				2.55,
+				2.4,
+				3.955398
+			],
+			"unit": "m",
+			"source": "art/blender/data/k-class-hull.json",
+			"method": "known-dimension",
+			"confidence": "low",
+			"note": "Derived cache: width, roof minus upper deck, fore minus aft. Generator resolves the canonical hull datum fields rather than independent shell estimates."
+		},
+		"floor_origin": {
+			"value": [
+				0,
+				4.9,
+				6.614159
+			],
+			"unit": "m",
+			"source": "art/blender/data/k-class-hull.json",
+			"method": "simulator-estimate",
+			"confidence": "low",
+			"note": "Derived cache: centreline, upper_deck_height, midpoint of fore/aft enclosure limits. Individual vertical confidence is retained in upper_deck_height."
+		},
+		"console_size": {
+			"value": [
+				2.39,
+				0.95,
+				0.6
+			],
+			"unit": "m",
+			"source": "wheelhouse/console-centre-engines.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "Console height and depth estimated against approximate 0.30 m engine displays; no confirmed equipment model."
+		},
+		"panel_height": {
+			"value": 0.34,
+			"unit": "m",
+			"source": "wheelhouse/console-centre-engines.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "Upper panel above desk; bow visibility requires confirmation of elevated helm seating."
+		},
+		"eye_seated": {
+			"value": [
+				-0.28,
+				1.8,
+				-0.7
+			],
+			"unit": "m",
+			"source": "wheelhouse/console-centre-engines.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "x from centreline, y above canonical upper deck, z offset aft of canonical wheelhouse_fore_z. Elevated helm eye estimate adjusted for unobstructed bow sightline; requires crew measurement. Eye moved 0.15 m forward with the helm chair after checking the actual automatic-bow target at 45 percent LOA, retaining the required clear line of sight."
+		},
+		"eye_standing": {
+			"value": [
+				-0.28,
+				1.98,
+				-0.7
+			],
+			"unit": "m",
+			"source": "wheelhouse/console-centre-engines.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "x from centreline, y above canonical upper deck, z offset aft of canonical wheelhouse_fore_z. Elevated helm eye estimate adjusted for unobstructed bow sightline; requires crew measurement. Eye moved 0.15 m forward with the helm chair after checking the actual automatic-bow target at 45 percent LOA, retaining the required clear line of sight."
+		},
+		"window_sill": {
+			"value": 1.12,
+			"unit": "m",
+			"source": "wheelhouse/console-stbd-radios.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "Height above floor; no glass mesh, exterior owns glazing."
+		},
+		"engine_display_size": {
+			"value": [
+				0.3,
+				0.22,
+				0.04
+			],
+			"unit": "m",
+			"source": "wheelhouse/console-centre-engines.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "Approximate equipment envelope, not a verified manufacturer dimension."
+		},
+		"navigation_display_size": {
+			"value": [
+				0.48,
+				0.3,
+				0.055
+			],
+			"unit": "m",
+			"source": "wheelhouse/console-stbd-radios.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "Unbranded screen aperture; independent RenderTexture material."
+		},
+		"lever_height": {
+			"value": 0.21,
+			"unit": "m",
+			"source": "wheelhouse/console-centre-engines.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "Twin engine control head handle travel is a visual estimate."
+		},
+		"lever_travel": {
+			"value": 35,
+			"unit": "deg",
+			"source": "landings/controls-kclass-nfu-ffu-jog-levers.mp4",
+			"method": "video-estimate",
+			"confidence": "low",
+			"note": "Visual only; animation uses normalized applied engine commands."
+		},
+		"helm_travel": {
+			"value": 35,
+			"unit": "deg",
+			"source": "landings/controls-kclass-nfu-ffu-jog-levers.mp4",
+			"method": "video-estimate",
+			"confidence": "low",
+			"note": "Core has one helm command, no independent NFU mode or jog demand; NFU levers remain neutral."
+		},
+		"seat_size": {
+			"value": [
+				0.53,
+				0.13,
+				0.53
+			],
+			"unit": "m",
+			"source": "wheelhouse/console-lower-panels.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "Elevated helm seat; aft companion seat placement is provisional."
+		},
+		"port_engine_screen": {
+			"value": [
+				-0.3,
+				1.12,
+				-0.226
+			],
+			"unit": "m",
+			"source": "wheelhouse/console-centre-engines.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed."
+		},
+		"starboard_engine_screen": {
+			"value": [
+				0.3,
+				1.12,
+				-0.226
+			],
+			"unit": "m",
+			"source": "wheelhouse/console-centre-engines.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed."
+		},
+		"plotter_screen": {
+			"value": [
+				-0.8843,
+				1.12,
+				-0.255
+			],
+			"unit": "m",
+			"source": "wheelhouse/console-centre-engines.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed."
+		},
+		"radar_screen": {
+			"value": [
+				0.8126,
+				1.12,
+				-0.255
+			],
+			"unit": "m",
+			"source": "wheelhouse/console-centre-engines.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed."
+		},
+		"port_lever": {
+			"value": [
+				0.4916,
+				1.05,
+				-0.49
+			],
+			"unit": "m",
+			"source": "wheelhouse/console-centre-engines.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed."
+		},
+		"starboard_lever": {
+			"value": [
+				0.6556,
+				1.05,
+				-0.49
+			],
+			"unit": "m",
+			"source": "wheelhouse/console-centre-engines.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed."
+		},
+		"helm_ffu": {
+			"value": [
+				-0.55,
+				1.005,
+				-0.27
+			],
+			"unit": "m",
+			"source": "wheelhouse/console-centre-engines.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed. Base moved forward within the console after eye-view review, keeping the full neutral grip ahead of the helm eye and visible within the existing look limits; position remains an unmeasured photo estimate."
+		},
+		"port_nfu": {
+			"value": [
+				-0.2,
+				1.005,
+				-0.33
+			],
+			"unit": "m",
+			"source": "wheelhouse/console-centre-engines.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed. Base moved forward within the console after eye-view review, keeping the full neutral grip ahead of the helm eye and visible within the existing look limits; position remains an unmeasured photo estimate."
+		},
+		"starboard_nfu": {
+			"value": [
+				0.12,
+				1.005,
+				-0.33
+			],
+			"unit": "m",
+			"source": "wheelhouse/console-centre-engines.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed. Base moved forward within the console after eye-view review, keeping the full neutral grip ahead of the helm eye and visible within the existing look limits; position remains an unmeasured photo estimate."
+		},
+		"helm_seat": {
+			"value": [
+				-0.28,
+				0.96,
+				-0.97
+			],
+			"unit": "m",
+			"source": "wheelhouse/console-lower-panels.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed. Chair moved 0.15 m forward with the estimated helm eye."
+		},
+		"companion_seat": {
+			"value": [
+				0.7,
+				0.96,
+				-3.055398
+			],
+			"unit": "m",
+			"source": "wheelhouse/console-lower-panels.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "x from centreline, y above floor, z offset aft of forward window. Companion seat placement is provisional."
+		},
+		"upper_deck_height": {
+			"confidence": "low",
+			"method": "simulator-estimate",
+			"note": "Canonical hull datum snapshot from reference-import, 2026-11-08; live sibling hull layout overrides it when present. Unmeasured K-class assumption: estimated main deck 2.5 m plus T-class 2.4 m deck rise. Needs K-class profile.",
+			"source": "art/blender/data/k-class-hull.json",
+			"unit": "m",
+			"value": 4.9
+		},
+		"wheelhouse_roof_height": {
+			"confidence": "low",
+			"method": "simulator-estimate",
+			"note": "Canonical hull datum snapshot from reference-import, 2026-11-08; live sibling hull layout overrides it when present. Unmeasured K-class assumption: estimated upper deck 4.9 m plus T-class 2.4 m roof rise. Needs K-class profile.",
+			"source": "art/blender/data/k-class-hull.json",
+			"unit": "m",
+			"value": 7.3
+		},
+		"wheelhouse_fore_z": {
+			"confidence": "low",
+			"method": "known-dimension",
+			"note": "Canonical hull datum snapshot from reference-import, 2026-11-08; live sibling hull layout overrides it when present. Forward curved enclosure wall on upper-deck plan, near frame 18.9; not-to-scale plan.",
+			"source": "art/blender/data/k-class-hull.json",
+			"unit": "m",
+			"value": 8.591858
+		},
+		"wheelhouse_aft_z": {
+			"confidence": "low",
+			"method": "known-dimension",
+			"note": "Canonical hull datum snapshot from reference-import, 2026-11-08; live sibling hull layout overrides it when present. Aft control-space enclosure wall on upper-deck plan, near frame 15.6; not-to-scale plan.",
+			"source": "art/blender/data/k-class-hull.json",
+			"unit": "m",
+			"value": 4.63646
+		},
+		"wheelhouse_width": {
+			"confidence": "low",
+			"method": "known-dimension",
+			"note": "Canonical hull datum snapshot from reference-import, 2026-11-08; live sibling hull layout overrides it when present. Parallel enclosure side walls; not-to-scale plan.",
+			"source": "art/blender/data/k-class-hull.json",
+			"unit": "m",
+			"value": 2.55
+		},
+		"console_side_clearance": {
+			"value": 0.08,
+			"unit": "m",
+			"source": "wheelhouse/console-centre-engines.jpg",
+			"method": "photo-estimate",
+			"confidence": "low",
+			"note": "Gap from each enclosure side to the console; console width follows canonical hull enclosure width minus two gaps."
+		}
+	}
+}

@@ -79,7 +79,7 @@ namespace FerrySim.Harbor.EditorTools
 			VesselGreybox.Build(vesselObject.transform, dimensions, hull, cabin);
 			var mount = New("Wheelhouse mount", vesselObject.transform).AddComponent<WheelhouseCameraMount>();
 			Set(mount, "fieldOfView", settings.wheelhouseFieldOfView);
-			mount.transform.localPosition = new Vector3(0, (float)dimensions.BridgeEyeHeight, (float)dimensions.BridgeEyeForward);
+			WheelhouseControlsView.PlaceEye(vesselObject.transform, mount, vessel);
 			mount.transform.localRotation = Quaternion.Euler(8, 0, 0);
 
 			var cameraObject = New("Main Camera", reference.transform);

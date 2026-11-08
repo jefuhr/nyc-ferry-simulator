@@ -148,12 +148,10 @@ namespace FerrySim.Slice.Authoring
 			var dimensions = GreyboxDimensions.From(vessel);
 			VesselGreybox.Build(vesselObject.transform, dimensions, hull, cabin);
 
-			// The world's wheelhouse mount goes aboard at the helm eye point, facing the bow (World/README.md), tilted
-			// down a little: the panel covers the bottom 42% of the screen, and a level eye 6.9 m up would lose the
-			// water under it out to about 65 m ahead (28 m with the tilt). Head look still turns the view within the
-			// mount's limits.
+			// Prefer the interior's helm Eye, retaining the greybox fallback and the existing down tilt.
+			// Head look continues to use the camera mount's yaw/pitch limits.
 			mount.transform.SetParent(vesselObject.transform, false);
-			mount.transform.localPosition = new Vector3(0f, (float)dimensions.BridgeEyeHeight, (float)dimensions.BridgeEyeForward);
+			WheelhouseControlsView.PlaceEye(vesselObject.transform, mount, vessel);
 			mount.transform.localRotation = Quaternion.Euler(WheelhouseDownTiltDegrees, 0f, 0f);
 			rig.ChaseTarget = vesselObject.transform;
 			rig.WheelhouseMount = mount;
