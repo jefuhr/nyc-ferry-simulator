@@ -120,13 +120,17 @@ class PickIntegrityTests(unittest.TestCase):
 	def test_image_bounds_are_checked_without_private_image(self):
 		p = picks(); p["image_size"] = [100, 100]
 		with self.assertRaises(ValueError): reference.measure(p)
-	def test_seed_files_reproduce_without_private_media(self):
+	def test_seed_values_survive_in_hull_files_without_private_media(self):
+		# The exterior owns the hull files after seeding and may add values; every seeded measurement must stay as measured.
 		for name in ("t-class", "k-class"):
 			with self.subTest(name=name):
 				pick = reference.load_json(REPO / f"tools/reference/picks/{name}.json")
-				expected = reference.load_json(REPO / f"art/blender/data/{name}-hull.json")
-				self.assertEqual(reference.measure(pick), expected)
-				self.assertEqual(reference.validate(expected, SCHEMA, REPO / "vessels"), [])
+				hull = reference.load_json(REPO / f"art/blender/data/{name}-hull.json")
+				seeded = reference.measure(pick)
+				self.assertEqual({k: hull[k] for k in ("schema_version", "subject", "kind")}, {k: seeded[k] for k in ("schema_version", "subject", "kind")})
+				for key, value in seeded["values"].items():
+					self.assertEqual(hull["values"].get(key), value, key)
+				self.assertEqual(reference.validate(hull, SCHEMA, REPO / "vessels"), [])
 	def test_strict_json_rejects_duplicates_and_nan(self):
 		with tempfile.TemporaryDirectory() as tmp:
 			p = Path(tmp).resolve() / "bad.json"
