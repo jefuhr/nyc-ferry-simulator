@@ -31,7 +31,7 @@ namespace FerrySim.Audio.Tests.PlayMode
 		private InputSettings _savedInputSettings, _testInputSettings;
 		private HideFlags _savedInputFlags;
 		private static string Repo => Path.GetFullPath(Path.Combine(Application.dataPath, "../.."));
-		private static string Evidence => Path.Combine(Repo, "artifacts/ferry-audio/playmode");
+		private static string Evidence => Path.Combine(Repo, "artifacts/ferry-audio-real/playmode");
 
 		[UnitySetUp]
 		public IEnumerator Load()
@@ -182,6 +182,38 @@ namespace FerrySim.Audio.Tests.PlayMode
 				Assert.That(_audio.Bus.Muted, Is.True, "typing a landing name cannot change mute");
 			}
 			finally { field.RemoveFromHierarchy(); InputSystem.RemoveDevice(keyboard); }
+		}
+
+		[UnityTest, Category("HarborRealData")]
+		public IEnumerator PreparedMonoClipsKeepTheirLevelAfterUnityImport()
+		{
+			yield return Start();
+			var lines = "slot,prepared_rms,imported_rms,ratio\n";
+			foreach (var id in new[] { "engine-idle", "clutch-engage", "clutch-disengage" })
+			{
+				var resolved = AudioClipProvider.Shared.Get(id);
+				Assert.That(resolved.IsPlaceholder, Is.False, id);
+				var clip = resolved.Clip;
+				Assert.That(clip.loadType, Is.EqualTo(AudioClipLoadType.DecompressOnLoad), id);
+				var imported = new float[clip.samples];
+				Assert.That(clip.GetData(imported, 0), Is.True, id);
+				var bytes = File.ReadAllBytes(Path.Combine(Application.dataPath, "FerrySim/Audio/Clips", id + ".wav"));
+				// audio-prep writes a canonical 44-byte PCM16 mono header, independently checked by its tests.
+				Assert.That(bytes.Length, Is.EqualTo(44 + imported.Length * 2), id);
+				double preparedEnergy = 0, importedEnergy = 0;
+				for (var i = 0; i < imported.Length; i++)
+				{
+					var prepared = BitConverter.ToInt16(bytes, 44 + i * 2) / 32768.0;
+					preparedEnergy += prepared * prepared;
+					importedEnergy += imported[i] * imported[i];
+				}
+				var preparedRms = Math.Sqrt(preparedEnergy / imported.Length);
+				var importedRms = Math.Sqrt(importedEnergy / imported.Length);
+				var ratio = importedRms / preparedRms;
+				lines += FormattableString.Invariant($"{id},{preparedRms:R},{importedRms:R},{ratio:R}\n");
+				File.WriteAllText(Path.Combine(Evidence, "import-levels.csv"), lines);
+				Assert.That(ratio, Is.InRange(.85, 1.15), id + " codec tolerance; importing must not peak-normalize the prepared mono signal");
+			}
 		}
 
 		[UnityTest, Category("HarborRealData")]

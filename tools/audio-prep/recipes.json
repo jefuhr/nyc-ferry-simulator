@@ -1,0 +1,201 @@
+{
+	"version": 1,
+	"date": "2026-11-08",
+	"source_credit": "crew recording (private), 2026-11",
+	"privacy": "Patterns intentionally omit private vessel identifiers; a unique match and SHA-256 pin the exact sheet-relative source. Only sheets/audio may be read.",
+	"toolchain": "ffmpeg 9.0.2; Python standard library; PCM16 mono 22050 Hz; rebuild determinism scoped to the same toolchain",
+	"clips": [
+		{
+			"id": "engine-idle",
+			"source": {
+				"pattern": "audio/*_Engine_Clutch_Reverse_Thrust_and_Idle.wav",
+				"sha256": "1d9adaa54e1ae3774516344e0cba0290e94486f3d0764987496eab20051ca993"
+			},
+			"source_rate": 44100,
+			"start_frame": 617400,
+			"end_frame": 970200,
+			"sample_rate": 22050,
+			"target_lufs": -26,
+			"loop": true,
+			"crossfade_frames": 5512,
+			"fade_frames": 0,
+			"highpass_hz": 30,
+			"lowpass_hz": 0,
+			"selection_note": "Stable lower-energy stretch in clutch/reverse/idle recording. Idle identity is provisional until crew listening review; no measured rpm attached."
+		},
+		{
+			"id": "engine-mid",
+			"placeholder": true,
+			"loop": true,
+			"sample_rate": 22050,
+			"target_lufs": null,
+			"reason": "No timestamped, stable mid-rpm reference is identified. Retain procedural fallback; do not relabel a high-rpm run."
+		},
+		{
+			"id": "engine-high",
+			"source": {
+				"pattern": "audio/*_1900_RPMs_*.wav",
+				"sha256": "1e56532c33c034d6c2b729bb74d9638d535096a35df1b63d691f75277c74e21f"
+			},
+			"source_rate": 48000,
+			"start_frame": 2880000,
+			"end_frame": 3648000,
+			"sample_rate": 22050,
+			"target_lufs": -26,
+			"loop": true,
+			"crossfade_frames": 11025,
+			"fade_frames": 0,
+			"highpass_hz": 30,
+			"lowpass_hz": 0,
+			"selection_note": "Approximately 1900 rpm underway per crew label. Interior window avoids recording starts and ends; rpm is not telemetry."
+		},
+		{
+			"id": "engine-low",
+			"source": {
+				"pattern": "audio/*_Exhaust_Full_Ahead.wav",
+				"sha256": "df4a9731a040ab4c5d9ae94b871dc27041c0558db53bdf5aa0ffa284c9b1a18f"
+			},
+			"source_rate": 44100,
+			"start_frame": 88200,
+			"end_frame": 617400,
+			"sample_rate": 22050,
+			"target_lufs": -30,
+			"loop": true,
+			"crossfade_frames": 11025,
+			"fade_frames": 0,
+			"highpass_hz": 30,
+			"lowpass_hz": 240,
+			"selection_note": "Full-ahead exhaust used as the existing loaded low-end layer, highpass 30 Hz and lowpass 240 Hz. A separate exhaust voice would duplicate load response and require runtime scope."
+		},
+		{
+			"id": "propeller",
+			"source": {
+				"pattern": "audio/*_Engine_Full_Ahead.wav",
+				"sha256": "c29f2f919b220fb0d6d249d515a557d5849abe8c9b78238bb66a5d9e04019994"
+			},
+			"source_rate": 44100,
+			"start_frame": 1764000,
+			"end_frame": 2381400,
+			"sample_rate": 22050,
+			"target_lufs": -30,
+			"loop": true,
+			"crossfade_frames": 11025,
+			"fade_frames": 0,
+			"highpass_hz": 180,
+			"lowpass_hz": 2400,
+			"selection_note": "Full-ahead recording band-limited as a shaft/load texture proxy, not an isolated or calibrated propeller recording."
+		},
+		{
+			"id": "clutch-engage",
+			"source": {
+				"pattern": "audio/*_Engine_Clutch_Reverse_Thrust_and_Idle.wav",
+				"sha256": "1d9adaa54e1ae3774516344e0cba0290e94486f3d0764987496eab20051ca993"
+			},
+			"source_rate": 44100,
+			"start_frame": 1704465,
+			"end_frame": 1775025,
+			"sample_rate": 22050,
+			"target_lufs": -26,
+			"loop": false,
+			"crossfade_frames": 0,
+			"fade_frames": 662,
+			"highpass_hz": 30,
+			"lowpass_hz": 0,
+			"selection_note": "Candidate load-on transition: RMS rises near 39 s. Event timing and clutch identity require crew listening; no claim that the transient is an isolated gearbox solenoid."
+		},
+		{
+			"id": "clutch-disengage",
+			"source": {
+				"pattern": "audio/*_Engine_Clutch_Reverse_Thrust_and_Idle.wav",
+				"sha256": "1d9adaa54e1ae3774516344e0cba0290e94486f3d0764987496eab20051ca993"
+			},
+			"source_rate": 44100,
+			"start_frame": 1900710,
+			"end_frame": 1971270,
+			"sample_rate": 22050,
+			"target_lufs": -26,
+			"loop": false,
+			"crossfade_frames": 0,
+			"fade_frames": 662,
+			"highpass_hz": 30,
+			"lowpass_hz": 0,
+			"selection_note": "Candidate load-off transition: energy drops near 44 s. Event timing and clutch identity require crew listening."
+		},
+		{
+			"id": "horn",
+			"placeholder": true,
+			"loop": true,
+			"sample_rate": 22050,
+			"target_lufs": null,
+			"reason": "No consented horn source supplied."
+		},
+		{
+			"id": "water-wash",
+			"source": {
+				"pattern": "audio/*_Water-Waves_Sounds.wav",
+				"sha256": "f2e0708067772c3fa1b93d571d1a9ef1b365b69021d95950a9fa0a798d4d9a9f"
+			},
+			"source_rate": 44100,
+			"start_frame": 2822400,
+			"end_frame": 3880800,
+			"sample_rate": 22050,
+			"target_lufs": -32,
+			"loop": true,
+			"crossfade_frames": 11025,
+			"fade_frames": 0,
+			"highpass_hz": 60,
+			"lowpass_hz": 0,
+			"selection_note": "One contiguous window in the second take, entirely after the join around 38 s."
+		},
+		{
+			"id": "wind",
+			"placeholder": true,
+			"loop": true,
+			"sample_rate": 22050,
+			"target_lufs": null,
+			"reason": "No isolated consented source for this slot supplied."
+		},
+		{
+			"id": "gull",
+			"placeholder": true,
+			"loop": false,
+			"sample_rate": 22050,
+			"target_lufs": null,
+			"reason": "No isolated consented source for this slot supplied."
+		},
+		{
+			"id": "fender",
+			"placeholder": true,
+			"loop": false,
+			"sample_rate": 22050,
+			"target_lufs": null,
+			"reason": "No isolated consented source for this slot supplied."
+		},
+		{
+			"id": "barge-creak",
+			"placeholder": true,
+			"loop": false,
+			"sample_rate": 22050,
+			"target_lufs": null,
+			"reason": "No isolated consented source for this slot supplied."
+		}
+	],
+	"unused_sources": [
+		{
+			"pattern": "audio/*_Steer_Control_Panel_Alarm.wav",
+			"reason": "Steering alarm has no event or runtime slot in current graph. Defer rather than make a silent orphan slot; no new slot introduced."
+		},
+		{
+			"pattern": "audio/*_1897_RPM_*.wav",
+			"reason": "Additional approximately 1897 rpm reference retained for future listening comparisons."
+		},
+		{
+			"pattern": "audio/*_2023_RPM_*.wav",
+			"reason": "Additional approximately 2023 rpm reference retained for future listening comparisons."
+		},
+		{
+			"pattern": "audio/*_1945_RPM_*.wav",
+			"reason": "Entire 1945 rpm recording excluded to avoid the documented extinguisher-latch rattle; no unreviewed rattle-free interval assumed."
+		}
+	]
+}
