@@ -60,7 +60,9 @@ namespace FerrySim.Radar
 			for (var i = _offsets[spoke]; i < _offsets[spoke + 1]; i++)
 			{
 				var p = _indices[i]; var bin = _radial[p] * _engine.Scale.Bins / 1024;
-				_pixels[p] = _levels[Math.Min(255, (int)(_engine.Echo(spoke, bin) * 255))];
+				// A non-finite echo paints as no return: on x64 a NaN cast to int is int.MinValue, outside the palette.
+				var echo = _engine.Echo(spoke, bin);
+				_pixels[p] = _levels[echo >= 1 ? 255 : echo > 0 ? (int)(echo * 255) : 0];
 			}
 		}
 		/// <summary>How many times the texture was uploaded; evidence that a measured window really drew.</summary>

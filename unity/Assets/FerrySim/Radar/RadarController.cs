@@ -81,14 +81,14 @@ namespace FerrySim.Radar
 			Engine.Advance(time, frame, _targets, PresentTargets); View.Refresh(pose.Heading);
 		}
 		private void BindTraffic(TrafficRun traffic) { _traffic = traffic; _targets = traffic == null ? Array.Empty<RadarTarget>() : new RadarTarget[traffic.Pack.Vessels.Count]; }
-		/// <summary>Estimates height from AIS length (no height field): 15% of length, bounded 3–35 m.</summary>
+		/// <summary>Uses the drawn hull's length (AIS where plausible, else the class default, never NaN) and estimates height from it (no height field): 15% of length, bounded 3–35 m.</summary>
 		public static int SampleTraffic(TrafficRun traffic, double time, RadarTarget[] targets)
 		{
 			if (traffic == null) return 0; var count = 0;
 			for (var i = 0; i < traffic.Pack.Vessels.Count; i++)
 			{
 				if (i == traffic.RemovedVessel || !traffic.Replay.TrySample(i, traffic.PackTime(time), out var sample)) continue;
-				var vessel = traffic.Pack.Vessels[i]; var length = vessel.Length;
+				var vessel = traffic.Pack.Vessels[i]; var length = vessel.Hull.Length;
 				targets[count++] = new RadarTarget(sample.North, sample.East, length, Math.Max(3, Math.Min(35, length * .15)));
 			}
 			return count;
