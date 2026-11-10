@@ -1,0 +1,14 @@
+{
+	"name": "FerrySim.Unity.Prompts",
+	"rootNamespace": "FerrySim.Prompts",
+	"references": ["FerrySim.Core", "FerrySim.Unity.Sim", "FerrySim.Unity.Vessels", "FerrySim.Unity.World", "FerrySim.Unity.Input", "FerrySim.Unity.UI", "Unity.InputSystem"],
+	"includePlatforms": [],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": false,
+	"precompiledReferences": [],
+	"autoReferenced": true,
+	"defineConstraints": [],
+	"versionDefines": [],
+	"noEngineReferences": false
+}
