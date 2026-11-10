@@ -1,0 +1,287 @@
+{
+	"version": 1,
+	"vesselClass": "t-class",
+	"sources": {
+		"published-rating": "Published designer machinery particulars, transcribed in vessels/t-class.json; speed and power only"
+	},
+	"idleSpeed": {
+		"value": 68.06784,
+		"unit": "rad/s",
+		"source": "simulator estimate: existing dynamics idle setting, vessel setting unconfirmed",
+		"confidence": "estimated"
+	},
+	"ratedSpeed": {
+		"value": 219.9115,
+		"unit": "rad/s",
+		"source": "published-rating",
+		"confidence": "published"
+	},
+	"ratedPower": {
+		"value": 598797.0,
+		"unit": "W",
+		"source": "published-rating",
+		"confidence": "published"
+	},
+	"busVoltage": {
+		"value": 27.6,
+		"unit": "V",
+		"source": "simulator estimate: nominal 24 V charging bus, no electrical dynamics model",
+		"confidence": "estimated"
+	},
+	"loadTimeConstant": {
+		"value": 0.5,
+		"unit": "s",
+		"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+		"confidence": "estimated"
+	},
+	"oilPressure": {
+		"idle": {
+			"value": 200000,
+			"unit": "N/m2",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"speedRise": {
+			"value": 200000,
+			"unit": "N/m2",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"loadRise": {
+			"value": 50000,
+			"unit": "N/m2",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"timeConstant": {
+			"value": 1,
+			"unit": "s",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		}
+	},
+	"coolantTemperature": {
+		"idle": {
+			"value": 348.15,
+			"unit": "K",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"speedRise": {
+			"value": 10,
+			"unit": "K",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"loadRise": {
+			"value": 5,
+			"unit": "K",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"timeConstant": {
+			"value": 60,
+			"unit": "s",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		}
+	},
+	"exhaustTemperature": {
+		"idle": {
+			"value": 423.15,
+			"unit": "K",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"speedRise": {
+			"value": 100,
+			"unit": "K",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"loadRise": {
+			"value": 300,
+			"unit": "K",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"timeConstant": {
+			"value": 5,
+			"unit": "s",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		}
+	},
+	"boostPressure": {
+		"idle": {
+			"value": 0,
+			"unit": "N/m2",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"speedRise": {
+			"value": 10000,
+			"unit": "N/m2",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"loadRise": {
+			"value": 180000,
+			"unit": "N/m2",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"timeConstant": {
+			"value": 1.5,
+			"unit": "s",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		}
+	},
+	"fuelRate": {
+		"idle": {
+			"value": 0.001,
+			"unit": "kg/s",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"speedRise": {
+			"value": 0.001,
+			"unit": "kg/s",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"loadRise": {
+			"value": 0.03592782,
+			"unit": "kg/s",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"timeConstant": {
+			"value": 2,
+			"unit": "s",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		}
+	},
+	"gearOilPressure": {
+		"idle": {
+			"value": 1500000,
+			"unit": "N/m2",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"speedRise": {
+			"value": 100000,
+			"unit": "N/m2",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"loadRise": {
+			"value": 100000,
+			"unit": "N/m2",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		},
+		"timeConstant": {
+			"value": 0.5,
+			"unit": "s",
+			"source": "simulator estimate: generic warm marine diesel display curve; vessel measurements unavailable",
+			"confidence": "estimated"
+		}
+	},
+	"alarms": [
+		{
+			"id": "navigation.shallow-water",
+			"group": "Navigation",
+			"condition": "shallow-water",
+			"threshold": {
+				"value": 1.524,
+				"unit": "m",
+				"source": "simulator estimate: display alarm threshold for a condition already present in the simulation",
+				"confidence": "estimated"
+			},
+			"delaySeconds": {
+				"value": 0,
+				"unit": "s",
+				"source": "simulator estimate: steering grace beyond full hard-over transit; other conditions immediate",
+				"confidence": "estimated"
+			},
+			"reRaiseSeconds": {
+				"value": 0,
+				"unit": "s",
+				"source": "simulator estimate: repeat disabled unless explicitly configured",
+				"confidence": "estimated"
+			}
+		},
+		{
+			"id": "hull.grounding",
+			"group": "Hull",
+			"condition": "grounding",
+			"threshold": {
+				"value": 0,
+				"unit": "m",
+				"source": "simulator estimate: display alarm threshold for a condition already present in the simulation",
+				"confidence": "estimated"
+			},
+			"delaySeconds": {
+				"value": 0,
+				"unit": "s",
+				"source": "simulator estimate: steering grace beyond full hard-over transit; other conditions immediate",
+				"confidence": "estimated"
+			},
+			"reRaiseSeconds": {
+				"value": 0,
+				"unit": "s",
+				"source": "simulator estimate: repeat disabled unless explicitly configured",
+				"confidence": "estimated"
+			}
+		},
+		{
+			"id": "hull.contact",
+			"group": "Hull",
+			"condition": "contact",
+			"threshold": {
+				"value": 0,
+				"unit": "N",
+				"source": "simulator estimate: display alarm threshold for a condition already present in the simulation",
+				"confidence": "estimated"
+			},
+			"delaySeconds": {
+				"value": 0,
+				"unit": "s",
+				"source": "simulator estimate: steering grace beyond full hard-over transit; other conditions immediate",
+				"confidence": "estimated"
+			},
+			"reRaiseSeconds": {
+				"value": 0,
+				"unit": "s",
+				"source": "simulator estimate: repeat disabled unless explicitly configured",
+				"confidence": "estimated"
+			}
+		},
+		{
+			"id": "steering.failure",
+			"group": "Steering",
+			"condition": "steering",
+			"threshold": {
+				"value": 0.02,
+				"unit": "rad",
+				"source": "simulator estimate: display alarm threshold for a condition already present in the simulation",
+				"confidence": "estimated"
+			},
+			"delaySeconds": {
+				"value": 2,
+				"unit": "s",
+				"source": "simulator estimate: steering grace beyond full hard-over transit; other conditions immediate",
+				"confidence": "estimated"
+			},
+			"reRaiseSeconds": {
+				"value": 0,
+				"unit": "s",
+				"source": "simulator estimate: repeat disabled unless explicitly configured",
+				"confidence": "estimated"
+			}
+		}
+	]
+}

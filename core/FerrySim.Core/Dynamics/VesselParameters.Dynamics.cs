@@ -282,6 +282,9 @@ namespace FerrySim.Core.Dynamics
 
 		/// <summary>Steering gear slew rate, rad/s.</summary>
 		public ParameterValue SteeringRate { get; set; }
+
+		/// <summary>Optional jog release policy; absent means return-to-tiller.</summary>
+		public ParameterText NfuRelease { get; set; }
 	}
 
 	/// <summary>Twin spade rudders, one behind each propeller.</summary>

@@ -14,17 +14,22 @@ namespace FerrySim.Cli
 	public sealed class TraceInputs
 	{
 		public const string HeaderRow = "time_s,port_lever,starboard_lever,helm";
+		public const string NfuHeaderRow = HeaderRow + ",nfu_jog";
 
 		private readonly long[] _steps;
 		private readonly ControlInputs[] _controls;
 
-		private TraceInputs(long[] steps, ControlInputs[] controls)
+		private TraceInputs(long[] steps, ControlInputs[] controls, bool includesJog)
 		{
 			_steps = steps;
 			_controls = controls;
+			IncludesJog = includesJog;
 		}
 
 		public int Count => _steps.Length;
+
+		/// <summary>Chosen by the trace header, including a version 2 trace whose jog stays zero.</summary>
+		public bool IncludesJog { get; }
 
 		/// <summary>Time of the last row, seconds; the replay ends there unless a duration is given.</summary>
 		public double EndTime => SimulationClock.TimeAtStep(_steps[_steps.Length - 1]);
@@ -66,6 +71,7 @@ namespace FerrySim.Cli
 			var steps = new List<long>();
 			var controls = new List<ControlInputs>();
 			var sawHeader = false;
+			var includesJog = false;
 			for (var i = 0; i < lines.Length; i++)
 			{
 				var line = lines[i].Trim();
@@ -76,9 +82,11 @@ namespace FerrySim.Cli
 
 				if (!sawHeader)
 				{
-					if (line.Replace(" ", string.Empty) != HeaderRow)
+					var header = line.Replace(" ", string.Empty);
+					includesJog = header == NfuHeaderRow;
+					if (header != HeaderRow && !includesJog)
 					{
-						throw new CliException($"{label}: line {i + 1}: expected the header row '{HeaderRow}'.");
+						throw new CliException($"{label}: line {i + 1}: expected the header row '{HeaderRow}' or '{NfuHeaderRow}'.");
 					}
 
 					sawHeader = true;
@@ -86,25 +94,27 @@ namespace FerrySim.Cli
 				}
 
 				var cells = line.Split(',');
-				if (cells.Length != 4)
+				var width = includesJog ? 5 : 4;
+				if (cells.Length != width)
 				{
-					throw new CliException($"{label}: line {i + 1}: expected 4 columns, found {cells.Length}.");
+					throw new CliException($"{label}: line {i + 1}: expected {width} columns, found {cells.Length}.");
 				}
 
 				var time = Cell(cells[0], label, i, "time_s");
 				var port = Cell(cells[1], label, i, "port_lever");
 				var starboard = Cell(cells[2], label, i, "starboard_lever");
 				var helm = Cell(cells[3], label, i, "helm");
+				var jog = includesJog ? Cell(cells[4], label, i, "nfu_jog") : 0.0;
 				if (time < 0.0)
 				{
 					throw new CliException($"{label}: line {i + 1}: time_s cannot be negative.");
 				}
 
-				foreach (var value in new[] { port, starboard, helm })
+				foreach (var value in new[] { port, starboard, helm, jog })
 				{
 					if (value < -1.0 || value > 1.0)
 					{
-						throw new CliException($"{label}: line {i + 1}: lever and helm values must be within [-1, 1].");
+						throw new CliException($"{label}: line {i + 1}: lever, helm and jog values must be within [-1, 1].");
 					}
 				}
 
@@ -115,7 +125,7 @@ namespace FerrySim.Cli
 				}
 
 				steps.Add(step);
-				controls.Add(new ControlInputs(port, starboard, helm));
+				controls.Add(new ControlInputs(port, starboard, helm, jog));
 			}
 
 			if (!sawHeader)
@@ -128,7 +138,7 @@ namespace FerrySim.Cli
 				throw new CliException($"{label}: no data rows.");
 			}
 
-			return new TraceInputs(steps.ToArray(), controls.ToArray());
+			return new TraceInputs(steps.ToArray(), controls.ToArray(), includesJog);
 		}
 
 		private static double Cell(string text, string label, int lineIndex, string column)

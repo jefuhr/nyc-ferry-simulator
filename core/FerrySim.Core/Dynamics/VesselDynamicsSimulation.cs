@@ -1,5 +1,6 @@
 using System;
 using FerrySim.Core.Contracts;
+using FerrySim.Core.Instruments;
 
 namespace FerrySim.Core.Dynamics
 {
@@ -107,7 +108,7 @@ namespace FerrySim.Core.Dynamics
 	/// bed above the keel takes the same substeps with the bed friction of <see cref="GroundingModel"/>.
 	/// </para>
 	/// </summary>
-	public sealed class VesselDynamicsSimulation : ISimulation
+	public sealed class VesselDynamicsSimulation : ISimulation, IInstrumentTaps
 	{
 		/// <summary>
 		/// Most structure segments one step takes into account: the first this many the geometry returns within
@@ -154,6 +155,7 @@ namespace FerrySim.Core.Dynamics
 		private readonly double _yawInertia;
 		private readonly double _centreOfGravityX;
 		private readonly double _centreOfGravityHeight;
+		private readonly double _instrumentLoadScale;
 
 		private long _stepCount;
 		private double _north;
@@ -236,6 +238,7 @@ namespace FerrySim.Core.Dynamics
 			var engine = new EngineModel(parameters, _propeller.ShaftInertia, gearRatio);
 			var efficiency = Required.InRange(transmission.GearEfficiency, "transmission.gearEfficiency", 0.5, 1.0);
 			var capacity = Required.Positive(transmission.ClutchTorqueCapacity, "transmission.clutchTorqueCapacity");
+			_instrumentLoadScale = 1.0 / gearRatio / efficiency;
 			_portDriveline = new Driveline(engine, _propeller, gearRatio, efficiency, capacity);
 			_starboardDriveline = new Driveline(engine, _propeller, gearRatio, efficiency, capacity);
 			var shift = new ShiftSettings(parameters);
@@ -295,6 +298,20 @@ namespace FerrySim.Core.Dynamics
 
 		/// <summary>Rudder angle the steering gear is driving toward, rad.</summary>
 		public double RudderOrder => _steering.Order;
+
+		public bool NfuActive => _steering.NfuActive;
+
+		public double HardOverAngle => _steering.HardOverAngle;
+
+		public double SteeringRate => _steering.SteeringRate;
+
+		/// <summary>Transmitted brake torque divided by the available full-load torque, clamped to [0, 1].</summary>
+		public double PortEngineLoad => InstrumentLoad(_portDriveline);
+
+		public double StarboardEngineLoad => InstrumentLoad(_starboardDriveline);
+
+		private double InstrumentLoad(Driveline driveline) => Math.Clamp(
+			Math.Abs(driveline.ClutchTorque) * _instrumentLoadScale / Engine.MaximumBrakeTorque(driveline.EngineSpeed), 0.0, 1.0);
 
 		/// <summary>
 		/// False samples the current at the reference point only, as v0.1.0 did, kept so the two can be compared in one
@@ -396,7 +413,7 @@ namespace FerrySim.Core.Dynamics
 			}
 
 			_factors = _shallow.Evaluate(_depth, hullSurge);
-			_steering.Step(controls.Helm, dt);
+			_steering.Step(controls.Helm, controls.Jog, dt);
 			_rudderAngle = _steering.Angle;
 
 			_portControl.Step(controls.PortLever, _portDriveline.EngineSpeed, dt);

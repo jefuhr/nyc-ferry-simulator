@@ -142,7 +142,7 @@ namespace FerrySim.Cli
 		public static RunResult RunTrace(RunSetup setup, TraceInputs trace, string traceName, double? fixedDuration)
 		{
 			var environment = setup.Environment.Create();
-			var recorder = new CsvRecorder();
+			var recorder = new CsvRecorder(trace.IncludesJog);
 			var sim = CreateSimulation(setup, environment, 0.0);
 			var duration = fixedDuration ?? trace.EndTime;
 			Drive(sim, new TraceController(trace, duration), recorder, setup.StepsPerSample, recordFinalRow: true);

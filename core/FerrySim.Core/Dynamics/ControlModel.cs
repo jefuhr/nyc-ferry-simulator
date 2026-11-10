@@ -310,11 +310,15 @@ namespace FerrySim.Core.Dynamics
 	public sealed class SteeringGear
 	{
 		private readonly bool _followUp;
+		private readonly bool _holdOnRelease;
+		private bool _holding;
+		private double _jogHelm;
 
 		public SteeringGear(VesselParameters parameters)
 		{
 			var controls = Required.Section(parameters.Controls, "controls");
 			_followUp = Required.Text(controls.SteeringMode, "controls.steeringMode", "follow-up", "non-follow-up") == "follow-up";
+			_holdOnRelease = controls.NfuRelease != null && Required.Text(controls.NfuRelease, "controls.nfuRelease", "return-to-tiller", "hold-until-tiller-moves") == "hold-until-tiller-moves";
 			HardOverAngle = Required.InRange(controls.HardOverAngle, "controls.hardOverAngle", 0.1, 1.2);
 			SteeringRate = Required.Positive(controls.SteeringRate, "controls.steeringRate");
 		}
@@ -329,14 +333,39 @@ namespace FerrySim.Core.Dynamics
 		/// <summary>The rudder angle currently ordered, rad.</summary>
 		public double Order { get; private set; }
 
+		public bool NfuActive { get; private set; }
+
 		public void Reset()
 		{
+			NfuActive = false;
+			_holding = false;
+			_jogHelm = 0.0;
 			Angle = 0.0;
 			Order = 0.0;
 		}
 
-		public void Step(double helm, double dt)
+		public void Step(double helm, double dt) => Step(helm, 0.0, dt);
+
+		/// <summary>A held jog overrides the tiller at the full steering rate, regardless of axis magnitude.</summary>
+		public void Step(double helm, double jog, double dt)
 		{
+			NfuActive = jog != 0.0;
+			if (NfuActive)
+			{
+				Angle = Math.Clamp(Angle + Math.Sign(jog) * SteeringRate * dt, -HardOverAngle, HardOverAngle);
+				Order = Angle;
+				_jogHelm = helm;
+				_holding = _holdOnRelease;
+				return;
+			}
+
+			if (_holding)
+			{
+				// A tiller move concurrent with release counts as taking control again.
+				if (helm == _jogHelm) return;
+				_holding = false;
+			}
+
 			var maximumMove = SteeringRate * dt;
 			if (_followUp)
 			{

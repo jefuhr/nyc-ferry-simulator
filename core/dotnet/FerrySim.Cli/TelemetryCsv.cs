@@ -28,6 +28,11 @@ namespace FerrySim.Cli
 	/// <summary>Collects telemetry rows in memory and renders the CSV with its <c>#</c> header comment.</summary>
 	public sealed class CsvRecorder
 	{
+		private readonly bool _includeJog;
+
+		/// <summary>Choose the schema once, before any rows. Existing control sources retain identical bytes.</summary>
+		public CsvRecorder(bool includeJog = false) { _includeJog = includeJog; }
+
 		private readonly List<double> _times = new List<double>();
 		private readonly List<string> _lines = new List<string>();
 
@@ -38,6 +43,7 @@ namespace FerrySim.Cli
 		/// <summary>Records the state and telemetry at this instant and the controls that start applying now.</summary>
 		public void Add(VesselState state, VesselTelemetry telemetry, ControlInputs controls)
 		{
+			if (!_includeJog && controls.Jog != 0) throw new CliException("A legacy telemetry recording cannot store a non-zero jog demand.");
 			var port = telemetry.Port;
 			var starboard = telemetry.Starboard;
 			var builder = new StringBuilder(256);
@@ -63,7 +69,8 @@ namespace FerrySim.Cli
 			Append(builder, telemetry.ContactForce, "F1");
 			Append(builder, controls.PortLever, "F4");
 			Append(builder, controls.StarboardLever, "F4");
-			Append(builder, controls.Helm, "F4", last: true);
+			Append(builder, controls.Helm, "F4", last: !_includeJog);
+			if (_includeJog) Append(builder, controls.Jog, "F4", last: true);
 			_times.Add(state.Time);
 			_lines.Add(builder.ToString());
 		}
@@ -90,7 +97,9 @@ namespace FerrySim.Cli
 				builder.Append("# ").Append(pair.Key).Append(": ").Append(pair.Value).Append('\n');
 			}
 
-			builder.Append(string.Join(",", TelemetryColumns.Names)).Append('\n');
+			builder.Append(string.Join(",", TelemetryColumns.Names));
+			if (_includeJog) builder.Append(",nfu_jog");
+			builder.Append('\n');
 			foreach (var line in _lines)
 			{
 				builder.Append(line).Append('\n');
@@ -224,6 +233,12 @@ namespace FerrySim.Cli
 					throw new CliException($"{label}: missing column '{required}'.");
 				}
 			}
+
+			if (names.Length != TelemetryColumns.Names.Length &&
+				!(names.Length == TelemetryColumns.Names.Length + 1 && names[names.Length - 1] == "nfu_jog"))
+				throw new CliException($"{label}: expected the base telemetry columns, optionally followed by nfu_jog.");
+			for (var c = 0; c < TelemetryColumns.Names.Length; c++)
+				if (names[c] != TelemetryColumns.Names[c]) throw new CliException($"{label}: unexpected telemetry column order.");
 
 			var data = new List<double>[names.Length];
 			for (var c = 0; c < names.Length; c++)

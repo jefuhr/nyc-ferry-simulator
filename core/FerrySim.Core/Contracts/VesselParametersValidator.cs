@@ -43,6 +43,11 @@ namespace FerrySim.Core.Contracts
 			}
 
 			Walk(parameters, "", sources, errors, 0);
+			var release = parameters.Controls?.NfuRelease;
+			if (release != null && release.Value != "return-to-tiller" && release.Value != "hold-until-tiller-moves")
+			{
+				errors.Add("controls.nfuRelease.value: expected return-to-tiller or hold-until-tiller-moves");
+			}
 			return errors;
 		}
 

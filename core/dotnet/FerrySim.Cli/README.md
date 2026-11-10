@@ -41,11 +41,11 @@ The default test speed is the vessel's `performance.serviceSpeed`. All metrics a
 
 ## CSV
 
-`#` header comments hold the vessel id, maneuver and its parameters, the environment spec (and, for a pack, the lines above), the model type name returned by the factory, the factory type name, the physics and sample rates, and the settle result. They contain no timestamps or paths, so the same run gives the same bytes. The columns are fixed (`TelemetryColumns.Names`): SI with unit suffixes plus `kn` and `deg` convenience columns. Each row holds the state at `time_s` and the controls that start applying at that instant (`port_lever`, `starboard_lever`, `helm`). Rows are written every 1/`--sample-hz` s (default 10 Hz; it must divide the 100 Hz physics rate).
+`#` header comments hold the vessel id, maneuver and its parameters, the environment spec (and, for a pack, the lines above), the model type name returned by the factory, the factory type name, the physics and sample rates, and the settle result. They contain no timestamps or paths, so the same run gives the same bytes. The base columns are fixed (`TelemetryColumns.Names`); a jog-enabled trace appends `nfu_jog` after `helm` while retaining `# ferrysim-csv: 1`. The recorder chooses the schema at construction and a legacy recorder rejects a non-zero jog rather than dropping it. Columns use SI with unit suffixes plus `kn` and `deg` convenience columns. Each row holds the state at `time_s` and the controls that start applying at that instant (`port_lever`, `starboard_lever`, `helm`). Rows are written every 1/`--sample-hz` s (default 10 Hz; it must divide the 100 Hz physics rate).
 
 ## Control traces
 
-`run` replays `time_s,port_lever,starboard_lever,helm`. A row applies from its time until the next row. Controls are neutral before the first row. Times round to the nearest 10 ms step and must increase. The replay ends at the last row's time unless `--duration-s` says otherwise. The vessel starts at rest.
+`run` accepts `time_s,port_lever,starboard_lever,helm` (version 1) or `time_s,port_lever,starboard_lever,helm,nfu_jog` (version 2). Every row must match its header width exactly. Version 1 supplies zero jog; version 2 preserves the jog column in telemetry even when every demand is zero. Jog values use [-1, 1]; any non-zero demand overrides the tiller at the fixed steering rate. A row applies from its time until the next row. Controls are neutral before the first row. Times round to the nearest 10 ms step and must increase. The replay ends at the last row's time unless `--duration-s` says otherwise. The vessel starts at rest.
 
 ## Environment spec
 

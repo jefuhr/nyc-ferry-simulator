@@ -38,6 +38,12 @@ namespace FerrySim.Core.Tests.Dynamics
 				Assert.That(section, Is.Not.Null);
 				foreach (var property in section.GetType().GetProperties())
 				{
+					// The new release policy is optional and deliberately absent from the pinned vessel files.
+					if (section is ControlParameters && property.Name == nameof(ControlParameters.NfuRelease))
+					{
+						Assert.That(property.GetValue(section), Is.Null, "shipped bytes retain the default release policy");
+						continue;
+					}
 					Assert.That(property.GetValue(section), Is.Not.Null, $"{section.GetType().Name}.{property.Name}");
 				}
 			}
