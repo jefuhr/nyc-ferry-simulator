@@ -140,3 +140,54 @@ Run with the commands in `unity/README.md` (`-assemblyNames FerrySim.Unity.World
 - Tower heights and positions, barge freeboard and draft, and deck depth are greybox estimates. Barge outlines and berthing faces are the pipeline's, with its confidence, and all need crew verification.
 - The datum station's MHW is read from the raw cache because the pipeline does not publish it; adding it to `coops_stations.json` would remove that dependency.
 - The sky colours are hand-tuned, and the sun position ignores the 69 s difference between UT and terrestrial time (well under NOAA's stated accuracy).
+
+## Wheelhouse instruments and lean-in view
+
+`WheelhouseControlsView` reads `IInstrumentSource` on its bound telemetry source. The shared
+`World/Wheelhouse/Resources/FerrySimWheelhouse/controls-v1.json` binds the 73 named mounts in either
+class. `ControlMapFile.Parse(json, WheelhouseControlMap)` validates the complete file before returning;
+unknown channels, mounts or `ActionIds` reject it with the entry name. An alarm absent from that
+vessel's readout logs once on binding and stays dark outside lamp test. Sources without available
+instruments retain the existing two-engine-lever and tiller telemetry animation; other controls rest.
+No view action writes physics, steps the runner or enters recording/state digests.
+
+For keybind popups, obtain the instance's `WheelhouseControlsView.ControlMap` after `Bind` or
+`PlaceEye`. Iterate `ControlMap.Entries` (`IReadOnlyList<ControlMapFile.Entry>`). Each entry exposes
+`MountId` (`string`), `Transform` (the bound instance's mount), `Actions` (`IReadOnlyList<string>`,
+priority order) and `Label` (`string`). Empty actions mean no popup. The map may be null for a
+missing/invalid interior. Reacquire it when the interior is replaced; never retain destroyed mounts.
+`ControlMapFile.LoadShipped(mapComponent)` is also available to bind an independent instance.
+
+Animation uses the component's authored axis and travel, with clamped linear channel mapping and
+NaN at rest. `PortNFU` is the jog handle nearer the seated Eye in both classes; `StarboardNFU` remains
+at rest (HND-02 must settle the real relationship). Rudder needle full travel represents the bound
+vessel's `Controls.HardOverAngle`, currently 20 degrees each way, rather than a claimed dial scale
+(SCR-04). The compass uses signed circular heading and a reversed `[pi, -pi]` range: it counter-rotates
+about the authored up axis so its north mark stays at true north through the heading wrap. This is
+true heading, without magnetic deviation. Lever/jog travel remains the layout's estimate (MOT-02).
+
+The instance swaps only `LampsSurface` to the resource material. One mesh, one material, one shader
+pass and one renderer draw all 14 lamps; no lamp gets a light or material instance. UV1.x selects
+fixed-size level and colour arrays in a reused `MaterialPropertyBlock`. Arrays avoid texture upload,
+filtering and per-lamp objects for this small bank. The palette resource is a tested snapshot of the
+layout's red/green identities. Dark lenses retain a dim coloured surface; lit lenses emit without bloom.
+Numeric brightness is an artistic estimate, not measured photometry. The single shader pass does
+not cast shadows. Renderer/submesh/pass counts establish the draw structure; they are not a GPU
+frame-debugger timing measurement.
+
+`steering.failure` drives the first steering tile with `AlarmAnnunciator.LampLit`, using the bound
+telemetry source's `State.Time` so pause freezes flashing. Other steering tiles and engine alarm lamps
+remain unmapped (SCR-05), as do control-active lamps (SCR-07). Lamp test lights every index, including
+unmapped lamps. Neutral lamps use the C3 optional inclusive `lit: [0, 0]` interval on shift phase;
+phase zero is the control model's neutral indication, while all shift phases remain dark. Other
+channel lamps keep C3's non-zero rule when `lit` is absent.
+
+In wheelhouse mode, `Camera/FocusCycle` (F5) cycles seat, radar, plotter, port engine, starboard engine,
+seat. It eases in the mount frame with the existing 0.25 s exponential feel, so vessel motion and
+origin shifts do not create world-space lag. At a screen, head look is limited to a 15-degree cone.
+`Camera/Recentre` returns to the seat; a new run clears focus; `Camera/BowView` leaves focus and
+selects the bow. Automatic bow view cannot interrupt focus. No interior means focus cycle is a no-op.
+`WheelhouseCameraController.FocusedScreen` is the screen mount id or null;
+`event Action<string> FocusChanged` publishes changes, including null on exit, for display refresh
+scheduling. `CycleFocus()`, `Recentre()` and `AdvancePresentation(float deltaTime)` expose the same
+render-only paths used by input and repeatable presentation tests.
