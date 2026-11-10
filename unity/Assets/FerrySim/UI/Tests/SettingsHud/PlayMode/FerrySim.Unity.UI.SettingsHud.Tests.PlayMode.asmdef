@@ -1,0 +1,28 @@
+{
+	"name": "FerrySim.Unity.UI.SettingsHud.Tests.PlayMode",
+	"rootNamespace": "FerrySim.UI.Tests.SettingsHud.PlayMode",
+	"references": [
+		"FerrySim.Core",
+		"FerrySim.Core.Serialization",
+		"FerrySim.Unity.Sim",
+		"FerrySim.Unity.UI",
+		"FerrySim.Unity.Input",
+		"Unity.InputSystem",
+		"Unity.InputSystem.TestFramework",
+		"UnityEngine.TestRunner",
+		"UnityEditor.TestRunner"
+	],
+	"includePlatforms": [],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"nunit.framework.dll"
+	],
+	"autoReferenced": false,
+	"defineConstraints": [
+		"UNITY_INCLUDE_TESTS"
+	],
+	"versionDefines": [],
+	"noEngineReferences": false
+}

@@ -1,0 +1,29 @@
+{
+	"name": "FerrySim.Unity.UI.SettingsHud.Tests.EditMode",
+	"rootNamespace": "FerrySim.UI.Tests.SettingsHud",
+	"references": [
+		"FerrySim.Core",
+		"FerrySim.Core.Serialization",
+		"FerrySim.Unity.Sim",
+		"FerrySim.Unity.UI",
+		"FerrySim.Unity.Input",
+		"Unity.InputSystem",
+		"UnityEngine.TestRunner",
+		"UnityEditor.TestRunner"
+	],
+	"includePlatforms": [
+		"Editor"
+	],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"nunit.framework.dll"
+	],
+	"autoReferenced": false,
+	"defineConstraints": [
+		"UNITY_INCLUDE_TESTS"
+	],
+	"versionDefines": [],
+	"noEngineReferences": false
+}

@@ -1,0 +1,209 @@
+/*
+ * The player's HUD widgets and HUD edit mode, designed at 1280x720 reference pixels like Wheelhouse.uss. Each widget's
+ * size here is the size HudWidgetRegistry records for it, so presets and snapping can be worked out without a layout
+ * pass; position, anchor and scale are set from C# (HudLayer). Colors come from InstrumentPalette.
+ */
+
+.fs-hud-layer {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+}
+
+.fs-widget {
+	position: absolute;
+	overflow: hidden;
+	padding: 6px 8px;
+	border-width: 1px;
+	border-radius: 6px;
+	flex-direction: column;
+}
+
+.fs-widget--bare {
+	padding: 0;
+	border-width: 0;
+}
+
+.fs-widget-content {
+	flex-grow: 1;
+	flex-direction: column;
+}
+
+.fs-widget-edit {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	border-width: 2px;
+	border-radius: 6px;
+	align-items: center;
+	justify-content: center;
+}
+
+.fs-widget-edit-label {
+	margin: 2px;
+	padding: 1px 6px;
+	border-radius: 3px;
+}
+
+/* ---------- sizes (HudWidgetRegistry) ---------- */
+
+.fs-widget--compass {
+	width: 180px;
+	height: 180px;
+	padding: 7px;
+}
+
+.fs-widget--heading,
+.fs-widget--speed {
+	width: 176px;
+	height: 116px;
+}
+
+.fs-widget--depth {
+	width: 250px;
+	height: 94px;
+}
+
+.fs-widget--depth .fs-depth {
+	flex-grow: 1;
+	margin-bottom: 0;
+}
+
+.fs-widget--rudder {
+	width: 372px;
+	height: 86px;
+}
+
+.fs-widget--rudder .fs-rudder {
+	margin-top: 0;
+}
+
+.fs-widget--engine-port,
+.fs-widget--engine-starboard {
+	width: 288px;
+	height: 262px;
+}
+
+.fs-widget--engine-port .fs-engine,
+.fs-widget--engine-starboard .fs-engine {
+	flex-grow: 1;
+}
+
+.fs-widget--environment {
+	width: 452px;
+	height: 64px;
+}
+
+.fs-widget--environment .fs-env {
+	flex-wrap: wrap;
+	width: 432px;
+}
+
+.fs-widget--environment .fs-env-group--wind {
+	margin-left: 0;
+	margin-top: 2px;
+}
+
+.fs-widget--clock {
+	width: 208px;
+	height: 36px;
+	padding: 4px 10px;
+}
+
+.fs-widget--traffic-alarm {
+	width: 460px;
+	height: 30px;
+}
+
+/* The CPA line is docked above the classic panel; as a widget it fills its own box. */
+.fs-widget--traffic-alarm .fs-traffic {
+	position: relative;
+	right: auto;
+	bottom: auto;
+	margin-bottom: 0;
+	flex-grow: 1;
+}
+
+.fs-widget--screen {
+	width: 300px;
+	height: 220px;
+}
+
+.fs-widget-screen-title {
+	height: 16px;
+	margin-bottom: 2px;
+}
+
+.fs-widget-screen-face {
+	flex-grow: 1;
+	align-items: center;
+	justify-content: center;
+	border-width: 1px;
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.fs-widget-screen-image {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+}
+
+.fs-widget-no-signal {
+	font-size: 14px;
+	letter-spacing: 3px;
+}
+
+/* ---------- edit mode toolbar ---------- */
+
+.fs-hud-edit-bar {
+	position: absolute;
+	top: 8px;
+	left: 50%;
+	translate: -50% 0;
+	width: 820px;
+	flex-direction: column;
+	padding: 6px 12px;
+	border-width: 1px;
+	border-radius: 8px;
+}
+
+.fs-hud-edit-row {
+	flex-direction: row;
+	align-items: center;
+	min-height: 28px;
+}
+
+.fs-hud-edit-hint {
+	margin-left: 14px;
+}
+
+.fs-hud-edit-row > Button {
+	height: 24px;
+	border-width: 2px;
+	font-size: 12px;
+	-unity-font-style: bold;
+	margin-right: 6px;
+}
+
+.fs-hud-edit-selected {
+	width: 260px;
+	margin: 0 8px;
+	-unity-text-align: middle-center;
+}
+
+.fs-hud-edit-name {
+	width: 220px;
+	margin: 0 8px;
+}
+
+.fs-hud-edit-status {
+	min-height: 16px;
+	white-space: normal;
+}
