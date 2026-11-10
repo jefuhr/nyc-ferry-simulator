@@ -54,7 +54,7 @@ class MeasureTests(unittest.TestCase):
 			p = picks()
 			for calibration in (p["calibration"], dict(method="drawing-scale", scale="1:75", dpi=76.2)):
 				p["calibration"] = calibration
-				result = reference.measure(p, root)
+				result = reference.measure(p, root, legacy_no_manifest=True)
 				self.assertAlmostEqual(result["values"]["length"]["value"], 5, delta=.05)
 				self.assertEqual(result["values"]["length"]["source"], p["image"])
 	def test_rotated_axis_signed_coordinates_and_polyline(self):
@@ -69,7 +69,7 @@ class MeasureTests(unittest.TestCase):
 			"path": dict(points=[point(0, 0), point(200, 0), point(200, 80)], operation="polyline"),
 			"height": dict(points=[point(0, 0), point(0, 80)], operation="y"),
 		}
-		d = reference.measure(p)["values"]
+		d = reference.measure(p, legacy_no_manifest=True)["values"]
 		self.assertAlmostEqual(d["fore"]["value"][0], -.5)
 		self.assertAlmostEqual(d["fore"]["value"][1], .75)
 		self.assertAlmostEqual(d["path"]["value"], 7, delta=.07)
@@ -79,10 +79,10 @@ class MeasureTests(unittest.TestCase):
 		p["calibration"] = dict(method="known-dimension", points=[[0, 0], [200, 0]], length_m=5,
 			cross_dimension=dict(points=[[0, 0], [60, -80]], length_m=4))
 		p["measurements"] = {"diagonal": dict(points=[[0, 0], [260, -80]])}
-		self.assertAlmostEqual(reference.measure(p)["values"]["diagonal"]["value"], math.sqrt(41), delta=.06)
+		self.assertAlmostEqual(reference.measure(p, legacy_no_manifest=True)["values"]["diagonal"]["value"], math.sqrt(41), delta=.06)
 	def test_printed_values_keep_independent_pixel_check(self):
 		p = picks(); p["measurements"]["length"].update(printed_m=5.02, confidence="high")
-		self.assertEqual(reference.measure(p)["values"]["length"]["value"], 5.02)
+		self.assertEqual(reference.measure(p, legacy_no_manifest=True)["values"]["length"]["value"], 5.02)
 		row = reference.compare(p)[0]
 		self.assertEqual(row["measured_m"], 5)
 		self.assertAlmostEqual(row["error_percent"], -0.3984063745)
@@ -94,21 +94,21 @@ class MeasureTests(unittest.TestCase):
 			dict(method="known-dimension", points=[[0, 0], [1, 0]], length_m=float("nan"))]
 		for calibration in bad:
 			with self.subTest(calibration=calibration), self.assertRaises(ValueError):
-				p = picks(); p["calibration"] = calibration; reference.measure(p)
+				p = picks(); p["calibration"] = calibration; reference.measure(p, legacy_no_manifest=True)
 		for path in ("../original.jpg", "/absolute.jpg", "drawings/../../secret.jpg"):
 			with self.subTest(path=path), self.assertRaises(ValueError):
-				p = picks(); p["image"] = path; reference.measure(p)
+				p = picks(); p["image"] = path; reference.measure(p, legacy_no_manifest=True)
 		p = picks(); p["axis"] = [[0, 0], [0, 0]]
-		with self.assertRaises(ValueError): reference.measure(p)
+		with self.assertRaises(ValueError): reference.measure(p, legacy_no_manifest=True)
 		p = picks(); p["transverse_axis"] = [[0, 0], [100, 0]]
-		with self.assertRaises(ValueError): reference.measure(p)
+		with self.assertRaises(ValueError): reference.measure(p, legacy_no_manifest=True)
 	def test_image_binding_rejects_resized_or_changed_image(self):
 		with tempfile.TemporaryDirectory() as tmp:
 			root = Path(tmp).resolve(); (root / "drawings").mkdir(); png(root / "drawings/synthetic.png")
 			p = picks(); p["image_size"] = [800, 400]
-			with self.assertRaises(ValueError): reference.measure(p, root)
+			with self.assertRaises(ValueError): reference.measure(p, root, legacy_no_manifest=True)
 			p["image_size"] = [400, 200]; p["image_sha256"] = "0" * 64
-			with self.assertRaises(ValueError): reference.measure(p, root)
+			with self.assertRaises(ValueError): reference.measure(p, root, legacy_no_manifest=True)
 
 
 class PickIntegrityTests(unittest.TestCase):
@@ -116,17 +116,17 @@ class PickIntegrityTests(unittest.TestCase):
 		for points in ([[0, 0], [float("nan"), 0]], [[0, 0]], [[0, 0], [True, 1]]):
 			with self.subTest(points=points), self.assertRaises(ValueError):
 				p = picks(); p["measurements"]["length"].update(printed_m=5, points=points)
-				reference.measure(p)
+				reference.measure(p, legacy_no_manifest=True)
 	def test_image_bounds_are_checked_without_private_image(self):
 		p = picks(); p["image_size"] = [100, 100]
-		with self.assertRaises(ValueError): reference.measure(p)
+		with self.assertRaises(ValueError): reference.measure(p, legacy_no_manifest=True)
 	def test_seed_values_survive_in_hull_files_without_private_media(self):
 		# The exterior owns the hull files after seeding and may add values; every seeded measurement must stay as measured.
 		for name in ("t-class", "k-class"):
 			with self.subTest(name=name):
 				pick = reference.load_json(REPO / f"tools/reference/picks/{name}.json")
 				hull = reference.load_json(REPO / f"art/blender/data/{name}-hull.json")
-				seeded = reference.measure(pick)
+				seeded = reference.measure(pick, legacy_no_manifest=True)
 				self.assertEqual({k: hull[k] for k in ("schema_version", "subject", "kind")}, {k: seeded[k] for k in ("schema_version", "subject", "kind")})
 				for key, value in seeded["values"].items():
 					self.assertEqual(hull["values"].get(key), value, key)
@@ -144,7 +144,7 @@ class CatalogTests(unittest.TestCase):
 		with tempfile.TemporaryDirectory() as tmp:
 			root = Path(tmp).resolve(); sheets = root / "sheets"; sheets.mkdir()
 			png(sheets / "z.png", 60, 30); (sheets / "a.txt").write_text("private")
-			a = reference.catalog(sheets); b = reference.catalog(sheets)
+			a = reference.catalog(sheets, legacy_no_manifest=True); b = reference.catalog(sheets, legacy_no_manifest=True)
 			self.assertEqual(reference.json_text(a), reference.json_text(b))
 			self.assertEqual([e["path"] for e in a["files"]], ["a.txt", "z.png"])
 			self.assertEqual(a["files"][1]["image_size"], [60, 30])
@@ -154,20 +154,20 @@ class CatalogTests(unittest.TestCase):
 		with tempfile.TemporaryDirectory() as tmp:
 			root = Path(tmp).resolve(); real = root / "real"; real.mkdir(); (real / "sheets").mkdir()
 			(root / "alias").symlink_to(real, target_is_directory=True)
-			with self.assertRaises(ValueError): reference.catalog(root / "alias/sheets")
+			with self.assertRaises(ValueError): reference.catalog(root / "alias/sheets", legacy_no_manifest=True)
 	def test_ffprobe_optional_and_duration_is_finite(self):
 		with tempfile.TemporaryDirectory() as tmp:
 			sheets = Path(tmp).resolve(); (sheets / "clip.mp4").write_bytes(b"synthetic")
 			with patch.object(reference.shutil, "which", return_value=None):
-				self.assertIsNone(reference.catalog(sheets)["files"][0]["duration_seconds"])
+				self.assertIsNone(reference.catalog(sheets, legacy_no_manifest=True)["files"][0]["duration_seconds"])
 			with patch.object(reference.shutil, "which", return_value="/usr/bin/ffprobe"), patch.object(reference.subprocess, "run") as run:
 				run.return_value = subprocess.CompletedProcess([], 0, '{"format":{"duration":"2.5"}}', '')
-				self.assertEqual(reference.catalog(sheets)["files"][0]["duration_seconds"], 2.5)
+				self.assertEqual(reference.catalog(sheets, legacy_no_manifest=True)["files"][0]["duration_seconds"], 2.5)
 	def test_no_symlink_escape_and_no_repo_catalog(self):
 		with tempfile.TemporaryDirectory() as tmp:
 			root = Path(tmp).resolve(); sheets = root / "sheets"; sheets.mkdir(); outside = root / "secret.txt"; outside.write_text("never read")
 			(sheets / "escape").symlink_to(outside)
-			with self.assertRaises(ValueError): reference.catalog(sheets)
+			with self.assertRaises(ValueError): reference.catalog(sheets, legacy_no_manifest=True)
 		with self.assertRaises(ValueError): reference.write_catalog({"files": []}, REPO / "artifacts/reference-import/catalog.json")
 
 
@@ -225,7 +225,7 @@ class ExportTests(unittest.TestCase):
 			pick.write_text(json.dumps(p)); target.write_text(json.dumps(layout()))
 			def run(*args):
 				return subprocess.run([sys.executable, str(REPO / "tools/reference/reference.py"), *map(str, args)], capture_output=True, text=True)
-			self.assertEqual(run("measure", pick, "--output", patch_file).returncode, 0)
+			self.assertEqual(run("measure", pick, "--legacy-no-manifest", "--output", patch_file).returncode, 0)
 			p = json.loads(patch_file.read_text()); p["values"]["length_overall"]["value"] = 26.01; patch_file.write_text(json.dumps(p))
 			result = run("export", patch_file, "--layout", target)
 			self.assertEqual(result.returncode, 0, result.stderr); self.assertIn("26.01", result.stdout)

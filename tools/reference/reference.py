@@ -142,8 +142,11 @@ def probe_media(path, probe, entries):
 		raise ValueError("ffprobe could not read a media file") from exc
 
 
-def catalog(sheets):
+def catalog(sheets, manifest=None, legacy_no_manifest=False):
+	import intake
 	root = sheet_root(sheets)
+	if not legacy_no_manifest:
+		intake.load_manifest(manifest or root / "manifest.json")
 	files = []
 	# Reject links before opening any file. Never follow symlinked directories.
 	for parent, dirs, names in os.walk(root, followlinks=False):
@@ -156,6 +159,10 @@ def catalog(sheets):
 	for path in sorted(files, key=lambda p: p.relative_to(root).as_posix()):
 		if not path.is_file():
 			raise ValueError("Sheets must contain regular files only")
+		if path.name in ("manifest.json", "requests.json", "README.md"):
+			continue
+		if not legacy_no_manifest:
+			intake.gate(root, path.relative_to(root).as_posix(), manifest)
 		ext = path.suffix.lower()
 		kind = "image" if ext in IMAGE_EXTENSIONS else "video" if ext in VIDEO_EXTENSIONS else "audio" if ext in AUDIO_EXTENSIONS else "document"
 		entry = dict(path=path.relative_to(root).as_posix(), kind=kind, size_bytes=path.stat().st_size, sha256=sha256(path))
@@ -221,6 +228,9 @@ def direction(raw):
 
 
 def transform(pick):
+	if pick["calibration"].get("method") == "plane-homography":
+		from homography import fit
+		return fit(pick["calibration"])
 	ux, uy = direction(pick.get("axis", [[0, 0], [1, 0]]))
 	vx, vy = direction(pick["transverse_axis"]) if "transverse_axis" in pick else (uy, -ux)
 	determinant = ux * vy - uy * vx
@@ -276,10 +286,19 @@ def pixel_value(spec, convert):
 	raise ValueError("Pick operation requires one point (point), two (distance/x/y), or at least two (polyline)")
 
 
-def measure(pick, sheets=None):
+def measure(pick, sheets=None, manifest=None, legacy_no_manifest=False):
 	if pick.get("schema_version") != 1:
 		raise ValueError("Unsupported pick schema_version")
 	source = str(relative_path(pick["image"]))
+	source_entry = {}
+	if not legacy_no_manifest:
+		if sheets is None:
+			raise ValueError(f"{source}: manifest verification requires --sheets")
+		import intake
+		source_manifest, source_entry = intake.gate(sheets, source, manifest)
+		source_entry = {**source_entry}
+		derived = next((e for e in source_manifest.get("derived", []) if e["path"] == source), None)
+		if derived is not None: source_entry["method"] = derived["method"]
 	if sheets is not None:
 		path = sheet_path(sheets, source)
 		if "image_size" in pick and image_size(path) != pick["image_size"]:
@@ -314,8 +333,16 @@ def measure(pick, sheets=None):
 				raise ValueError("offset_m applies to scalar measurements only")
 		else:
 			number = round(finite(number + offset), 6)
-		item = dict(value=number, unit="m", source=source, method=pick["calibration"]["method"], confidence=spec.get("confidence", "medium"))
+		method = pick["calibration"]["method"]
+		if method == "plane-homography": method = "known-dimension"
+		if source_entry.get("method") == "photogrammetry": method = "photogrammetry"
+		item = dict(value=number, unit="m", source=source, method=method, confidence=spec.get("confidence", "medium"))
 		notes = []
+		if source_entry.get("allowed_use") == "measurement-only" or any(s["consent"]["scope"] == "measurement-only" for s in source_entry.get("sources", [])):
+			notes.append("Measurement-only reference (private); numbers only, no tracing or reproduction.")
+		if hasattr(convert, "report"):
+			r = convert.report
+			notes.append(f"Plane homography reprojection RMS {r['rms_px']:.6f} px, max {r['max_px']:.6f} px; tolerance {r['tolerance_px']:g} px. Valid only on the calibrated plane.")
 		if "printed_m" in spec:
 			notes.append(f"Printed dimension: {spec['printed_m']:g} m; not a pixel-derived value.")
 		if "note" in spec:
@@ -377,7 +404,7 @@ def schema_errors(data, schema, root=None, path="$"):
 			errors.append(f"{path}: must match exactly one allowed shape")
 	if "const" in schema and (data != schema["const"] or type(data) is bool and type(schema["const"]) is not bool):
 		errors.append(f"{path}: expected constant {schema['const']}")
-	if "enum" in schema and data not in schema["enum"]:
+	if "enum" in schema and not any(data == v and isinstance(data, bool) == isinstance(v, bool) for v in schema["enum"]):
 		errors.append(f"{path}: unknown value {data!r}")
 	type_name = schema.get("type")
 	checks = {"object": isinstance(data, dict), "array": isinstance(data, list), "string": isinstance(data, str),
@@ -519,16 +546,45 @@ def main(argv=None):
 	p = sub.add_parser("export", help="Merge measured values, print diff, validate, then atomically write")
 	p.add_argument("values", type=Path); p.add_argument("--layout", type=Path, required=True)
 	p.add_argument("--force", action="store_true"); p.add_argument("--dry-run", action="store_true")
+	for name in ("catalog", "measure"):
+		command_parser = sub.choices[name]
+		command_parser.add_argument("--manifest", type=Path, help="Defaults to manifest.json beside the sheets")
+		command_parser.add_argument("--legacy-no-manifest", action="store_true", help="Explicit legacy offline reproduction without consent evidence")
+	p = sub.add_parser("audit", help="List picks and values affected by missing/excluded/withdrawn sheets")
+	p.add_argument("--manifest", type=Path, required=True); p.add_argument("files", type=Path, nargs="+")
+	p = sub.add_parser("requests", help="Private shot-list request register")
+	r = p.add_subparsers(dest="action", required=True)
+	for action in ("status", "mark"):
+		p = r.add_parser(action); p.add_argument("--manifest", type=Path, required=True)
+		if action == "mark":
+			p.add_argument("request"); p.add_argument("--status", choices=("open","received","screened","used","needs-reshoot"), required=True)
+	import recon
+	recon.add_parser(sub)
 	args = parser.parse_args(argv)
 	try:
+		if getattr(args,"legacy_no_manifest",False):
+			print("WARNING: --legacy-no-manifest bypasses consent/screening verification; legacy reproduction only", file=sys.stderr)
+		if args.command == "recon":
+			return recon.run(args)
+		if args.command == "audit":
+			import intake
+			findings = intake.audit(args.manifest, args.files)
+			for finding in findings: print(finding)
+			return 1 if findings else 0
+		if args.command == "requests":
+			import intake
+			intake.requests(args.manifest, args.action, getattr(args,"request",None), getattr(args,"status",None))
+			return 0
 		if args.command == "catalog":
 			output = args.output.expanduser().resolve()
 			if output.is_relative_to(args.sheets.expanduser().resolve()):
 				raise ValueError("Catalog must not be written inside the sheets input")
-			data = catalog(args.sheets); write_catalog(data, args.output)
+			data = catalog(args.sheets, args.manifest, args.legacy_no_manifest); write_catalog(data, args.output)
 			print(f"Catalogued {len(data['files'])} files; sha256 {sha256(args.output)}")
 		elif args.command == "measure":
-			picks = load_json(args.picks); data = measure(picks, args.sheets)
+			picks = load_json(args.picks); data = measure(picks, args.sheets, args.manifest, args.legacy_no_manifest)
+			if picks["calibration"]["method"] == "plane-homography":
+				print("Homography reprojection: " + json_text(transform(picks).report).strip())
 			comparisons = compare(picks) if args.comparisons else None
 			write_json(data, args.output)
 			if args.comparisons:
@@ -556,7 +612,7 @@ def main(argv=None):
 			if not args.dry_run:
 				write_json(result, args.layout)
 		return 0
-	except (ValueError, OSError, KeyError, TypeError) as exc:
+	except (ValueError, OSError, KeyError, TypeError, subprocess.SubprocessError) as exc:
 		print(f"error: {exc}", file=sys.stderr)
 		return 2
 

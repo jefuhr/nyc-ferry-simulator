@@ -20,15 +20,45 @@ This simulator is only as realistic as its reference material. Public sources gi
 - Keep one short notes file per session: date, vessel, conditions and what you captured.
 - Only notes the operator is comfortable sharing get written up into `docs/`, as summaries and numbers, not copies of internal documents.
 
-## Intake: private media to measured layout data
+## Intake: the ten-stage private reference loop
 
-1. **Discord intake:** The consented crew-media bot is an intake source, not a publishing step. Keep raw originals, contributor identities and the bot database private, outside this repository. Intake consent does not authorize publishing a drawing or using withdrawn material; check the current consent and withdrawal record before promoting a batch. Do not start the bot or backfill media as part of measurement work.
-2. **Privacy screen:** An authorized local processing step removes faces, paperwork, personal/security screens and identifying metadata, and makes video silent. Review the result before release. A blurred or removed patch is missing evidence, never a feature to model. Keep raw and intermediate screening material inaccessible to measurement workers; never upload raw media to a cloud processor.
-3. **Approved sheets:** Release only the screened subset into a private `sheets/` folder with a README describing provenance, vessel class, allowed use and remaining uncertainty. Workers read that README and the approved sheets only. Credit by role, for example “crew reference photos (private), 2026-11” or “builder general arrangement (private)”; contributor names, operator names and boat names do not enter layout data. Proprietary drawings are measurement sources, not tracing or reproduction assets.
-4. **Numeric picks:** Use [tools/reference](../tools/reference/README.md) to catalog the approved set, then record image-relative points, calibration, source-relative path and confidence in a pick file. The catalog includes private filenames, so it stays outside every Git repository, including ignored artifact directories. Only reviewed numbers, neutral observations and source-relative drawing paths enter Git. Bind picks to image dimensions and SHA-256 so a replaced/resized sheet cannot silently reuse the calibration.
-5. **Layout review:** Measure, compare against printed dimensions, validate, then export into `art/blender/data/`. Preserve higher-confidence existing values unless a reviewer explicitly chooses `--force`. Printed values, pixel measurements and estimates must remain distinguishable. Use the waterline/half-LOA coordinate frame from the layout README; do not silently change physics parameters when a drawing describes another vessel revision. Ask for the specific missing shot or dimension when geometry is unresolved.
+1. **Request:** The coordinator opens a shot-list request in the private `requests.json` register beside the manifest. Request ids identify the subject and, when useful, its class or landing.
+2. **Consent:** Before recording or submitting anything, obtain the required permission and accept the current processing policy. Consent to private processing is not permission to publish media. Owner and measurement-only sources retain their narrower scopes.
+3. **Capture:** Collect the requested views without distracting anyone on watch. Include known dimensions and overlap as described below; do not capture people, private screens, paperwork or security details.
+4. **Private intake:** Submit through the private crew-media bot with the request ids. Originals, contributor identities, messages and consent records stay private and outside Git.
+5. **Coordinator screen:** The coordinator checks every source for privacy and permitted use. Remove sensitive regions and metadata, and silence video. Only a recorded `approved` or `approved-with-edits` decision releases a sheet. Edited regions are missing evidence.
+6. **Approved sheets:** Place only the screened subset in the private sheets folder. Its `manifest.json` binds each sheet hash to source ids, current consent, withdrawal state, screening and `tags.requests`. Workers receive only these approved sheets. Credit by role, for example “crew reference photos (private)” or “builder general arrangement (private)”. Measurement-only drawings supply numbers, never traced or reproduced artwork.
+7. **Gate and catalogue:** Use [tools/reference](../tools/reference/README.md) to validate the manifest and catalogue the set. Missing entries, changed hashes, stale processing consent, withdrawal and exclusion are refusals. The explicit legacy flag is only for reproducing old measurements and supplies no consent evidence. Catalogues and request registers remain outside every Git repository.
+8. **Measure or reconstruct:** Record image-bound numeric picks. A plane homography supports an oblique panel only on its calibrated plane; retain the reprojection error. For approved reference footage, extract sharp frames, reconstruct privately at medium detail or higher, scale against known lengths, and render grey orthographic geometry views. Each output records original source ids in the manifest. A coordinator reviews generated views before workers use them; reconstruction does not approve itself.
+9. **Review and use:** Compare independent dimensions, validate layout and survey values, and review the numeric diff before export. Use the documented coordinate frame and confidence. Mark answered requests `received`, `screened` and `used` when those steps have actually happened; use `needs-reshoot` for unusable evidence.
+10. **Withdraw and repeat:** Refresh the private manifest when consent or screening changes. Run `audit` over all pick, layout and survey JSON files. Withdrawal of any contributing source affects its derived views and every cited value. The coordinator quarantines affected outputs and requests replacements; the audit lists findings and changes no data automatically.
 
-These steps describe the intake contract, not evidence that a bot is currently running or that every future batch has passed screening. The measurement tool checks paths and provenance structure; it cannot verify consent, detect sensitive pixels or establish as-built accuracy. Retain a private mapping from approved sources to their consent records so withdrawal can identify affected picks and generated assets.
+The gate checks recorded evidence, hashes and policy versions. It does not detect sensitive pixels or establish physical accuracy. Keep the private source-to-consent mapping current; a stale manifest cannot reveal a later withdrawal. No raw media belongs in cloud processing or in this repository.
+
+## How to shoot so it can become a model
+
+- Use still, well-lit surfaces with visible texture, sharp focus and fixed zoom. Shiny, transparent, blank, moving or blurred surfaces reconstruct poorly. Never add markings or move equipment without permission.
+- Walk slowly around the stationary subject. Keep roughly 70–80% overlap between successive views, vary height, and show corners from both sides. Avoid a pure pan from one position: reconstruction needs changing viewpoints. Fill the frame while keeping the whole subject connected across views.
+- Include at least one long, accurately measured length between identifiable points. Prefer several independent lengths in different directions. Write down metres, endpoint descriptions and measurement uncertainty. An unscaled reconstruction is not a measuring ruler.
+- For a panel or berthing face, measure four or more non-collinear points on the same flat plane. Capture all points in the same photo. Extra anchors let the fit expose mistakes; independent check lengths test accuracy. A homography cannot measure a lever sticking out of that plane or correct lens distortion.
+- For exterior geometry, include the bow, stern, both sides, deck transitions and obscure corners. For sections, identify the longitudinal datum and station locations. Keep a known level or vertical reference when safely possible; reconstruction axes are arbitrary until aligned.
+- Shoot close details and a wider context view so the coordinator can tell where each belongs. Record anything hidden, cropped, blurred or edited as unresolved. Do not invent the missing shape.
+
+### Shot-list request ids
+
+| Prefix | Subject |
+|---|---|
+| `EXT` | Exterior geometry |
+| `WH` | Wheelhouse geometry |
+| `SCR` | Screens, gauges, alarms and buttons |
+| `MOT` | Controls in motion |
+| `LND` | Landings |
+| `SND` | Sound |
+| `HND` | Handling answers |
+
+Use two digits after the prefix, with an optional class or GTFS stop scope: `EXT-01@k-class`, `WH-01@t-class`, `LND-03@87`. Each request has `open`, `received`, `screened`, `used` or `needs-reshoot` status. The manifest's `tags.requests` lists the requests a sheet answers.
+
+**PLACEHOLDER — coordinator-approved shot list pending.** The ids above illustrate the C9 format; numbered shot-list definitions must be supplied by the coordinator before this list is treated as an agreed capture brief. The priority notes below are background guidance.
 
 ## Priority 1: how the boat is driven (these define the handling model)
 
