@@ -24,6 +24,9 @@ namespace FerrySim.Sim
 
 		public ControlTrace Inputs { get; private set; }
 
+		/// <summary>Whether the telemetry declares nfu_jog, independently of the input trace.</summary>
+		public bool HasJog { get; private set; }
+
 		public string VesselFile { get; private set; }
 
 		public VesselState InitialState { get; private set; }
@@ -81,7 +84,7 @@ namespace FerrySim.Sim
 				throw new FileNotFoundException($"Recorded run not found: {telemetryPath}", telemetryPath);
 			}
 
-			TelemetryCsv.Split(File.ReadAllLines(telemetryPath), telemetryPath, out var header, out var rows);
+			TelemetryCsv.Split(File.ReadAllLines(telemetryPath), telemetryPath, out var header, out var rows, out var hasJog);
 			var inputsName = Required(header, "param.inputs", telemetryPath);
 			var directory = Path.GetDirectoryName(Path.GetFullPath(telemetryPath)) ?? string.Empty;
 			var inputsPath = Path.Combine(directory, inputsName);
@@ -194,6 +197,7 @@ namespace FerrySim.Sim
 				Header = header,
 				Rows = rows,
 				Inputs = inputs,
+				HasJog = hasJog,
 				VesselFile = Required(header, "vessel_file", telemetryPath),
 				InitialState = initial,
 				Environment = environment,
@@ -352,7 +356,7 @@ namespace FerrySim.Sim
 		{
 			if (step % _stepsPerSample == 0 && step < _run.StepCount)
 			{
-				Compare(TelemetryCsv.FormatRow(state, telemetry, controls));
+				Compare(TelemetryCsv.FormatRow(state, telemetry, controls, _run.HasJog));
 			}
 		}
 
@@ -377,7 +381,7 @@ namespace FerrySim.Sim
 				}
 
 				// The trace's closing row repeats the last controls, which is what the final row records.
-				Compare(TelemetryCsv.FormatRow(state, telemetry, _run.Inputs.At(stepCount)));
+				Compare(TelemetryCsv.FormatRow(state, telemetry, _run.Inputs.At(stepCount), _run.HasJog));
 				_traffic?.Finish(_trafficMonitor, stepCount);
 				_finished = true;
 			}
@@ -410,6 +414,23 @@ namespace FerrySim.Sim
 	/// </summary>
 	public static class ReplayPlayer
 	{
+		/// <summary>Preserves the v2 marker without changing the identity of legacy control sources.</summary>
+		public static IControlInputSource ControlsForTrace(ControlTrace trace)
+		{
+			if (trace == null) throw new ArgumentNullException(nameof(trace));
+			return trace.HasJog ? new NfuReplayControls(trace) : (IControlInputSource)trace;
+		}
+
+		private sealed class NfuReplayControls : INfuControlSource
+		{
+			private readonly ControlTrace _trace;
+			public NfuReplayControls(ControlTrace trace) => _trace = trace;
+			public ControlInputs ControlsForStep(long step) => _trace.At(step);
+		}
+
+		/// <summary>A mismatched pair of column rows is not a complete recording, including all-zero jog runs.</summary>
+		public static bool ControlColumnsMatch(RecordedRun run) => run.HasJog == run.Inputs.HasJog;
+
 		/// <summary>Checks vessel file identity before simulation creation; legacy recordings have no digest to check.</summary>
 		public static bool TryVesselDigest(RecordedRun run, out string recorded, out string replayed)
 		{
@@ -448,6 +469,11 @@ namespace FerrySim.Sim
 		public static ReplayResult Verify(RecordedRun run, VesselParameters parameters, ISimulationFactory factory, IStepObserver observer = null, IWorldGeometry geometry = null,
 			FerrySim.Core.Env.EnvironmentPack pack = null, EnvironmentPacks packs = null, TrafficPack traffic = null, TrafficPacks trafficPacks = null)
 		{
+			if (!ControlColumnsMatch(run))
+			{
+				return new ReplayResult(0, run.Rows.Count, 0, "matching nfu_jog columns in telemetry and control trace", "nfu_jog column is missing from one recording file");
+			}
+
 			if (!TryVesselDigest(run, out var recordedVessel, out var replayedVessel))
 			{
 				return new ReplayResult(0, run.Rows.Count, 0, recordedVessel, replayedVessel);
@@ -485,7 +511,7 @@ namespace FerrySim.Sim
 			}
 
 			var simulation = factory.Create(parameters, environment.StartRun(), geometry, run.InitialState);
-			var driver = new FixedStepDriver(simulation, run.Inputs);
+			var driver = new FixedStepDriver(simulation, ControlsForTrace(run.Inputs));
 			var verifier = new ReplayVerifier(run);
 			driver.AddObserver(verifier);
 			if (trafficRun != null)

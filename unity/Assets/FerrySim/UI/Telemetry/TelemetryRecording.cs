@@ -54,6 +54,7 @@ namespace FerrySim.UI
 		private readonly double[] _portLever;
 		private readonly double[] _starboardLever;
 		private readonly double[] _helm;
+		private readonly double[] _jog;
 
 		internal TelemetryRecording(string label, IReadOnlyList<KeyValuePair<string, string>> header, TelemetryRecordingBuilder columns)
 		{
@@ -89,6 +90,8 @@ namespace FerrySim.UI
 			_portLever = columns.PortLever.ToArray();
 			_starboardLever = columns.StarboardLever.ToArray();
 			_helm = columns.Helm.ToArray();
+			_jog = columns.NfuJog.ToArray();
+			HasNfuJog = columns.IncludeNfuJog;
 			_threshold = columns.HasThreshold ? columns.Threshold.ToArray() : null;
 			if (TelemetryCsv.TryParseScenarioStart(HeaderValue(TelemetryCsv.ScenarioStartKey), out var start))
 			{
@@ -165,6 +168,11 @@ namespace FerrySim.UI
 
 		public IReadOnlyList<double> Helm => _helm;
 
+		/// <summary>Whether the jog column was present, including a column of zeros.</summary>
+		public bool HasNfuJog { get; }
+
+		public IReadOnlyList<double> NfuJog => _jog;
+
 		public string HeaderValue(string key, string fallback = null) =>
 			key != null && _headerLookup.TryGetValue(key, out var value) ? value : fallback;
 
@@ -180,7 +188,7 @@ namespace FerrySim.UI
 				new EngineTelemetry(_portEngine[index], _portShaft[index], _portGear[index], double.NaN),
 				new EngineTelemetry(_starboardEngine[index], _starboardShaft[index], _starboardGear[index], double.NaN),
 				_portRudder[index], _starboardRudder[index], _stw[index], _sog[index], _cog[index], _depth[index], _contact[index]);
-			return new TelemetrySample(state, telemetry, new ControlInputs(_portLever[index], _starboardLever[index], _helm[index]));
+			return new TelemetrySample(state, telemetry, new ControlInputs(_portLever[index], _starboardLever[index], _helm[index], _jog[index]));
 		}
 
 		/// <summary>Index of the last row at or before <paramref name="time"/>; the first row for earlier times.</summary>
@@ -221,6 +229,9 @@ namespace FerrySim.UI
 			_label = label;
 			_header = header != null ? new List<KeyValuePair<string, string>>(header) : new List<KeyValuePair<string, string>>();
 		}
+
+		/// <summary>Keep an optional jog column even when every demand is zero.</summary>
+		public bool IncludeNfuJog { get; set; }
 
 		public int Count => TimeColumn.Count;
 
@@ -271,6 +282,8 @@ namespace FerrySim.UI
 		internal List<double> StarboardLever { get; } = new List<double>();
 
 		internal List<double> Helm { get; } = new List<double>();
+
+		internal List<double> NfuJog { get; } = new List<double>();
 
 		internal List<double> Threshold { get; } = new List<double>();
 
@@ -347,6 +360,8 @@ namespace FerrySim.UI
 			PortLever.Add(controls.PortLever);
 			StarboardLever.Add(controls.StarboardLever);
 			Helm.Add(controls.Helm);
+			NfuJog.Add(controls.Jog);
+			if (controls.Jog != 0.0) IncludeNfuJog = true;
 		}
 	}
 }

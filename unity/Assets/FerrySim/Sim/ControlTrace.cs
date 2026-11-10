@@ -16,6 +16,12 @@ namespace FerrySim.Sim
 	public sealed class ControlTrace : IControlInputSource
 	{
 		public const string HeaderRow = "time_s,port_lever,starboard_lever,helm";
+		public const string NfuHeaderRow = HeaderRow + ",nfu_jog";
+
+		public ControlTrace(bool hasJog = false) => HasJog = hasJog;
+
+		/// <summary>Whether the trace declares the optional jog column, even when every value is zero.</summary>
+		public bool HasJog { get; private set; }
 
 		private readonly List<long> _steps = new List<long>();
 		private readonly List<ControlInputs> _controls = new List<ControlInputs>();
@@ -42,6 +48,11 @@ namespace FerrySim.Sim
 			if (_steps.Count > 0 && step <= _steps[_steps.Count - 1])
 			{
 				throw new ArgumentException($"Trace steps must increase: {step} after {_steps[_steps.Count - 1]}.", nameof(step));
+			}
+
+			if (!HasJog && controls.Jog != 0.0)
+			{
+				throw new InvalidOperationException("A four-column control trace cannot store non-zero jog; create a trace with hasJog: true.");
 			}
 
 			_steps.Add(step);
@@ -72,13 +83,15 @@ namespace FerrySim.Sim
 		public ControlInputs ControlsForStep(long step) => At(step);
 
 		/// <summary>One data row: time on the step grid and lossless lever and helm values.</summary>
-		public static string FormatRow(long step, in ControlInputs controls)
+		public static string FormatRow(long step, in ControlInputs controls, bool includeJog = false)
 		{
+			if (!includeJog && controls.Jog != 0.0) throw new InvalidOperationException("A four-column control trace cannot store non-zero jog.");
 			var builder = new StringBuilder(64);
 			builder.Append(FormatTime(step)).Append(',');
 			builder.Append(FormatValue(controls.PortLever)).Append(',');
 			builder.Append(FormatValue(controls.StarboardLever)).Append(',');
 			builder.Append(FormatValue(controls.Helm));
+			if (includeJog) builder.Append(',').Append(FormatValue(controls.Jog));
 			return builder.ToString();
 		}
 
@@ -113,11 +126,11 @@ namespace FerrySim.Sim
 				}
 			}
 
-			writer.Write(HeaderRow);
+			writer.Write(HasJog ? NfuHeaderRow : HeaderRow);
 			writer.Write('\n');
 			for (var i = 0; i < _steps.Count; i++)
 			{
-				writer.Write(FormatRow(_steps[i], _controls[i]));
+				writer.Write(FormatRow(_steps[i], _controls[i], HasJog));
 				writer.Write('\n');
 			}
 		}
@@ -150,33 +163,37 @@ namespace FerrySim.Sim
 
 				if (!sawHeader)
 				{
-					if (line.Replace(" ", string.Empty) != HeaderRow)
+					var headerRow = line.Replace(" ", string.Empty);
+					if (headerRow != HeaderRow && headerRow != NfuHeaderRow)
 					{
 						throw new FormatException($"{label}: line {i + 1}: expected the header row '{HeaderRow}'.");
 					}
 
+					trace.HasJog = headerRow == NfuHeaderRow;
 					sawHeader = true;
 					continue;
 				}
 
 				var cells = line.Split(',');
-				if (cells.Length != 4)
+				var columnCount = trace.HasJog ? 5 : 4;
+				if (cells.Length != columnCount)
 				{
-					throw new FormatException($"{label}: line {i + 1}: expected 4 columns, found {cells.Length}.");
+					throw new FormatException($"{label}: line {i + 1}: expected {columnCount} columns, found {cells.Length}.");
 				}
 
 				var time = Cell(cells[0], label, i, "time_s");
 				var port = Cell(cells[1], label, i, "port_lever");
 				var starboard = Cell(cells[2], label, i, "starboard_lever");
 				var helm = Cell(cells[3], label, i, "helm");
+				var jog = trace.HasJog ? Cell(cells[4], label, i, "nfu_jog") : 0.0;
 				if (time < 0.0)
 				{
 					throw new FormatException($"{label}: line {i + 1}: time_s cannot be negative.");
 				}
 
-				if (!InRange(port) || !InRange(starboard) || !InRange(helm))
+				if (!InRange(port) || !InRange(starboard) || !InRange(helm) || !InRange(jog))
 				{
-					throw new FormatException($"{label}: line {i + 1}: lever and helm values must be within [-1, 1].");
+					throw new FormatException($"{label}: line {i + 1}: lever, helm and jog values must be within [-1, 1].");
 				}
 
 				var step = (long)Math.Round(time * SimulationClock.StepsPerSecond);
@@ -185,7 +202,7 @@ namespace FerrySim.Sim
 					throw new FormatException($"{label}: line {i + 1}: time_s must increase by at least one 10 ms step per row.");
 				}
 
-				trace.Append(step, new ControlInputs(port, starboard, helm));
+				trace.Append(step, new ControlInputs(port, starboard, helm, jog));
 			}
 
 			if (!sawHeader)

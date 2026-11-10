@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using FerrySim.Core.Contracts;
+using FerrySim.Core.Instruments;
 using FerrySim.Core.Dynamics;
 using FerrySim.Core.Env;
 using FerrySim.Core.Serialization;
@@ -23,7 +24,7 @@ namespace FerrySim.Sim
 	/// </summary>
 	[DefaultExecutionOrder(-100)]
 	[DisallowMultipleComponent]
-	public sealed class VesselSimulationRunner : MonoBehaviour, IVesselTelemetrySource, IEnvironmentReadoutSource, ITrafficReadoutSource, IRunHoldSource
+	public sealed class VesselSimulationRunner : MonoBehaviour, IVesselTelemetrySource, IEnvironmentReadoutSource, ITrafficReadoutSource, IRunHoldSource, IInstrumentSource
 	{
 		private static readonly Unity.Profiling.ProfilerMarker UpdateMarker = new Unity.Profiling.ProfilerMarker("FerrySim.Sim.RunnerUpdate");
 		private const double DropReportIntervalSeconds = 5.0;
@@ -95,6 +96,9 @@ namespace FerrySim.Sim
 		private ReplayVerifier _replayVerifier;
 		private ReplayResult _lastReplayResult;
 		private readonly ContactObserver _contactObserver = new ContactObserver();
+		private InstrumentStepObserver _instrumentObserver;
+		[SerializeField, Tooltip("Optional instrument parameter file override. Empty: vessels/instruments/<vessel file name>.")]
+		private string instrumentParametersFile;
 		private TrafficPacks _trafficPacks;
 		private TrafficRun _traffic;
 		private HullOutline _trafficOutline;
@@ -135,6 +139,23 @@ namespace FerrySim.Sim
 		public bool HasTelemetry => _runActive && _driver != null && _driver.StepCount > 0 && !_driver.Faulted;
 
 		public long RunId { get; private set; }
+
+		/// <summary>Optional separate display-data path for a custom vessel; resolved through SimPaths.</summary>
+		public string InstrumentParametersFile
+		{
+			get => instrumentParametersFile;
+			set => instrumentParametersFile = value;
+		}
+
+		public bool HasInstruments => HasTelemetry && _instrumentObserver != null;
+
+		public IInstrumentReadout Instruments => (IInstrumentReadout)_instrumentObserver?.Model ?? UnavailableInstrumentReadout.Instance;
+
+		public void AcknowledgeAlarms() => _instrumentObserver?.Model.Acknowledge();
+
+		public void SilenceAlarms() => _instrumentObserver?.Model.Silence();
+
+		public void SetLampTest(bool on) => _instrumentObserver?.Model.SetLampTest(on);
 
 		public ContactLatch Contact => _contactObserver.Contact;
 
@@ -423,6 +444,11 @@ namespace FerrySim.Sim
 				throw new ArgumentNullException(nameof(run));
 			}
 
+			if (!ReplayPlayer.ControlColumnsMatch(run))
+			{
+				throw new InvalidOperationException("The recording has mismatched nfu_jog columns in telemetry and control trace.");
+			}
+
 			if (run.Header.TryGetValue(WorldGeometryDigest.HeaderKey, out var recordedGeometry) &&
 				!string.Equals(recordedGeometry, WorldGeometryDigest.Of(_worldGeometry), StringComparison.Ordinal))
 			{
@@ -455,7 +481,7 @@ namespace FerrySim.Sim
 			_runTrafficLimits = limits;
 			_initialState = run.InitialState;
 			_replay = run;
-			StartRun(run.Inputs);
+			StartRun(ReplayPlayer.ControlsForTrace(run.Inputs));
 		}
 
 		/// <summary>Ends the current run (closing its recording) and starts a new one from the scenario start.</summary>
@@ -677,6 +703,10 @@ namespace FerrySim.Sim
 				_driver.Restart(simulation);
 			}
 
+			if (_instrumentObserver != null) _driver.RemoveObserver(_instrumentObserver);
+			_instrumentObserver = CreateInstrumentObserver(simulation);
+			if (_instrumentObserver != null) _driver.AddObserver(_instrumentObserver);
+
 			Hold = RunHold.None;
 			if (_harborHoldObserver != null)
 			{
@@ -736,6 +766,27 @@ namespace FerrySim.Sim
 			}
 		}
 
+		private InstrumentStepObserver CreateInstrumentObserver(ISimulation simulation)
+		{
+			if (!(simulation is IInstrumentTaps taps)) return null;
+			var vesselFile = Scenario?.vesselFile ?? _replay?.VesselFile;
+			var relative = string.IsNullOrEmpty(instrumentParametersFile)
+				? Path.Combine("vessels", "instruments", Path.GetFileName(vesselFile ?? string.Empty))
+				: instrumentParametersFile;
+			var file = SimPaths.Resolve(relative);
+			if (!File.Exists(file)) return null;
+			try
+			{
+				return new InstrumentStepObserver(new InstrumentModel(InstrumentParametersJson.Load(file)), taps);
+			}
+			catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is ArgumentException || error is Newtonsoft.Json.JsonException)
+			{
+				// Display data is optional and never allowed to stop a physics run.
+				Debug.LogWarning("[FerrySim] Instruments unavailable: " + error.Message, this);
+				return null;
+			}
+		}
+
 		private void StartRecording(ISimulation simulation)
 		{
 			try
@@ -753,8 +804,8 @@ namespace FerrySim.Sim
 					header.AddRange(RunRecorder.TrafficHeader(_traffic));
 				}
 				_recorder = _traffic != null
-					? RunRecorder.Create(RecordingDirectory, UniqueRunName(), telemetrySampleHz, header, _traffic, _trafficObserver.Monitor)
-					: RunRecorder.Create(RecordingDirectory, UniqueRunName(), telemetrySampleHz, header);
+					? RunRecorder.Create(RecordingDirectory, UniqueRunName(), telemetrySampleHz, header, _traffic, _trafficObserver.Monitor, controlSource: _driver.Controls)
+					: RunRecorder.Create(RecordingDirectory, UniqueRunName(), telemetrySampleHz, header, _driver.Controls);
 				_driver.AddObserver(_recorder);
 			}
 			catch (Exception exception)

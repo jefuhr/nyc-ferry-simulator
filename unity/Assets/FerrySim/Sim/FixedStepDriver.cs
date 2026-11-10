@@ -249,6 +249,6 @@ namespace FerrySim.Sim
 		/// replay reads back (some runtimes parse "-0" as +0).
 		/// </summary>
 		public static ControlInputs Canonical(in ControlInputs controls) =>
-			new ControlInputs(controls.PortLever + 0.0, controls.StarboardLever + 0.0, controls.Helm + 0.0);
+			new ControlInputs(controls.PortLever + 0.0, controls.StarboardLever + 0.0, controls.Helm + 0.0, controls.Jog + 0.0);
 	}
 }

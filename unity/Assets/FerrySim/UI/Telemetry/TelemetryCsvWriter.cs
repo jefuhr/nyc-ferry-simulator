@@ -36,7 +36,9 @@ namespace FerrySim.UI
 			}
 
 			var thresholds = recording.DepthAlarmThreshold;
+			var includeJog = recording.HasNfuJog;
 			builder.Append(string.Join(",", TelemetryCsv.Columns));
+			if (includeJog) builder.Append(',').Append(TelemetryCsv.NfuJogColumn);
 			if (thresholds != null)
 			{
 				builder.Append(',').Append(TelemetryCsv.DepthAlarmThresholdColumn);
@@ -46,6 +48,11 @@ namespace FerrySim.UI
 			for (var i = 0; i < recording.Count; i++)
 			{
 				AppendRow(builder, recording.Sample(i));
+				if (includeJog)
+				{
+					builder.Append(',');
+					Append(builder, recording.NfuJog[i], "F4", last: true);
+				}
 				if (thresholds != null)
 				{
 					builder.Append(',');

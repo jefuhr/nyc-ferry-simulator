@@ -64,6 +64,7 @@ namespace FerrySim.Sim
 		private TrafficRun _trafficRun;
 		private TrafficMonitor _trafficMonitor;
 		private readonly StateDigest _digest = new StateDigest();
+		private readonly bool _hasJog;
 		private readonly int _stepsPerSample;
 		private readonly int _stepsPerFlush;
 		private long _lastTraceStep = -1;
@@ -73,7 +74,7 @@ namespace FerrySim.Sim
 		private bool _disposed;
 		private bool _outputClosed;
 
-		public RunRecorder(TextWriter telemetry, TextWriter inputs, int sampleHz, IEnumerable<KeyValuePair<string, string>> header, IEnumerable<string> inputComments = null)
+		public RunRecorder(TextWriter telemetry, TextWriter inputs, int sampleHz, IEnumerable<KeyValuePair<string, string>> header, IEnumerable<string> inputComments = null, IControlInputSource controlSource = null)
 		{
 			_telemetry = telemetry ?? throw new ArgumentNullException(nameof(telemetry));
 			_inputs = inputs ?? throw new ArgumentNullException(nameof(inputs));
@@ -82,10 +83,11 @@ namespace FerrySim.Sim
 				throw new ArgumentOutOfRangeException(nameof(sampleHz), $"The sample rate must divide the {SimulationClock.StepsPerSecond} Hz physics rate, got {sampleHz}.");
 			}
 
+			_hasJog = controlSource is INfuControlSource;
 			SampleHz = sampleHz;
 			_stepsPerSample = SimulationClock.StepsPerSecond / sampleHz;
 			_stepsPerFlush = SimulationClock.StepsPerSecond;
-			_telemetry.Write(TelemetryCsv.FormatHeader(header));
+			_telemetry.Write(TelemetryCsv.FormatHeader(header, _hasJog));
 			if (inputComments != null)
 			{
 				foreach (var comment in inputComments)
@@ -94,7 +96,7 @@ namespace FerrySim.Sim
 				}
 			}
 
-			_inputs.Write(ControlTrace.HeaderRow + "\n");
+			_inputs.Write((_hasJog ? ControlTrace.NfuHeaderRow : ControlTrace.HeaderRow) + "\n");
 		}
 
 		public int SampleHz { get; }
@@ -136,16 +138,16 @@ namespace FerrySim.Sim
 		public string TrafficPath { get; private set; }
 
 		/// <summary>Opens <c>&lt;directory&gt;/&lt;baseName&gt;.csv</c> and its <c>.inputs.csv</c> companion.</summary>
-		public static RunRecorder Create(string directory, string baseName, int sampleHz, List<KeyValuePair<string, string>> header) =>
-			Create(directory, baseName, sampleHz, header, null, null);
+		public static RunRecorder Create(string directory, string baseName, int sampleHz, List<KeyValuePair<string, string>> header, IControlInputSource controlSource = null) =>
+			Create(directory, baseName, sampleHz, header, null, null, controlSource: controlSource);
 
 		/// <summary>
-		/// As <see cref="Create(string, string, int, List{KeyValuePair{string, string}})"/>; with <paramref name="traffic"/>, also
+		/// As the no-traffic <see cref="Create"/> overload; with <paramref name="traffic"/>, also
 		/// <c>&lt;baseName&gt;.traffic.csv</c>, named in the header as <c>traffic_events</c>, for the events of
 		/// <paramref name="monitor"/> (which this recorder receives as their sink).
 		/// </summary>
 		public static RunRecorder Create(string directory, string baseName, int sampleHz, List<KeyValuePair<string, string>> header, TrafficRun traffic, TrafficMonitor monitor,
-			Func<string, TextWriter> writerFactory = null, int bufferCharacters = 0)
+			Func<string, TextWriter> writerFactory = null, int bufferCharacters = 0, IControlInputSource controlSource = null)
 		{
 			if (bufferCharacters < 0) throw new ArgumentOutOfRangeException(nameof(bufferCharacters));
 			Directory.CreateDirectory(directory);
@@ -167,7 +169,7 @@ namespace FerrySim.Sim
 			{
 				inputs = Open(inputsPath);
 				var comments = new[] { "ferrysim control trace recorded by Unity, for " + Path.GetFileName(telemetryPath) };
-				var recorder = new RunRecorder(telemetry, inputs, sampleHz, fullHeader, comments)
+				var recorder = new RunRecorder(telemetry, inputs, sampleHz, fullHeader, comments, controlSource)
 				{
 					TelemetryPath = telemetryPath,
 					InputsPath = inputsPath,
@@ -408,6 +410,8 @@ namespace FerrySim.Sim
 			try
 			{
 				if (Failure != null) throw Failure;
+				if (!_hasJog && controls.Jog != 0.0)
+					throw new InvalidOperationException("Non-zero jog from a control source without INfuControlSource cannot be recorded in the four-column format.");
 				if (step % _stepsPerSample == 0)
 				{
 					WriteRow(state, telemetry, controls);
@@ -522,10 +526,10 @@ namespace FerrySim.Sim
 		private void WriteRow(in VesselState state, in VesselTelemetry telemetry, in ControlInputs controls)
 		{
 			using var profile = RowMarker.Auto();
-			if (_buffered != null) TelemetryCsv.WriteRow(_telemetry, _rowBuffer, state, telemetry, controls);
+			if (_buffered != null) TelemetryCsv.WriteRow(_telemetry, _rowBuffer, state, telemetry, controls, _hasJog);
 			else
 			{
-				_telemetry.Write(TelemetryCsv.FormatRow(state, telemetry, controls));
+				_telemetry.Write(TelemetryCsv.FormatRow(state, telemetry, controls, _hasJog));
 				_telemetry.Write('\n');
 			}
 			RowCount++;
@@ -533,10 +537,10 @@ namespace FerrySim.Sim
 
 		private void WriteTraceRow(long step, in ControlInputs controls)
 		{
-			if (_buffered != null) TelemetryCsv.WriteTraceRow(_inputs, _rowBuffer, step, controls);
+			if (_buffered != null) TelemetryCsv.WriteTraceRow(_inputs, _rowBuffer, step, controls, _hasJog);
 			else
 			{
-				_inputs.Write(ControlTrace.FormatRow(step, controls));
+				_inputs.Write(ControlTrace.FormatRow(step, controls, _hasJog));
 				_inputs.Write('\n');
 			}
 			_lastTraceStep = step;

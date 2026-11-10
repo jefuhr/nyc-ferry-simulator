@@ -31,8 +31,10 @@ namespace FerrySim.Sim
 
 		public static string ColumnRow => string.Join(",", ColumnNames);
 
+		public static string NfuColumnRow => ColumnRow + ",nfu_jog";
+
 		/// <summary>The <c>#</c> header comment block and the column row, each line ending in <c>\n</c>.</summary>
-		public static string FormatHeader(IEnumerable<KeyValuePair<string, string>> header)
+		public static string FormatHeader(IEnumerable<KeyValuePair<string, string>> header, bool includeJog = false)
 		{
 			var builder = new StringBuilder();
 			builder.Append("# ferrysim-csv: ").Append(FormatVersion).Append('\n');
@@ -44,12 +46,12 @@ namespace FerrySim.Sim
 				}
 			}
 
-			builder.Append(ColumnRow).Append('\n');
+			builder.Append(includeJog ? NfuColumnRow : ColumnRow).Append('\n');
 			return builder.ToString();
 		}
 
 		/// <summary>Writes the same row through caller-owned storage, including its newline.</summary>
-		public static void WriteRow(TextWriter writer, char[] buffer, in VesselState state, in VesselTelemetry telemetry, in ControlInputs controls)
+		public static void WriteRow(TextWriter writer, char[] buffer, in VesselState state, in VesselTelemetry telemetry, in ControlInputs controls, bool includeJog = false)
 		{
 			using var profile = RowMarker.Auto();
 			var row = new RowBuffer(buffer);
@@ -76,18 +78,21 @@ namespace FerrySim.Sim
 			row.Fixed(telemetry.ContactForce, "F1");
 			row.Fixed(controls.PortLever, "F4");
 			row.Fixed(controls.StarboardLever, "F4");
-			row.Fixed(controls.Helm, "F4", false);
+			row.Fixed(controls.Helm, "F4", includeJog);
+			if (includeJog) row.Fixed(controls.Jog, "F4", false);
 			row.Write(writer);
 		}
 
 		/// <summary>ControlTrace's exact formats, without temporary per-value strings.</summary>
-		public static void WriteTraceRow(TextWriter writer, char[] buffer, long step, in ControlInputs controls)
+		public static void WriteTraceRow(TextWriter writer, char[] buffer, long step, in ControlInputs controls, bool includeJog = false)
 		{
 			var row = new RowBuffer(buffer);
 			row.Number(SimulationClock.TimeAtStep(step), "0.00"); row.Character(',');
 			row.RoundTrip(controls.PortLever);
 			row.RoundTrip(controls.StarboardLever);
-			row.RoundTrip(controls.Helm, false);
+			if (!includeJog && controls.Jog != 0.0) throw new InvalidOperationException("A four-column control trace cannot store non-zero jog.");
+			row.RoundTrip(controls.Helm, includeJog);
+			if (includeJog) row.RoundTrip(controls.Jog, false);
 			row.Write(writer);
 		}
 
@@ -122,7 +127,7 @@ namespace FerrySim.Sim
 		/// One data row (no line ending): the state and telemetry at this instant and the controls that start
 		/// applying now, formatted exactly as the CLI's <c>CsvRecorder.Add</c> does.
 		/// </summary>
-		public static string FormatRow(in VesselState state, in VesselTelemetry telemetry, in ControlInputs controls)
+		public static string FormatRow(in VesselState state, in VesselTelemetry telemetry, in ControlInputs controls, bool includeJog = false)
 		{
 			using var profile = RowMarker.Auto();
 			var port = telemetry.Port;
@@ -150,7 +155,8 @@ namespace FerrySim.Sim
 			Append(builder, telemetry.ContactForce, "F1");
 			Append(builder, controls.PortLever, "F4");
 			Append(builder, controls.StarboardLever, "F4");
-			Append(builder, controls.Helm, "F4", last: true);
+			Append(builder, controls.Helm, "F4", last: !includeJog);
+			if (includeJog) Append(builder, controls.Jog, "F4", last: true);
 			return builder.ToString();
 		}
 
@@ -160,8 +166,12 @@ namespace FerrySim.Sim
 		public static string GearName(GearState gear) => gear.ToString().ToLowerInvariant();
 
 		/// <summary>Splits a telemetry CSV into its header comments and data lines, checking the format version and columns.</summary>
-		public static void Split(IReadOnlyList<string> lines, string label, out Dictionary<string, string> header, out List<string> rows)
+		public static void Split(IReadOnlyList<string> lines, string label, out Dictionary<string, string> header, out List<string> rows) =>
+			Split(lines, label, out header, out rows, out _);
+
+		public static void Split(IReadOnlyList<string> lines, string label, out Dictionary<string, string> header, out List<string> rows, out bool hasJog)
 		{
+			hasJog = false;
 			header = new Dictionary<string, string>(StringComparer.Ordinal);
 			rows = new List<string>();
 			var index = 0;
@@ -185,11 +195,12 @@ namespace FerrySim.Sim
 				throw new FormatException($"{label}: unsupported ferrysim-csv version {version}.");
 			}
 
-			if (index >= lines.Count || lines[index] != ColumnRow)
+			if (index >= lines.Count || (lines[index] != ColumnRow && lines[index] != NfuColumnRow))
 			{
 				throw new FormatException($"{label}: expected the column row '{ColumnRow}' after the header comments.");
 			}
 
+			hasJog = lines[index] == NfuColumnRow;
 			for (index++; index < lines.Count; index++)
 			{
 				if (!string.IsNullOrWhiteSpace(lines[index]))

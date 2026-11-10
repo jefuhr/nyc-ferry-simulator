@@ -37,6 +37,8 @@ namespace FerrySim.UI
 		/// </summary>
 		public const string DepthAlarmThresholdColumn = "depth_alarm_threshold_m";
 
+		public const string NfuJogColumn = "nfu_jog";
+
 		private static readonly string[] ScenarioStartFormats = { "yyyy-MM-dd'T'HH:mm:ssK", "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK" };
 
 		private static readonly string[] Names =
@@ -132,7 +134,8 @@ namespace FerrySim.UI
 			}
 
 			var thresholdColumn = Array.IndexOf(names, DepthAlarmThresholdColumn);
-			var builder = new TelemetryRecordingBuilder(label, header);
+			var jogColumn = Array.IndexOf(names, NfuJogColumn);
+			var builder = new TelemetryRecordingBuilder(label, header) { IncludeNfuJog = jogColumn >= 0 };
 			for (; index < lines.Length; index++)
 			{
 				var line = lines[index].TrimEnd('\r');
@@ -168,7 +171,7 @@ namespace FerrySim.UI
 					Angles.ToRadians(row.Number(8)),
 					row.Number(18),
 					row.Number(19));
-				var controls = new ControlInputs(row.Number(20), row.Number(21), row.Number(22));
+				var controls = new ControlInputs(row.Number(20), row.Number(21), row.Number(22), jogColumn >= 0 ? row.Jog(jogColumn) : 0.0);
 				if (thresholdColumn >= 0)
 				{
 					builder.Add(state, telemetry, controls, row.Threshold(thresholdColumn));
@@ -237,6 +240,17 @@ namespace FerrySim.UI
 
 				// Keep the sign of "-0.000" (a small negative value rounded by the CLI) so rows re-render identically.
 				return value == 0.0 && cell.TrimStart().StartsWith("-", StringComparison.Ordinal) ? -0.0 : value;
+			}
+
+			public double Jog(int cellIndex)
+			{
+				var cell = _cells[cellIndex];
+				if (!double.TryParse(cell, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) ||
+					double.IsNaN(value) || double.IsInfinity(value) || value < -1 || value > 1)
+				{
+					throw new TelemetryCsvException($"{_label}: line {_line}, column {NfuJogColumn}: '{cell}' is not a finite jog value in [-1, 1].");
+				}
+				return value;
 			}
 
 			/// <summary>The optional alarm threshold cell at <paramref name="cellIndex"/>: finite metres, 0 or more.</summary>
