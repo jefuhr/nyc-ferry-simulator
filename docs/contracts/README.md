@@ -148,8 +148,18 @@ All three sit in the application's persistent data folder beside `input-profiles
 A skin lays out one console display as data: the elements, the channels they show, their ranges and the refresh rate. See [display-skin-v1.schema.json](display-skin-v1.schema.json).
 
 - Skins in the repository are generic look-alikes. They may match a real unit's fields, positions, colours and scales; they carry no maker names, model names or logos.
-- A skin that names an unknown channel, alarm or element type is rejected whole.
-- A user can load a private skin from a `skins/` folder in the persistent data folder. It is never shipped.
+- A skin is rejected whole, with a message naming the element, when it names an unknown channel, alarm, element type, unit, page, colour, group, format or action, gives a property that does not apply to its element type, places a rectangle outside the reference size, or gives a band outside its element's range.
+- A user can load a private skin from `skins/<display>/<id>.json` in the persistent data folder. It is looked up before the shipped skin and is never shipped; a broken one is reported and the shipped skin is used.
+
+**Element types:** `dial`, `bar`, `value`, `lamp`, `text`, `softkey`, `frame` and `list`. Appended since the first version, all optional:
+
+| Addition | Applies to | Meaning |
+|---|---|---|
+| `list` element | | Every alarm the readout defines, grouped by alarm group, each with a lamp and its state in words. The rows come from the readout, so a vessel that gains alarms needs no skin change |
+| `group` | `list` | Show only that alarm group's alarms |
+| `format` | `value` | `number` (the default) or `gear`, which shows a shift-phase channel as a word |
+| `action` | `softkey` | `acknowledge`, `silence` or `lamp-test` (held while pressed). The view raises an event; the host forwards it to the instrument source. A soft key has a `target` page or an `action`, never both |
+| `bands` | `dial`, `bar` | Coloured ranges such as warning and red-line arcs, each `{range, colour}` in the display unit, drawn once with the static face |
 
 ## C7: Jog input and recordings
 

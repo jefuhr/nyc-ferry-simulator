@@ -138,7 +138,7 @@ namespace FerrySim.UI.Displays
 	}
 
 	/// <summary>
-	/// The lamp rhythm of contract C1, the same as <c>AlarmAnnunciator.LampOn</c> in core: unacknowledged flashes at 1 Hz
+	/// The lamp rhythm of contract C1, taken from <c>AlarmAnnunciator.LampLit</c> in core so every viewer flashes in step: unacknowledged flashes at 1 Hz
 	/// and ring-back at 0.5 Hz, both lit for the first half of each period, acknowledged is steady, and a lamp test
 	/// lights everything. Both flash rates are well below the 3 per second photosensitivity limit.
 	/// </summary>
@@ -168,9 +168,9 @@ namespace FerrySim.UI.Displays
 				case LampState.Steady:
 					return true;
 				case LampState.Flashing:
-					return double.IsNaN(time) || Math.Floor(time * 2.0) % 2.0 == 0.0;
+					return double.IsNaN(time) || AlarmAnnunciator.LampLit(AlarmPhase.Unacknowledged, false, time);
 				case LampState.SlowFlash:
-					return double.IsNaN(time) || Math.Floor(time) % 2.0 == 0.0;
+					return double.IsNaN(time) || AlarmAnnunciator.LampLit(AlarmPhase.RingBack, false, time);
 				default:
 					return false;
 			}
