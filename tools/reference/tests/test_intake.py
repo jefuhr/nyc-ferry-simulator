@@ -87,6 +87,20 @@ class GateTests(unittest.TestCase):
 
 
 class AuditTests(unittest.TestCase):
+	def test_prepared_audio_is_a_recordable_derived_method(self):
+		# A finished audio clip lives in the repository, not beside the sheets, so its derived entry
+		# names it with a repo: path. The manifest must still load so a withdrawal can be traced to it.
+		import intake
+		with tempfile.TemporaryDirectory() as tmp:
+			root = Path(tmp).resolve(); data = manifest(root)
+			data['derived'] = [dict(path='repo:unity/Assets/FerrySim/Audio/Clips/example.wav', sha256='b'*64, method='audio-prep', **{'from': ['local:drawings/synthetic.png']})]
+			reference.write_json(data, root / 'manifest.json')
+			loaded = intake.load_manifest(root / 'manifest.json')
+			self.assertEqual(loaded['derived'][0]['method'], 'audio-prep')
+			data['derived'][0]['method'] = 'guesswork'
+			reference.write_json(data, root / 'manifest.json')
+			with self.assertRaises(ValueError): intake.load_manifest(root / 'manifest.json')
+
 	def test_withdrawal_propagates_and_lists_every_value(self):
 		with tempfile.TemporaryDirectory() as tmp:
 			root = Path(tmp).resolve(); data = manifest(root)

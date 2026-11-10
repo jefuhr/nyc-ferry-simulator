@@ -82,7 +82,7 @@
 			"properties": {
 				"path": {"type": "string", "minLength": 1},
 				"sha256": {"type": "string", "minLength": 64},
-				"method": {"enum": ["photogrammetry", "frame-extract", "rectify"]},
+				"method": {"enum": ["photogrammetry", "frame-extract", "rectify", "audio-prep"], "description": "audio-prep (appended): a finished audio clip prepared from approved recordings"},
 				"from": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "description": "Source ids the file was computed from; withdrawal of any of them withdraws the derived file"},
 				"scale": {"type": "string", "description": "How the result was scaled, for example known-dimension: rail height 1.07 m"},
 				"pixels_per_metre": {"type": "number"}

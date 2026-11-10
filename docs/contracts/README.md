@@ -200,7 +200,9 @@ A skin lays out one console display as data: the elements, the channels they sho
 - once under `sheets`, with its own screening decision and with `sources` set to the source ids it was computed from, so the gate above checks consent and withdrawal on it directly;
 - once under `derived`, with the same `path` and `sha256`, recording how it was made (`method`, `scale`, `pixels_per_metre`, `from`).
 
-A file listed only under `derived` is refused. The two entries must agree: same path and hash, and `from` equal to the set of source ids in the `sheets` entry. Withdrawing any source withdraws the derived file and flags every value measured from it.
+A file listed only under `derived` is refused.
+
+**Derived files that live in the repository.** A finished audio clip is committed to the repository, so it cannot sit beside the sheets. Its `derived` entry (method `audio-prep`) names it as `repo:<path from the repository root>` with the clip's hash and the source ids it was cut from. It has no `sheets` entry and is never read through the gate; the entry exists so that withdrawing a source points at the clip that has to be rebuilt or removed. The two entries must agree: same path and hash, and `from` equal to the set of source ids in the `sheets` entry. Withdrawing any source withdraws the derived file and flags every value measured from it.
 
 **Contributors are roles** (`owner`, `crew-a`, `builder`), never names or account ids.
 
