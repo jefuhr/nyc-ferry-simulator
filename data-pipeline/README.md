@@ -38,7 +38,53 @@ The grid has 36 candidates: north/east indices -2 through 3, 4000 m squares in t
 
 Harbor downloads append records in `data/manifests/<source>-harbor.json` and share the existing raw source directories. Reads verify the original plus the additive manifest, rejecting conflicting pins. Original manifests and existing raw files stay unchanged: the slice's merged-depth metadata hashes those original manifests, so appending harbor entries directly to them would change the slice's output bytes. Harbor fetch never refreshes existing pinned files or catalogues and does not support `--force`.
 
-Outputs live in `data/processed/harbor/tiles/<id>/`, with every candidate and output SHA-256 in `index.json`. `raw_sources.json` records each tile's raw dependencies; validation verifies their hashes against the original/additive manifests. `build_metrics.json` measures elapsed time and peak RSS in an isolated subprocess for each tile. Tile processing runs serially under `$HOME/FerrySim-cache/heavy.lock`, including CUDEM mosaics. A subset build preserves the previous index entries for other tiles; validation still checks every active tile and fails on unbuilt ones.
+Outputs live in `data/processed/harbor/tiles/<id>/`, with every candidate and product SHA-256 in `index.json`. `raw_sources.json` records each tile's raw dependencies; validation verifies their hashes against the original/additive manifests. `tiles/<id>/build_metrics.json` measures elapsed time and peak RSS in an isolated subprocess for each tile, plus lock wait/startup time. `harbor/build_metrics.json` collects those measurements by tile ID. These reports and `build.log` remain on disk but are excluded from product hashes and the deterministic index; no consumer should pin their bytes. Tile processing runs serially under `$HOME/FerrySim-cache/heavy.lock`, including CUDEM mosaics. A subset build preserves other tiles' product pins and moves any legacy embedded metrics into the unhashed report; validation still checks every active tile and fails on unbuilt ones.
+
+### Repeatable offline harbor rebuild
+
+From the repository root, with the cached inputs and existing Python environment:
+
+```sh
+scripts/rebuild-harbor.sh
+# Or use an existing interpreter without installing anything:
+FERRYDATA_PYTHON=/absolute/path/to/existing/python scripts/rebuild-harbor.sh
+# Keep a separate runtime candidate for review:
+scripts/rebuild-harbor.sh --out artifacts/harbor-rebuild/runtime-candidate
+```
+
+The script runs `ferrydata build --harbor`, `ferrydata export-unity --harbor`,
+`ferrydata.world3d refresh`, `ferrydata.harbor_runtime build`, then
+`ferrydata.harbor_runtime verify --harbor data/processed/harbor`. It stops on the
+first failure and prints `DIGEST <sha256>` only after verification. It fetches no
+inputs or packages; the default `uv run --no-sync` requires an existing environment.
+Do not wrap this script or `ferrydata build --harbor` in `heavy.lock`: the tile
+builder acquires it per subprocess. The script locks only terrain refresh and
+runtime export separately.
+
+Terrain does depend on landing structures: `barge_lnams` reads segment kinds and
+LNAMs to omit landing barges from fixed terrain walls. `refresh` uses the cheapest
+provably equivalent step. It checks every depth, geoid and shoreline input against
+the previous terrain source pins, verifies all terrain content files, and compares
+current per-tile omitted shore IDs with `structures.left_out_barges` in the terrain
+index. If all match, only landing source hashes in `3dtiles/index.json` are relinked;
+GLBs and tilesets stay byte-identical. This also works for legacy terrain indices.
+Changed depth, geoid, shoreline, active tiles or barge exclusions require the
+existing full terrain builder; missing or corrupt products fail without relinking.
+Terrain geometry generation is unchanged. The runtime gate then checks every
+terrain source against the tile index and actual bytes, including depth rasters.
+
+Two complete builds from identical cache/code have identical product hashes,
+`index.json` bytes and runtime `DIGEST`, even though report timings differ. A build
+failure stops the chain; it does not roll back already rebuilt tile products. Keep
+a separate snapshot before rebuilding if the shipped processed pack must remain
+available. The runtime builder preserves its previous pack on failure.
+
+This command rebuilds tiles, contacts, terrain linkage and runtime only. Environment,
+traffic, skyline and chart packs remain separate pipelines. Changed inputs to those
+packs require their documented rebuilds before release. This command never updates
+committed release pins. Review every downstream runtime, terrain/index, contact and
+chart dependency before adopting a new digest; release preflight also checks these
+links (see `docs/releasing.md`).
 
 Depth rasters share one exact 1/9 arc-second lattice anchored at 0° latitude/longitude, using nearest-neighbour sampling to remove small origin/resolution rounding differences between CUDEM source headers. The conservative merge reads a further 100 m support halo so its 60 m shoreline buffer agrees at tile boundaries. It never fills missing CUDEM cells or extrapolates individual soundings; missing cells whose centres lie in charted DEPARE water fail validation. The Battery MLLW/NAVD88 offset is a disclosed constant across the harbor, not a spatial VDatum transformation. CO-OPS outputs list current prediction and water-level station metadata within each grown square; harbor v1 does not fetch additional prediction time series. Harbor v1 excluded landing faces, contact geometry and the Unity export; wave 2 adds the first two (below), and the harbor's Unity import is wave 2b.
 

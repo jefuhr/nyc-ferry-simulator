@@ -333,4 +333,6 @@ def test_subset_build_preserves_other_tile_index(monkeypatch, tmp_path):
 	monkeypatch.setattr(tiles.subprocess, "run", run)
 	assert tiles.build(["tile_0_0"], log=lambda _: None) == 0
 	assert calls == ["tile_0_0"]
-	assert tiles._json(tmp_path / "harbor" / "index.json")["tiles"][1] == old["tiles"][1]
+	expected = {key: value for key, value in old["tiles"][1].items() if key != "metrics"}
+	assert tiles._json(tmp_path / "harbor" / "index.json")["tiles"][1] == expected
+	assert tiles._json(tmp_path / "harbor" / "build_metrics.json")["tiles"]["tile_0_1"] == old["tiles"][1]["metrics"]

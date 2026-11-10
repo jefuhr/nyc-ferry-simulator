@@ -44,10 +44,12 @@ class Inputs:
 		world=self.read('3dtiles/index.json')
 		if world['schema']!='harbor-3dtiles-v1':
 			raise ValueError('unsupported terrain index schema')
-		# Cross-check shared dependencies against the terrain index; never read GLBs for semantic queries.
+		# Check every terrain dependency, including depth rasters not read by semantic queries.
+		tile_pins={p["file"]:p["sha256"] for e in self.entries for p in e["outputs"]}
 		for source in world['sources']:
-			if source['file'] in self.sources and source['sha256']!=self.sources[source['file']]:
+			if source['sha256']!=tile_pins.get(source['file']):
 				raise ValueError(f"{source['file']}: terrain index hash differs from tile index")
+			self.record(source['file'],source['sha256'])
 		depth=self.read('env/depth/manifest.json')
 		for grid in depth['grids']:
 			rel='env/depth/'+grid['file']; p=safe_file(self.root,rel)

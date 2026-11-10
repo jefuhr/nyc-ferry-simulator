@@ -25,6 +25,8 @@ SIZE_M = 4000
 MARGIN_M = 250
 INDICES = range(-2, 4)
 OVERLAP_TOLERANCE_M = 0.05
+# Diagnostic files are retained on disk, never hashed as products.
+BUILD_REPORT_FILES = {"build_metrics.json", "build.log"}
 
 
 def _square(n0, e0, n1, e1):
@@ -359,6 +361,8 @@ def build(tile_ids=None, log=print):
 	out = paths.processed_dir("harbor")
 	previous = _json(out / "index.json") if (out / "index.json").exists() else {}
 	previous_entries = {t["id"]: t for t in previous.get("tiles", [])}
+	report_path = out / "build_metrics.json"
+	metrics = _json(report_path).get("tiles", {}) if report_path.exists() else {}
 	lock = Path.home() / "FerrySim-cache" / "heavy.lock"
 	lock.parent.mkdir(parents=True, exist_ok=True)
 	failed = False
@@ -368,9 +372,13 @@ def build(tile_ids=None, log=print):
 			continue
 		if requested is not None and identifier not in requested:
 			old = previous_entries.get(identifier, {})
-			for key in ("outputs", "build_error", "metrics"):
+			for key in ("outputs", "build_error"):
 				if key in old:
 					entry[key] = old[key]
+			if "outputs" in entry:
+				entry["outputs"] = [p for p in entry["outputs"] if Path(p["file"]).name not in BUILD_REPORT_FILES]
+			if "metrics" in old and identifier not in metrics:
+				metrics[identifier] = old["metrics"]
 			continue
 		log(f"[build] {identifier}")
 		if log is print:
@@ -389,12 +397,13 @@ def build(tile_ids=None, log=print):
 			failed = True
 			log(f"  FAIL: {entry['build_error']}")
 		else:
-			entry["metrics"] = _json(target / "build_metrics.json")
-			entry["metrics"]["lock_wait_and_startup_seconds"] = max(0., time.perf_counter() - launched - entry["metrics"]["elapsed_seconds"])
-			_write(target / "build_metrics.json", entry["metrics"])
-			log(f"  done in {entry['metrics']['elapsed_seconds']:.2f}s, peak RSS {entry['metrics']['peak_rss_bytes'] / 2**20:.1f} MiB")
+			metrics[identifier] = _json(target / "build_metrics.json")
+			metrics[identifier]["lock_wait_and_startup_seconds"] = max(0., time.perf_counter() - launched - metrics[identifier]["elapsed_seconds"])
+			_write(target / "build_metrics.json", metrics[identifier])
+			log(f"  done in {metrics[identifier]['elapsed_seconds']:.2f}s, peak RSS {metrics[identifier]['peak_rss_bytes'] / 2**20:.1f} MiB")
 		entry["outputs"] = [{"file": str(p.relative_to(out)), "sha256": manifest.sha256_file(p), "size_bytes": p.stat().st_size}
-			for p in sorted(target.rglob("*")) if p.is_file()]
+			for p in sorted(target.rglob("*")) if p.is_file() and p.name not in BUILD_REPORT_FILES]
+	_write(report_path, {"tiles": {key: metrics[key] for key in sorted(metrics)}})
 	_write(out / "index.json", index)
 	return 1 if failed else 0
 

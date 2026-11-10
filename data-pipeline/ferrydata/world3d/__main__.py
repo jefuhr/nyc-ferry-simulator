@@ -22,7 +22,13 @@ def main(argv=None):
 			p.add_argument("--slice", help="the slice outputs to compare terrain with (default data/processed/lower-east-river)")
 			p.add_argument("--import-manifest", help="the slice import's manifest (default World/Generated/LowerEastRiver/import-manifest.json)")
 			p.add_argument("--report", help="where validation.md and validation.json go (default artifacts/world3d)")
+	p = sub.add_parser("refresh", help="relink equivalent landing metadata or rebuild terrain when inputs changed")
+	p.add_argument("--harbor", help="the harbor tiles v1 folder (default data/processed/harbor)")
 	args = parser.parse_args(argv)
+	if args.command == "refresh":
+		from ferrydata.world3d.link import refresh
+		refresh(args.harbor)
+		return 0
 	if args.command == "build":
 		from ferrydata.world3d.build import build
 		metrics = build(args.harbor, args.out)

@@ -520,3 +520,64 @@ def test_validator_refuses_a_slice_export_that_is_not_the_imported_one(built, ha
 	result = validate.validate(built, harbor, slice_dir=slice_dir, import_manifest=stale, report_dir=tmp_path / "report",
 		log=lambda *a: None)
 	assert any("import" in f["message"] for f in failures(result, "slice"))
+
+
+def test_metadata_refresh_relinks_without_changing_terrain(harbor, built, tmp_path):
+	from ferrydata.world3d.link import refresh
+	root = tmp_path / 'harbor'
+	shutil.copytree(harbor, root)
+	shutil.copytree(built, root / '3dtiles')
+	before = {p.relative_to(root / '3dtiles'): p.read_bytes() for p in (root / '3dtiles').rglob('*') if p.is_file() and p.name != 'index.json'}
+	p = root / 'tiles/tile_0_0/landing_structures.geojson'
+	value = json.loads(p.read_text()); value['features'][0]['properties']['crew_notes_sha256'] = 'new evidence'
+	p.write_text(json.dumps(value))
+	index = json.loads((root / 'index.json').read_text())
+	for entry in index['tiles']:
+		for output in entry['outputs']:
+			if output['file'] == p.relative_to(root).as_posix():
+				output['sha256'] = fixtures.sha256(p)
+	(root / 'index.json').write_text(json.dumps(index))
+	assert refresh(root, log=lambda _: None) == 'relinked'
+	after = {p.relative_to(root / '3dtiles'): p.read_bytes() for p in (root / '3dtiles').rglob('*') if p.is_file() and p.name != 'index.json'}
+	assert before == after
+	assert json.loads((root / '3dtiles/index.json').read_text())['sources'] == build.source_records(root, index, fixtures.ACTIVE)
+
+
+@pytest.mark.parametrize('name', ['depth_merged_navd88.tif', 'shoreline_constructions.geojson', 'geoid_offset.json'])
+def test_relink_refuses_changed_geometry_input(harbor, built, tmp_path, name):
+	from ferrydata.world3d.link import relink, RebuildRequired
+	root = tmp_path / 'harbor'
+	shutil.copytree(harbor, root)
+	shutil.copytree(built, root / '3dtiles')
+	p = root / 'tiles/tile_0_0' / name
+	p.write_bytes(p.read_bytes() + b' ')
+	index = json.loads((root / 'index.json').read_text())
+	for entry in index['tiles']:
+		for output in entry['outputs']:
+			if output['file'] == p.relative_to(root).as_posix():
+				output['sha256'] = fixtures.sha256(p)
+	(root / 'index.json').write_text(json.dumps(index))
+	before = (root / '3dtiles/index.json').read_bytes()
+	with pytest.raises(RebuildRequired, match='terrain input changed'):
+		relink(root, log=lambda _: None)
+	assert (root / '3dtiles/index.json').read_bytes() == before
+
+
+def test_refresh_rebuilds_when_barge_membership_changes(harbor, built, tmp_path, monkeypatch):
+	from ferrydata.world3d.link import refresh
+	root = tmp_path / 'harbor'
+	shutil.copytree(harbor, root)
+	shutil.copytree(built, root / '3dtiles')
+	p = root / 'tiles/tile_0_0/landing_structures.geojson'
+	value = json.loads(p.read_text()); value['features'] = []
+	p.write_text(json.dumps(value))
+	index = json.loads((root / 'index.json').read_text())
+	for entry in index['tiles']:
+		for output in entry['outputs']:
+			if output['file'] == p.relative_to(root).as_posix():
+				output['sha256'] = fixtures.sha256(p)
+	(root / 'index.json').write_text(json.dumps(index))
+	calls = []
+	monkeypatch.setattr(build, 'build', lambda *args, **kwargs: calls.append(args))
+	assert refresh(root, log=lambda _: None) == 'rebuilt'
+	assert calls == [(root, root / '3dtiles')]
