@@ -21,7 +21,7 @@ namespace FerrySim.HarborE2E.Tests
 	public class RealJourneyTests
 	{
 		private static string Root => Path.GetFullPath(Path.Combine(Application.dataPath, "../.."));
-		private static string Output => Path.Combine(Root, "artifacts/harbor-e2e/prepared");
+		private static string Output => Path.Combine(Root, "artifacts/landing-hold-fixes/real-journeys");
 		private static HarborScenarioCatalog Catalog(out LandingGeometry landings, out EnvironmentPacks packs)
 		{
 			landings = LandingGeometry.Load(Path.Combine(Root, "data/processed/harbor/unity/contacts.json"), Path.Combine(Application.dataPath, "FerrySim/Harbor/Data/landing-contact-surfaces.json"));
@@ -55,7 +55,8 @@ namespace FerrySim.HarborE2E.Tests
 		public void AuthorAndDriveTheThreeJourneys()
 		{
 			var catalog = Catalog(out var landings, out var packs);
-			var routes = JObject.Parse(File.ReadAllText(Path.Combine(Output, "routes.json")));
+			Directory.CreateDirectory(Output);
+			var routes = JObject.Parse(File.ReadAllText(Path.Combine(Root, "tools/harbor-benchmark/routes.json")));
 			var summaries = new JArray();
 			var errors = new List<string>();
 			foreach (var token in routes["routes"])
@@ -69,12 +70,13 @@ namespace FerrySim.HarborE2E.Tests
 				var vessel = catalog.Vessel("t-class");
 				var initial = settings.InitialState(environment.Observer);
 				var simulation = (VesselDynamicsSimulation)new VesselDynamicsFactory().Create(vessel, actualEnvironment, landings.Geometry, initial);
-				var controls = new HarborJourneyControls(route, () => simulation.State, () => simulation.ContactCount > 0, vessel.Particulars.LengthOverall.Value);
+				var controls = new HarborJourneyControls(route, () => simulation.State, () => route.IntendedFaceContact(simulation), vessel.Particulars.LengthOverall.Value);
 				var driver = new FixedStepDriver(simulation, controls);
 				var observer = new HarborJourneyObserver(route, simulation);
 				driver.AddObserver(observer);
 				var trace = new ControlTrace();
 				var prior = ControlInputs.Neutral;
+				var digest = new StateDigest();
 				using (var log = new StreamWriter(Path.Combine(Output, route.Name + ".authoring.csv")))
 				{
 					log.WriteLine("step,time_s,phase,north_m,east_m,heading_rad,surge_mps,sway_mps,under_keel_m,contact_n");
@@ -87,6 +89,7 @@ namespace FerrySim.HarborE2E.Tests
 						observer.BeforeStep(step, simulation.State, simulation.Telemetry, input);
 						simulation.Step(input);
 						observer.AfterStep(step + 1, simulation.State, simulation.Telemetry);
+						digest.Add(simulation.State);
 						if (step % 100 == 0)
 						{
 							var s = simulation.State;
@@ -99,11 +102,13 @@ namespace FerrySim.HarborE2E.Tests
 				trace.Append((long)Math.Round(state.Time * 100), prior);
 				using (var writer = new StreamWriter(Path.Combine(Output, route.Name + ".inputs.csv"))) trace.Write(writer, new[] { "Simulation test inputs only, not navigation advice.", "100 Hz floor A authoring; current method station blend; actual runtime recording must be replayed separately." });
 				var summary = new JObject { ["route"] = route.Name, ["completed"] = controls.Complete, ["phase"] = controls.Phase, ["duration_s"] = state.Time,
-					["north_m"] = state.North, ["east_m"] = state.East, ["depth_misses"] = environment.PackRun.Coverage.DepthMisses, ["time_holds"] = environment.PackRun.Coverage.TimeHolds,
+					["state_digest"] = digest.Text, ["north_m"] = state.North, ["east_m"] = state.East, ["depth_misses"] = environment.PackRun.Coverage.DepthMisses, ["time_holds"] = environment.PackRun.Coverage.TimeHolds,
 					["grounded_steps"] = observer.GroundedSteps, ["minimum_under_keel_m"] = observer.MinimumUnderKeel,
 					["query_saturation"] = simulation.SaturatedSegmentQueries, ["first_contact_speed_mps"] = observer.FirstContactSpeed,
 					["first_contact_id"] = observer.FirstContactId, ["crossings"] = new JArray(observer.Crossings), ["failures"] = new JArray(observer.Failures),
 					["peak_contact_force_n"] = observer.PeakForce, ["force_limit_n"] = route.ForceLimit, ["bottomed_out"] = observer.BottomedOut, ["final_hold_okay"] = observer.FinalHoldOkay, ["arrival_verdict"] = observer.LandingVerdict(state) };
+				observer.AddHoldSummary(summary);
+				using (var hold = new StreamWriter(Path.Combine(Output, route.Name + ".hold.csv"))) observer.WriteHoldCsv(hold);
 				summaries.Add(summary);
 				TestContext.WriteLine(summary.ToString());
 				if (!controls.Complete || observer.Failures.Count > 0 || observer.GroundedSteps > 0 || environment.PackRun.Coverage.DepthMisses != 0 || environment.PackRun.Coverage.TimeHolds != 0 || simulation.SaturatedSegmentQueries != 0 || observer.Crossings.Count != route.SpanIds.Length || (!route.HoldOnly && observer.LandingVerdict(state) != "pass")) errors.Add(route.Name + ": " + summary);

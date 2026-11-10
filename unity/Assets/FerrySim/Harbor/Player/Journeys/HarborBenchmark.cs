@@ -256,7 +256,7 @@ namespace FerrySim.Harbor.Player.Journeys
 				if (!_bootstrap.TryStart(settings, out problem)) throw new InvalidOperationException(problem);
 				_atomicMs = (Time.realtimeSinceStartupAsDouble - atomicAt) * 1000;
 				var simulation = (VesselDynamicsSimulation)_runner.Driver.Simulation;
-				_controls = new HarborJourneyControls(_route, () => _runner.State, () => simulation.ContactCount > 0, _runner.Parameters.Particulars.LengthOverall.Value);
+				_controls = new HarborJourneyControls(_route, () => _runner.State, () => _route.IntendedFaceContact(simulation), _runner.Parameters.Particulars.LengthOverall.Value);
 				_runner.Driver.Controls = _controls;
 				_observer = new HarborJourneyObserver(_route, simulation); _runner.Driver.AddObserver(_observer);
 				_runner.Driver.AddObserver(new JourneyEnd(_runner.Driver, _controls));
@@ -359,6 +359,7 @@ namespace FerrySim.Harbor.Player.Journeys
 			_scenario["first_contact_speed_mps"] = _observer.FirstContactSpeed; _scenario["first_contact_id"] = _observer.FirstContactId;
 			_scenario["arrival_verdict"] = _controls.Complete || _observer.Failures.Count > 0 || _observer.GroundedSteps > 0 ? _observer.LandingVerdict(_runner.State) : "unverified (incomplete journey)";
 			_scenario["peak_contact_force_n"] = _observer.PeakForce; _scenario["estimated_force_limit_n"] = _route.ForceLimit;
+			_observer.AddHoldSummary(_scenario);
 			_scenario["peak_compression_m"] = _observer.PeakCompression; _scenario["bottomed_out"] = _observer.BottomedOut; _scenario["final_hold_okay"] = _observer.FinalHoldOkay;
 			_scenario["arrival_stop_id"] = _route.Arrival;
 			_scenario["environment_digest"] = _runner.RunEnvironment.Pack.Digest; _scenario["depth_digest"] = _runner.RunEnvironment.Pack.Depth.Digest;
@@ -454,6 +455,7 @@ namespace FerrySim.Harbor.Player.Journeys
 		}
 		private void WriteCsv()
 		{
+			if (_observer != null) using (var hold = new StreamWriter(Path.Combine(_output, "hold.csv"))) _observer.WriteHoldCsv(hold);
 			using (var f = new StreamWriter(Path.Combine(_output, "frames.csv")))
 			using (var m = new StreamWriter(Path.Combine(_output, "memory.csv")))
 			{
