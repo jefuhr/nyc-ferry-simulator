@@ -1,0 +1,31 @@
+{
+	"name": "FerrySim.Unity.Prompts.Tests.PlayMode",
+	"rootNamespace": "FerrySim.Prompts.Tests.PlayMode",
+	"references": [
+		"FerrySim.Unity.Prompts",
+		"FerrySim.Unity.UI",
+		"FerrySim.Unity.Input",
+		"FerrySim.Unity.World",
+		"FerrySim.Unity.Vessels",
+		"FerrySim.Unity.Slice",
+		"FerrySim.Unity.Sim",
+		"FerrySim.Core",
+		"FerrySim.Core.Serialization",
+		"Unity.InputSystem",
+		"UnityEngine.TestRunner",
+		"UnityEditor.TestRunner"
+	],
+	"includePlatforms": [],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"nunit.framework.dll"
+	],
+	"autoReferenced": false,
+	"defineConstraints": [
+		"UNITY_INCLUDE_TESTS"
+	],
+	"versionDefines": [],
+	"noEngineReferences": false
+}
