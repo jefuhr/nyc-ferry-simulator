@@ -1,0 +1,21 @@
+/*
+ * Skinned console displays (UI/Displays). Every position, size and colour comes from the skin and the palette in C#,
+ * so this sheet only resets the defaults the runtime theme would otherwise add to labels.
+ */
+
+.fs-display {
+	flex-shrink: 0;
+	overflow: hidden;
+}
+
+.fs-display-element {
+	position: absolute;
+}
+
+.fs-display-label {
+	margin: 0;
+	padding: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	-unity-text-overflow-position: end;
+}
