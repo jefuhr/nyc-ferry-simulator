@@ -111,6 +111,40 @@ namespace FerrySim.UI.Tests.EditMode
 				depthMisses: phase % 50 < 10 ? phase : 0);
 		}
 
+		/// <summary>
+		/// Each HUD preset's widgets refresh every frame too. Guards against a widget formatting its readout again for an
+		/// unchanged sample, with the depth alarm flashing and the water and the air shown, or with no telemetry at all.
+		/// </summary>
+		[TestCase(HudPresets.Console)]
+		[TestCase(HudPresets.Classic)]
+		[TestCase(HudPresets.Minimal)]
+		[TestCase(HudPresets.Everything)]
+		public void Refresh_InSteadyState_AllocatesNothing_ForEachPreset(string preset)
+		{
+			var view = new WheelhouseView { HudVisible = true };
+			view.HudLayout.Choose(preset);
+			Assert.That(view.HudLayout.Current.Name, Is.EqualTo(preset));
+			view.EnvironmentSource = StubEnvironmentSource.With(Readouts.Pack(timeHolds: 3, depthMisses: 2));
+			var source = StubTelemetrySource.Underway(depthUnderKeel: 1.0, contactForce: 25000.0);
+			source.Contact = new ContactLatch(1, 999, 25000.0, 25000.0, 999);
+			for (var frame = 0; frame < 12; frame++)
+			{
+				view.Refresh(source, frame * 0.1);
+			}
+
+			Assert.That(view.HudLayer.ShownWidgets.Count, Is.EqualTo(preset == HudPresets.Everything ? 15 : preset == HudPresets.Minimal ? 4 : 0));
+			Assert.That(() => view.Refresh(source, 1.25), Is.Not.AllocatingGCMemory());
+			Assert.That(() => view.Refresh(source, 1.85), Is.Not.AllocatingGCMemory());
+
+			var none = StubTelemetrySource.NeverStarted();
+			for (var frame = 0; frame < 3; frame++)
+			{
+				view.Refresh(none, 2.0 + frame * 0.1);
+			}
+
+			Assert.That(() => view.Refresh(none, 2.5), Is.Not.AllocatingGCMemory());
+		}
+
 		[Test]
 		public void ContactAndAlarmLogic_AllocateNothing()
 		{

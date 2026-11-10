@@ -1,0 +1,176 @@
+/*
+ * The options menu, designed at 1280x720 reference pixels like Wheelhouse.uss. Colors are not set here: the menu and
+ * its rows take them from InstrumentPalette in C#, so day and night contrast is tested there.
+ */
+
+.fs-menu {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	translate: -50% -50%;
+	width: 760px;
+	height: 600px;
+	flex-direction: column;
+	padding: 8px 14px 10px 14px;
+	border-width: 1px;
+	border-radius: 8px;
+}
+
+/* Only the scroll area gives way: the header, the tabs and the footer keep their height whatever the page holds. */
+.fs-menu-header {
+	flex-direction: row;
+	align-items: center;
+	height: 26px;
+	flex-shrink: 0;
+}
+
+.fs-menu-hint {
+	margin-left: 14px;
+}
+
+.fs-menu-tabs {
+	flex-direction: row;
+	margin: 6px 0 6px 0;
+	flex-shrink: 0;
+}
+
+.fs-menu-tab {
+	font-size: 12px;
+	-unity-font-style: bold;
+	height: 26px;
+	padding: 2px 12px;
+	margin: 0 6px 0 0;
+	border-width: 2px;
+	border-radius: 4px;
+}
+
+.fs-menu-scroll {
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-height: 0;
+}
+
+.fs-menu-page {
+	flex-direction: column;
+	padding-right: 8px;
+}
+
+.fs-menu-group {
+	margin: 10px 0 3px 2px;
+}
+
+.fs-menu-row {
+	flex-shrink: 0;
+	flex-direction: row;
+	align-items: center;
+	min-height: 32px;
+	margin-bottom: 3px;
+	padding: 2px 8px;
+	border-width: 2px;
+	border-radius: 4px;
+}
+
+.fs-menu-row--wrap .fs-menu-body {
+	flex-wrap: wrap;
+}
+
+.fs-menu-caption {
+	width: 250px;
+	font-size: 13px;
+	-unity-font-style: bold;
+	white-space: normal;
+}
+
+.fs-menu-body {
+	flex-direction: row;
+	align-items: center;
+	flex-grow: 1;
+}
+
+.fs-menu-choice,
+.fs-menu-button,
+.fs-binding-key,
+.fs-binding-reset {
+	font-size: 12px;
+	-unity-font-style: bold;
+	height: 24px;
+	min-width: 44px;
+	margin: 1px 6px 1px 0;
+	padding: 0 10px;
+	border-width: 2px;
+	border-radius: 4px;
+}
+
+.fs-menu-value {
+	min-width: 110px;
+	margin: 0 8px;
+	-unity-text-align: middle-center;
+}
+
+.fs-binding-key {
+	min-width: 220px;
+	flex-direction: row;
+	align-items: center;
+	-unity-text-align: middle-left;
+}
+
+.fs-binding-key > Label {
+	margin: 0;
+	padding: 0;
+}
+
+.fs-menu-action {
+	align-self: flex-start;
+	height: 28px;
+	margin: 3px 0 6px 0;
+	padding: 0 12px;
+	font-size: 12px;
+	-unity-font-style: bold;
+	border-width: 2px;
+}
+
+.fs-menu-footer {
+	flex-direction: column;
+	margin-top: 6px;
+	flex-shrink: 0;
+}
+
+.fs-menu-prompt {
+	flex-direction: column;
+	padding: 6px 8px;
+	margin-bottom: 6px;
+	border-width: 2px;
+	border-radius: 4px;
+}
+
+.fs-menu-prompt-buttons {
+	flex-direction: row;
+	margin-top: 6px;
+}
+
+.fs-menu-prompt-buttons > Button {
+	height: 26px;
+	margin-right: 8px;
+	border-width: 2px;
+	font-size: 12px;
+	-unity-font-style: bold;
+}
+
+.fs-menu-bottom {
+	flex-direction: row;
+	align-items: center;
+	min-height: 28px;
+}
+
+.fs-menu-message {
+	flex-shrink: 1;
+	max-width: 520px;
+}
+
+.fs-menu-bottom > Button {
+	height: 26px;
+	border-width: 2px;
+	font-size: 12px;
+	-unity-font-style: bold;
+}

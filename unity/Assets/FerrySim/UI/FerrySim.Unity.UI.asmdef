@@ -1,7 +1,7 @@
 {
 	"name": "FerrySim.Unity.UI",
 	"rootNamespace": "FerrySim.UI",
-	"references": ["FerrySim.Core", "FerrySim.Core.Serialization", "FerrySim.Unity.Sim", "FerrySim.Unity.Input"],
+	"references": ["FerrySim.Core", "FerrySim.Core.Serialization", "FerrySim.Unity.Sim", "FerrySim.Unity.Input", "Unity.InputSystem"],
 	"includePlatforms": [],
 	"excludePlatforms": [],
 	"allowUnsafeCode": false,

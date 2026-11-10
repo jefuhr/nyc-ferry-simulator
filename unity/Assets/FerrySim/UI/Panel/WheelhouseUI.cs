@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using FerrySim.Controls;
 using FerrySim.Sim;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -14,7 +15,15 @@ namespace FerrySim.UI
 	/// <see cref="IScenarioCatalog"/> and <see cref="IScenarioLauncher"/>, found the same way unless
 	/// <see cref="ConnectScenario"/> sets them. The run's light (<see cref="IDaylightSource"/>, found the same way) offers the
 	/// panel its night palette at night. Other systems drive it through the public members (palette, units,
-	/// HUD toggle, acknowledge, picker); the development toolbar is only for the dev scene.
+	/// HUD toggle, acknowledge, picker, options, HUD edit mode); the development toolbar is only for the dev scene.
+	/// <para>
+	/// Settings and saved HUD layouts come from <see cref="UserSettingsFiles"/> (the player's files, or memory in batch
+	/// mode) unless <see cref="ConfigureStores"/> or <see cref="Configure"/> set others; <see cref="Configure"/> keeps them in
+	/// memory and stops reading the interface keys, so a test never touches the player's files. While
+	/// <see cref="ReadInterfaceKeys"/> is on, <c>Interface/Options</c> (F10) toggles the options menu and
+	/// <c>Interface/HudEdit</c> (F8) toggles HUD edit mode, read from a copy of the actions registered with the binding
+	/// service, which also feeds the menu's Controls page.
+	/// </para>
 	/// </summary>
 	[DisallowMultipleComponent]
 	public sealed class WheelhouseUI : MonoBehaviour
@@ -72,6 +81,11 @@ namespace FerrySim.UI
 		private DistanceUnit _statusUnit;
 		private bool _statusAssumedStart;
 		private bool _statusFakeEnvironment;
+		private SettingsStore _settings;
+		private HudLayoutStore _layouts;
+		private bool _storesConfigured;
+		private InputBindingService _bindingService;
+		private InterfaceActionReader _interface;
 
 		public IVesselTelemetrySource Source { get; set; }
 
@@ -91,6 +105,27 @@ namespace FerrySim.UI
 		public WheelhouseView View { get; private set; }
 
 		public UIDocument Document { get; private set; }
+
+		/// <summary>Whether F10 and F8 (as bound) open the options menu and HUD edit mode. Set before the component is enabled.</summary>
+		public bool ReadInterfaceKeys { get; set; } = true;
+
+		/// <summary>
+		/// Uses these stores instead of the player's files, before the component is enabled (tests of persistence, hosts).
+		/// Null keeps that store in memory.
+		/// </summary>
+		public void ConfigureStores(SettingsStore settings, HudLayoutStore layouts)
+		{
+			_settings = settings ?? SettingsStore.InMemory();
+			_layouts = layouts ?? HudLayoutStore.InMemory();
+			_storesConfigured = true;
+		}
+
+		/// <summary>Reads the interface keys from, and connects the options menu to, this binding service instead of the session's.</summary>
+		public void ConfigureInput(InputBindingService service, bool readInterfaceKeys = true)
+		{
+			_bindingService = service;
+			ReadInterfaceKeys = readInterfaceKeys;
+		}
 
 		/// <summary>
 		/// Connects the readouts of the water and the air and the scenario picker; any argument may be null (its
@@ -126,6 +161,12 @@ namespace FerrySim.UI
 			_sourceConfigured = true;
 			panelSettings = settings;
 			showDevToolbar = devToolbar;
+			ReadInterfaceKeys = false;
+			if (!_storesConfigured)
+			{
+				_settings = SettingsStore.InMemory();
+				_layouts = HudLayoutStore.InMemory();
+			}
 		}
 
 		private void OnEnable()
@@ -156,11 +197,34 @@ namespace FerrySim.UI
 			}
 
 			Document.panelSettings = panelSettings != null ? panelSettings : _ownedSettings;
+			if (ReadInterfaceKeys && _interface == null)
+			{
+				try
+				{
+					_interface = new InterfaceActionReader(_bindingService ?? InputBindingService.Instance);
+				}
+				catch (System.InvalidOperationException error)
+				{
+					Debug.LogWarning("[FerrySim] The options and HUD edit keys are off: " + error.Message);
+				}
+			}
+
 			BuildView();
 		}
 
 		private void OnDisable()
 		{
+			_interface?.Dispose();
+			_interface = null;
+			if (View != null && View.HudEditing)
+			{
+				View.HudEditing = false;
+			}
+
+			// The binding service lives for the session: let go of it, or it keeps this view (and whatever the view's events
+			// reach, such as a harbor scene's displays) alive after the scene unloads.
+			View?.ConnectBindings(null);
+
 			View?.RemoveFromHierarchy();
 			View = null;
 		}
@@ -186,6 +250,19 @@ namespace FerrySim.UI
 			if (View != null)
 			{
 				View.EnvironmentSource = EnvironmentSource;
+			}
+
+			if (View != null && _interface != null)
+			{
+				if (_interface.TakeOptionsPress())
+				{
+					View.ToggleOptions();
+				}
+
+				if (_interface.TakeHudEditPress() && !View.OptionsVisible)
+				{
+					View.ToggleHudEdit();
+				}
 			}
 
 			View?.Refresh(source, Time.unscaledTimeAsDouble);
@@ -223,14 +300,31 @@ namespace FerrySim.UI
 				return;
 			}
 
-			View = new WheelhouseView
+			var settings = _settings ?? UserSettingsFiles.Settings;
+			var layouts = _layouts ?? UserSettingsFiles.Layouts;
+			View = new WheelhouseView(settings, layouts)
 			{
-				Palette = palette,
-				DistanceUnit = distanceUnit,
-				DepthAlarmThresholdMetres = depthAlarmThresholdMetres,
 				PanelVisible = showPanel,
 				HudVisible = showHud,
 			};
+			// The player's file is the truth for display settings; a store kept in memory (tests, batch runs) starts from
+			// the component's serialized values, as before settings were saved.
+			if (!settings.Persistent)
+			{
+				View.DistanceUnit = distanceUnit;
+				View.DepthAlarmThresholdMetres = depthAlarmThresholdMetres;
+			}
+
+			if (settings.Palette == PaletteSetting.Auto)
+			{
+				View.Palette = palette;
+			}
+
+			if (_interface != null || _bindingService != null)
+			{
+				View.ConnectBindings(_bindingService ?? InputBindingService.Instance);
+			}
+
 			View.SettingsChanged += MirrorSettings;
 			View.EnvironmentSource = EnvironmentSource;
 			View.ConnectScenario(ScenarioCatalog, ScenarioLauncher);
