@@ -6,7 +6,7 @@ namespace FerrySim.Audio.Clips
 {
 	public static class AudioSlots
 	{
-		public static readonly string[] Ids = { "engine-idle", "engine-mid", "engine-high", "engine-low", "propeller", "clutch-engage", "clutch-disengage", "horn", "water-wash", "wind", "gull", "fender", "barge-creak" };
+		public static readonly string[] Ids = { "engine-idle", "engine-mid", "engine-high", "engine-low", "propeller", "clutch-engage", "clutch-disengage", "horn", "water-wash", "wind", "gull", "fender", "barge-creak", "alarm-steering", "alarm-general" };
 	}
 
 	[Serializable]

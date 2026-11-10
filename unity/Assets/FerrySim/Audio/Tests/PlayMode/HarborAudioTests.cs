@@ -3,6 +3,7 @@ using System.Collections;
 using System.IO;
 using FerrySim.Audio.Clips;
 using FerrySim.Core.Contracts;
+using FerrySim.Core.Instruments;
 using FerrySim.Harbor;
 using FerrySim.Sim;
 using FerrySim.World;
@@ -31,7 +32,7 @@ namespace FerrySim.Audio.Tests.PlayMode
 		private InputSettings _savedInputSettings, _testInputSettings;
 		private HideFlags _savedInputFlags;
 		private static string Repo => Path.GetFullPath(Path.Combine(Application.dataPath, "../.."));
-		private static string Evidence => Path.Combine(Repo, "artifacts/ferry-audio-real/playmode");
+		private static string Evidence => Path.Combine(Repo, "artifacts/sound-gaps/playmode");
 
 		[UnitySetUp]
 		public IEnumerator Load()
@@ -83,12 +84,24 @@ namespace FerrySim.Audio.Tests.PlayMode
 			if (_testInputSettings != null) Object.Destroy(_testInputSettings);
 		}
 
-		private IEnumerator Start(bool fog = false)
+		private IEnumerator Start(bool fog = false, bool alarm = false)
 		{
 			var catalog = _bootstrap.Services.Catalog;
 			var choice = new ScenarioChoice("87", "2025-07-16", 738, catalog.Vessels[0].Id, traffic: true);
 			Assert.That(catalog.TryCreate(choice, out var settings, out var problem), Is.True, problem);
 			settings.visibilityMetres = fog ? 500 : MeteorologicalVisibility.Unlimited;
+			if (alarm)
+			{
+				// Raise a real C1 shallow-water alarm using a display-only fixture threshold.
+				// Physics, the harbor depth field and the checked-in instrument data are unchanged.
+				var input = Path.Combine(Repo, "vessels/instruments", Path.GetFileName(settings.vesselFile));
+				var text = File.ReadAllText(input);
+				const string oldValue = "\"value\": 1.524,";
+				Assert.That(text, Does.Contain(oldValue));
+				var fixture = Path.Combine(Evidence, "alarm-instruments.json");
+				File.WriteAllText(fixture, text.Replace(oldValue, "\"value\": 1000,"));
+				_bootstrap.Runner.InstrumentParametersFile = fixture;
+			}
 			Assert.That(_bootstrap.TryStart(settings, out problem), Is.True, problem);
 			_bootstrap.WheelhouseUI.View.PickerVisible = false;
 			var started = Time.realtimeSinceStartupAsDouble;
@@ -110,6 +123,12 @@ namespace FerrySim.Audio.Tests.PlayMode
 			_bootstrap.Runner.Resume();
 			_bootstrap.Runner.AdvanceFrame(.02);
 			_audio.Tick(.02);
+			if (alarm)
+			{
+				Assert.That(_bootstrap.Runner.HasInstruments, Is.True);
+				Assert.That(_bootstrap.Runner.Instruments.SounderOn(AlarmGroup.Navigation), Is.True);
+				Assert.That(_audio.AlarmSource.isPlaying, Is.True, "real runner drives the alarm voice even at master zero");
+			}
 		}
 
 		[UnityTest, Category("HarborRealData")]
@@ -189,7 +208,7 @@ namespace FerrySim.Audio.Tests.PlayMode
 		{
 			yield return Start();
 			var lines = "slot,prepared_rms,imported_rms,ratio\n";
-			foreach (var id in new[] { "engine-idle", "clutch-engage", "clutch-disengage" })
+			foreach (var id in new[] { "engine-idle", "clutch-engage", "clutch-disengage", "alarm-steering" })
 			{
 				var resolved = AudioClipProvider.Shared.Get(id);
 				Assert.That(resolved.IsPlaceholder, Is.False, id);
@@ -219,7 +238,7 @@ namespace FerrySim.Audio.Tests.PlayMode
 		[UnityTest, Category("HarborRealData")]
 		public IEnumerator RefreshAndStepObserverAllocateNothingWithCalibratedPositiveControl()
 		{
-			yield return Start(true);
+			yield return Start(fog: true, alarm: true);
 			_audio.Bus.Master = 0; _audio.HoldHorn(true); _audio.Tick(.1);
 			var runner = _bootstrap.Runner;
 			for (var i = 0; i < 30; i++) { runner.AdvanceFrame(.01); _audio.Tick(.01); }
@@ -240,14 +259,18 @@ namespace FerrySim.Audio.Tests.PlayMode
 				}
 			}
 			finally { recorder.enabled = false; recorder.CollectFromAllThreads(); }
-			File.WriteAllText(Path.Combine(Evidence, "gc-alloc.txt"), "positive control=" + control + "\n240 Tick + AfterStep calls=" + allocations + " GC.Alloc samples\n");
+			Assert.That(_audio.AlarmSource.isPlaying, Is.True, "alarm stayed sounding across the measurement");
+			File.WriteAllText(Path.Combine(Evidence, "gc-alloc.txt"), "positive control=" + control + "\n240 Tick + AfterStep calls with alarm sounding=" + allocations + " GC.Alloc samples\n");
 			Assert.That(allocations, Is.Zero);
+			runner.Pause(); _audio.Tick(.016); Assert.That(_audio.AlarmSource.isPlaying, Is.False);
+			runner.Resume(); _audio.Tick(.016); Assert.That(_audio.AlarmSource.isPlaying, Is.True);
+			runner.SilenceAlarms(); _audio.Tick(.016); Assert.That(_audio.AlarmSource.isPlaying, Is.False);
 		}
 
 		[UnityTest, Category("HarborRealData")]
 		public IEnumerator RecordingsAndStateDigestsAreByteIdenticalAtFullZeroMutedAndDisabledAudio()
 		{
-			yield return Start(true);
+			yield return Start(fog: true, alarm: true);
 			var runner = _bootstrap.Runner;
 			var settings = runner.Scenario;
 			var folder = Path.Combine(Evidence, "recordings", Guid.NewGuid().ToString("N")); Directory.CreateDirectory(folder);
@@ -273,6 +296,7 @@ namespace FerrySim.Audio.Tests.PlayMode
 				runner.Driver.AddObserver(canonical);
 				runner.Resume();
 				for (var i = 0; i < 600; i++) { runner.AdvanceFrame(1.0 / 60); _audio.Tick(1.0 / 60); }
+				Assert.That(_audio.AlarmSource.isPlaying, Is.EqualTo(mode != "disabled"), mode + " alarm voice");
 				canonical.Finish(runner.Driver.StepCount, runner.State, runner.Telemetry);
 				runner.Driver.RemoveObserver(canonical);
 				var bytes = System.Text.Encoding.UTF8.GetBytes(canonicalTelemetry.ToString());
@@ -280,6 +304,7 @@ namespace FerrySim.Audio.Tests.PlayMode
 				File.WriteAllBytes(Path.Combine(runner.RecordingDirectory, "canonical.csv"), bytes);
 				File.WriteAllText(Path.Combine(runner.RecordingDirectory, "canonical.inputs.csv"), inputs);
 				runner.EndRun();
+				Assert.That(_audio.AlarmSource.isPlaying, Is.False, "run end stops alarm immediately");
 				Assert.That(runner.RecordingError, Is.Null);
 				var path = runner.LastRecordingPath; var recorded = RecordedRun.Load(path);
 				if (first == null) { first = bytes; firstInputs = inputs; digest = recorded.StateDigest; firstRows = recorded.Rows; }

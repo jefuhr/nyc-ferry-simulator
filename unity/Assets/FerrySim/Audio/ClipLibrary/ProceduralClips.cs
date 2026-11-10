@@ -29,6 +29,11 @@ namespace FerrySim.Audio.Clips
 		{
 			switch (id)
 			{
+				case "alarm-steering":
+				case "alarm-general":
+					// Procedural fallback only: one half-second beep per second, with short click-free edges.
+					var phase = t % 1;
+					return phase >= .5 ? 0 : Tone(900, t) * Math.Min(1, Math.Min(phase / .005, (.5 - phase) / .005));
 				case "horn": return (Tone(350, t) + .5 * Tone(700, t) + Tone(1050, t) / 3 + Tone(1400, t) / 6) / 2;
 				case "engine-idle": return (.7 * Tone(40, t) + .2 * Tone(80, t) + .1 * Tone(160, t)) * (.85 + .15 * Tone(8, t));
 				case "engine-mid": return (.6 * Tone(80, t) + .25 * Tone(160, t) + .15 * Tone(240, t)) * (.85 + .15 * Tone(16, t));

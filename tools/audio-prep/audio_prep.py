@@ -5,12 +5,17 @@ import array
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
 import wave
+
+REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO / 'tools/reference'))
+import intake
 
 PEAK_CEILING = 10 ** (-1 / 20)
 SEAM_LIMIT = .002
@@ -150,7 +155,7 @@ def prepare(source, recipe, output):
 		crossfade_frames=crossfade, rotation_frames=rotation, fade_frames=fade)
 
 
-def resolve_source(sheets, source):
+def resolve_source(sheets, source, verify_hash=True):
 	root = Path(sheets).resolve()
 	pattern = source['pattern']
 	parts = Path(pattern).parts
@@ -160,52 +165,109 @@ def resolve_source(sheets, source):
 	if len(matches) != 1:
 		raise ValueError('source pattern must resolve to exactly one file')
 	file = matches[0]
+	if any(p.is_symlink() for p in (file, *file.parents)):
+		raise ValueError('source symlinks are not permitted')
 	if not file.resolve().is_relative_to(root / 'audio') or not file.is_file():
 		raise ValueError('source must stay inside the approved sheets/audio directory')
-	with file.open('rb') as stream:
-		digest = hashlib.file_digest(stream, 'sha256').hexdigest()
-	if digest != source['sha256']:
-		raise ValueError('source SHA-256 does not match the reviewed recipe')
+	if verify_hash:
+		with file.open('rb') as stream:
+			digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+		if digest != source['sha256']:
+			raise ValueError('source SHA-256 does not match the reviewed recipe')
 	return file
 
 
-def build(sheets, recipes_path, manifest_path, output, report_path):
+def build(sheets, recipes_path, manifest_path, output, report_path, *, reference_manifest=None, derived_out=None, only=None):
 	recipes = json.loads(Path(recipes_path).read_text())
 	manifest = json.loads(Path(manifest_path).read_text())
 	if recipes['version'] != 1:
 		raise ValueError('unsupported recipe version')
 	slots = {slot['id']: slot for slot in manifest['slots']}
-	seen, reports = set(), []
+	seen, reports, sources = set(), [], {}
+	selected = [recipe for recipe in recipes['clips'] if only is None or recipe['id'] in only]
+	if only is not None and set(only) != {r['id'] for r in selected}:
+		raise ValueError('unknown requested clip slot')
+	reference_manifest = Path(reference_manifest or Path(sheets) / 'manifest.json').expanduser()
+	derived_out = Path(derived_out or Path(report_path).with_name('derived-audio.json'))
+	# Never write in the sheets tree, including through directory symlinks.
+	root = Path(sheets).resolve()
+	for destination in (manifest_path, output, report_path, derived_out):
+		resolved = Path(destination).resolve()
+		if resolved.is_relative_to(root) or resolved == reference_manifest.resolve():
+			raise ValueError('outputs must stay outside the private sheets folder')
+	if derived_out.resolve().is_relative_to(REPO) and not derived_out.resolve().is_relative_to(REPO / 'artifacts'):
+		raise ValueError('private derived entries inside the repository must stay under ignored artifacts/')
+	# Consent metadata for the WHOLE batch is checked before gate() hashes any source.
+	for recipe in selected:
+		id = recipe['id']
+		if id in seen or id not in slots or not re.fullmatch('[a-z0-9-]+', id):
+			raise ValueError('duplicate, unknown or unsafe clip id')
+		seen.add(id)
+		if recipe.get('placeholder', False): continue
+		try:
+			data = intake.load_manifest(reference_manifest)
+			if data['consent_policy'] != 'processing-v2': raise ValueError('policy is not current')
+			source = resolve_source(sheets, recipe['source'], verify_hash=False)
+			name = source.relative_to(root).as_posix()
+			entry = next((s for s in data['sheets'] if s['path'] == name), None)
+			if entry is None or entry['kind'] != 'audio' or intake.entry_issues(data, name):
+				raise ValueError('source is not approved audio')
+			if entry.get('allowed_use') == 'measurement-only' or any(s['consent']['scope'] == 'measurement-only' for s in entry['sources']):
+				raise ValueError('source cannot be reproduced')
+			sources[id] = (source, name, None)
+		except (ValueError, OSError, KeyError):
+			raise ValueError(id + ': consent/screening preflight refused; approved processing-v2 manifest required') from None
+	# Shared gate verifies current consent, withdrawal, screening AND released-file hash.
+	for recipe in selected:
+		id = recipe['id']
+		if id not in sources: continue
+		try:
+			source, name, _ = sources[id]
+			_, entry = intake.gate(root, name, reference_manifest, reproduce=False)
+			if entry['sha256'] != recipe['source']['sha256']:
+				raise ValueError('released sheet hash does not match recipe')
+			sources[id] = (source, name, sorted({s['source_id'] for s in entry['sources']}))
+		except (ValueError, OSError, KeyError):
+			raise ValueError(id + ': source verification refused') from None
 	with tempfile.TemporaryDirectory(prefix='audio-prep-batch-') as scratch:
-		for recipe in recipes['clips']:
+		for recipe in selected:
 			id = recipe['id']
-			if id in seen or id not in slots or not re.fullmatch('[a-z0-9-]+', id):
-				raise ValueError('duplicate, unknown or unsafe clip id')
-			seen.add(id)
 			if recipe.get('placeholder', False):
 				continue
 			slot = slots[id]
 			if slot['file'] != id+'.wav' or slot['loop'] != recipe['loop']:
 				raise ValueError('recipe filename or loop mode does not match the manifest slot')
-			source = resolve_source(sheets, recipe['source'])
+			source = sources[id][0]
 			result = prepare(source, recipe, Path(scratch) / (id+'.wav'))
 			result['id'] = id
 			reports.append(result)
 			slot.update(loopStartSample=result['loop_start_sample'], loopEndSample=result['loop_end_sample'],
-				source='crew recording (private), 2026-11', date=recipes['date'],
+				source='crew recording (private), 2026-11', date=recipe.get('date', recipes['date']),
 				edits=f"Recipe {id}: source frames [{recipe['start_frame']}, {recipe['end_frame']}) at {recipe['source_rate']} Hz; "
 				f"mono arithmetic downmix; resampled to {recipe['sample_rate']} Hz; highpass {recipe.get('highpass_hz', 0)} Hz, lowpass {recipe.get('lowpass_hz', 0)} Hz; "
 				f"{recipe['target_lufs']} LUFS target, ebur128 measured {result['integrated_lufs']} LUFS; "
 				f"equal-power overlap {recipe['crossfade_frames']} frames, circular rotation {result['rotation_frames']} frames; "
 				f"one-shot fades {recipe['fade_frames']} frames; PCM16, metadata removed; listening review pending")
+		# Only this ignored, private handoff carries original-source ids. Never copy the manifest.
+		derived = [dict(path='repo:' + os.path.relpath(Path(output).resolve() / (r['id']+'.wav'), REPO).replace(os.sep, '/'),
+			sha256=r['sha256'], method='audio-prep', **{'from': sources[r['id']][2]}) for r in reports]
+		schema = intake.ref.load_json(intake.MANIFEST_SCHEMA)
+		errors = intake.ref.schema_errors(dict(schema_version=1, consent_policy='processing-v2', sheets=[], derived=derived), schema)
+		if errors: raise ValueError('derived audio entries failed C9 validation')
 		# Validate and prepare the entire batch before publishing any clip or provenance.
+		for result in reports:
+			destination = Path(output) / (result['id'] + '.wav')
+			if destination.is_symlink() or destination.resolve().is_relative_to(root):
+				raise ValueError(result['id'] + ': WAV output must stay outside the private sheets folder')
 		Path(output).mkdir(parents=True, exist_ok=True)
 		for result in reports:
 			name = result['id'] + '.wav'
 			(Path(output)/name).write_bytes((Path(scratch)/name).read_bytes())
 	Path(manifest_path).write_text(json.dumps(manifest, indent='\t')+'\n')
+	intake.ref.write_json(derived, derived_out, private=True)
 	version = subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True, check=True).stdout.splitlines()[0]
-	Path(report_path).write_text(json.dumps(dict(ffmpeg=version, clips=reports, total_wav_bytes=sum(r['bytes'] for r in reports)), indent=2)+'\n')
+	Path(report_path).write_text(json.dumps(dict(ffmpeg=version, consent_gate='processing-v2; no legacy bypass',
+		clips=reports, total_wav_bytes=sum(r['bytes'] for r in reports)), indent=2)+'\n')
 	return reports
 
 
@@ -216,9 +278,13 @@ def main():
 	parser.add_argument('--manifest', type=Path, default=Path('unity/Assets/FerrySim/Audio/clips.json'))
 	parser.add_argument('--output', type=Path, default=Path('unity/Assets/FerrySim/Audio/Clips'))
 	parser.add_argument('--report', type=Path, required=True)
+	parser.add_argument('--reference-manifest', type=Path, help='Read-only C9 manifest; defaults to sheets/manifest.json')
+	parser.add_argument('--derived-out', type=Path, required=True, help='Private C9 derived entries for coordinator merge; never stage')
+	parser.add_argument('--only', action='append', help='Prepare only this slot; repeat for several slots')
 	args = parser.parse_args()
 	try:
-		reports = build(args.sheets, args.recipes, args.manifest, args.output, args.report)
+		reports = build(args.sheets, args.recipes, args.manifest, args.output, args.report,
+			reference_manifest=args.reference_manifest, derived_out=args.derived_out, only=args.only)
 	except (ValueError, KeyError, wave.Error, OSError) as error:
 		# Do not expose OS errors containing private filenames.
 		parser.exit(1, ('audio-prep: ' + str(error) if isinstance(error, ValueError) else 'audio-prep: invalid recipe or unavailable input/output')+'\n')

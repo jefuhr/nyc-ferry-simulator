@@ -27,6 +27,8 @@ namespace FerrySim.Audio
 		private EngineVoices _port, _starboard;
 		private AudioVoice _horn, _wash, _wind, _gull, _fender, _creak;
 		private TrafficSignals _signals;
+		private AlarmSounder _alarm;
+		private InputBindingService _bindings;
 		private InputActionAsset _actions;
 		private AudioInputMapper _keys;
 		private readonly HornEnvelope _envelope = new HornEnvelope();
@@ -38,6 +40,9 @@ namespace FerrySim.Audio
 		private float _fenderGain, _creakGain;
 
 		public AudioBus Bus { get; } = new AudioBus();
+		/// <summary>Raised only after an accepted mute key press; the settings owner persists the value.</summary>
+		public event Action<bool> MuteChangedFromKey;
+		public AudioSource AlarmSource => _alarm?.Source;
 		public bool GraphEnabled { get; set; } = true;
 		public HornState HornState => _envelope.State;
 		public AudioSource HornSource => _horn?.Source;
@@ -74,10 +79,13 @@ namespace FerrySim.Audio
 			_fender = new AudioVoice(transform, "fender contact", "fender");
 			_creak = new AudioVoice(transform, "barge creak", "barge-creak");
 			_signals = new TrafficSignals(transform);
+			_alarm = new AlarmSounder(transform);
 			_gullClip = AudioClipProvider.Shared.Get("gull"); _fenderClip = AudioClipProvider.Shared.Get("fender"); _creakClip = AudioClipProvider.Shared.Get("barge-creak");
 			if (_helm != null && _helm.Actions != null)
 			{
-				_actions = Instantiate(_helm.Actions); _keys = new AudioInputMapper(_actions); _keys.MuteRequested += OnMuteRequested;
+				_actions = Instantiate(_helm.Actions);
+				_bindings = InputBindingService.Instance; _bindings.Register(_actions);
+				_keys = new AudioInputMapper(_actions); _keys.MuteRequested += OnMuteRequested;
 			}
 			_configured = true;
 			if (isActiveAndEnabled) Subscribe();
@@ -114,6 +122,7 @@ namespace FerrySim.Audio
 			_wind.Source.transform.localPosition = new Vector3(0, (float)dimensions.BridgeEyeHeight, (float)dimensions.BridgeEyeForward);
 			_fender.Source.transform.localPosition = _creak.Source.transform.localPosition = new Vector3((float)(.5 * dimensions.Beam), 0, 0);
 			_gull.Source.transform.localPosition = new Vector3(0, 15, 25);
+			_alarm.Source.transform.localPosition = new Vector3(0, (float)dimensions.BridgeEyeHeight, (float)dimensions.BridgeEyeForward);
 			_atmosphere = _sun != null ? _sun.GetComponent<Atmosphere>() : null;
 			HoldHorn(_helm != null && _helm.HornActive);
 		}
@@ -125,7 +134,7 @@ namespace FerrySim.Audio
 			var document = _document?.Invoke();
 			var focus = document != null ? document.rootVisualElement?.focusController?.focusedElement as VisualElement : null;
 			for (var element = focus; element != null; element = element.parent) if (element is TextField) return;
-			ToggleMute();
+			ToggleMute(); MuteChangedFromKey?.Invoke(Bus.Muted);
 		}
 		private void LateUpdate() => Tick(Time.unscaledDeltaTime);
 
@@ -136,7 +145,8 @@ namespace FerrySim.Audio
 			if (_atmosphere == null && _sun != null) _atmosphere = _sun.GetComponent<Atmosphere>();
 			var active = GraphEnabled && _runner.IsRunActive && _runner.HasTelemetry && _runner.Hold == RunHold.None;
 			var paused = _runner.IsPaused;
-			var ear = ListeningPosition.ForWheelhouse(_camera != null && _camera.CurrentMode == CameraRig.Mode.Wheelhouse);
+			var wheelhouse = _camera != null && _camera.CurrentMode == CameraRig.Mode.Wheelhouse;
+			var ear = ListeningPosition.ForWheelhouse(wheelhouse);
 			var telemetry = _runner.Telemetry;
 			var engines = Bus.Gain(AudioGroup.Engines);
 			var port = EngineSoundMapping.Evaluate(telemetry.Port.EngineSpeed, _idleSpeed, _ratedSpeed, telemetry.Port.ShaftSpeed, _gearRatio, telemetry.Port.Throttle, telemetry.Port.Gear);
@@ -151,6 +161,7 @@ namespace FerrySim.Audio
 				(float)TrafficSignalTiming.Envelope(fog.BlastSeconds) : 0;
 			var listener = _camera != null ? _camera.transform.position : _runner.transform.position;
 			_signals.Refresh(_traffic, listener, _runner.RenderTime, active && MeteorologicalVisibility.IsRestricted(RunVisibility.Of(_runner)), paused, hornGain);
+			_alarm.Refresh(_runner, active, paused, wheelhouse, Bus.Gain(AudioGroup.Alarms));
 			RefreshAmbience(active, paused, ear);
 		}
 
@@ -192,7 +203,7 @@ namespace FerrySim.Audio
 		private void DetachDriver() { _driver?.RemoveObserver(this); _driver = null; }
 		private void Stop()
 		{
-			_port?.Stop(); _starboard?.Stop(); _horn?.Stop(); _wash?.Stop(); _wind?.Stop(); _gull?.Stop(); _fender?.Stop(); _creak?.Stop(); _signals?.Stop();
+			_port?.Stop(); _starboard?.Stop(); _horn?.Stop(); _wash?.Stop(); _wind?.Stop(); _gull?.Stop(); _fender?.Stop(); _creak?.Stop(); _signals?.Stop(); _alarm?.Reset();
 		}
 		private void OnDisable()
 		{
@@ -209,7 +220,9 @@ namespace FerrySim.Audio
 		private void OnDestroy()
 		{
 			_keys?.Dispose();
-			if (_actions != null) Destroy(_actions);
+			_bindings?.Unregister(_actions);
+			if (_actions == null) return;
+			if (Application.isPlaying) Destroy(_actions); else DestroyImmediate(_actions);
 		}
 	}
 }

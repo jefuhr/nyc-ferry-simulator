@@ -18,7 +18,7 @@ namespace FerrySim.Audio.Tests
 			for (var i = 0; i < slots.Length; i++)
 			{
 				var id = AudioSlots.Ids[i];
-				slots[i] = new ClipSlot { id = id, file = id + ".wav", loop = i < 5 || id == "horn" || id == "water-wash" || id == "wind",
+				slots[i] = new ClipSlot { id = id, file = id + ".wav", loop = i < 5 || id == "horn" || id == "water-wash" || id == "wind" || id.StartsWith("alarm-"),
 					baseGain = .5f, source = "procedural test fixture", date = "2026-11-02", edits = "generated fixture" };
 			}
 			return new ClipManifest { version = 1, slots = slots };
@@ -56,7 +56,7 @@ namespace FerrySim.Audio.Tests
 			AudioCatalogBuilder.Rebuild();
 			var catalog = AssetDatabase.LoadAssetAtPath<AudioClipCatalog>(AudioCatalogBuilder.CatalogPath);
 			var manifest = ClipManifest.Parse(catalog.manifest.text);
-			var real = new[] { "engine-idle", "engine-high", "engine-low", "propeller", "clutch-engage", "clutch-disengage", "water-wash" };
+			var real = new[] { "engine-idle", "engine-high", "engine-low", "propeller", "clutch-engage", "clutch-disengage", "water-wash", "alarm-steering" };
 			var sizes = "slot,source_wav_bytes,loop_wav_bytes,editor_audio_util_sound_size_bytes\n";
 			// This load-dependent editor diagnostic is not a compressed/player-size measurement. Streaming clips can return zero.
 			var audioUtil = typeof(AudioImporter).Assembly.GetType("UnityEditor.AudioUtil");
@@ -89,10 +89,10 @@ namespace FerrySim.Audio.Tests
 					var editorSoundSize = soundSize == null ? "unavailable" : Convert.ToString(soundSize.Invoke(null, new object[] { resolved.Clip }), System.Globalization.CultureInfo.InvariantCulture);
 					sizes += id + "," + sourceBytes + "," + loopBytes + "," + editorSoundSize + "\n";
 				}
-				foreach (var id in new[] { "engine-mid", "horn", "wind", "gull", "fender", "barge-creak" })
+				foreach (var id in new[] { "engine-mid", "horn", "wind", "gull", "fender", "barge-creak", "alarm-general" })
 					Assert.That(provider.Get(id).IsPlaceholder, Is.True, id + " has no verified real source");
 			}
-			var evidence = Path.GetFullPath(Path.Combine(Application.dataPath, "../../artifacts/ferry-audio-real"));
+			var evidence = Path.GetFullPath(Path.Combine(Application.dataPath, "../../artifacts/sound-gaps"));
 			Directory.CreateDirectory(evidence);
 			File.WriteAllText(Path.Combine(evidence, "unity-audio-sizes.csv"), sizes);
 		}
