@@ -61,5 +61,49 @@ class ExportVerificationTests(unittest.TestCase):
 			self.assertNotEqual(self.verify().returncode,0)
 
 
+class InteriorExportVerificationTests(ExportVerificationTests):
+	def setUp(self):
+		super().setUp()
+		for path in self.paths:
+			models = {}
+			for cls in ('t-class', 'k-class'):
+				file = path / cls / 'Interior.fbx'; file.write_bytes(b'interior-fixture')
+				models[cls + '/Interior'] = dict(triangles=6000, vertices=4000, renderers=75,
+					geometry_sha256='same', layout_sha256='same', mounts={}, rotations={}, controls=[], materials=['LampsSurface'],
+					fbx_sha256=hashlib.sha256(file.read_bytes()).hexdigest())
+			(path / 'interior-manifest.json').write_text(json.dumps(dict(schema='ferrysim-interiors/2', models=models)))
+
+	def verify(self):
+		return subprocess.run([sys.executable, str(SCRIPT), '--interiors', *[str(p) for p in self.paths]], capture_output=True, text=True)
+
+	# The exterior cases remain unedited above; these independently exercise the additive mode.
+	def test_accepts_new_lod0_budget(self):
+		result = self.verify()
+		self.assertEqual(result.returncode, 0, result.stderr)
+
+	def test_tampered_actual_fbx_is_rejected(self):
+		(self.paths[1] / 't-class/Interior.fbx').write_bytes(b'tampered')
+		self.assertNotEqual(self.verify().returncode, 0)
+
+	def test_missing_pair_layout_material_drift_and_budget_are_rejected(self):
+		file = self.paths[1] / 'interior-manifest.json'; original = file.read_text()
+		for mutation in (
+			lambda m: m['models'].pop('k-class/Interior'),
+			lambda m: m['models']['t-class/Interior'].update(layout_sha256='changed'),
+			lambda m: m['models']['t-class/Interior'].update(materials=[]),
+			lambda m: m['models']['t-class/Interior'].update(triangles=150001),
+			lambda m: m['models']['t-class/Interior'].update(rotations={'RadarScreen':[0,0,0]}),
+		):
+			doc = json.loads(original); mutation(doc); file.write_text(json.dumps(doc))
+			self.assertNotEqual(self.verify().returncode, 0)
+
+	def test_container_byte_drift_is_rejected_even_with_matching_receipts(self):
+		file = self.paths[1] / 't-class/Interior.fbx'; file.write_bytes(b'timestamp-drift')
+		receipt = self.paths[1] / 'interior-manifest.json'; doc = json.loads(receipt.read_text())
+		doc['models']['t-class/Interior']['fbx_sha256'] = hashlib.sha256(file.read_bytes()).hexdigest()
+		receipt.write_text(json.dumps(doc))
+		self.assertNotEqual(self.verify().returncode, 0)
+
+
 if __name__ == '__main__':
 	unittest.main()

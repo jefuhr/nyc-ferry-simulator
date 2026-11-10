@@ -11,6 +11,27 @@ EXPECTED = {f'{name}/LOD{lod}' for name in ('t-class','k-class') for lod in (0,1
 FIELDS = ('geometry_sha256','triangles','vertices','dimensions','mounts','bounds_blender','layout_sha256','materials')
 
 
+def verify_interiors(first_path, second_path):
+	"""Interior-only mode: independent receipt and strict byte-for-byte FBX reproducibility."""
+	first, second = (json.loads((p/'interior-manifest.json').read_text()) for p in (first_path, second_path))
+	expected = {'t-class/Interior', 'k-class/Interior'}
+	for manifest in (first, second):
+		if manifest['schema'] != 'ferrysim-interiors/2' or set(manifest['models']) != expected:
+			raise ValueError('Expected both interiors and ferrysim-interiors/2')
+	fields = ('geometry_sha256','triangles','vertices','renderers','mounts','rotations','controls','layout_sha256','materials','fbx_sha256')
+	results = {}
+	for key in sorted(expected):
+		model, other = first['models'][key], second['models'][key]
+		for field in fields:
+			if model[field] != other[field]: raise ValueError(f'{key}: non-deterministic {field}')
+		if not 0 < model['triangles'] <= 150000: raise ValueError(f'{key}: triangle budget exceeded')
+		for path, receipt in ((first_path, model), (second_path, other)):
+			if hashlib.sha256((path/(key+'.fbx')).read_bytes()).hexdigest() != receipt['fbx_sha256']:
+				raise ValueError(f'{key}: stale or tampered FBX receipt')
+		results[key] = dict(triangles=model['triangles'], renderers=model['renderers'], geometry_sha256=model['geometry_sha256'], fbx_bytes_identical=True)
+	return dict(passed=True, models=results)
+
+
 def verify(first_path, second_path):
 	first,second = (json.loads((path/'manifest.json').read_text()) for path in (first_path,second_path))
 	for manifest in (first,second):
@@ -39,7 +60,8 @@ def verify(first_path, second_path):
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
+	parser.add_argument('--interiors',action='store_true',help='Verify interior-manifest.json without changing exterior verification')
 	parser.add_argument('first',type=Path)
 	parser.add_argument('second',type=Path)
 	args = parser.parse_args()
-	print(json.dumps(verify(args.first,args.second),indent=2,sort_keys=True))
+	print(json.dumps((verify_interiors if args.interiors else verify)(args.first,args.second),indent=2,sort_keys=True))

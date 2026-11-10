@@ -74,6 +74,7 @@
 				"centre": {"$ref": "#/$defs/value", "description": "[x from centreline, y above floor, z from the forward window, negative aft], m"},
 				"size": {"$ref": "#/$defs/value", "description": "[width, height] of the lit area, m"},
 				"tilt": {"$ref": "#/$defs/value", "description": "deg from vertical; positive leans the top of the screen away from the operator"},
+				"yaw": {"$ref": "#/$defs/value", "description": "deg about the vertical axis; 0 faces straight aft toward the operator's side of the wheelhouse; state the sign convention in the README and pin it with a test"},
 				"focus_eye": {"$ref": "#/$defs/value", "description": "Camera position for the lean-in view, same convention as centre, m"},
 				"note": {"type": "string"}
 			}

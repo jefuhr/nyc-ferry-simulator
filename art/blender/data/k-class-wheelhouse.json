@@ -1,5 +1,5 @@
 {
-	"schema_version": 1,
+	"schema_version": 2,
 	"subject": "k-class",
 	"kind": "wheelhouse",
 	"notes": "Crew reference photos/video (private), 2026-11; builder general arrangement (private). Photo vessel class is unconfirmed; T-class uses transferred low-confidence photo estimates. Neutral original geometry only. All placements are provisional pending crew measurements. Enclosure floor, roof, width and fore/aft limits are canonical hull-layout datums; the embedded numeric snapshots support builds before the hull files are synced and retain their confidence.",
@@ -320,5 +320,2985 @@
 			"confidence": "low",
 			"note": "Gap from each enclosure side to the console; console width follows canonical hull enclosure width minus two gaps."
 		}
-	}
+	},
+	"screens": [
+		{
+			"id": "RadarScreen",
+			"centre": {
+				"value": [
+					0.8126,
+					1.12,
+					-0.255
+				],
+				"unit": "m",
+				"source": "wheelhouse/console-centre-engines.jpg",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed."
+			},
+			"size": {
+				"value": [
+					0.48,
+					0.265
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"tilt": {
+				"value": 30,
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Approximate backward rake seen in oblique console photos; no calibrated side view. WH-04."
+			},
+			"yaw": {
+				"value": 75,
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Positive yaw turns outward normal toward port. Real console angle unmeasured; radar turned toward seated eye for readability. WH-04."
+			},
+			"focus_eye": {
+				"value": [
+					0.39434185,
+					1.37,
+					-0.36707193
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Camera inspection pose 0.50 m along screen outward normal; shortened to clear the throttle grips across the full display. Not a measured operator position. WH-05."
+			},
+			"note": "No baked reference imagery or instrument readings. Physical LCD tachometer remains within engine screen."
+		},
+		{
+			"id": "PlotterScreen",
+			"centre": {
+				"value": [
+					-0.8843,
+					1.12,
+					-0.255
+				],
+				"unit": "m",
+				"source": "wheelhouse/console-centre-engines.jpg",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed."
+			},
+			"size": {
+				"value": [
+					0.48,
+					0.265
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"tilt": {
+				"value": 30,
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Approximate backward rake seen in oblique console photos; no calibrated side view. WH-04."
+			},
+			"yaw": {
+				"value": 0,
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Positive yaw turns outward normal toward port. Real console angle unmeasured; radar turned toward seated eye for readability. WH-04."
+			},
+			"focus_eye": {
+				"value": [
+					-0.8843,
+					1.495,
+					-0.90451905
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Camera inspection pose 0.75 m along screen outward normal; not a measured operator position. WH-05."
+			},
+			"note": "No baked reference imagery or instrument readings. Physical LCD tachometer remains within engine screen."
+		},
+		{
+			"id": "PortEngineScreen",
+			"centre": {
+				"value": [
+					-0.3,
+					1.12,
+					-0.226
+				],
+				"unit": "m",
+				"source": "wheelhouse/console-centre-engines.jpg",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed."
+			},
+			"size": {
+				"value": [
+					0.216,
+					0.15839999999999999
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"tilt": {
+				"value": 30,
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Approximate backward rake seen in oblique console photos; no calibrated side view. WH-04."
+			},
+			"yaw": {
+				"value": 0,
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Positive yaw turns outward normal toward port. Real console angle unmeasured; radar turned toward seated eye for readability. WH-04."
+			},
+			"focus_eye": {
+				"value": [
+					-0.3,
+					1.495,
+					-0.87551905
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Camera inspection pose 0.75 m along screen outward normal; not a measured operator position. WH-05."
+			},
+			"note": "No baked reference imagery or instrument readings. Physical LCD tachometer remains within engine screen."
+		},
+		{
+			"id": "StarboardEngineScreen",
+			"centre": {
+				"value": [
+					0.3,
+					1.12,
+					-0.226
+				],
+				"unit": "m",
+				"source": "wheelhouse/console-centre-engines.jpg",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed."
+			},
+			"size": {
+				"value": [
+					0.216,
+					0.15839999999999999
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"tilt": {
+				"value": 30,
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Approximate backward rake seen in oblique console photos; no calibrated side view. WH-04."
+			},
+			"yaw": {
+				"value": 0,
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Positive yaw turns outward normal toward port. Real console angle unmeasured; radar turned toward seated eye for readability. WH-04."
+			},
+			"focus_eye": {
+				"value": [
+					0.3,
+					1.495,
+					-0.87551905
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Camera inspection pose 0.75 m along screen outward normal; not a measured operator position. WH-05."
+			},
+			"note": "No baked reference imagery or instrument readings. Physical LCD tachometer remains within engine screen."
+		}
+	],
+	"controls": [
+		{
+			"id": "PortLever",
+			"kind": "lever",
+			"pivot": {
+				"value": [
+					0.4916,
+					1.05,
+					-0.49
+				],
+				"unit": "m",
+				"source": "wheelhouse/console-centre-engines.jpg",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					-35,
+					35
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			]
+		},
+		{
+			"id": "StarboardLever",
+			"kind": "lever",
+			"pivot": {
+				"value": [
+					0.6556,
+					1.05,
+					-0.49
+				],
+				"unit": "m",
+				"source": "wheelhouse/console-centre-engines.jpg",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					-35,
+					35
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			]
+		},
+		{
+			"id": "HelmFFU",
+			"kind": "lever",
+			"pivot": {
+				"value": [
+					-0.55,
+					1.005,
+					-0.27
+				],
+				"unit": "m",
+				"source": "wheelhouse/console-centre-engines.jpg",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed. Base moved forward within the console after eye-view review, keeping the full neutral grip ahead of the helm eye and visible within the existing look limits; position remains an unmeasured photo estimate."
+			},
+			"axis": [
+				0,
+				-1,
+				0
+			],
+			"travel": {
+				"value": [
+					-35,
+					35
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			]
+		},
+		{
+			"id": "PortNFU",
+			"kind": "jog",
+			"pivot": {
+				"value": [
+					-0.2,
+					1.005,
+					-0.33
+				],
+				"unit": "m",
+				"source": "wheelhouse/console-centre-engines.jpg",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed. Base moved forward within the console after eye-view review, keeping the full neutral grip ahead of the helm eye and visible within the existing look limits; position remains an unmeasured photo estimate."
+			},
+			"axis": [
+				0,
+				-1,
+				0
+			],
+			"travel": {
+				"value": [
+					-20,
+					20
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			]
+		},
+		{
+			"id": "StarboardNFU",
+			"kind": "jog",
+			"pivot": {
+				"value": [
+					0.12,
+					1.005,
+					-0.33
+				],
+				"unit": "m",
+				"source": "wheelhouse/console-centre-engines.jpg",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "x from centreline, y above floor, z offset aft of forward window. Photo vessel class unconfirmed. Base moved forward within the console after eye-view review, keeping the full neutral grip ahead of the helm eye and visible within the existing look limits; position remains an unmeasured photo estimate."
+			},
+			"axis": [
+				0,
+				-1,
+				0
+			],
+			"travel": {
+				"value": [
+					-20,
+					20
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			]
+		},
+		{
+			"id": "HornButton",
+			"kind": "button",
+			"pivot": {
+				"value": [
+					-0.94,
+					0.99,
+					-0.59
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			]
+		},
+		{
+			"id": "AlarmAcknowledge",
+			"kind": "button",
+			"pivot": {
+				"value": [
+					-0.8,
+					0.99,
+					-0.62
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			]
+		},
+		{
+			"id": "AlarmSilence",
+			"kind": "button",
+			"pivot": {
+				"value": [
+					-0.69,
+					0.99,
+					-0.62
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			]
+		},
+		{
+			"id": "LampTest",
+			"kind": "button",
+			"pivot": {
+				"value": [
+					-0.58,
+					0.99,
+					-0.62
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			]
+		},
+		{
+			"id": "SteeringAlarmLamp1",
+			"kind": "lamp",
+			"pivot": {
+				"value": [
+					-0.777,
+					0.99,
+					-0.5
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"lamp": 0,
+			"colour": "red",
+			"note": "Retains existing four-lamp schematic per steering bank; labels and full physical tile census unresolved. SCR-05."
+		},
+		{
+			"id": "SteeringAlarmLamp2",
+			"kind": "lamp",
+			"pivot": {
+				"value": [
+					-0.737,
+					0.99,
+					-0.5
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"lamp": 1,
+			"colour": "red",
+			"note": "Retains existing four-lamp schematic per steering bank; labels and full physical tile census unresolved. SCR-05."
+		},
+		{
+			"id": "SteeringAlarmLamp3",
+			"kind": "lamp",
+			"pivot": {
+				"value": [
+					-0.697,
+					0.99,
+					-0.5
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"lamp": 2,
+			"colour": "red",
+			"note": "Retains existing four-lamp schematic per steering bank; labels and full physical tile census unresolved. SCR-05."
+		},
+		{
+			"id": "SteeringAlarmLamp4",
+			"kind": "lamp",
+			"pivot": {
+				"value": [
+					-0.657,
+					0.99,
+					-0.5
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"lamp": 3,
+			"colour": "red",
+			"note": "Retains existing four-lamp schematic per steering bank; labels and full physical tile census unresolved. SCR-05."
+		},
+		{
+			"id": "SteeringAlarmLamp5",
+			"kind": "lamp",
+			"pivot": {
+				"value": [
+					-0.5619,
+					0.99,
+					-0.5
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"lamp": 4,
+			"colour": "red",
+			"note": "Retains existing four-lamp schematic per steering bank; labels and full physical tile census unresolved. SCR-05."
+		},
+		{
+			"id": "SteeringAlarmLamp6",
+			"kind": "lamp",
+			"pivot": {
+				"value": [
+					-0.5219,
+					0.99,
+					-0.5
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"lamp": 5,
+			"colour": "red",
+			"note": "Retains existing four-lamp schematic per steering bank; labels and full physical tile census unresolved. SCR-05."
+		},
+		{
+			"id": "SteeringAlarmLamp7",
+			"kind": "lamp",
+			"pivot": {
+				"value": [
+					-0.4819,
+					0.99,
+					-0.5
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"lamp": 6,
+			"colour": "red",
+			"note": "Retains existing four-lamp schematic per steering bank; labels and full physical tile census unresolved. SCR-05."
+		},
+		{
+			"id": "SteeringAlarmLamp8",
+			"kind": "lamp",
+			"pivot": {
+				"value": [
+					-0.4419,
+					0.99,
+					-0.5
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"lamp": 7,
+			"colour": "red",
+			"note": "Retains existing four-lamp schematic per steering bank; labels and full physical tile census unresolved. SCR-05."
+		},
+		{
+			"id": "PortEngineAlarmLamp",
+			"kind": "lamp",
+			"pivot": {
+				"value": [
+					-0.09999999999999998,
+					1.15,
+					-0.22
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			],
+			"lamp": 8,
+			"colour": "red",
+			"note": "External indicator beside engine display; LCD alarms remain part of the screen. Function unconfirmed. SCR-05."
+		},
+		{
+			"id": "PortEmergencyStop",
+			"kind": "button",
+			"pivot": {
+				"value": [
+					-0.09999999999999998,
+					1.0499999999999998,
+					-0.265
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			],
+			"colour": "red"
+		},
+		{
+			"id": "PortEngineKeySwitch",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					-0.3,
+					1.0,
+					-0.26
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				0,
+				-1
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "StarboardEngineAlarmLamp",
+			"kind": "lamp",
+			"pivot": {
+				"value": [
+					0.5,
+					1.15,
+					-0.22
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			],
+			"lamp": 9,
+			"colour": "red",
+			"note": "External indicator beside engine display; LCD alarms remain part of the screen. Function unconfirmed. SCR-05."
+		},
+		{
+			"id": "StarboardEmergencyStop",
+			"kind": "button",
+			"pivot": {
+				"value": [
+					0.5,
+					1.0499999999999998,
+					-0.265
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			],
+			"colour": "red"
+		},
+		{
+			"id": "StarboardEngineKeySwitch",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.3,
+					1.0,
+					-0.26
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				0,
+				-1
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker01_01",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					-0.575,
+					0.28,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker01_02",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					-0.575,
+					0.346,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker01_03",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					-0.575,
+					0.412,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker01_04",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					-0.575,
+					0.478,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker01_05",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					-0.575,
+					0.544,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker01_06",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					-0.575,
+					0.61,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker01_07",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					-0.575,
+					0.676,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker01_08",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					-0.575,
+					0.742,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker02_01",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					-0.125,
+					0.28,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker02_02",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					-0.125,
+					0.346,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker02_03",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					-0.125,
+					0.412,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker02_04",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					-0.125,
+					0.478,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker02_05",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					-0.125,
+					0.544,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker02_06",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					-0.125,
+					0.61,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker02_07",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					-0.125,
+					0.676,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker02_08",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					-0.125,
+					0.742,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker03_01",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.335,
+					0.28,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker03_02",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.335,
+					0.346,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker03_03",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.335,
+					0.412,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker03_04",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.335,
+					0.478,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker03_05",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.335,
+					0.544,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker03_06",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.335,
+					0.61,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker03_07",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.335,
+					0.676,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker03_08",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.335,
+					0.742,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker04_01",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.785,
+					0.28,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker04_02",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.785,
+					0.346,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker04_03",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.785,
+					0.412,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker04_04",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.785,
+					0.478,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker04_05",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.785,
+					0.544,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker04_06",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.785,
+					0.61,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker04_07",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.785,
+					0.676,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "Breaker04_08",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.785,
+					0.742,
+					-0.72
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			]
+		},
+		{
+			"id": "RudderNeedle",
+			"kind": "needle",
+			"pivot": {
+				"value": [
+					-0.2,
+					0.995,
+					-0.19
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				-1,
+				0
+			],
+			"travel": {
+				"value": [
+					-35,
+					35
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"note": "Two round rudder indicators in photos; schematic scale and estimated pivot. SCR-04."
+		},
+		{
+			"id": "StarboardRudderNeedle",
+			"kind": "needle",
+			"pivot": {
+				"value": [
+					0.12,
+					0.995,
+					-0.19
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				-1,
+				0
+			],
+			"travel": {
+				"value": [
+					-35,
+					35
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"note": "Two round rudder indicators in photos; schematic scale and estimated pivot. SCR-04."
+		},
+		{
+			"id": "CompassCard",
+			"kind": "card",
+			"pivot": {
+				"value": [
+					0,
+					1.33,
+					-0.14
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					-180,
+					180
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"note": "Card under open neutral compass housing; no magnetic correction or measured compass deviation. SCR-06."
+		},
+		{
+			"id": "WiperPortSwitch",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.995,
+					0.975,
+					-0.77
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"note": "Switch inventory and functions provisional; wing panel shown obliquely. SCR-07."
+		},
+		{
+			"id": "WiperCentreSwitch",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					1.065,
+					0.975,
+					-0.77
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"note": "Switch inventory and functions provisional; wing panel shown obliquely. SCR-07."
+		},
+		{
+			"id": "WiperStarboardSwitch",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.995,
+					0.975,
+					-0.85
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"note": "Switch inventory and functions provisional; wing panel shown obliquely. SCR-07."
+		},
+		{
+			"id": "NavigationLightsSwitch",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					1.065,
+					0.975,
+					-0.85
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"note": "Switch inventory and functions provisional; wing panel shown obliquely. SCR-07."
+		},
+		{
+			"id": "CabinLightSwitch",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.995,
+					0.975,
+					-0.93
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"note": "Switch inventory and functions provisional; wing panel shown obliquely. SCR-07."
+		},
+		{
+			"id": "PanelLightSwitch",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					1.065,
+					0.975,
+					-0.93
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"note": "Switch inventory and functions provisional; wing panel shown obliquely. SCR-07."
+		},
+		{
+			"id": "SearchlightPanSwitch",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.86,
+					0.975,
+					-0.6
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			]
+		},
+		{
+			"id": "SearchlightTiltSwitch",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					0.97,
+					0.975,
+					-0.6
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			]
+		},
+		{
+			"id": "SearchlightPowerSwitch",
+			"kind": "switch",
+			"pivot": {
+				"value": [
+					1.08,
+					0.975,
+					-0.6
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				1,
+				0,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			]
+		},
+		{
+			"id": "PortAuxEmergencyStop",
+			"kind": "button",
+			"pivot": {
+				"value": [
+					0.93,
+					0.995,
+					-0.42
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"colour": "red",
+			"note": "Two guarded auxiliary stops on starboard console; exact controlled equipment unconfirmed. SCR-07."
+		},
+		{
+			"id": "StarboardAuxEmergencyStop",
+			"kind": "button",
+			"pivot": {
+				"value": [
+					1.08,
+					0.995,
+					-0.42
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				1,
+				0
+			],
+			"colour": "red",
+			"note": "Two guarded auxiliary stops on starboard console; exact controlled equipment unconfirmed. SCR-07."
+		},
+		{
+			"id": "PortNeutralLamp",
+			"kind": "lamp",
+			"pivot": {
+				"value": [
+					0.4916,
+					1.0,
+					-0.59
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			],
+			"lamp": 10,
+			"colour": "green"
+		},
+		{
+			"id": "ControlActiveLamp",
+			"kind": "lamp",
+			"pivot": {
+				"value": [
+					0.5486,
+					1.0,
+					-0.59
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			],
+			"lamp": 11,
+			"colour": "red",
+			"note": "One of two central red control-head indicators shown in the permitted lever clip; exact functions unconfirmed. SCR-05."
+		},
+		{
+			"id": "StarboardNeutralLamp",
+			"kind": "lamp",
+			"pivot": {
+				"value": [
+					0.6556,
+					1.0,
+					-0.59
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			],
+			"lamp": 12,
+			"colour": "green"
+		},
+		{
+			"id": "StarboardControlActiveLamp",
+			"kind": "lamp",
+			"pivot": {
+				"value": [
+					0.5986,
+					1.0,
+					-0.59
+				],
+				"unit": "m",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "photo-estimate",
+				"confidence": "low",
+				"note": "Unmeasured estimate; photo vessel class unconfirmed. WH-03/WH-04 required."
+			},
+			"axis": [
+				0,
+				1,
+				0
+			],
+			"travel": {
+				"value": [
+					0,
+					0
+				],
+				"unit": "deg",
+				"source": "crew reference photos (private), 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low",
+				"note": "Unmeasured travel/rest pose; MOT-02 for levers, SCR-07 for switches."
+			},
+			"normal": [
+				0,
+				0,
+				-1
+			],
+			"lamp": 13,
+			"colour": "red",
+			"note": "One of two central red control-head indicators shown in the permitted lever clip; exact functions unconfirmed. SCR-05."
+		}
+	]
 }
