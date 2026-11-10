@@ -134,6 +134,17 @@ def shoreline_result(rows):
 	return CheckResult(f"GTFS landing faces within {SHORE_MAX_M:g} m and on the water side", bool(rows) and not bad, summary, table)
 
 
+def survey_warnings(name):
+	"""Report deliberately unselectable surveyed stops without waiving any check."""
+	file = paths.processed_dir(name) / 'landing_faces.geojson'
+	if not file.exists():
+		return []
+	return [CheckResult('WARNING: surveyed landing has no selectable ferry berth (report only)', True,
+		f"{p['stop_name']} ({p['stop_id']}): all surveyed faces are is_ferry_berth:false; structure and contact geometry retained, no eligible start face.")
+		for f in json.loads(file.read_text(encoding='utf-8'))['features']
+		for p in [f['properties']] if p.get('survey_no_berths') and not p.get('berths')]
+
+
 def check_shoreline(slice_):
 	rows, notes = shoreline_rows(slice_.name)
 	return shoreline_check(rows, notes)
@@ -935,6 +946,7 @@ def run(slice_, log=print):
 		_guard("Geoid", lambda: check_geoid(_load_json(name, "geoid_offset.json"))),
 		_guard("Geodesy", check_geodesy),
 	]
+	results.extend(survey_warnings(name))
 	target, passed = write_report(slice_, results)
 	for r in results:
 		log(f"{'PASS' if r.passed else 'FAIL'}  {r.name}: {r.summary}")
@@ -1242,6 +1254,7 @@ def harbor_landing_checks(tile, entry):
 			left_out = [i for i in structures.get('left_out', []) if i['stop_id'] == stop]
 			check(f"landing {stop} left out of contact (report only)", True,
 				f"{len(left_out)} charted objects: " + '; '.join(f"{i['layer']} {i['lnam']} at {i['position_lonlat'][0]:.7f}, {i['position_lonlat'][1]:.7f} ({i['distance_m']:.0f} m): {i['reason'].split(':')[0]}" for i in left_out))
+	checks.extend(survey_warnings(tile.name))
 	return checks
 
 
