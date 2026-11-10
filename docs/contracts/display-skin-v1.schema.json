@@ -1,0 +1,40 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://ferrysim.local/contracts/display-skin-v1.schema.json",
+	"title": "Display skin (one JSON file per console display look)",
+	"description": "Lays out one console display as data, so its look can change without code. Skins shipped in the repository are generic look-alikes: the same fields, positions, colours and scales as a real unit, with no maker names, model names or logos. Rectangles are [x, y, width, height] in reference pixels with the origin at the top left.",
+	"type": "object",
+	"required": ["version", "display", "id", "reference", "refreshHz", "elements"],
+	"additionalProperties": false,
+	"properties": {
+		"version": {"const": 1},
+		"display": {"enum": ["engine", "alarm-panel", "radar", "plotter"]},
+		"id": {"type": "string", "minLength": 1, "description": "Unique among skins for the same display, for example generic-a"},
+		"reference": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2, "description": "[width, height] the rectangles are written against"},
+		"refreshHz": {"type": "number", "description": "How often the display redraws"},
+		"viewport": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4, "description": "radar and plotter only: where the live picture goes"},
+		"pages": {"type": "array", "items": {"type": "string", "minLength": 1}, "description": "Page names; the first is shown at start. Absent means a single page."},
+		"elements": {"type": "array", "items": {"$ref": "#/$defs/element"}}
+	},
+	"$defs": {
+		"element": {
+			"type": "object",
+			"required": ["type", "rect"],
+			"additionalProperties": false,
+			"properties": {
+				"type": {"enum": ["dial", "bar", "value", "lamp", "text", "softkey", "frame"]},
+				"rect": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4},
+				"page": {"type": "string", "minLength": 1, "description": "The page this element belongs to; absent means every page"},
+				"channel": {"type": "string", "minLength": 1, "description": "Instrument channel name. {side} is replaced by port or starboard for a per-engine display."},
+				"alarm": {"type": "string", "minLength": 1, "description": "Alarm id for a lamp; {side} is replaced as for channel"},
+				"range": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2, "description": "[low, high] in the display unit: the ends of a dial or bar"},
+				"sweep": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2, "description": "dial only: needle angle in degrees at the low and high ends, clockwise from straight up"},
+				"unit": {"enum": ["rpm", "kn", "deg", "deg/min", "psi", "bar", "kPa", "degC", "degF", "V", "L/h", "gal/h", "pct", "m", "ft", "none"], "description": "Display unit; the channel's SI value is converted to it"},
+				"decimals": {"type": "number", "description": "Digits after the decimal point for a value"},
+				"text": {"type": "string", "description": "Fixed caption for text, softkey and the label of a dial, bar or value"},
+				"target": {"type": "string", "minLength": 1, "description": "softkey only: the page it opens"},
+				"colour": {"type": "string", "minLength": 1, "description": "A palette role name, or #RRGGBB for the day palette with the night palette derived from it"}
+			}
+		}
+	}
+}

@@ -1,0 +1,28 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://ferrysim.local/contracts/controls-v1.schema.json",
+	"title": "Wheelhouse control map (controls-v1.json)",
+	"description": "Ties each control mount in the wheelhouse prefab to what moves it (an instrument channel or an alarm) and to the input actions that operate it. The moving controls read the first; the keybind popups read the second.",
+	"type": "object",
+	"required": ["version", "controls"],
+	"additionalProperties": false,
+	"properties": {
+		"version": {"const": 1},
+		"controls": {"type": "array", "items": {"$ref": "#/$defs/control"}}
+	},
+	"$defs": {
+		"control": {
+			"type": "object",
+			"required": ["mount"],
+			"additionalProperties": false,
+			"properties": {
+				"mount": {"type": "string", "minLength": 1, "description": "A control id from the wheelhouse layout (schema_version 2)"},
+				"channel": {"type": "string", "minLength": 1, "description": "Instrument channel name, for example lever.port. Its value is mapped linearly from range onto the mount's travel and clamped. A lamp with a channel is lit while the value is non-zero."},
+				"range": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2, "description": "[low, high] channel values, SI, that correspond to the ends of the travel"},
+				"alarm": {"type": "string", "minLength": 1, "description": "Alarm id for a lamp: flashing while unacknowledged, steady while acknowledged, slow flash on ring-back"},
+				"actions": {"type": "array", "items": {"type": "string", "minLength": 1}, "description": "Input action ids as Map/Action, most important first; the popup shows the first that has a binding in the active scheme"},
+				"label": {"type": "string", "description": "Text for the popup, for example Port engine"}
+			}
+		}
+	}
+}

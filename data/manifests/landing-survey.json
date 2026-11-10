@@ -1,0 +1,6 @@
+{
+	"schema_version": 1,
+	"purpose": "Surveyed landing positions, angles and layout. Numbers only, each with a source, method and confidence; not a bathymetric survey or a chart correction. The shape is fixed by docs/contracts/landing-survey.schema.json.",
+	"notes": "Empty until the first landings are surveyed. A stop that is absent here keeps the chart or derived geometry unchanged.",
+	"stops": {}
+}

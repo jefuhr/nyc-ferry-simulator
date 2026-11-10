@@ -1,0 +1,92 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://ferrysim.local/contracts/reference-manifest.schema.json",
+	"title": "Reference sheets manifest (manifest.json beside the approved sheets)",
+	"description": "Links every approved reference sheet to the private source it came from, the consent that covers it and the screening decision that released it. The manifest itself is private and never enters a Git repository; only its shape is public. A sheet may be used only when every one of its sources is consented under the current policy, is not withdrawn, and the screening decision is approved or approved-with-edits.",
+	"type": "object",
+	"required": ["schema_version", "consent_policy", "sheets"],
+	"additionalProperties": false,
+	"properties": {
+		"schema_version": {"const": 1},
+		"consent_policy": {"type": "string", "minLength": 1, "description": "The processing consent version that is current, for example processing-v2"},
+		"export": {"type": "string", "description": "Identifier of the intake export this manifest was last built from"},
+		"sheets": {"type": "array", "items": {"$ref": "#/$defs/sheet"}},
+		"derived": {"type": "array", "items": {"$ref": "#/$defs/derived"}}
+	},
+	"$defs": {
+		"sheet": {
+			"type": "object",
+			"required": ["path", "sha256", "kind", "sources", "screening"],
+			"additionalProperties": false,
+			"properties": {
+				"path": {"type": "string", "minLength": 1, "description": "Relative to the sheets folder, forward slashes"},
+				"sha256": {"type": "string", "minLength": 64, "description": "Of the sheet file as released"},
+				"kind": {"enum": ["image", "video", "audio", "document"]},
+				"allowed_use": {"enum": ["reference", "measurement-only"], "description": "measurement-only marks proprietary drawings: numbers may be taken, nothing may be traced or reproduced"},
+				"sources": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/source"}},
+				"screening": {"$ref": "#/$defs/screening"},
+				"tags": {"$ref": "#/$defs/tags"}
+			}
+		},
+		"source": {
+			"type": "object",
+			"required": ["source_id", "sha256", "contributor", "consent", "withdrawn"],
+			"additionalProperties": false,
+			"properties": {
+				"source_id": {"type": "string", "minLength": 1, "description": "The intake identifier of the original file; local:<name> for a file that did not come through the intake bot"},
+				"sha256": {"type": "string", "minLength": 64, "description": "Of the original file"},
+				"contributor": {"type": "string", "minLength": 1, "description": "A role, never a name or an account id: owner, crew-a, crew-b, builder"},
+				"consent": {
+					"type": "object",
+					"required": ["scope", "version"],
+					"additionalProperties": false,
+					"properties": {
+						"scope": {"enum": ["processing", "owner", "measurement-only"]},
+						"version": {"type": "string", "minLength": 1},
+						"accepted": {"type": "string", "description": "ISO 8601 date"}
+					}
+				},
+				"withdrawn": {"enum": [true, false]}
+			}
+		},
+		"screening": {
+			"type": "object",
+			"required": ["decision", "by", "date"],
+			"additionalProperties": false,
+			"properties": {
+				"decision": {"enum": ["approved", "approved-with-edits", "excluded"]},
+				"by": {"type": "string", "minLength": 1, "description": "A role, for example coordinator"},
+				"date": {"type": "string", "minLength": 1, "description": "ISO 8601 date"},
+				"edits": {"type": "array", "items": {"enum": ["blur", "crop", "trim", "silence", "strip-metadata", "transcode"]}},
+				"note": {"type": "string"}
+			}
+		},
+		"tags": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"class": {"enum": ["t-class", "k-class"]},
+				"landing": {"type": "string", "description": "GTFS stop id"},
+				"berth": {"type": "string"},
+				"topic": {"type": "string"},
+				"screen": {"type": "string", "description": "Which instrument or panel, for example radar, plotter, engine, alarm-panel"},
+				"requests": {"type": "array", "items": {"type": "string", "minLength": 1}, "description": "Shot-list request ids this sheet answers, for example LND-03@87"},
+				"captured": {"type": "string", "description": "ISO 8601 date or date-time of capture"}
+			}
+		},
+		"derived": {
+			"type": "object",
+			"description": "A file computed from sheets or private scans, for example a geometry-only view of a reconstruction",
+			"required": ["path", "sha256", "method", "from"],
+			"additionalProperties": false,
+			"properties": {
+				"path": {"type": "string", "minLength": 1},
+				"sha256": {"type": "string", "minLength": 64},
+				"method": {"enum": ["photogrammetry", "frame-extract", "rectify"]},
+				"from": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "description": "Source ids the file was computed from; withdrawal of any of them withdraws the derived file"},
+				"scale": {"type": "string", "description": "How the result was scaled, for example known-dimension: rail height 1.07 m"},
+				"pixels_per_metre": {"type": "number"}
+			}
+		}
+	}
+}

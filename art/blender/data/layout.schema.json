@@ -6,7 +6,7 @@
 	"required": ["schema_version", "subject", "kind", "values"],
 	"additionalProperties": false,
 	"properties": {
-		"schema_version": {"const": 1},
+		"schema_version": {"enum": [1, 2], "description": "2 adds the optional wheelhouse screens and controls lists"},
 		"subject": {"type": "string", "description": "t-class, k-class, or a landing stop id"},
 		"kind": {"enum": ["hull", "wheelhouse", "landing-looks"]},
 		"notes": {"type": "string"},
@@ -32,6 +32,16 @@
 					{"type": "object", "additionalProperties": {"$ref": "#/$defs/value"}}
 				]
 			}
+		},
+		"screens": {
+			"type": "array",
+			"description": "Wheelhouse only, schema_version 2: one entry per console screen mount",
+			"items": {"$ref": "#/$defs/screen"}
+		},
+		"controls": {
+			"type": "array",
+			"description": "Wheelhouse only, schema_version 2: one entry per lever, button, switch, lamp, needle or card",
+			"items": {"$ref": "#/$defs/control"}
 		}
 	},
 	"$defs": {
@@ -43,8 +53,45 @@
 				"value": {"oneOf": [{"type": "number"}, {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 3}]},
 				"unit": {"enum": ["m", "deg", "count", "ratio"]},
 				"source": {"type": "string", "minLength": 1},
-				"method": {"enum": ["drawing-scale", "known-dimension", "photo-estimate", "video-estimate", "crew-confirmed", "published", "simulator-estimate"]},
+				"method": {"enum": ["drawing-scale", "known-dimension", "photogrammetry", "photo-estimate", "video-estimate", "crew-confirmed", "published", "simulator-estimate"]},
 				"confidence": {"enum": ["high", "medium", "low"]},
+				"note": {"type": "string"}
+			}
+		},
+		"direction": {
+			"type": "array",
+			"description": "Unit vector in the layout frame: x starboard, y up, z forward",
+			"items": {"type": "number"},
+			"minItems": 3,
+			"maxItems": 3
+		},
+		"screen": {
+			"type": "object",
+			"required": ["id", "centre", "size", "tilt", "focus_eye"],
+			"additionalProperties": false,
+			"properties": {
+				"id": {"type": "string", "minLength": 1, "description": "Mount name in the prefab, for example PlotterScreen"},
+				"centre": {"$ref": "#/$defs/value", "description": "[x from centreline, y above floor, z from the forward window, negative aft], m"},
+				"size": {"$ref": "#/$defs/value", "description": "[width, height] of the lit area, m"},
+				"tilt": {"$ref": "#/$defs/value", "description": "deg from vertical; positive leans the top of the screen away from the operator"},
+				"focus_eye": {"$ref": "#/$defs/value", "description": "Camera position for the lean-in view, same convention as centre, m"},
+				"note": {"type": "string"}
+			}
+		},
+		"control": {
+			"type": "object",
+			"required": ["id", "kind", "pivot"],
+			"additionalProperties": false,
+			"properties": {
+				"id": {"type": "string", "minLength": 1, "description": "Mount name in the prefab, for example PortLever"},
+				"kind": {"enum": ["lever", "jog", "wheel", "button", "switch", "lamp", "needle", "card"]},
+				"pivot": {"$ref": "#/$defs/value", "description": "[x from centreline, y above floor, z from the forward window, negative aft], m"},
+				"axis": {"$ref": "#/$defs/direction", "description": "Rotation axis through the pivot; positive travel is a positive rotation about it"},
+				"travel": {"$ref": "#/$defs/value", "description": "[minimum, maximum] deg about axis; the rest pose is 0"},
+				"normal": {"$ref": "#/$defs/direction", "description": "Out of the panel face toward the operator; keybind popups fade by it"},
+				"lamp": {"type": "number", "description": "Index of this lamp in the shared lamp bank, counting from 0"},
+				"colour": {"enum": ["red", "amber", "green", "white", "blue"]},
+				"label": {"type": "string", "description": "Generic function text, for example Port engine lever; no maker or boat names"},
 				"note": {"type": "string"}
 			}
 		}

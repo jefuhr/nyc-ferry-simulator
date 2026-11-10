@@ -1,0 +1,128 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://ferrysim.local/contracts/landing-survey.schema.json",
+	"title": "Landing survey (data/manifests/landing-survey.json)",
+	"description": "Where each landing really sits and how it is laid out. Numbers only, each with a source, method and confidence. Positions are [latitude, longitude] in WGS84 degrees; bearings and headings are degrees true; heights of fixed structure are metres above NAVD88; heights of floating structure are metres above the barge deck.",
+	"type": "object",
+	"required": ["schema_version", "purpose", "stops"],
+	"additionalProperties": false,
+	"properties": {
+		"schema_version": {"const": 1},
+		"purpose": {"type": "string", "minLength": 1},
+		"notes": {"type": "string"},
+		"stops": {
+			"type": "object",
+			"description": "Keyed by GTFS stop id. A stop that is absent keeps the pipeline's chart or derived geometry unchanged.",
+			"additionalProperties": {"$ref": "#/$defs/stop"}
+		}
+	},
+	"$defs": {
+		"value": {
+			"type": "object",
+			"required": ["value", "unit", "source", "method", "confidence"],
+			"additionalProperties": false,
+			"properties": {
+				"value": {"oneOf": [{"type": "number"}, {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 3}]},
+				"unit": {"enum": ["m", "deg", "count", "ratio"]},
+				"source": {"type": "string", "minLength": 1},
+				"method": {"enum": ["drawing-scale", "known-dimension", "photogrammetry", "photo-estimate", "video-estimate", "crew-confirmed", "published", "simulator-estimate"]},
+				"confidence": {"enum": ["high", "medium", "low"]},
+				"note": {"type": "string"}
+			}
+		},
+		"outline": {
+			"type": "object",
+			"description": "A closed ring of [latitude, longitude] points with one provenance for the whole ring",
+			"required": ["points", "source", "method", "confidence"],
+			"additionalProperties": false,
+			"properties": {
+				"points": {"type": "array", "minItems": 3, "items": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}},
+				"source": {"type": "string", "minLength": 1},
+				"method": {"enum": ["drawing-scale", "known-dimension", "photogrammetry", "photo-estimate", "video-estimate", "crew-confirmed", "published", "simulator-estimate"]},
+				"confidence": {"enum": ["high", "medium", "low"]},
+				"note": {"type": "string"}
+			}
+		},
+		"stop": {
+			"type": "object",
+			"required": ["barges"],
+			"additionalProperties": false,
+			"properties": {
+				"notes": {"type": "string"},
+				"barges": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/barge"}},
+				"shore": {"type": "array", "items": {"$ref": "#/$defs/shore"}}
+			}
+		},
+		"barge": {
+			"type": "object",
+			"required": ["berth_id"],
+			"additionalProperties": false,
+			"properties": {
+				"berth_id": {"type": "string", "minLength": 1, "description": "The pipeline's outline identity: enc:<LNAM> for a charted pontoon, derived-barge:<stop>:<shore> for a derived one. A surveyed pose keeps the identity."},
+				"centre": {"$ref": "#/$defs/value", "description": "[latitude, longitude], deg"},
+				"heading": {"$ref": "#/$defs/value", "description": "Bearing of the barge's long axis, deg true, in [0, 180)"},
+				"length": {"$ref": "#/$defs/value"},
+				"width": {"$ref": "#/$defs/value"},
+				"berths": {"type": "array", "items": {"$ref": "#/$defs/berth"}},
+				"gangways": {"type": "array", "items": {"$ref": "#/$defs/gangway"}},
+				"piles": {"type": "array", "items": {"$ref": "#/$defs/pile"}},
+				"canopy": {"$ref": "#/$defs/canopy"},
+				"notes": {"type": "string"}
+			}
+		},
+		"berth": {
+			"type": "object",
+			"required": ["face_bearing"],
+			"additionalProperties": false,
+			"properties": {
+				"name": {"type": "string", "minLength": 1, "description": "What the crew call the berth, for example Charlie or Slip 2"},
+				"face_bearing": {"$ref": "#/$defs/value", "description": "Bearing of the berthing face's outward (water-side) normal, deg true"},
+				"landed_heading": {"$ref": "#/$defs/value", "description": "The vessel's heading while held on the berth, deg true"},
+				"is_ferry_berth": {"enum": [true, false], "description": "false marks a face that is charted but not used by the ferries"}
+			}
+		},
+		"gangway": {
+			"type": "object",
+			"required": ["shore_hinge", "barge_hinge"],
+			"additionalProperties": false,
+			"properties": {
+				"shore_hinge": {"$ref": "#/$defs/value", "description": "[latitude, longitude] of the fixed end, deg"},
+				"shore_height": {"$ref": "#/$defs/value", "description": "Height of the fixed hinge, m above NAVD88"},
+				"barge_hinge": {"$ref": "#/$defs/value", "description": "[latitude, longitude] of the floating end at mean water level, deg"},
+				"width": {"$ref": "#/$defs/value"}
+			}
+		},
+		"pile": {
+			"type": "object",
+			"required": ["centre"],
+			"additionalProperties": false,
+			"properties": {
+				"centre": {"$ref": "#/$defs/value", "description": "[latitude, longitude], deg"},
+				"diameter": {"$ref": "#/$defs/value"},
+				"top_height": {"$ref": "#/$defs/value", "description": "m above NAVD88"}
+			}
+		},
+		"canopy": {
+			"type": "object",
+			"required": ["centre", "length", "width"],
+			"additionalProperties": false,
+			"properties": {
+				"centre": {"$ref": "#/$defs/value", "description": "[latitude, longitude], deg"},
+				"heading": {"$ref": "#/$defs/value", "description": "Bearing of the canopy's long axis, deg true; the barge heading when absent"},
+				"length": {"$ref": "#/$defs/value"},
+				"width": {"$ref": "#/$defs/value"},
+				"eave_height": {"$ref": "#/$defs/value", "description": "m above the barge deck"}
+			}
+		},
+		"shore": {
+			"type": "object",
+			"required": ["kind", "outline"],
+			"additionalProperties": false,
+			"properties": {
+				"kind": {"enum": ["pier", "pier-head", "bulkhead", "platform"]},
+				"outline": {"$ref": "#/$defs/outline"},
+				"deck_height": {"$ref": "#/$defs/value", "description": "m above NAVD88"}
+			}
+		}
+	}
+}
