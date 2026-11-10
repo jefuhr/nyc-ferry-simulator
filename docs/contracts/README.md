@@ -40,6 +40,8 @@ One instrument model computes everything the instruments show. The console scree
 | `Acknowledged` | Acknowledged while the condition persists | Steady | Off |
 | `RingBack` | Condition went away before it was acknowledged | Slow flash | Off |
 
+**Lamp rhythm.** Every viewer lights a lamp with the one pure function `AlarmAnnunciator.LampLit(phase, lampTest, time)`, passing the alarm's `Phase`, the readout's `LampTest` and the simulation time of the state it is showing (`IVesselTelemetrySource.State.Time`). No viewer keeps its own oscillator, so all lamps flash in step and a paused run freezes the flash.
+
 **Alarm events** are polled, not pushed. Each consumer keeps its own cursor between `FirstEventSequence` and `NextEventSequence`. The log is bounded; a consumer whose cursor has fallen behind `FirstEventSequence` resynchronises from `Phase` and `SounderOn`. The beep rhythm belongs to the sound clip. A repeat interval per alarm re-raises an acknowledged alarm on simulation time.
 
 Engine curves and alarm definitions are data in `vessels/instruments/<class>.json`. They are separate from `vessels/<class>.json` on purpose: that file's hash is pinned by recordings and by the world import.

@@ -13,6 +13,27 @@ namespace FerrySim.Core.Tests.Instruments
 			new AlarmDefinition { Id = "test", Group = AlarmGroup.Navigation, ReRaiseSeconds = InstrumentFixtures.P(repeat, "s") },
 		});
 
+		// Every viewer (console lamps, display skins, the alarm panel) must flash in step, so the rhythm is
+		// one pure function of phase, lamp test and readout time rather than a copy per consumer.
+		[Test]
+		public void LampRhythmIsOnePureFunctionSharedByEveryViewer()
+		{
+			Assert.That(AlarmAnnunciator.LampLit(AlarmPhase.Normal, false, 0.2), Is.False);
+			Assert.That(AlarmAnnunciator.LampLit(AlarmPhase.Normal, true, 0.7), Is.True, "lamp test lights every lamp");
+			Assert.That(AlarmAnnunciator.LampLit(AlarmPhase.Acknowledged, false, 0.7), Is.True, "steady while acknowledged");
+			// Unacknowledged: 1 Hz, half on. Ring-back: 0.5 Hz, half on.
+			Assert.That(AlarmAnnunciator.LampLit(AlarmPhase.Unacknowledged, false, 0.25), Is.True);
+			Assert.That(AlarmAnnunciator.LampLit(AlarmPhase.Unacknowledged, false, 0.75), Is.False);
+			Assert.That(AlarmAnnunciator.LampLit(AlarmPhase.Unacknowledged, false, 1.25), Is.True);
+			Assert.That(AlarmAnnunciator.LampLit(AlarmPhase.RingBack, false, 0.5), Is.True);
+			Assert.That(AlarmAnnunciator.LampLit(AlarmPhase.RingBack, false, 1.5), Is.False);
+			Assert.That(AlarmAnnunciator.LampLit(AlarmPhase.RingBack, false, 2.5), Is.True);
+			var p = Panel();
+			p.Step(0, true, 1, 100);
+			for (var time = 0.0; time < 6; time += 0.05)
+				Assert.That(p.LampOn(0, time), Is.EqualTo(AlarmAnnunciator.LampLit(p.Phase(0), p.LampTest, time)));
+		}
+
 		[Test]
 		public void RaiseFlashSilenceAcknowledgeAndClear()
 		{

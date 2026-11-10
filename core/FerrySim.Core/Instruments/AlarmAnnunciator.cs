@@ -81,11 +81,20 @@ namespace FerrySim.Core.Instruments
 			return false;
 		}
 
-		/// <summary>Viewer flash rhythm: 1 Hz unacknowledged, 0.5 Hz ring-back, 50 percent duty cycle.</summary>
-		public bool LampOn(int alarm, double time)
+		/// <summary>Whether this alarm's lamp is lit at <paramref name="time"/>; see <see cref="LampLit"/>.</summary>
+		public bool LampOn(int alarm, double time) => LampLit(_phases[alarm], LampTest, time);
+
+		/// <summary>
+		/// The one viewer flash rhythm: 1 Hz while unacknowledged, 0.5 Hz on ring-back, both at 50 percent
+		/// duty; steady while acknowledged; every lamp lit during a lamp test. Pure, so any viewer holding
+		/// only an <see cref="IInstrumentReadout"/> gets the same answer from its <c>Phase</c>, its
+		/// <c>LampTest</c> and the simulation time of the state it is showing. Using simulation time means
+		/// every lamp flashes in step and a paused run freezes the flash.
+		/// </summary>
+		public static bool LampLit(AlarmPhase phase, bool lampTest, double time)
 		{
-			if (LampTest) return true;
-			switch (_phases[alarm])
+			if (lampTest) return true;
+			switch (phase)
 			{
 				case AlarmPhase.Acknowledged: return true;
 				case AlarmPhase.Unacknowledged: return Math.Floor(time * 2) % 2 == 0;
