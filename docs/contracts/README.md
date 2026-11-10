@@ -191,7 +191,11 @@ A skin lays out one console display as data: the elements, the channels they sho
 3. no source is withdrawn;
 4. the screening decision is `approved` or `approved-with-edits`.
 
-A derived file, such as a geometry-only view of a 3D reconstruction, lists the source ids it was computed from. Withdrawing any of them withdraws the derived file and flags every value measured from it.
+**Derived files.** A file computed from sources, such as a geometry-only view of a 3D reconstruction, is screened like any other sheet. It appears twice in the manifest:
+- once under `sheets`, with its own screening decision and with `sources` set to the source ids it was computed from, so the gate above checks consent and withdrawal on it directly;
+- once under `derived`, with the same `path` and `sha256`, recording how it was made (`method`, `scale`, `pixels_per_metre`, `from`).
+
+A file listed only under `derived` is refused. The two entries must agree: same path and hash, and `from` equal to the set of source ids in the `sheets` entry. Withdrawing any source withdraws the derived file and flags every value measured from it.
 
 **Contributors are roles** (`owner`, `crew-a`, `builder`), never names or account ids.
 
