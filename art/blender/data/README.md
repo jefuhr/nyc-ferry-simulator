@@ -43,3 +43,14 @@ Unity metres: x starboard, y up, z forward. The origin is on the centreline, at 
 at half of LOA, which is the same frame as the mounts and receipts described in `art/blender/README.md`.
 Landing values use metres along the berthing face: the face start is the origin, x is along the face and
 y is up from the water.
+
+## Wheelhouse screen orientation (v2)
+
+Screen `tilt` is degrees about +x, leaning the top forward away from the operator.
+Optional `yaw` follows about +y: positive yaw turns the outward screen normal toward
+port (-x). Zero yaw faces aft. The composed rotation is yaw times tilt; a mount
+points +z into the display and UV (0, 0) is the operator's lower left. A missing yaw
+means zero. Controls retain identity rest rotations; their geometry is authored
+around each pivot, and positive travel is positive rotation about the stated axis.
+The radar yaw is an explicit low-confidence simulator estimate for readability,
+not a measured change to the physical console; WH-04 would replace it.

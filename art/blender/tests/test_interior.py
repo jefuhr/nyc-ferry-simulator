@@ -1,5 +1,7 @@
 """Failure modes: missing provenance, invented precision, blocked bow, drift and over-budget geometry."""
 import importlib.util
+import copy
+import hashlib
 import json
 import math
 import tempfile
@@ -107,5 +109,109 @@ class InteriorTests(unittest.TestCase):
 		m = self.module()
 		with self.assertRaises(ValueError):
 			m.validate_layout({'footprint': [0, 2, 3]})
+
+	def test_v2_layout_and_nested_hull_groups_load(self):
+		m = self.module()
+		for cls in ('k-class', 't-class'):
+			path = ROOT / f'art/blender/data/{cls}-wheelhouse.json'
+			doc = json.loads(path.read_text())
+			self.assertEqual(doc['schema_version'], 2)
+			d = m.load_layout(path)
+			self.assertEqual(len(d['screens']), 4)
+			self.assertGreater(len(d['controls']), 40)
+			self.assertEqual(d['upper_deck_height'], doc['values']['upper_deck_height']['value'])
+			for item in doc['screens'] + doc['controls']:
+				for value in item.values():
+					if isinstance(value, dict):
+						self.assertTrue(all(k in value for k in ('value', 'unit', 'source', 'method', 'confidence')))
+
+	def test_control_outside_footprint_and_duplicate_lamp_fail_closed(self):
+		m = self.module()
+		d = m.load_layout(ROOT / 'art/blender/data/t-class-wheelhouse.json')
+		for bad in ([10, 1, -.3], [0, -1, -.3], [0, 1, 2]):
+			changed = copy.deepcopy(d)
+			changed['controls'][0]['pivot'] = bad
+			with self.assertRaisesRegex(ValueError, 'pivot'):
+				m.validate_layout(changed)
+		lamps = [c for c in d['controls'] if c['kind'] == 'lamp']
+		lamps[1]['lamp'] = lamps[0]['lamp']
+		with self.assertRaisesRegex(ValueError, 'lamp'):
+			m.validate_layout(d)
+
+	def test_positive_lever_travel_moves_actual_grip_forward(self):
+		m = self.module()
+		d = m.load_layout(ROOT / 'art/blender/data/t-class-wheelhouse.json')
+		scene = m.scene_spec(d)
+		for name in ('PortLever', 'StarboardLever'):
+			control = next(c for c in d['controls'] if c['id'] == name)
+			grip = next(p for p in scene['meshes'] if p['parent'] == name and p['material'] == 'Seat')
+			centre = [sum(v[i] for v in grip['vertices']) / len(grip['vertices']) for i in range(3)]
+			self.assertGreater(m.rotate(centre, control['axis'], control['travel'][1])[2], centre[2])
+			self.assertEqual(scene['rotations'].get(name, [0, 0, 0]), [0, 0, 0])
+
+	def test_lamps_share_mesh_and_every_vertex_has_unique_bank_index(self):
+		m = self.module()
+		for cls in ('t-class', 'k-class'):
+			d = m.load_layout(ROOT / f'art/blender/data/{cls}-wheelhouse.json')
+			scene = m.scene_spec(d)
+			lamps = [c for c in d['controls'] if c['kind'] == 'lamp']
+			indices = [c['lamp'] for c in lamps]
+			self.assertEqual(len(indices), len(set(indices)))
+			bank = [p for p in scene['meshes'] if p['material'] == 'LampsSurface']
+			self.assertEqual(len(bank), 1)
+			self.assertEqual(bank[0]['name'], 'LampsSurface')
+			self.assertEqual(len(bank[0]['uv1']), len(bank[0]['vertices']))
+			self.assertEqual({uv[0] for uv in bank[0]['uv1']}, set(indices))
+			for tri in bank[0]['triangles']:
+				self.assertEqual(len({bank[0]['uv1'][i][0] for i in tri}), 1)
+			self.assertFalse(any(p['parent'] in {c['id'] for c in lamps} for p in scene['meshes']))
+
+	def test_screen_yaw_sign_and_focus_visibility(self):
+		m = self.module()
+		# Positive yaw turns the outward (-z) normal toward port (-x).
+		self.assertLess(m.rotate([0, 0, -1], [0, 1, 0], 30)[0], 0)
+		for cls in ('t-class', 'k-class'):
+			d = m.load_layout(ROOT / f'art/blender/data/{cls}-wheelhouse.json')
+			scene = m.scene_spec(d)
+			for screen in d['screens']:
+				name = screen['id']; centre = scene['mounts'][name]
+				normal = m.screen_vector([0, 0, -1], screen)
+				to_eye = m.sub(scene['mounts']['Eye'], centre)
+				self.assertGreaterEqual(m.dot(normal, to_eye) / math.sqrt(m.dot(to_eye, to_eye)), math.cos(math.radians(45)), name)
+				focus = scene['mounts'][name + 'FocusEye']
+				delta = m.sub(focus, centre); distance = math.sqrt(m.dot(delta, delta))
+				self.assertGreaterEqual(distance, .45)
+				self.assertGreater(m.dot(normal, delta) / distance, .99999)
+				# Check the whole lit rectangle, not just the centre hidden behind a throttle.
+				for x in (-.48, -.32, -.16, 0, .16, .32, .48):
+					for y in (-.48, -.32, -.16, 0, .16, .32, .48):
+						target = m.add(centre, m.screen_vector([screen['size'][0]*x, screen['size'][1]*y, -.003], screen))
+						self.assertEqual(m.occluders(scene, focus, target), [], f'{cls}/{name}/{x}/{y}')
+
+	def test_two_build_geometry_hashes_match(self):
+		m = self.module()
+		for cls in ('t-class', 'k-class'):
+			d = m.load_layout(ROOT / f'art/blender/data/{cls}-wheelhouse.json')
+			hashes = [hashlib.sha256(json.dumps(m.scene_spec(d), sort_keys=True).encode()).hexdigest() for _ in range(2)]
+			self.assertEqual(hashes[0], hashes[1])
+
+	def test_blender_export_has_uv1_and_byte_identical_repeat(self):
+		try:
+			import bpy
+		except ImportError:
+			self.skipTest('Run inside Blender under heavy.lock')
+		m = self.module()
+		with tempfile.TemporaryDirectory() as folder:
+			outputs = []
+			for index in range(2):
+				bpy.ops.wm.read_factory_settings(use_empty=True)
+				scene = m.scene_spec(m.load_layout(ROOT / 'art/blender/data/t-class-wheelhouse.json'))
+				file = Path(folder) / f'{index}.fbx'
+				m.export(scene, file)
+				bank = next(o for o in bpy.context.scene.objects if o.type == 'MESH' and o.data.materials[0].name == 'LampsSurface')
+				self.assertEqual(len(bank.data.uv_layers), 2)
+				self.assertEqual({round(v.uv.x) for v in bank.data.uv_layers[1].data}, {c['lamp'] for c in scene['controls'] if c['kind'] == 'lamp'})
+				outputs.append(file.read_bytes())
+			self.assertEqual(outputs[0], outputs[1])
 
 if __name__ == '__main__': unittest.main()
