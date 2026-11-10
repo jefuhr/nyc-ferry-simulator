@@ -172,11 +172,17 @@ namespace FerrySim.Audio.Tests
 			var asset = InputActionAsset.FromJson(File.ReadAllText(Path.Combine(Application.dataPath, "FerrySim/Input/FerrySimControls.inputactions")));
 			try
 			{
-				var owners = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-				foreach (var map in asset.actionMaps) foreach (var binding in map.bindings)
-					if (!binding.isComposite && binding.path.StartsWith("<Keyboard>/")) Assert.That(owners.Add(binding.path), Is.True, binding.path);
 				var mute = asset.FindAction("Audio/Mute", true);
 				Assert.That(mute.bindings[0].path, Is.EqualTo("<Keyboard>/v"));
+				// Mute is live in every view, so nothing else may use its key. The shared rule decides what
+				// collides: the free-fly keys may repeat helm keys because those maps are never live together.
+				foreach (var map in asset.actionMaps) foreach (var binding in map.bindings)
+				{
+					if (binding.isComposite || !binding.path.StartsWith("<Keyboard>/")) continue;
+					var owner = map.name + "/" + binding.action;
+					if (owner == ActionIds.Mute) continue;
+					Assert.That(BindingConflicts.Conflicts(ActionIds.Mute, mute.bindings[0].path, owner, binding.path), Is.False, owner + " " + binding.path);
+				}
 				using (var mapper = new AudioInputMapper(asset)) { mapper.Enable(); Assert.That(mapper.Enabled, Is.True); }
 			}
 			finally { UnityEngine.Object.DestroyImmediate(asset); }
