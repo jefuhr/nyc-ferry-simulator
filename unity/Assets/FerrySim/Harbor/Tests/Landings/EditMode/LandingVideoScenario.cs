@@ -68,7 +68,9 @@ namespace FerrySim.Harbor.Tests.Landings
 			var result = new JObject { ["id"] = Id, ["verdict"] = "blocked", ["reason"] = BlockedReason,
 				["mapping"] = Data["mapping"].DeepClone(), ["source"] = Data["source"], ["gusts_enabled"] = applyGusts, ["fender_overrides_enabled"] = applyFenderOverrides,
 				["gust_seed"] = Data["gust_seed"], ["wind"] = Data["wind"].DeepClone(), ["fender_overrides"] = Data["fender_overrides"].DeepClone(), ["vessel_file"] = Data["vessel_file"] };
-			if (!string.IsNullOrEmpty(BlockedReason)) return result;
+			var output = Path.Combine(root, "artifacts/landing-hold-fixes/scenarios", Id + (applyGusts || applyFenderOverrides ? "-experimental" : ""));
+			HarborJourneyObserver observer = null;
+			if (!string.IsNullOrEmpty(BlockedReason)) return SaveResult(output, result, observer);
 			var contactsPath = Path.Combine(root, "data/processed/harbor/unity/contacts.json");
 			var surfacesPath = Path.Combine(root, "unity/Assets/FerrySim/Harbor/Data/landing-contact-surfaces.json");
 			var landings = LandingGeometry.Load(contactsPath, surfacesPath);
@@ -76,8 +78,8 @@ namespace FerrySim.Harbor.Tests.Landings
 			var berth = (string)Data["mapping"]["berth_id"];
 			LandingFace face;
 			try { face = landings.BerthFace(stop, berth); }
-			catch (LandingDataException error) { result["reason"] = error.Message; return result; }
-			if (face.Segments.Any(s => !s.StartFaceEligible)) { result["reason"] = "The selected face is not eligible."; return result; }
+			catch (LandingDataException error) { result["reason"] = error.Message; return SaveResult(output, result, observer); }
+			if (face.Segments.Any(s => !s.StartFaceEligible)) { result["reason"] = "The selected face is not eligible."; return SaveResult(output, result, observer); }
 			var vessel = VesselParametersJson.Load(Path.Combine(root, "vessels", (string)Data["vessel_file"]));
 			var pack = EnvironmentPackJson.Load(Path.Combine(root, "data/processed/harbor/env/days", (string)Data["date"]));
 			var startUtc = pack.EpochUtc.AddMinutes((int)Data["minute"]);
@@ -92,13 +94,26 @@ namespace FerrySim.Harbor.Tests.Landings
 			var normal = new HorizontalVector(direction.East, -direction.North) * (1 / direction.Magnitude);
 			var bow = FaceClearance.BodyOutline(vessel).Max(p => p.North);
 			var start = middle + normal * (bow + (double)Data["start_bow_clearance_m"]);
-			var heading = Math.Atan2(-normal.East, -normal.North);
-			var clearance = FaceClearance.Check(vessel, start.North, start.East, heading, landings.Geometry.Segments);
-			if (!clearance.IsClear()) { result["reason"] = "400 m start overlaps or is too close to segment " + clearance.NearestSegmentId; return result; }
+			var expectedHeading = Math.Atan2(-normal.East, -normal.North);
+			var heading = expectedHeading;
+
 			var route = new HarborJourney { Name = Id, Arrival = stop, Departure = stop, Date = (string)Data["date"], Minute = (int)Data["minute"],
 				Points = new[] { middle + normal * (bow + (double)Data["waypoint_bow_clearance_m"]) },
 				SpanIds = Array.Empty<string>(), SpanRings = Array.Empty<HorizontalVector[]>(), FaceMiddle = middle, FaceNormal = normal,
 				FaceIds = face.Segments.Select(s => s.Id).ToArray(), ForceLimit = 414000 };
+			route.SetApproachStart(Data["start"]);
+			if (route.ApproachOnly) { start = route.StartPosition; heading = route.StartHeading; }
+			result["start_mode"] = route.ApproachOnly ? "approach-only" : "departure";
+			result["intended_face_ids"] = new JArray(route.FaceIds);
+			var clearance = FaceClearance.Check(vessel, start.North, start.East, heading, landings.Geometry.Segments);
+			if (!clearance.IsClear()) { result["reason"] = "Start overlaps or is too close to segment " + clearance.NearestSegmentId; return SaveResult(output, result, observer); }
+			var approachProblem = HarborApproach.Problem(route, vessel, water, landings.Geometry.Segments, out var corridorUnderKeel);
+			if (route.ApproachOnly)
+			{
+				result["approach_corridor_minimum_under_keel_m"] = double.IsNaN(corridorUnderKeel) ? JValue.CreateNull() : new JValue(corridorUnderKeel);
+				result["approach_corridor_verified"] = approachProblem == null;
+			}
+			if (approachProblem != null) { result["reason"] = approachProblem; return SaveResult(output, result, observer); }
 			var overrides = new Dictionary<int, ContactSurface>();
 			foreach (var entry in (JArray)Data["fender_overrides"])
 			{
@@ -113,15 +128,14 @@ namespace FerrySim.Harbor.Tests.Landings
 			result["simulation_start_utc"] = startUtc.ToString("O"); result["start_ne_m"] = new JArray(start.North, start.East);
 			result["environment_digest"] = pack.Digest;
 			result["contacts_sha256"] = Hash(contactsPath); result["surfaces_sha256"] = Hash(surfacesPath);
-			if (sim.IsAground) { result["reason"] = "The 400 m start is aground."; return result; }
-			var controls = new HarborJourneyControls(route, () => sim.State, () => sim.ContactCount > 0, vessel.Particulars.LengthOverall.Value);
-			var observer = new HarborJourneyObserver(route, sim);
+			if (sim.IsAground) { result["reason"] = route.ApproachOnly ? "The supplied approach start is aground." : "The 400 m start is aground."; return SaveResult(output, result, observer); }
+			var controls = new HarborJourneyControls(route, () => sim.State, () => route.IntendedFaceContact(sim), vessel.Particulars.LengthOverall.Value);
+			observer = new HarborJourneyObserver(route, sim);
 			var digest = new StateDigest();
-			var output = Path.Combine(root, "artifacts/landing-behaviour", Id + (applyGusts || applyFenderOverrides ? "-experimental" : "")); Directory.CreateDirectory(output);
+			Directory.CreateDirectory(output);
 			var trace = new ControlTrace();
 			var last = ControlInputs.Neutral;
 			var steps = 0;
-			var fenderHoldSteps = 0;
 			var peakFenderForce = 0.0;
 			using (var trajectory = new StreamWriter(Path.Combine(output, "trajectory.csv")))
 			{
@@ -133,7 +147,6 @@ namespace FerrySim.Harbor.Tests.Landings
 					observer.BeforeStep(steps, sim.State, sim.Telemetry, input);
 					sim.Step(input); observer.AfterStep(steps + 1, sim.State, sim.Telemetry); digest.Add(sim.State);
 					peakFenderForce = Math.Max(peakFenderForce, sim.ContactLoad.Magnitude);
-					fenderHoldSteps = sim.ContactCount > 0 && sim.ContactLoad.Magnitude > 0 && sim.Telemetry.SpeedOverGround < Units.KnotsToMetresPerSecond(.1) ? fenderHoldSteps + 1 : 0;
 					if (!sim.State.IsFinite()) throw new InvalidOperationException("Non-finite state in " + Id);
 					if (steps % 100 == 0) trajectory.WriteLine(string.Join(",", steps + 1, F(sim.State.Time), F(sim.State.North), F(sim.State.East),
 						F(Angles.ToDegrees(sim.State.Heading)), F(Units.MetresPerSecondToKnots(sim.Telemetry.SpeedOverGround)), F(sim.Telemetry.ContactForce), F(sim.Telemetry.DepthUnderKeel)));
@@ -144,11 +157,11 @@ namespace FerrySim.Harbor.Tests.Landings
 			result["verdict"] = observer.LandingVerdict(sim.State); result["reason"] = null;
 			result["steps"] = steps; result["driver_complete"] = controls.Complete; result["driver_phase"] = controls.Phase;
 			result["state_digest"] = digest.Text;
-			result["peak_fender_force_n"] = peakFenderForce; result["fender_hold_1000_steps_okay"] = fenderHoldSteps >= 1000;
+			result["peak_fender_force_n"] = peakFenderForce; result["fender_hold_1000_steps_okay"] = observer.FinalHoldOkay;
 			result["first_contact_knots"] = observer.FirstContactSpeed < 0 ? JValue.CreateNull() : new JValue(Units.MetresPerSecondToKnots(observer.FirstContactSpeed));
 			result["first_contact_id"] = observer.FirstContactId; result["peak_force_n"] = observer.PeakForce; result["peak_compression_m"] = observer.PeakCompression;
 			result["bottomed_out"] = observer.BottomedOut; result["hold_1000_steps_okay"] = observer.FinalHoldOkay;
-			result["heading_error_deg"] = Math.Abs(Angles.ToDegrees(Angles.WrapPi(sim.State.Heading - heading)));
+			result["heading_error_deg"] = Math.Abs(Angles.ToDegrees(Angles.WrapPi(sim.State.Heading - expectedHeading)));
 			result["grounded_steps"] = observer.GroundedSteps; result["minimum_under_keel_m"] = observer.MinimumUnderKeel;
 			result["failures"] = new JArray(observer.Failures); result["depth_misses"] = water.Coverage.DepthMisses;
 			result["time_holds"] = water.Coverage.TimeHolds; result["trial_kind"] = "standardized main-face proxy; not video replay";
@@ -170,6 +183,38 @@ namespace FerrySim.Harbor.Tests.Landings
 				result["replay_state_digest"] = replayDigest.Text;
 				result["replay_matches"] = replayDigest.Text == digest.Text && replay.EndStep == steps;
 			}
+			if ((string)result["verdict"] == "fail")
+			{
+				var reasons = new List<string>();
+				if (!controls.Complete) reasons.Add("driver did not complete within the step limit");
+				if (observer.FirstContactSpeed < 0) reasons.Add("no segment contact");
+				if (observer.FirstContactSpeed > Units.KnotsToMetresPerSecond(1.5)) reasons.Add("first contact exceeds 1.5 kn");
+				if (observer.PeakForce <= 0 || observer.PeakForce > route.ForceLimit) reasons.Add("contact force outside acceptance range");
+				if (observer.BottomedOut) reasons.Add("fender bottomed out");
+				if (!observer.FinalHoldOkay) reasons.Add("final 1000 steps lack a continuous intended-face hold below 0.1 kn");
+				if ((double)result["heading_error_deg"] > 5) reasons.Add("final heading error exceeds 5 degrees");
+				if (observer.GroundedSteps > 0) reasons.Add("grounded during the run");
+				if (observer.Failures.Count > 0) reasons.Add(observer.Failures[0]);
+				result["reason"] = string.Join("; ", reasons);
+			}
+			return SaveResult(output, result, observer);
+		}
+
+		private static JObject SaveResult(string output, JObject result, HarborJourneyObserver observer)
+		{
+			Directory.CreateDirectory(output);
+			using (var writer = new StreamWriter(Path.Combine(output, "hold.csv")))
+			{
+				if (observer != null) observer.WriteHoldCsv(writer);
+				else writer.WriteLine(HarborJourneyObserver.HoldCsvHeader);
+			}
+			if (observer != null) observer.AddHoldSummary(result);
+			else
+			{
+				foreach (var key in new[] { "steps", "intended_face_steps", "grounded_steps", "bad_steps", "engines_in_gear_steps" }) result["hold_window_" + key] = 0;
+				foreach (var key in new[] { "heading_error_abs_rad_max", "side_force_abs_n_max", "port_engine_rad_s_mean", "starboard_engine_rad_s_mean" }) result["hold_window_" + key] = JValue.CreateNull();
+			}
+			result["hold_csv"] = Path.Combine(output, "hold.csv");
 			File.WriteAllText(Path.Combine(output, "result.json"), result.ToString() + "\n");
 			return result;
 		}

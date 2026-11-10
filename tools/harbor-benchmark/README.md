@@ -18,7 +18,7 @@ PYTHONPATH=data-pipeline uv run --project data-pipeline python tools/harbor-benc
 
 This verifies adopted depth floor A and writes candidate routes, corridor samples and edge/corner seam checks. `harbor_transit.plan` only proposes deep-water legs. Bridge waypoints retain literal ENC span identities, geometry and clearance provenance; other bends are labelled authoring estimates. The East River journeys use the west Roosevelt Island channel and the western Queensboro span. ENC MHW clearances are retained with their unavailable NAVD88 conversion; ordered horizontal crossings do not validate overhead collision geometry. St. George ends at an off-face hold, with arrival acceptance blocked by the crew question. The return also ends at an approach hold, rather than claiming a second berth landing.
 
-The explicit EditMode test `FerrySim.HarborE2E.Tests.RealJourneyTests.AuthorAndDriveTheThreeJourneys` drives those candidates against the actual core, real contacts and day packs. It adds the existing E2E's estimated 2 kn reference-force limit and emits `routes.accepted.json`, reviewable input traces and verdicts. The checked `routes.json` is that reviewed test definition, including source/depth provenance and force limits. Astoria and Soundview start times are test conditions chosen to arrive near low-current windows of the shipped station blend; the separate busy-minute cases retain the busier conditions. This is not a claim about actual channel current accuracy.
+The explicit EditMode test `FerrySim.HarborE2E.Tests.RealJourneyTests.AuthorAndDriveTheThreeJourneys` re-drives the checked `tools/harbor-benchmark/routes.json` definitions against the actual core, real contacts and day packs. It recomputes the existing E2E's estimated 2 kn reference-force limit and emits `routes.accepted.json`, reviewable input traces, state digests, hold logs and verdicts under `artifacts/landing-hold-fixes/real-journeys`. Candidate preparation is separate; this regression test does not silently promote new candidate routes. The checked `routes.json` retains the reviewed source/depth provenance and force limits. Astoria and Soundview start times are test conditions chosen to arrive near low-current windows of the shipped station blend; the separate busy-minute cases retain the busier conditions. This is not a claim about actual channel current accuracy.
 
 The ordinary Unity gate runs the fast synthetic/measurement tests. Real data and scene tests are explicit and must be selected by exact name; missing data does not count as acceptance. PlayMode scene loads are additive and unloaded in teardown.
 
@@ -114,3 +114,24 @@ Timing fields overlap: main, render and GPU durations are not additive. Shipping
 Analysis counts distinct Unity frame IDs for the 20 ms violation count. `event_count` retains the event-record count; `event_frame_count` is the unique running-frame count, and `over_20_event_records` preserves multiplicity. Multiple tile/progress/origin events on one slow frame count as one violating frame, with every per-event ±2 window retained. Use the repository analyzer when consuming the returned Windows archive; the collection bundle’s raw frame/event schema is unchanged.
 
 The camera stress path must disable the free-fly, chase and wheelhouse controllers as well as the keyboard-switching rig. `camera.csv` records expected and actual ECEF camera positions after every rendered sweep frame, using double precision throughout. Analysis requires the complete requested distance, ordered frame/time samples and at most 0.1 m position error; a camera held at the boat cannot pass because a coroutine merely requested a route. This proof is separate from the 1x streaming budget and does not turn stress into a shipping performance pass.
+
+## Landing hold evidence and arrival starts
+
+The hold check requires a `SegmentContact` on one of the route's `FaceIds` with a strictly positive normal force. Bed friction and contacts with another structure do not qualify. The controller uses the same predicate before latching its holding controls. A grounded step cannot qualify, even if a fender is also touched. Acceptance thresholds, fender surfaces, vessel files and the existing route/scenario definitions are unchanged.
+
+`hold.csv` retains one row for each physics step in the final rolling 1000-step window, in chronological order (or every available step for a shorter run). Engine and shaft speeds are rad/s, heading error is radians and side force is N. The side-force column is the signed body-y sum of hull, propeller, rudder, wind, contact and grounding forces from `LastForces`, rather than the scalar contact-force magnitude. It is a force diagnostic, not a claim that the boat is in force equilibrium. CSV writing and summary formatting happen after stepping; `AfterStep` only fills preallocated storage. Blocked scenarios have a header-only CSV, zero observed hold steps and unavailable numerical summaries.
+
+An arrival can opt into a supplied pose and an explicit convex approach corridor:
+
+```json
+"start": {
+  "mode": "approach-only",
+  "position_ne_m": [0, 0],
+  "heading_rad": 0,
+  "corridor_ne_m": [[-20, -20], [80, -20], [80, 20], [-20, 20], [-20, -20]]
+}
+```
+
+These numbers illustrate the format in a synthetic frame; they are not a harbor route. The journey parser verifies a finite, closed, convex corridor containing the start and every approach waypoint. The driver verifies that the actual initial pose matches, starts on waypoint zero and rejects a position outside the declared corridor while following the approach legs. The final face approach follows the existing face controller after the last waypoint. Scenario preflight also checks sampled planned contact-hull poses against the corridor and all contact segments, and samples water depth over the corridor using the existing quarter-metre/depth-grid-node method. Unknown depth or a shallow corridor blocks the run. This is sampled geometric and start-time depth coverage, not a navigation clearance or a prediction of the vessel's motion or later tide.
+
+For caption scenarios the optional `start` object overrides the standard initial pose; the existing 60 m face waypoint remains the approach endpoint. The supplied corridor must include the complete hull through that waypoint. No existing scenario opts in automatically, and no caption supplies a recovered approach track. Existing starts retain their 55 m departure phase, so their traces remain comparable; the intended-face latch correction can deliberately change a scenario that previously latched on a different structure. Real-journey digests must remain unchanged.
