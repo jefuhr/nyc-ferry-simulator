@@ -112,9 +112,7 @@ namespace FerrySim.Audio.Tests
 			{
 				var runner = vessel.AddComponent<VesselSimulationRunner>();
 				var helm = vessel.AddComponent<HelmInputController>(); helm.Actions = defaults;
-				// Call the production entry point without adding a Traffic assembly reference to the EditMode tests.
-				var attach = typeof(FerryAudioRig).GetMethod("Attach");
-				var rig = (FerryAudioRig)attach.Invoke(null, new object[] { runner, helm, null, null, null, null });
+				var rig = FerryAudioRig.Attach(runner, helm, null, null, null);
 				var changes = 0; var last = false; rig.MuteChangedFromKey += value => { changes++; last = value; };
 				InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.V)); InputSystem.Update();
 				Assert.That(keyboard.vKey.isPressed, Is.True, "injected V was processed");

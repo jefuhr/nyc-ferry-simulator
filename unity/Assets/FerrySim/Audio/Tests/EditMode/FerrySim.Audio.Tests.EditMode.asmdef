@@ -1,6 +1,6 @@
 {
 	"name": "FerrySim.Audio.Tests.EditMode",
-	"references": ["FerrySim.Audio", "FerrySim.Audio.Clips", "FerrySim.Audio.Editor", "FerrySim.Core", "FerrySim.Unity.Sim", "FerrySim.Unity.World", "FerrySim.Unity.Input", "Unity.InputSystem"],
+	"references": ["FerrySim.Audio", "FerrySim.Audio.Clips", "FerrySim.Audio.Editor", "FerrySim.Core", "FerrySim.Unity.Sim", "FerrySim.Unity.World", "FerrySim.Unity.Input", "FerrySim.Unity.Traffic", "Unity.InputSystem"],
 	"includePlatforms": ["Editor"],
 	"optionalUnityReferences": ["TestAssemblies"],
 	"autoReferenced": false
