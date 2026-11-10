@@ -40,3 +40,7 @@ MonoBehaviour:
     clip: {fileID: 0}
   - id: barge-creak
     clip: {fileID: 0}
+  - id: alarm-steering
+    clip: {fileID: 8300000, guid: 397f74b6e5c9240668c729733af388ce, type: 3}
+  - id: alarm-general
+    clip: {fileID: 0}

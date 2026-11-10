@@ -143,6 +143,28 @@
 			"source": "procedural placeholder; original synthesis by this project; not calibrated vessel evidence",
 			"date": "2026-11-02",
 			"edits": "generated mono at 22050 Hz; seamless full-file loops; one-shot edges faded"
+		},
+		{
+			"id": "alarm-steering",
+			"file": "alarm-steering.wav",
+			"loop": true,
+			"loopStartSample": 0,
+			"loopEndSample": 43860,
+			"baseGain": 1,
+			"source": "crew recording (private), 2026-11",
+			"date": "2026-11-10",
+			"edits": "Recipe alarm-steering: source frames [352800, 441402) at 44100 Hz; mono arithmetic downmix; resampled to 22050 Hz; highpass 300 Hz, lowpass 0 Hz; -24 LUFS target, ebur128 measured -24.0 LUFS; equal-power overlap 441 frames, circular rotation 42 frames; one-shot fades 0 frames; PCM16, metadata removed; listening review pending"
+		},
+		{
+			"id": "alarm-general",
+			"file": "alarm-general.wav",
+			"loop": true,
+			"loopStartSample": 0,
+			"loopEndSample": 0,
+			"baseGain": 1,
+			"source": "procedural placeholder (project)",
+			"date": "2026-11-10",
+			"edits": "Procedural alarm placeholder; crew listening review pending"
 		}
 	]
 }

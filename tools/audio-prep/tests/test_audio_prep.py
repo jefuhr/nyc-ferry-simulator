@@ -60,6 +60,20 @@ class AudioPrepTests(unittest.TestCase):
 		self.assertEqual(report['loop_start_sample'], 0)
 		self.assertEqual(report['loop_end_sample'], info[2])
 
+	def test_steady_alarm_tone_loop_meets_seam_limit_and_bad_join_is_refused(self):
+		rate = 22050
+		write_wave(self.source, (.08 * math.sin(2*math.pi*2197*i/rate) for i in range(45000)), rate=rate)
+		recipe = dict(self.recipe, source_rate=rate, sample_rate=rate, start_frame=0,
+			end_frame=44541, crossfade_frames=441, target_lufs=-24)
+		out = self.root / 'alarm.wav'
+		result = prep.prepare(self.source, recipe, out)
+		self.assertEqual(result['frames'], 44100)
+		self.assertLess(result['seam_delta'], prep.SEAM_LIMIT)
+		bad = self.root / 'bad-alarm.wav'
+		with self.assertRaisesRegex(ValueError, 'finished loop seam'):
+			prep.prepare(self.source, dict(recipe, crossfade_frames=2), bad)
+		self.assertFalse(bad.exists())
+
 	def test_seeded_noise_loop_is_seamless_and_normalized(self):
 		rng = random.Random(1847)
 		write_wave(self.source, (rng.uniform(-.18, .18) for _ in range(144000)))
@@ -140,7 +154,8 @@ class AudioPrepTests(unittest.TestCase):
 			prep.resolve_source(root, dict(pattern='audio/*.wav', sha256=hashlib.sha256(self.source.read_bytes()).hexdigest()))
 
 	def test_cli_updates_provenance_and_preserves_placeholder(self):
-		(root_audio := self.root / 'audio').mkdir()
+		sheets = self.root / 'sheets'
+		(root_audio := sheets / 'audio').mkdir(parents=True)
 		(root_audio / 'anonymous.wav').write_bytes(self.source.read_bytes())
 		manifest = self.root / 'clips.json'
 		placeholder = dict(id='unavailable', file='unavailable.wav', source='placeholder', edits='synthesis')
@@ -148,7 +163,9 @@ class AudioPrepTests(unittest.TestCase):
 		recipes = self.root / 'recipes.json'
 		recipe = dict(self.recipe, source=dict(pattern='audio/*.wav', sha256=hashlib.sha256(self.source.read_bytes()).hexdigest()))
 		recipes.write_text(json.dumps(dict(version=1, date='2026-11-08', clips=[recipe])))
-		command = [sys.executable, str(MODULE), '--sheets', str(self.root), '--recipes', str(recipes), '--manifest', str(manifest), '--output', str(self.root/'Clips'), '--report', str(self.root/'report.json')]
+		from test_consent_gate import consent_manifest
+		(sheets / 'manifest.json').write_text(json.dumps(consent_manifest(sheets, ['audio/anonymous.wav'])))
+		command = [sys.executable, str(MODULE), '--sheets', str(sheets), '--derived-out', str(self.root/'derived.json'), '--recipes', str(recipes), '--manifest', str(manifest), '--output', str(self.root/'Clips'), '--report', str(self.root/'report.json')]
 		result = subprocess.run(command, text=True, capture_output=True)
 		self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 		updated = json.loads(manifest.read_text())['slots']

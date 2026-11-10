@@ -178,6 +178,33 @@
 			"sample_rate": 22050,
 			"target_lufs": null,
 			"reason": "No isolated consented source for this slot supplied."
+		},
+		{
+			"id": "alarm-steering",
+			"source": {
+				"pattern": "audio/*_Steer_Control_Panel_Alarm.wav",
+				"sha256": "03f6d36edbd66c25ae0be1e69b86a6991c2c44d255b6df06c72ae1f3f82c082e"
+			},
+			"date": "2026-11-10",
+			"source_rate": 44100,
+			"start_frame": 352800,
+			"end_frame": 441402,
+			"sample_rate": 22050,
+			"target_lufs": -24,
+			"loop": true,
+			"crossfade_frames": 441,
+			"fade_frames": 0,
+			"highpass_hz": 300,
+			"lowpass_hz": 0,
+			"selection_note": "Continuous panel tone near 2197 Hz with a secondary component near 2380 Hz. No slower beep cadence is identifiable. The overlap aligns the measured waveform in a stable window."
+		},
+		{
+			"id": "alarm-general",
+			"placeholder": true,
+			"loop": true,
+			"sample_rate": 22050,
+			"target_lufs": null,
+			"reason": "No approved general alarm recording is available. Use the procedural placeholder."
 		}
 	],
 	"unused_sources": [

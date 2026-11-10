@@ -3,18 +3,19 @@ using System.Globalization;
 
 namespace FerrySim.Audio
 {
-	public enum AudioGroup { Engines, HornAndSignals, Ambience }
+	public enum AudioGroup { Engines, HornAndSignals, Ambience, Alarms }
 
-	/// <summary>Session settings only. Zero gains never disable the rig or bypass its work.</summary>
+	/// <summary>Settings hand-over; persistence is owned by the UI settings store. Zero gains never disable the rig or bypass its work.</summary>
 	public sealed class AudioBus
 	{
 		public float Master { get; set; } = 1;
 		public float Engines { get; set; } = 1;
 		public float HornAndSignals { get; set; } = 1;
 		public float Ambience { get; set; } = 1;
+		public float Alarms { get; set; } = 1;
 		public bool Muted { get; set; }
 		public float Gain(AudioGroup group) => Muted ? 0 : (float)(EngineSoundMapping.Clamp(Master) *
-			EngineSoundMapping.Clamp(group == AudioGroup.Engines ? Engines : group == AudioGroup.HornAndSignals ? HornAndSignals : Ambience));
+			EngineSoundMapping.Clamp(group == AudioGroup.Engines ? Engines : group == AudioGroup.HornAndSignals ? HornAndSignals : group == AudioGroup.Alarms ? Alarms : Ambience));
 	}
 
 	public static class AudioLaunchOptions
@@ -45,6 +46,7 @@ namespace FerrySim.Audio
 		public const int OwnHornAndFog = 2;
 		public const int Ambience = 5;
 		public const int Traffic = 8;
-		public const int Total = Engines + OwnHornAndFog + Ambience + Traffic;
+		public const int Alarms = 1;
+		public const int Total = Engines + OwnHornAndFog + Ambience + Traffic + Alarms;
 	}
 }
