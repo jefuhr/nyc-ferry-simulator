@@ -78,6 +78,12 @@ Engine curves and alarm definitions are data in `vessels/instruments/<class>.jso
 
 A channel value is mapped linearly from `range` onto the mount's `travel` and clamped. A control with no `channel` or `alarm` does not move; it can still carry `actions` for a popup.
 
+- **Lamps.** A lamp with an `alarm` follows that alarm on the shared lamp rhythm (C1). A lamp with a `channel` is lit while the value is non-zero, or, with the appended optional `lit: [low, high]`, while the value is inside that inclusive range; `NaN` is dark. A lamp test lights every lamp, mapped or not. An alarm id the vessel does not define leaves the lamp dark and is logged once.
+- **A reversed `range`** (high before low) reverses the motion; the compass card uses it to turn against the heading so north stays north.
+- **The file** ships at `World/Wheelhouse/Resources/FerrySimWheelhouse/controls-v1.json` and serves both classes. It is rejected whole, naming the entry, when it names an unknown channel, mount or input action.
+- **Readers** get the loaded map from `WheelhouseControlsView.ControlMap` (null without an interior). Its entries are bound to one interior instance and must be read again after a class switch.
+- **The lean-in view.** `Camera/FocusCycle` steps through the screens' `focus_eye` positions (C2). `WheelhouseCameraController.FocusedScreen` is the screen's mount id (`RadarScreen`, `PlotterScreen`, `PortEngineScreen`, `StarboardEngineScreen`) or null at the seat, with `FocusChanged` raised on every change.
+
 ## C4: Input actions and bindings
 
 - **`ActionIds`** names the actions other assemblies refer to, as `Map/Action`.
