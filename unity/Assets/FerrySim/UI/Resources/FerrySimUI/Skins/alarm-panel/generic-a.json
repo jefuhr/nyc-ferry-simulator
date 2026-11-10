@@ -1,0 +1,14 @@
+{
+	"version": 1,
+	"display": "alarm-panel",
+	"id": "generic-a",
+	"reference": [640, 480],
+	"refreshHz": 10,
+	"elements": [
+		{"type": "frame", "rect": [0, 0, 640, 40], "text": "ALARMS"},
+		{"type": "list", "rect": [16, 52, 608, 344], "text": "NO ALARMS DEFINED"},
+		{"type": "softkey", "rect": [16, 412, 192, 52], "text": "ACK", "action": "acknowledge"},
+		{"type": "softkey", "rect": [224, 412, 192, 52], "text": "SILENCE", "action": "silence"},
+		{"type": "softkey", "rect": [432, 412, 192, 52], "text": "LAMP TEST", "action": "lamp-test"}
+	]
+}

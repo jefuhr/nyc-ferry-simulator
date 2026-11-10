@@ -22,7 +22,7 @@
 			"required": ["type", "rect"],
 			"additionalProperties": false,
 			"properties": {
-				"type": {"enum": ["dial", "bar", "value", "lamp", "text", "softkey", "frame"]},
+				"type": {"enum": ["dial", "bar", "value", "lamp", "text", "softkey", "frame", "list"], "description": "list (appended): every alarm the readout defines, grouped by alarm group, each with a lamp and its state in words"},
 				"rect": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4},
 				"page": {"type": "string", "minLength": 1, "description": "The page this element belongs to; absent means every page"},
 				"channel": {"type": "string", "minLength": 1, "description": "Instrument channel name. {side} is replaced by port or starboard for a per-engine display."},
@@ -33,7 +33,20 @@
 				"decimals": {"type": "number", "description": "Digits after the decimal point for a value"},
 				"text": {"type": "string", "description": "Fixed caption for text, softkey and the label of a dial, bar or value"},
 				"target": {"type": "string", "minLength": 1, "description": "softkey only: the page it opens"},
-				"colour": {"type": "string", "minLength": 1, "description": "A palette role name, or #RRGGBB for the day palette with the night palette derived from it"}
+				"colour": {"type": "string", "minLength": 1, "description": "A palette role name, or #RRGGBB for the day palette with the night palette derived from it"},
+				"format": {"enum": ["number", "gear"], "description": "value only (appended): number (the default) or gear, which shows a shift-phase channel as NEUTRAL, AHEAD, ASTERN or SHIFTING"},
+				"group": {"enum": ["Steering", "Engine", "Navigation", "Hull"], "description": "list only (appended): show only the alarms of this group; absent means every group"},
+				"action": {"enum": ["acknowledge", "silence", "lamp-test"], "description": "softkey only (appended): the alarm action the key raises; lamp-test is held while pressed. A softkey has a target or an action, not both."},
+				"bands": {"type": "array", "items": {"$ref": "#/$defs/band"}, "description": "dial and bar only (appended): coloured ranges such as warning and red-line arcs, drawn once with the static face"}
+			}
+		},
+		"band": {
+			"type": "object",
+			"required": ["range", "colour"],
+			"additionalProperties": false,
+			"properties": {
+				"range": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2, "description": "[low, high] in the element's display unit, inside the element's range, low below high"},
+				"colour": {"type": "string", "minLength": 1, "description": "A palette role name or #RRGGBB, as for an element"}
 			}
 		}
 	}

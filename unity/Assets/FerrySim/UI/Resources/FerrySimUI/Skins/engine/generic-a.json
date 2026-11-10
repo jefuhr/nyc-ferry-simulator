@@ -1,0 +1,33 @@
+{
+	"version": 1,
+	"display": "engine",
+	"id": "generic-a",
+	"reference": [800, 480],
+	"refreshHz": 5,
+	"pages": ["main", "alarms"],
+	"elements": [
+		{"type": "frame", "rect": [0, 0, 800, 40], "text": "{side} ENGINE"},
+		{"type": "dial", "rect": [16, 52, 300, 300], "page": "main", "channel": "engine.{side}.speed", "range": [0, 2400], "sweep": [-135, 135], "unit": "rpm", "decimals": 0, "text": "ENGINE", "bands": [{"range": [2100, 2400], "colour": "redline"}]},
+		{"type": "bar", "rect": [16, 364, 300, 48], "page": "main", "channel": "engine.{side}.load", "range": [0, 100], "unit": "pct", "decimals": 0, "text": "LOAD", "bands": [{"range": [90, 100], "colour": "caution"}]},
+		{"type": "frame", "rect": [336, 52, 216, 70], "page": "main"},
+		{"type": "value", "rect": [336, 52, 216, 70], "page": "main", "channel": "engine.{side}.oil-pressure", "text": "OIL PRESS", "unit": "psi", "decimals": 0},
+		{"type": "frame", "rect": [568, 52, 216, 70], "page": "main"},
+		{"type": "value", "rect": [568, 52, 216, 70], "page": "main", "channel": "engine.{side}.coolant-temperature", "text": "COOLANT", "unit": "degF", "decimals": 0},
+		{"type": "frame", "rect": [336, 130, 216, 70], "page": "main"},
+		{"type": "value", "rect": [336, 130, 216, 70], "page": "main", "channel": "engine.{side}.exhaust-temperature", "text": "EXHAUST", "unit": "degF", "decimals": 0},
+		{"type": "frame", "rect": [568, 130, 216, 70], "page": "main"},
+		{"type": "value", "rect": [568, 130, 216, 70], "page": "main", "channel": "engine.{side}.fuel-rate", "text": "FUEL RATE", "unit": "gal/h", "decimals": 1},
+		{"type": "frame", "rect": [336, 208, 216, 70], "page": "main"},
+		{"type": "value", "rect": [336, 208, 216, 70], "page": "main", "channel": "engine.{side}.gear-oil-pressure", "text": "GEAR OIL", "unit": "psi", "decimals": 0},
+		{"type": "frame", "rect": [568, 208, 216, 70], "page": "main"},
+		{"type": "value", "rect": [568, 208, 216, 70], "page": "main", "channel": "engine.{side}.shaft-speed", "text": "SHAFT", "unit": "rpm", "decimals": 0},
+		{"type": "frame", "rect": [336, 286, 216, 70], "page": "main"},
+		{"type": "value", "rect": [336, 286, 216, 70], "page": "main", "channel": "engine.{side}.shift-phase", "text": "GEAR", "format": "gear"},
+		{"type": "frame", "rect": [568, 286, 216, 70], "page": "main"},
+		{"type": "value", "rect": [568, 286, 216, 70], "page": "main", "channel": "electrical.bus-voltage", "text": "VOLTS", "unit": "V", "decimals": 1},
+		{"type": "bar", "rect": [336, 364, 448, 48], "page": "main", "channel": "engine.{side}.boost-pressure", "range": [0, 30], "unit": "psi", "decimals": 0, "text": "BOOST"},
+		{"type": "list", "rect": [16, 52, 768, 360], "page": "alarms", "group": "Engine", "text": "NO ENGINE ALARMS"},
+		{"type": "softkey", "rect": [16, 424, 140, 44], "text": "MAIN", "target": "main"},
+		{"type": "softkey", "rect": [172, 424, 140, 44], "text": "ALARMS", "target": "alarms"}
+	]
+}
