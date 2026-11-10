@@ -2,7 +2,7 @@ using CesiumForUnity;
 using FerrySim.Core.Contracts;
 using FerrySim.Sim;
 using UnityEngine;
-using UnityEngine.InputSystem;
+using FerrySim.Controls;
 
 namespace FerrySim.World
 {
@@ -22,6 +22,7 @@ namespace FerrySim.World
 		private float _yaw;
 		private float _pitch;
 		private CesiumGlobeAnchor _anchor;
+		private CameraActionReader _input;
 		private VesselSimulationRunner _runner;
 		private Transform _mountParent;
 		private VesselParameters _parameters;
@@ -76,6 +77,8 @@ namespace FerrySim.World
 		}
 
 		private void Awake() => BindRunner();
+		private void OnEnable() => _input = new CameraActionReader();
+		private void OnDisable() { _input?.Dispose(); _input = null; }
 		private void OnDestroy() { if (_runner != null) _runner.RunStarted -= ResetBow; }
 		private void ResetBow()
 		{
@@ -126,27 +129,20 @@ namespace FerrySim.World
 		private void LateUpdate()
 		{
 			RefreshApproach();
-			var keyboard = Keyboard.current;
-			if (keyboard != null && keyboard.bKey.wasPressedThisFrame)
+			if (_input != null)
 			{
-				if (keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed) ToggleAutomaticBow();
-				else ToggleBowView();
-			}
-			var mouse = Mouse.current;
-			if (mouse != null)
-			{
-				if (mouse.rightButton.isPressed)
+				if (_input[ActionIds.BowView].WasPressedThisFrame()) ToggleBowView();
+				if (_input[ActionIds.BowAutoToggle].WasPressedThisFrame()) ToggleAutomaticBow();
+				if (_input[ActionIds.LookHold].IsPressed())
 				{
 					if (_bow.ShowBow) { _yaw = _shownYaw; _pitch = _shownPitch; }
 					_bow.HandLook();
-					var delta = mouse.delta.ReadValue();
+					var delta = _input[ActionIds.LookDelta].ReadValue<Vector2>();
 					SetHeadLook(_yaw + delta.x * lookSensitivity, _pitch - delta.y * lookSensitivity);
 				}
-
-				if (mouse.middleButton.wasPressedThisFrame)
+				if (_input[ActionIds.Recentre].WasPressedThisFrame())
 				{
-					_bow.HandLook();
-					SetHeadLook(0f, 0f);
+					_bow.HandLook(); SetHeadLook(0f, 0f);
 				}
 			}
 

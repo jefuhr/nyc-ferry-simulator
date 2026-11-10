@@ -131,6 +131,15 @@
 					"processors": "",
 					"interactions": "",
 					"initialStateCheck": false
+				},
+				{
+					"name": "NfuJog",
+					"type": "Value",
+					"id": "59b62f96-75eb-5d3d-bbe1-ac86d1f4d4bc",
+					"expectedControlType": "Axis",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": true
 				}
 			],
 			"bindings": [
@@ -540,6 +549,105 @@
 					"action": "Midships",
 					"isComposite": false,
 					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "f96b2888-c2d0-5e35-8d39-742db09823e5",
+					"path": "1DAxis",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "NfuJog",
+					"isComposite": true,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "negative",
+					"id": "8004b7a1-6cb0-544b-a170-27fe78878806",
+					"path": "<Keyboard>/f6",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "NfuJog",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "positive",
+					"id": "4602441e-371f-5d4b-83ae-7eb996a0c4bd",
+					"path": "<Keyboard>/f7",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "NfuJog",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "",
+					"id": "9f47268d-529a-54d3-93b4-5fe10682cb3c",
+					"path": "1DAxis",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "NfuJog",
+					"isComposite": true,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "negative",
+					"id": "f1db9c5f-d739-5e66-a9c6-5d6edd0a2312",
+					"path": "<Keyboard>/numpad4",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "NfuJog",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "positive",
+					"id": "bc81848c-0cb3-5b57-9d1c-849b302a37ff",
+					"path": "<Keyboard>/numpad6",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "NfuJog",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "",
+					"id": "e586c92e-78c0-50ce-92fa-3876a4e33143",
+					"path": "1DAxis",
+					"interactions": "",
+					"processors": "",
+					"groups": "Gamepad",
+					"action": "NfuJog",
+					"isComposite": true,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "negative",
+					"id": "001e11b5-9989-5c31-984d-1dacdd63365f",
+					"path": "<Gamepad>/dpad/left",
+					"interactions": "",
+					"processors": "",
+					"groups": "Gamepad",
+					"action": "NfuJog",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "positive",
+					"id": "681ad208-cdbe-55c1-a7e5-64480b586456",
+					"path": "<Gamepad>/dpad/right",
+					"interactions": "",
+					"processors": "",
+					"groups": "Gamepad",
+					"action": "NfuJog",
+					"isComposite": false,
+					"isPartOfComposite": true
 				}
 			]
 		},
@@ -1174,6 +1282,504 @@
 					"processors": "",
 					"groups": "Keyboard",
 					"action": "Mute",
+					"isComposite": false,
+					"isPartOfComposite": false
+				}
+			]
+		},
+		{
+			"name": "Camera",
+			"id": "cfe9452f-a6f1-51dc-846a-c99c4f667f33",
+			"actions": [
+				{
+					"name": "ViewFreeFly",
+					"type": "Button",
+					"id": "f9a6da39-8003-5194-9b34-b1eec0c34dae",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "ViewChase",
+					"type": "Button",
+					"id": "f8240683-3bdd-571e-ba26-391c7b8a6e72",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "ViewWheelhouse",
+					"type": "Button",
+					"id": "1d717f8f-2b37-53ed-ab79-62750ca96c00",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "BowView",
+					"type": "Button",
+					"id": "eddb4161-231d-5e16-a5e9-42bda75cd4f4",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "BowAutoToggle",
+					"type": "Button",
+					"id": "8c9df8f4-6080-51e4-9143-f60da235186e",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "FocusCycle",
+					"type": "Button",
+					"id": "e8d37399-f814-5c26-8fbf-956ca1189fdb",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "LookHold",
+					"type": "Button",
+					"id": "b000d542-dcc4-5855-9a85-59b45dd1f302",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "Recentre",
+					"type": "Button",
+					"id": "c487a09e-9b30-5230-9b2a-a4a6691b91b9",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "LookDelta",
+					"type": "PassThrough",
+					"id": "68d764af-10db-5d47-995f-c2cecb4bf6a9",
+					"expectedControlType": "Vector2",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "Scroll",
+					"type": "PassThrough",
+					"id": "a171b4a3-2893-5d87-80c6-2bb3782d80c8",
+					"expectedControlType": "Axis",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				}
+			],
+			"bindings": [
+				{
+					"name": "",
+					"id": "0db3eca4-bf6e-5e4c-a389-fa19e838391e",
+					"path": "<Keyboard>/f1",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ViewFreeFly",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "9584fc30-70d2-57b8-b117-32e172444b29",
+					"path": "<Keyboard>/f2",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ViewChase",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "b06aaf07-2f5e-57d3-b5fe-d56d67407638",
+					"path": "<Keyboard>/f3",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "ViewWheelhouse",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "0b168138-e385-598d-9438-08affa7a5f09",
+					"path": "<Keyboard>/b",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "BowView",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "e578804b-dae4-5742-9ce3-099e3d85734a",
+					"path": "<Keyboard>/f4",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "BowAutoToggle",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "7d7bf483-168e-520d-b0fd-07e2df508851",
+					"path": "<Keyboard>/f5",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "FocusCycle",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "b6d526d7-0fa5-5fe5-a7d9-a339b30d5a5a",
+					"path": "<Mouse>/rightButton",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "LookHold",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "fa2ad923-2488-579a-b2f1-92a082f3b290",
+					"path": "<Mouse>/middleButton",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Recentre",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "013ea758-9e55-5a1b-97ac-62a79d20217b",
+					"path": "<Mouse>/delta",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "LookDelta",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "08cc282d-91a1-5947-bf96-6254bd1e1a59",
+					"path": "<Mouse>/scroll/y",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Scroll",
+					"isComposite": false,
+					"isPartOfComposite": false
+				}
+			]
+		},
+		{
+			"name": "FreeFly",
+			"id": "a480ee28-0fd0-5fb8-b2fd-5cd3c0d30dc7",
+			"actions": [
+				{
+					"name": "Move",
+					"type": "Value",
+					"id": "ed30a001-c1b0-5d02-8cd1-cccd4fae3aa9",
+					"expectedControlType": "Vector2",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": true
+				},
+				{
+					"name": "Vertical",
+					"type": "Value",
+					"id": "5447151f-c101-5b01-bbec-bfaf24471add",
+					"expectedControlType": "Axis",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": true
+				},
+				{
+					"name": "Fast",
+					"type": "Button",
+					"id": "ecf33644-0c3f-5582-af34-247db6a1df73",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "Slow",
+					"type": "Button",
+					"id": "060560f5-6645-59d9-badb-7eec31e33c21",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				}
+			],
+			"bindings": [
+				{
+					"name": "",
+					"id": "37a3b900-1484-50a4-9e7f-7b5732bce7ad",
+					"path": "2DVector(mode=1)",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Move",
+					"isComposite": true,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "up",
+					"id": "b05001b8-8c1c-5a85-bd4f-04d568423771",
+					"path": "<Keyboard>/w",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Move",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "down",
+					"id": "9f324ea8-8453-5518-9fa8-916874095ddb",
+					"path": "<Keyboard>/s",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Move",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "left",
+					"id": "72db8286-4557-584b-b1d2-dcbcf79025cd",
+					"path": "<Keyboard>/a",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Move",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "right",
+					"id": "be9ddf72-b9b0-5866-abc7-9325a476915a",
+					"path": "<Keyboard>/d",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Move",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "",
+					"id": "51958bba-a430-5e14-9f0a-4af4ebe9d69e",
+					"path": "1DAxis",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Vertical",
+					"isComposite": true,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "negative",
+					"id": "d92640b9-f2d9-51cd-88d1-5d55e3dd58f3",
+					"path": "<Keyboard>/q",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Vertical",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "positive",
+					"id": "0be7ac0d-a761-502d-90fd-45d8d19615f1",
+					"path": "<Keyboard>/e",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Vertical",
+					"isComposite": false,
+					"isPartOfComposite": true
+				},
+				{
+					"name": "",
+					"id": "0c611a00-3463-50ed-bee3-ac2705c5c142",
+					"path": "<Keyboard>/shift",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Fast",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "73e9c15a-544c-5a6c-82d3-748501a74169",
+					"path": "<Keyboard>/ctrl",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Slow",
+					"isComposite": false,
+					"isPartOfComposite": false
+				}
+			]
+		},
+		{
+			"name": "Alarms",
+			"id": "6646d7ff-fc66-58db-a14f-c56d3dc3aebf",
+			"actions": [
+				{
+					"name": "Acknowledge",
+					"type": "Button",
+					"id": "6f2d9960-9da0-5421-bb16-dff07d45323e",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "Silence",
+					"type": "Button",
+					"id": "a00a6116-6780-5c4e-b7e3-76daf5f41c80",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "LampTest",
+					"type": "Button",
+					"id": "f84131af-3d3a-5c10-8643-92de111ac40a",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				}
+			],
+			"bindings": [
+				{
+					"name": "",
+					"id": "1bc8fa21-ffe6-536f-b28f-0636cadc7341",
+					"path": "<Keyboard>/slash",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Acknowledge",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "20ee3fad-886b-5596-b46f-af5520b60b1a",
+					"path": "<Keyboard>/backslash",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Silence",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "416a4671-bd5f-511c-895b-7e5ff5bb156b",
+					"path": "<Keyboard>/f9",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "LampTest",
+					"isComposite": false,
+					"isPartOfComposite": false
+				}
+			]
+		},
+		{
+			"name": "Interface",
+			"id": "8fcbdb09-9bfd-5318-ac45-052f0f744ae6",
+			"actions": [
+				{
+					"name": "Options",
+					"type": "Button",
+					"id": "605b034c-f6e2-5bcc-a77a-8d791933cdcc",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "KeybindHints",
+					"type": "Button",
+					"id": "0eec7274-1f41-5f02-b0e4-ddf7cd6eb956",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				},
+				{
+					"name": "HudEdit",
+					"type": "Button",
+					"id": "30bd972f-9d9c-5648-ba3f-6fc39851f6c2",
+					"expectedControlType": "Button",
+					"processors": "",
+					"interactions": "",
+					"initialStateCheck": false
+				}
+			],
+			"bindings": [
+				{
+					"name": "",
+					"id": "bc617eab-a9a5-57aa-a4e8-f1e0ea0f49b7",
+					"path": "<Keyboard>/f10",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "Options",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "71159633-a0e5-50be-887d-b9e6de8c5c51",
+					"path": "<Keyboard>/backquote",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "KeybindHints",
+					"isComposite": false,
+					"isPartOfComposite": false
+				},
+				{
+					"name": "",
+					"id": "23385848-d93a-58ab-8d63-7bec65d2a605",
+					"path": "<Keyboard>/f8",
+					"interactions": "",
+					"processors": "",
+					"groups": "Keyboard",
+					"action": "HudEdit",
 					"isComposite": false,
 					"isPartOfComposite": false
 				}

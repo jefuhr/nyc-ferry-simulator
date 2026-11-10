@@ -1,10 +1,21 @@
 {
 	"name": "FerrySim.Input.Tests.PlayMode",
 	"rootNamespace": "FerrySim.Controls.Tests.PlayMode",
-	"references": ["FerrySim.Unity.Input", "Unity.InputSystem", "Unity.InputSystem.TestFramework"],
+	"references": [
+		"FerrySim.Unity.Input",
+		"Unity.InputSystem",
+		"Unity.InputSystem.TestFramework",
+		"FerrySim.Core",
+		"FerrySim.Unity.Sim",
+		"FerrySim.Core.Serialization"
+	],
 	"includePlatforms": [],
 	"overrideReferences": true,
-	"precompiledReferences": ["nunit.framework.dll"],
+	"precompiledReferences": [
+		"nunit.framework.dll"
+	],
 	"autoReferenced": false,
-	"defineConstraints": ["UNITY_INCLUDE_TESTS"]
+	"defineConstraints": [
+		"UNITY_INCLUDE_TESTS"
+	]
 }

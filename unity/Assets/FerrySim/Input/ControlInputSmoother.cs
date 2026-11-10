@@ -24,6 +24,7 @@ namespace FerrySim.Controls
 		private double _port;
 		private double _starboard;
 		private double _helm;
+		private double _jog;
 
 		public ControlInputSmoother(double timeConstant = DefaultTimeConstant)
 		{
@@ -47,7 +48,7 @@ namespace FerrySim.Controls
 		}
 
 		/// <summary>The most recent output; neutral before the first step.</summary>
-		public ControlInputs Output => _hasOutput ? new ControlInputs(_port, _starboard, _helm) : ControlInputs.Neutral;
+		public ControlInputs Output => _hasOutput ? new ControlInputs(_port, _starboard, _helm, _jog) : ControlInputs.Neutral;
 
 		/// <summary>Forgets the history: the next step's output equals its input.</summary>
 		public void Reset() => _hasOutput = false;
@@ -55,6 +56,7 @@ namespace FerrySim.Controls
 		/// <summary>Advances one physics step toward <paramref name="input"/> and returns the smoothed controls.</summary>
 		public ControlInputs Step(in ControlInputs input)
 		{
+			_jog = input.Jog; // Jog is an immediate override, including release. Never filter it.
 			if (!_hasOutput || _timeConstant <= 0.0)
 			{
 				_port = input.PortLever;
@@ -67,7 +69,7 @@ namespace FerrySim.Controls
 			_port = Approach(_port, input.PortLever, _blend);
 			_starboard = Approach(_starboard, input.StarboardLever, _blend);
 			_helm = Approach(_helm, input.Helm, _blend);
-			return new ControlInputs(_port, _starboard, _helm);
+			return new ControlInputs(_port, _starboard, _helm, _jog);
 		}
 
 		private static double Approach(double current, double target, double blend)

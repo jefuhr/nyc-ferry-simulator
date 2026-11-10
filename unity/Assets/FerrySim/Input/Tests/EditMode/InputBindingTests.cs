@@ -7,54 +7,40 @@ using UnityEngine.InputSystem;
 namespace FerrySim.Controls.Tests
 {
 	/// <summary>
-	/// The one keyboard map across every action map of the controls asset. Failure modes: a display key that also moves
-	/// the helm, pauses, resets or opens the picker; a key the camera, the bow view or the picker reads directly being
-	/// bound to an action; the Displays map losing an action the composition root subscribes to.
+	/// The keyboard defaults across the controls asset. Guards collisions in coexisting contexts, picker navigation
+	/// reservations and missing actions that consumers subscribe to. Free-fly and helm keys may overlap.
 	/// </summary>
 	public class InputBindingTests
 	{
 		private static string ActionsPath => Path.Combine(Application.dataPath, "FerrySim", "Input", "FerrySimControls.inputactions");
 
-		/// <summary>Keys read outside the actions asset: the camera rig (F1–F3), the bow view (B, Shift+B) and the picker and debrief (UI Toolkit key events).</summary>
-		private static readonly string[] ReservedKeys =
-		{
-			"<Keyboard>/f1", "<Keyboard>/f2", "<Keyboard>/f3", "<Keyboard>/b", "<Keyboard>/escape", "<Keyboard>/enter", "<Keyboard>/numpadEnter",
-			"<Keyboard>/space", "<Keyboard>/upArrow", "<Keyboard>/downArrow", "<Keyboard>/pageUp", "<Keyboard>/pageDown", "<Keyboard>/home", "<Keyboard>/end",
-			"<Keyboard>/leftShift", "<Keyboard>/rightShift",
-		};
+		// Picker and debrief still consume UI Toolkit navigation events outside the asset.
+		private static readonly IReadOnlyList<string> ReservedKeys = BindingConflicts.ReservedKeys;
 
 		private static InputActionAsset Load() => InputActionAsset.FromJson(File.ReadAllText(ActionsPath));
 
 		[Test]
-		public void NoKeyboardControlIsBoundTwiceAcrossAllActionMaps()
+		public void NoKeyboardControlIsBoundTwiceInCoexistingContexts()
 		{
 			var asset = Load();
 			try
 			{
-				var owners = new Dictionary<string, string>();
+				var owners = new List<(string action, string path)>();
 				var duplicates = new List<string>();
 				foreach (var map in asset.actionMaps)
 				{
 					foreach (var binding in map.bindings)
 					{
-						if (binding.isComposite || !binding.path.StartsWith("<Keyboard>/"))
-						{
-							continue;
-						}
-
+						if (binding.isComposite || !binding.path.StartsWith("<Keyboard>/")) continue;
 						var owner = map.name + "/" + binding.action;
-						if (owners.TryGetValue(binding.path, out var existing))
-						{
-							duplicates.Add(binding.path + " bound by " + existing + " and " + owner);
-						}
-						else
-						{
-							owners.Add(binding.path, owner);
-						}
+						foreach (var existing in owners)
+							if (BindingConflicts.Conflicts(existing.action, existing.path, owner, binding.path))
+								duplicates.Add(binding.path + " bound by " + existing.action + " and " + owner);
+						owners.Add((owner, binding.path));
 					}
 				}
 
-				Assert.That(duplicates, Is.Empty, "a plain key binding fires on every press, Shift or not, so one key means one action");
+				Assert.That(duplicates, Is.Empty, "one key has one owner in contexts that can be live together");
 			}
 			finally
 			{
@@ -63,7 +49,7 @@ namespace FerrySim.Controls.Tests
 		}
 
 		[Test]
-		public void NoActionBindsAKeyReadDirectlyByTheCameraBowViewOrPicker()
+		public void NoActionBindsPickerNavigationKeys()
 		{
 			var asset = Load();
 			try
@@ -137,7 +123,7 @@ namespace FerrySim.Controls.Tests
 					Assert.That(action.bindings[0].path, Is.EqualTo(pair.Value), pair.Key);
 				}
 
-				// Every other binding in every map, and every key read outside the asset, stays off those keys.
+				// The same context rule governs defaults and live rebinding.
 				var reserved = new HashSet<string>(ReservedKeys);
 				foreach (var otherMap in asset.actionMaps)
 				{
@@ -148,19 +134,44 @@ namespace FerrySim.Controls.Tests
 							continue;
 						}
 
-						Assert.That(expected.Values, Does.Not.Contain(binding.path), otherMap.name + "/" + binding.action + " shares " + binding.path);
+						foreach (var pair in expected)
+							Assert.That(BindingConflicts.Conflicts(otherMap.name + "/" + binding.action, binding.path,
+								DisplayInputMapper.MapName + "/" + pair.Key, pair.Value), Is.False,
+								otherMap.name + "/" + binding.action + " shares " + binding.path);
 					}
 				}
 
 				foreach (var path in expected.Values)
 				{
-					Assert.That(reserved, Does.Not.Contain(path), path + " is read directly by the camera, the bow view or the picker");
+					Assert.That(reserved, Does.Not.Contain(path), path + " is reserved for picker navigation");
 				}
 			}
 			finally
 			{
 				Object.DestroyImmediate(asset);
 			}
+		}
+
+		[Test]
+		public void EveryContractActionExists_AndNewDefaultsMatchC4()
+		{
+			var asset = Load();
+			try
+			{
+				foreach (var field in typeof(ActionIds).GetFields())
+					Assert.That(asset.FindAction((string)field.GetValue(null)), Is.Not.Null, field.Name);
+				var expected = new Dictionary<string, string>
+				{
+					{ ActionIds.ViewFreeFly, "f1" }, { ActionIds.ViewChase, "f2" }, { ActionIds.ViewWheelhouse, "f3" },
+					{ ActionIds.BowView, "b" }, { ActionIds.BowAutoToggle, "f4" }, { ActionIds.FocusCycle, "f5" },
+					{ ActionIds.AlarmAcknowledge, "slash" }, { ActionIds.AlarmSilence, "backslash" }, { ActionIds.AlarmLampTest, "f9" },
+					{ ActionIds.Options, "f10" }, { ActionIds.HudEdit, "f8" }, { ActionIds.KeybindHints, "backquote" },
+				};
+				foreach (var pair in expected) Assert.That(asset.FindAction(pair.Key).bindings[0].path, Is.EqualTo("<Keyboard>/" + pair.Value));
+				Assert.That(asset.FindAction(ActionIds.LookHold).bindings[0].path, Is.EqualTo("<Mouse>/rightButton"));
+				Assert.That(asset.FindAction(ActionIds.Recentre).bindings[0].path, Is.EqualTo("<Mouse>/middleButton"));
+			}
+			finally { Object.DestroyImmediate(asset); }
 		}
 
 		[Test]
@@ -172,6 +183,8 @@ namespace FerrySim.Controls.Tests
 				var helm = asset.FindActionMap(HelmInputMapper.MapName, throwIfNotFound: true);
 				var expected = new Dictionary<string, string>
 				{
+					{ "<Keyboard>/f6", "NfuJog" }, { "<Keyboard>/f7", "NfuJog" },
+					{ "<Keyboard>/numpad4", "NfuJog" }, { "<Keyboard>/numpad6", "NfuJog" },
 					{ "<Keyboard>/q", "PortLeverStep" }, { "<Keyboard>/a", "PortLeverStep" }, { "<Keyboard>/e", "StarboardLeverStep" }, { "<Keyboard>/d", "StarboardLeverStep" },
 					{ "<Keyboard>/w", "BothLeversStep" }, { "<Keyboard>/s", "BothLeversStep" }, { "<Keyboard>/leftArrow", "HelmStep" }, { "<Keyboard>/rightArrow", "HelmStep" },
 					{ "<Keyboard>/m", "Midships" }, { "<Keyboard>/h", "Horn" }, { "<Keyboard>/p", "Pause" }, { "<Keyboard>/r", "Reset" }, { "<Keyboard>/c", "CameraCycle" }, { "<Keyboard>/n", "NewRun" },

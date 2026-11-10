@@ -6,7 +6,7 @@ Owner: **unity-sim-bridge-controls**. Assembly `FerrySim.Unity.Input` (namespace
 
 | File | Role |
 |---|---|
-| `FerrySimControls.inputactions` | The "Helm", "Displays" and "Audio" action maps and default bindings |
+| `FerrySimControls.inputactions` | The Helm, Displays, Audio, Camera, FreeFly, Alarms and Interface maps and default bindings |
 | `HelmInputMapper` | Turns the Helm map into lever and helm positions, plus button events |
 | `DisplayInputMapper` | Turns the Displays map into events for the harbor's chartplotter and radar |
 | `AudioInputMapper` | Turns the independent Audio map into a session-only mute event |
@@ -38,7 +38,7 @@ Signs follow `ControlInputs`: +1 is full ahead, −1 full astern, and +1 helm is
 
 ## The Displays map
 
-Keyboard only, for the harbor wheelhouse's chartplotter and radar (`Harbor/Integration/README.md`, Displays). The composition root enables the map only in the wheelhouse view with the scenario picker and the debrief closed, and a display's keys act only while that display is visible. No key is shared with the Helm map, the bow view (B, Shift+B), the camera (F1–F3) or the picker and debrief (Escape, Enter, Space, the arrows, Page Up/Down, Home, End), and no Shift combination is used: a plain key binding fires on Shift+key too, so Shift+arrows would also step the helm. `Input/Tests/EditMode/InputBindingTests` fails on any keyboard control bound twice across all action maps, or bound to one of those reserved keys.
+Keyboard only, for the harbor wheelhouse's chartplotter and radar (`Harbor/Integration/README.md`, Displays). The composition root enables the map only in the wheelhouse view with the scenario picker and the debrief closed, and a display's keys act only while that display is visible. No key is shared with the Helm map, the bow view (B, F4), the camera (F1–F3) or the picker and debrief (Escape, Enter, Space, the arrows, Page Up/Down, Home, End), and no Shift combination is used: a plain key binding fires on Shift+key too, so Shift+arrows would also step the helm. `BindingConflicts` checks duplicate controls only in contexts that can run together. The same rule guards the defaults and live rebinding. Free-fly movement may share helm keys because the Helm map is disabled while flying. Picker navigation keys remain reserved.
 
 | Action | Key | Action | Key |
 |---|---|---|---|
@@ -112,4 +112,41 @@ gear detents, clutch timing or shift interlocks; those remain in the simulation 
 
 ## Bow view
 
-In the wheelhouse only, B toggles a smooth bow-deck look and Shift+B toggles automatic approach tilt (on by default, remembered for the session). Right-mouse head look overrides automatic tilt until the next approach; middle mouse recentres. See [camera behavior](../World/Cameras/README.md) for geometry, thresholds and hysteresis. These camera choices are render-only and never recorded.
+In the wheelhouse only, B toggles a smooth bow-deck look and F4 toggles automatic approach tilt (on by default, remembered for the session). Right-mouse head look overrides automatic tilt until the next approach; middle mouse recentres. See [camera behavior](../World/Cameras/README.md) for geometry, thresholds and hysteresis. These camera choices are render-only and never recorded.
+
+## Binding service (v0.5)
+
+`InputBindingService.Instance` implements the frozen `IBindingService` contract. Register each private
+runtime asset immediately after instantiation with `InputBindingService.Instance.Register(instance)`;
+unregister before destroying it with `Unregister(instance)`. The helm and camera controllers register
+their own copies. Display and audio composition roots register their copies during release integration.
+`CreateInstance()` supplies a registered copy for new consumers; callers own disabling and destroying it.
+
+Rows enumerate buttons and each composite part in asset order, with zero-based slots within a scheme.
+Helm analog axes remain exclusively with device profiles. Mouse delta and scroll are read-only axes;
+mouse buttons share the Keyboard scheme. `DisplayString` includes current overrides. The controller
+caches generated key help and refreshes it on `BindingsChanged`.
+
+Interactive capture disables the registered live maps and holds their existing lever orders. It restores
+previously enabled maps after the capture key and previously held buttons are released, so the capture
+press cannot become a simulation command. Escape or `CancelRebind()` cancels once. Conflicts report
+the holding action and apply nothing. Saving happens before publishing a change; an I/O failure leaves
+live bindings intact and is exposed as `LastError` (direct writes throw; capture completes as cancelled).
+`TryReset` refuses a single-action reset that would collide, names its holder and changes nothing.
+`Reset` throws for that case; reset the conflicting action first or reset all.
+
+`BindingOverrideStore` writes C5 `input-bindings-v1.json` in the persistent data directory. Rejected loads
+restore defaults without rewriting the file; obsolete actions or slots are dropped with warnings. Loaded
+conflicting documents are rejected whole. Writes replace a sibling temporary file atomically.
+
+The Camera map stays live across views. `CameraRig` and `FreeFlyCameraController` set the service's
+free-fly context, suspending Helm and restoring its previous enabled state when leaving. A helm map
+explicitly disabled by the picker stays disabled. Movement buttons held while flying must be released
+and pressed again before they can step a lever after returning. FreeFly actions are enabled only by the fly controller.
+F4 replaces the ambiguous automatic-bow Shift chord; F5 is focus cycle, F6/F7 and numpad 4/6 (or d-pad
+left/right) are jog. Alarms use slash, backslash and held F9. Interface uses F10, held backquote and F8.
+
+`Bindings/Resources/FerrySimInput/BindingDefaults.json` is the player-loadable snapshot of
+`FerrySimControls.inputactions`, allowing cameras to start before any helm exists. After editing the asset,
+copy its exact JSON to that resource; an equality test prevents drift. No UnityEditor asset lookup runs
+in players. `Camera/Scroll` preserves chase zoom and free-fly speed scaling.

@@ -17,6 +17,8 @@ namespace FerrySim.World.Tests
 		public override void Setup()
 		{
 			base.Setup();
+			var defaults = InputActionAsset.FromJson(File.ReadAllText(Path.Combine(Application.dataPath, "FerrySim/Input/FerrySimControls.inputactions")));
+			InputBindingService.SetSession(new InputBindingService(defaults)); Object.DestroyImmediate(defaults);
 			_automatic = WheelhouseCameraController.AutomaticBowEnabled;
 			WheelhouseCameraController.AutomaticBowEnabled = true;
 			_host = new GameObject("bow key test", typeof(Camera));
@@ -27,11 +29,12 @@ namespace FerrySim.World.Tests
 		{
 			Object.DestroyImmediate(_host); Object.DestroyImmediate(_eye);
 			WheelhouseCameraController.AutomaticBowEnabled = _automatic;
+			InputBindingService.ResetSession();
 			base.TearDown();
 		}
 
 		[Test]
-		public void B_TogglesPreset_ShiftBOnlyTogglesSessionAutomatic()
+		public void B_TogglesPreset_F4OnlyTogglesSessionAutomatic()
 		{
 			var camera = _host.AddComponent<WheelhouseCameraController>();
 			camera.Mount = _eye.GetComponent<WheelhouseCameraMount>();
@@ -40,7 +43,7 @@ namespace FerrySim.World.Tests
 			Assert.That(camera.ShowingBow, Is.True);
 			Release(keyboard.bKey); Press(keyboard.bKey); camera.SendMessage("LateUpdate");
 			Assert.That(camera.ShowingBow, Is.False);
-			Release(keyboard.bKey); Press(keyboard.leftShiftKey); Press(keyboard.bKey); camera.SendMessage("LateUpdate");
+			Release(keyboard.bKey); Press(keyboard.f4Key); camera.SendMessage("LateUpdate");
 			Assert.That(WheelhouseCameraController.AutomaticBowEnabled, Is.False);
 			Assert.That(camera.ShowingBow, Is.False);
 		}
@@ -48,7 +51,7 @@ namespace FerrySim.World.Tests
 		[Test]
 		public void AutomaticBow_BKeyAndHandLookRespectHeldHelm_AndRunReset()
 		{
-			// Guard a hidden manual latch, B/Shift+B stealing a held helm, and suppression leaking across runs.
+			// Guard a hidden manual latch, B/F4 stealing a held helm, and suppression leaking across runs.
 			var vessel = new GameObject("bow approach test");
 			vessel.SetActive(false);
 			var actions = InputActionAsset.FromJson(File.ReadAllText(Path.Combine(Application.dataPath, "FerrySim/Input/FerrySimControls.inputactions")));
@@ -84,13 +87,13 @@ namespace FerrySim.World.Tests
 				Release(keyboard.bKey);
 				Press(mouse.rightButton); camera.SendMessage("LateUpdate"); Release(mouse.rightButton);
 				Assert.That(camera.ShowingBow, Is.False, "hand look still suppresses the approach");
-				Press(keyboard.leftShiftKey); Press(keyboard.bKey); camera.SendMessage("LateUpdate");
+				Press(keyboard.f4Key); camera.SendMessage("LateUpdate");
 				Assert.That(WheelhouseCameraController.AutomaticBowEnabled, Is.False);
 				Assert.That(camera.ShowingBow, Is.False);
-				Release(keyboard.bKey); Press(keyboard.bKey); camera.SendMessage("LateUpdate");
+				Release(keyboard.f4Key); Press(keyboard.f4Key); camera.SendMessage("LateUpdate");
 				Assert.That(WheelhouseCameraController.AutomaticBowEnabled, Is.True);
 				Assert.That(camera.ShowingBow, Is.False, "preference toggles do not clear hand suppression");
-				Release(keyboard.bKey); Release(keyboard.leftShiftKey);
+				Release(keyboard.f4Key);
 				mount.ApproachFaces = EmptyWorldGeometry.Instance;
 				runner.ResetRun();
 				helm.Mapper.AdvanceHelmRepeat(1);
