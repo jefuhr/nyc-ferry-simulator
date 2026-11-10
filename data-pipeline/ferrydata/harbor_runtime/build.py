@@ -160,6 +160,24 @@ def landings(index,features,contacts):
 			floating=True,vertical_bounds_navd88_m=[None,None],
 			provenance=[dict(polyline_id=f['properties']['polyline_id'],source=f['properties']['source'],
 				confidence=sorted({s['confidence'] for s in f['properties']['segments']})) for f in sorted(fs,key=lambda f:f['properties']['polyline_id'])]))
+		for source, feature in zip(barges[-1]['provenance'], sorted(fs,key=lambda f:f['properties']['polyline_id'])):
+			if 'survey' in feature['properties']:
+				from ferrydata.survey import evidence
+				source['survey']={k:evidence(v) for k,v in feature['properties']['survey'].items() if isinstance(v,dict) and 'value' in v}
+		metadata=[f['properties']['survey_local'] for f in fs if 'survey_local' in f['properties']]
+		if metadata:
+			if any(m!=metadata[0] for m in metadata):
+				raise ValueError(f'{key}: conflicting local survey metadata')
+			barges[-1].update({k:v for k,v in metadata[0].items() if k in ('gangways','piles','canopy','shore')})
+	survey_berths={}
+	for feature in features:
+		p=feature['properties']
+		for surveyed in p.get('survey_berths',[]):
+			key=(p['stop_id'],p['structure_id'],surveyed['order'])
+			meta={k:v for k,v in surveyed.items() if k not in ('id','order')}
+			if key in survey_berths and survey_berths[key]!=meta:
+				raise ValueError(f'{key}: conflicting surveyed berth metadata')
+			survey_berths[key]=meta
 	barge_ids={b['id'] for b in barges}
 	stops=[]
 	for stop in index['stops']:
@@ -173,13 +191,15 @@ def landings(index,features,contacts):
 			key=(c['structure_id'],c['berth_order'])
 			meta={k:v for k,v in c.items() if k.startswith('berth_') or k=='primary_face'}
 			meta.update(id=f"berth:{stop['stop_id']}:{c['structure_id']}:{c['berth_order']}",structure_id=c['structure_id'])
+			meta.update(survey_berths.get((stop['stop_id'],c['structure_id'],c['berth_order']),{}))
 			if key in berths and berths[key]!=meta:
 				raise ValueError(f'conflicting berth metadata {key}')
 			for segment_id in meta['berth_face_segment_ids']:
 				if segment_id not in contact_by_id or contact_by_id[segment_id]['structure_id']!=c['structure_id'] or contact_by_id[segment_id]['stop_id']!=stop['stop_id']:
 					raise ValueError('berth face references missing or unrelated contact')
 			berths[key]=meta
-		if not rows or not berths:
+		disabled=any(f['properties']['stop_id']==stop['stop_id'] and f['properties'].get('survey_no_berths') for f in features)
+		if not rows or (not berths and not disabled):
 			raise ValueError(f"landing {stop['stop_id']}: missing contacts or berth metadata")
 		stops.append(dict(stop,berths=sorted(berths.values(),key=lambda b:(b['berth_order'],b['id']))))
 	if {c['stop_id'] for c in contacts}!={s['stop_id'] for s in stops}:

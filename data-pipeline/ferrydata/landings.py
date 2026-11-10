@@ -13,7 +13,7 @@ from shapely.geometry.polygon import orient
 from shapely.ops import nearest_points, unary_union
 from shapely import STRtree, transform
 
-from ferrydata import approach, crew_notes, geodesy, geojsonio, paths
+from ferrydata import approach, crew_notes, geodesy, geojsonio, paths, survey
 
 ASCE_URL = 'https://www.asce.org/publications-and-news/civil-engineering-source/civil-engineering-magazine/article/2021/06/floating-ferry-landings-help-solve-nyc-transit-travails'
 BARGE_LENGTH_M = 90 * .3048
@@ -870,6 +870,8 @@ def assign_contact_ids(polylines):
 
 def build(slice_, log=print, reference_stops=None):
 	out = paths.processed_dir(slice_.name)
+	surveys = survey.load()
+	survey_changes = []
 	stops = _features(out, 'landings.geojson')
 	shore = [(to_local(shape(f['geometry'])), f['properties']) for f in _features(out, 'shoreline_constructions.geojson')]
 	candidates = [(g, p) for g, p in shore if p['feature_class'] in ('PONTON', 'FLODOC') or p.get('water_level_effect_code') == 7]
@@ -1064,6 +1066,12 @@ def build(slice_, log=print, reference_stops=None):
 			'ring_lonlat': ring_lonlat, 'contact_lonlat': contact_geo['geometry']['coordinates'],
 			'source': props['source'], 'confidence': props['confidence'], 'contact_confidence': props['contact_confidence'],
 			'anchor': anchor, 'structures': structures, 'berths': berths, 'selectable_berths': selectable, 'rank': own_rank})
+	for feature, context in zip(features, contexts_by_stop):
+		stop_survey = surveys.get(context['stop_id'])
+		if stop_survey is not None:
+			change = survey.apply_stop(feature, context, stop_survey, shore + land_marks, water, land)
+			if change is not None:
+				survey_changes.append(change)
 	geojsonio.write_collection(out / 'landing_faces.geojson', features, 'landing_faces', {
 		'note': 'Geometry is barge outline; properties.face_geometry is the berthing line in WGS84, face_local_coordinates is [north,east]. Outward normal heading is clockwise from true north. All assigned faces require crew verification; ENC outlines do not identify the operational berth.',
 		'derived_size_source': ASCE_URL})
@@ -1072,19 +1080,21 @@ def build(slice_, log=print, reference_stops=None):
 		if f['properties'].get('min_depth_m') is not None and f['properties']['min_depth_m'] >= 0]
 	charted = ChartedWater(areas, _unsurveyed(slice_))
 	write_structures(out, contexts_by_stop, shore + land_marks, lands, bulkheads, water, land, getattr(slice_, 'polygon', None), log, charted)
+	survey.write_changes(out, survey_changes, [c['stop_id'] for c in contexts_by_stop])
 
 
 def write_structures(out, contexts, shore, lands, bulkheads, water, land, clip, log=print, charted=None):
 	polylines, left_out = [], []
 	for context in contexts:
-		stop_polylines, stop_left_out = stop_structures(context, shore, lands, bulkheads, water, land, clip, charted=charted)
+		stop_polylines, stop_left_out = stop_structures(context, context.get('survey_shore', shore), lands, bulkheads, water, land, clip, charted=charted)
 		for polyline in stop_polylines:
 			polyline['verification'] = structure_verification(context['note'], polyline['berth_id'], context['outline_id'])
 			for segment in polyline['segments']:
 				segment['verification'] = polyline['verification']
 			polyline['berth_rank'] = (context['rank'] if polyline['polyline_id'].startswith('landing-') else
 				next((b['rank'] for b in context['berths'] if f"enc:{b['props']['id']}" == polyline['berth_id']), None))
-		mark_berth_faces(stop_polylines, context.get('selectable_berths', []))
+		survey.annotate_structures(stop_polylines, context)
+		mark_berth_faces(stop_polylines, context.get('selectable_berths', []), context.get('survey_metadata'))
 		polylines += stop_polylines
 		left_out += stop_left_out
 	keys = [segment['id_key'] for polyline in polylines for segment in polyline['segments']]
@@ -1095,10 +1105,11 @@ def write_structures(out, contexts, shore, lands, bulkheads, water, land, clip, 
 	for polyline in polylines:
 		for segment in polyline['segments']:
 			if segment.get('berth_face'):
-				segment['berth_face_segment_ids'] = [s['id'] for s in ordered_berth_segments(polylines, polyline['stop_id'], segment['berth_id'])]
+				segment['berth_face_segment_ids'] = [s['id'] for s in ordered_berth_segments(polylines, polyline['stop_id'], segment['berth_id'], segment['berth_order'])]
 	features = []
 	for polyline in polylines:
 		props = {key: polyline[key] for key in ('stop_id', 'stop_name', 'polyline_id', 'role', 'structure_id', 'berth_id', 'berth_rank', 'source', 'closed', 'verification')}
+		props.update({key: polyline[key] for key in ('survey', 'survey_local', 'survey_berths', 'survey_no_berths') if key in polyline})
 		props['segments'] = [{'index': s['index'], 'id': s['id'], **{k: v for k, v in s.items() if k not in ('index', 'id') and not k.startswith('_')}} for s in polyline['segments']]
 		features.append(geojsonio.make_feature(LineString(polyline['lonlat']), props))
 	kinds = sorted({s['kind'] for polyline in polylines for s in polyline['segments']})
@@ -1117,10 +1128,10 @@ def build_tile(tile, log=print):
 	build(tile, log, reference_stops={s['stop_id']: s for s in stops})
 
 
-def ordered_berth_segments(polylines, stop_id, berth_id):
+def ordered_berth_segments(polylines, stop_id, berth_id, berth_order=None):
 	"""Face subdivisions in start-to-end order, including a face crossing a closed ring's first vertex."""
 	segments = [s for p in polylines if p['stop_id'] == stop_id for s in p['segments']
-		if s.get('berth_face') and s.get('berth_id') == berth_id]
+		if s.get('berth_face') and s.get('berth_id') == berth_id and (berth_order is None or s.get('berth_order') == berth_order)]
 	by_start = {tuple(s['_berth_start']): s for s in segments}
 	ends = {tuple(s['_berth_end']) for s in segments}
 	first = [s for s in segments if tuple(s['_berth_start']) not in ends]
@@ -1137,16 +1148,23 @@ def ordered_berth_segments(polylines, stop_id, berth_id):
 	return ordered
 
 
-def mark_berth_faces(polylines, berths):
+def mark_berth_faces(polylines, berths, surveyed=None):
 	for berth in berths:
 		found = []
 		for polyline in polylines:
 			if polyline.get('berth_id') != berth['id']:
 				continue
 			for segment in polyline['segments']:
-				if segment['kind'] != 'berth-face':
-					continue
 				i = segment['index']
+				if surveyed and berth['id'] in surveyed:
+					line = LineString(polyline['lonlat'][i:i + 2])
+					if not shape(berth['face_geometry']).buffer(2e-7).covers(line):
+						continue
+					segment['kind'] = 'berth-face'
+					if polyline['role'] == 'landing' and berth['order'] == min(b['order'] for b in berths if b['id'] == berth['id']):
+						segment['primary_face'] = True
+				elif segment['kind'] != 'berth-face':
+					continue
 				segment.update(berth_face=True, berth_name=berth['name'], berth_order=berth['order'],
 					_berth_start=polyline['lonlat'][i], _berth_end=polyline['lonlat'][i + 1])
 				if berth.get('crew_note'):

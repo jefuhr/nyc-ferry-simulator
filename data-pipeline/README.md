@@ -302,3 +302,82 @@ The floor is evidence that a boat floated there at that level, not a survey: it 
 `landing_faces.geojson` carries `properties.berths`, each with a stable id, name, order, selected face and outward normal. Every single-berth stop is named `Main berth`. Pier 11 is ordered `Outer pontoon (east)` (`enc:02261FA117EFB198`), `North pontoon` (`enc:0226111D16AAB198`), `South pontoon` (`enc:0226015B0512B198`). This order comes from the current crew note and default, not identifiers in code. The fourth pontoon `02260848030BB198` remains contact structure but is not a selectable berth. The slice and harbor contacts exports use identical optional version-2 fields; `berth_id` is never invented on a fixed structure. A legacy single fixed face has catalog id `stop:<stop_id>`.
 
 The berth-use note does not raise geometry confidence or change `verification`: all three Pier 11 faces retain `needs-crew-verification`. The World separately labels each one's berth use as crew-reported and keeps the face/depth/clearance caveat. The dry MORFAC points in the east/north corridors are disclosed as points, not invented collision polygons. Captain review must settle their role and clearance.
+
+### Surveyed landing poses and layout (C8)
+
+`data/manifests/landing-survey.json` is optional and validated against
+`docs/contracts/landing-survey.schema.json`, without additional dependencies.
+An absent file and an empty `stops` object produce identical landing files,
+`contacts.json` and runtime pack bytes, including `DIGEST`. Survey provenance is
+scoped to each measurement; changing one stop never changes another stop's records.
+The tracked manifest stays empty until reviewed measurements are available.
+
+A stop contains `barges` keyed by the existing physical `berth_id`:
+`enc:<LNAM>` or `derived-barge:<stop>:<shore>`. A pose supplies **all four** of
+`centre`, `heading`, `length` and `width`. The surveyed rectangle replaces that
+outline and retains its identity, including when replacing a charted pontoon.
+Each numeric leaf is `{value, unit, source, method, confidence}` in C8's shape.
+Positions are `[latitude, longitude]` degrees within the harbor envelope;
+headings of long axes are in `[0,180)`, face bearings and landed headings in
+`[0,360)`. Dimensions must be positive metres and length must be at least width.
+Invalid units, missing provenance, duplicate keys/identities, partial poses and
+unknown/non-candidate berth identities are errors, not silently ignored overrides.
+
+`berths[].face_bearing` chooses the outline edge whose outward normal is nearest
+the supplied true bearing, including a short end. When present, the survey's
+`berths` list replaces the selectable faces of that barge; `is_ferry_berth:false`
+excludes a face while retaining the physical outline and its contact segments.
+An all-false list exports no selectable berth and adds a named, passing report-only
+`WARNING` to validation; it does not waive any existing check. Existing berth
+orders remain stable. Additional faces take orders after the highest existing
+order, in survey file order, while `berth_id` and `structure_id` remain unchanged.
+The crew `name` is exported as an `alias`, preserving the existing display name.
+`landed_heading` is optional, and is converted to radians true in runtime output.
+
+Trust order is crew landed headings and berth names, reviewed 3D reconstructions
+of crew footage, measured public aerial imagery, the ENC polygon, then the derived
+35 × 90 ft rectangle with its nominal 85 ft gangway. Survey source/method/confidence
+remain explicit: a pose sets `source` and `outline_source` to `surveyed`, carries
+the original measurements in `survey`, and uses the lowest confidence of its four
+pose values. A face survey overrides the automatic face selector; its evidence
+retains the separate chart verification result. A survey does not assert depth,
+under-keel clearance, contact eligibility or operational start acceptance. When a
+pose moves, chart-side checks are recomputed for neighbouring faces of that stop;
+their outline geometry and identities stay fixed. `candidate_evidence` retains
+the original chart/AIS candidate diagnostics; the explicit survey blocks describe
+the replacement geometry.
+
+`landing_structures.geojson` carries the survey and optional `survey_local` layout.
+The harbor runtime exporter reads this pinned build product, never a mutable live
+survey file. Each barge in `runtime/landings.json` can carry `gangways`, `piles`,
+`canopy` and `shore`; absent inputs remain absent. Positions have `_ne_m` suffixes,
+dimensions/heights `_m`, and long-axis headings `_rad`; all use world north/east
+metres and radians true. A shore outline is `geometry_ne_m`. Fixed hinge/pile/shore
+heights remain NAVD88; canopy eave heights remain above the floating barge deck.
+A canopy without a heading inherits the surveyed barge heading, or the existing
+outline's long axis when only canopy layout was measured. Every local block retains
+per-measurement provenance. Per-face `alias`, `landed_heading` and survey evidence
+are joined by physical id and order from `survey_berths` in the structure file.
+The existing slice contact exporter does not copy these new optional fields;
+`berth_name` and `berth_order` continue to use its existing contract.
+
+Each landing build writes `landing-survey-changes.json`: `stops[]` lists only stops
+whose outline or selectable-face geometry changed relative to the same build's
+unsurveyed baseline. Each barge has its stable `berth_id` and `before`/`after`
+`centre_ne_m`, long-axis `heading_rad`, `length_m`, `width_m` and
+`face_bearings_rad`. Removing the last selectable face is included, even when
+contact endpoints do not move; adding only layout metadata is not. For a slice the
+file is beside the landing products. Harbor tiles merge into one report at
+`data/processed/harbor/landing-survey-changes.json`, outside hashed tile products.
+The coordinator reviews this report before re-baselining any affected replays.
+
+For a plan review after building the landing:
+
+```sh
+PYTHONPATH=data-pipeline uv run --project data-pipeline python -m ferrydata.survey overlay --stop <id> --out artifacts/landing-survey/overlay.png
+```
+
+The PNG shows the chart shoreline, old and surveyed outlines, gangway hinge lines,
+pile centres (diameter circles only when measured), and a metre scale bar.
+`--processed <slice-or-tile-or-harbor-root>` and `--survey <json>` support isolated
+fixtures. An empty survey has no overlay; the helper refuses to invent measurements.
