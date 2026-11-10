@@ -48,7 +48,7 @@ Engine curves and alarm definitions are data in `vessels/instruments/<class>.jso
 
 `schema_version: 2` adds two optional lists to a wheelhouse layout file. Version 1 files stay valid.
 
-- **`screens`**: one entry per console screen mount, with `centre`, `size`, `tilt` and `focus_eye` (where the camera goes for the lean-in view).
+- **`screens`**: one entry per console screen mount, with `centre`, `size`, `tilt` and `focus_eye` (where the camera goes for the lean-in view), and an optional `yaw` that turns the screen about the vertical axis toward the helm. The sign convention for `yaw` is stated in `art/blender/data/README.md` and pinned by a test.
 - **`controls`**: one entry per lever, jog lever, wheel, button, switch, lamp, needle or card, with `kind`, `pivot`, and where they apply `axis`, `travel`, `normal`, `lamp` and `colour`.
 
 **Conventions:**
@@ -80,6 +80,7 @@ A channel value is mapped linearly from `range` onto the mount's `travel` and cl
 
 - **`ActionIds`** names the actions other assemblies refer to, as `Map/Action`.
 - **`IBindingService`** is the one place bindings are changed, saved and looked up. The actions asset is instantiated more than once, so every instance is registered with the service and an override reaches all of them.
+- **Resetting one action never changes another.** If the action's default control has since been taken by a different action, `TryReset` returns false and names that action, and nothing changes. `ResetAll` always works.
 - **Analog axes** stay with the device profiles (`input-profiles-v1.json`) and are not part of this service.
 
 **Maps and when they are live:**
@@ -101,7 +102,7 @@ Two bindings conflict only if their contexts can be live at the same time. The s
 | `Camera/BowView` | B (unchanged) |
 | `Camera/BowAutoToggle` | F4 (was Shift+B) |
 | `Camera/FocusCycle` | F5 |
-| `Camera/LookHold`, `LookDelta`, `Recentre` | Right mouse button, mouse movement, middle mouse button (unchanged) |
+| `Camera/LookHold`, `LookDelta`, `Recentre`, `Scroll` | Right mouse button, mouse movement, middle mouse button, scroll wheel (unchanged) |
 | `FreeFly/Move`, `Vertical`, `Fast`, `Slow` | W A S D, Q and E, Shift, Ctrl (unchanged) |
 | `Alarms/Acknowledge`, `Silence`, `LampTest` | `/`, `\`, hold F9 |
 | `Interface/Options`, `KeybindHints`, `HudEdit` | F10, hold backquote, F8 |
@@ -169,7 +170,9 @@ A skin lays out one console display as data: the elements, the channels they sho
 - The writer chooses once, when the file is opened. A version 1 recording that meets a non-zero jog demand fails loudly; it never drops the value.
 - A build that predates version 2 refuses a version 2 file at the header row, which is the intended behaviour.
 
-**Telemetry CSV.** The format stays `# ferrysim-csv: 1`. A run recorded from an `INfuControlSource` appends one trailing column, `nfu_jog`, after `helm`. Readers accept the base columns, or the base columns plus that one.
+**Telemetry CSV.** The format stays `# ferrysim-csv: 1`. A run recorded from an `INfuControlSource` appends one trailing column, `nfu_jog`, after `helm`.
+- The strict reader that protects recordings (`unity/Assets/FerrySim/Sim/TelemetryCsv.cs`) accepts the base columns, or the base columns plus that one, and nothing else.
+- The debrief's reader (`unity/Assets/FerrySim/UI/Telemetry/TelemetryCsv.cs`) keeps reading by column name, as it always has: it tolerates reordered and extra columns, including `depth_alarm_threshold_m`, and understands `nfu_jog` when present.
 
 ## C8: Landing survey
 
