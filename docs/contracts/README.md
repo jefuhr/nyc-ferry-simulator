@@ -133,7 +133,7 @@ All three sit in the application's persistent data folder beside `input-profiles
 	]
 }
 ```
-`hud-layouts-v1.json`. `anchor` is one of nine positions (`top-left` to `bottom-right`); `x` and `y` are offsets from it in 1280×720 reference pixels. A widget missing from a layout takes its position from `basedOn`.
+`hud-layouts-v1.json`. `anchor` is one of nine positions (`top-left`, `top-center`, `top-right`, `middle-left`, `middle-center`, `middle-right`, `bottom-left`, `bottom-center`, `bottom-right`); `x` and `y` are offsets from it in 1280×720 reference pixels. A widget missing from a layout takes its position from `basedOn`.
 
 ```json
 {
@@ -142,6 +142,8 @@ All three sit in the application's persistent data folder beside `input-profiles
 }
 ```
 `input-bindings-v1.json`. An override whose action or slot no longer exists is dropped with a warning; the rest still load.
+
+**Widget ids** are stable once published: `classic-panel` (the whole v0.4 panel as one widget), `compass`, `heading`, `speed`, `depth`, `rudder`, `engine-port`, `engine-starboard`, `environment`, `clock`, `traffic-alarm`, and the console pop-outs `screen:radar`, `screen:plotter`, `screen:engine-port`, `screen:engine-starboard` and `screen:alarms`. A pop-out shows the texture the console supplies for that screen id through `IHudScreenSource`, or a neutral "no signal" face when there is none. An unknown widget id in a saved layout is dropped with a warning; the rest of the layout still loads.
 
 ## C6: Display skins
 
