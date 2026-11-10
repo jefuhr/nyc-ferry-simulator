@@ -58,7 +58,79 @@ The gate checks recorded evidence, hashes and policy versions. It does not detec
 
 Use two digits after the prefix, with an optional class or GTFS stop scope: `EXT-01@k-class`, `WH-01@t-class`, `LND-03@87`. Each request has `open`, `received`, `screened`, `used` or `needs-reshoot` status. The manifest's `tags.requests` lists the requests a sheet answers.
 
-**PLACEHOLDER — coordinator-approved shot list pending.** The ids above illustrate the C9 format; numbered shot-list definitions must be supplied by the coordinator before this list is treated as an agreed capture brief. The priority notes below are background guidance.
+### The shot list
+
+**P0** blocks a v0.5 feature. **P1** replaces an estimate with a measurement. **P2** is polish. Capture each item per vessel class or per berth, as its section says.
+
+**Boat exterior (each class)**
+
+| Id | Priority | Capture |
+|---|---|---|
+| EXT-01 | P0 | Walk-around video of the whole boat from the dock or landing: both sides, bow and stern, at dock height and from anything higher |
+| EXT-02 | P0 | Distant, level, square-on stills with a long lens: full side profile on each side, bow-on, stern-on |
+| EXT-03 | P0 | One known dimension on each view: draft marks, a taped rail height, a door or gate clear width |
+| EXT-04 | P1 | Close-ups with a tape in frame: bow door or ramp and its fendering, side gates, rub rails and sponsons, rail posts, stairs, windows, wipers |
+| EXT-05 | P1 | Roof and mast: radar scanner, antennas, horn, searchlight, navigation lights, life-raft canisters, vents, exhaust outlets |
+| EXT-06 | P1 | Out of the water, when a haul-out allows: demihulls, tunnel, propellers, rudders, shafts, keel line |
+| EXT-07 | P1 | Surface close-ups, square-on, in flat light: deck non-skid, hull plating, fender rubber, seat fabric, glass tint |
+| EXT-08 | P2 | The boat at night with navigation and deck lights on; the boat underway seen from shore |
+| EXT-09 | P0 | Which class and hull each capture shows |
+
+**Wheelhouse geometry (each class)**
+
+| Id | Priority | Capture |
+|---|---|---|
+| WH-01 | P0 | Slow walk-around video of the whole wheelhouse with the screens dimmed |
+| WH-02 | P0 | Tape-measured numbers: seated and standing eye height, console top and edge height, sill height, seat height, eye to windscreen, eye to console edge, cabin clear width and length |
+| WH-03 | P0 | Every console and overhead panel square-on with a ruler in frame, labels readable |
+| WH-04 | P0 | The console from the side, showing how far each screen and panel face is tilted back |
+| WH-05 | P1 | From the helm eye point: forward, left, right and aft, seated and standing |
+| WH-06 | P1 | The wheelhouse at night with console lighting on |
+
+**Screens, gauges, alarms and buttons**
+
+| Id | Priority | Capture |
+|---|---|---|
+| SCR-01 | P0 | Radar: a still and 30 seconds of video underway at each range scale normally used; the control panel; the data boxes; day and night palettes; orientation mode |
+| SCR-02 | P0 | Chartplotter: stills and 60 seconds of video underway through a turn and through a landing; own-ship symbol, heading line and the predicted-track line with its length setting; target symbols; the data bar; day and night palettes |
+| SCR-03 | P0 | Engine displays: every page, and the readings at idle, clutched in, cruise and full ahead for each engine |
+| SCR-04 | P0 | Steering: the rudder angle indicator (scale, colours, end stops) and the steering control panel |
+| SCR-05 | P0 | Alarm panels: every tile's text and colour, a lamp test, and for each alarm what trips it, how it sounds, what acknowledge does and whether it repeats |
+| SCR-06 | P1 | Every other dial and readout, with the boat stopped and underway |
+| SCR-07 | P1 | Every button and switch, with what it does and whether it latches or springs back |
+| SCR-08 | P1 | The sound of each alarm and of the horn, 10 seconds each, no talking |
+
+**Controls in motion**
+
+| Id | Priority | Capture |
+|---|---|---|
+| MOT-01 | P0 | One fixed wide camera behind the helm for a complete landing and departure, with the levers, rudder indicator, engine speed and plotter in frame |
+| MOT-02 | P0 | Side-on video of each lever through its full travel with a protractor or tape |
+| MOT-03 | P1 | Rudder indicator hard over to hard over with a clock in frame; engine speed from idle to full and back |
+| MOT-04 | P1 | A table of engine speed against boat speed in calm water; clutch-in delay; ahead-to-astern delay |
+
+**Landings (each stop, each berth)**
+
+| Id | Priority | Capture |
+|---|---|---|
+| LND-01 | P0 | The compass or plotter heading while held on each berth |
+| LND-02 | P0 | Approach video from a fixed forward camera, from about 300 m out to made fast |
+| LND-03 | P0 | Walk-around on the landing: berthing face and fenders, bollards and cleats, gates, canopy, gangway from both ends, piles, signs, lights |
+| LND-04 | P0 | Square-on waterline shot of each berthing face from the boat, 20 to 50 m off, with a known length in frame |
+| LND-05 | P1 | From shore looking out and from the landing looking back: the gangway's fixed hinge, the pier head or bulkhead, each pile against the landing's corners |
+| LND-06 | P1 | The same gangway near high and near low water |
+| LND-07 | P1 | The landing at night |
+| LND-08 | P0 | What the crew call each berth, and which face of which pontoon it is |
+
+**Sound and handling**
+
+| Id | Priority | Capture or answer |
+|---|---|---|
+| SND-01 | P1 | Mid-speed engine; an isolated propeller or wash recording; horn, short and long, inside and on deck; wind; gulls; fender contact |
+| HND-01 | P1 | Holding on one engine and on two; local current near the berths; fender type per face |
+| HND-02 | P0 | When a jog lever is released, does the rudder return to the tiller's position or stay put? Do the two jog levers do the same thing? Does pushing further move the rudder faster? |
+
+The sections below are background on why these matter, ordered by how much each changes the handling model.
 
 ## Priority 1: how the boat is driven (these define the handling model)
 
