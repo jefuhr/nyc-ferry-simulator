@@ -109,6 +109,9 @@ namespace FerrySim.Controls
 			if (instance == null) throw new ArgumentNullException(nameof(instance));
 			if (_instances.Contains(instance)) return;
 			if (Owners.TryGetValue(instance, out var owner) && owner != this) throw new InvalidOperationException("Asset already belongs to another binding service.");
+			// This service outlives input-system resets (test fixtures, domain state restores), which drop
+			// custom processors. Bindings name ferryNeutralDeadzone, so it must exist before any is read.
+			NeutralDeadzoneProcessor.Register();
 			_instances.Add(instance); Owners[instance] = this;
 			ApplyTo(instance, _overrides);
 			if (_freeFly) SuspendHelm(instance);
@@ -135,6 +138,7 @@ namespace FerrySim.Controls
 		{
 			var action = _current.FindAction(actionId);
 			if (action == null) return "";
+			NeutralDeadzoneProcessor.Register();
 			var labels = new List<string>();
 			for (var i = 0; i < action.bindings.Count; i++)
 			{
