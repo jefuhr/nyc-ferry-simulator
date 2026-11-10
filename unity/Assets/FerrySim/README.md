@@ -49,6 +49,12 @@ Unity-side code for the simulator. The physics lives in `core/FerrySim.Core` (lo
 | `Build/Tests/EditMode/` | `FerrySim.Unity.Build.Tests.EditMode` | release-build |
 | `Tests/EditMode/`, `Tests/PlayMode/` | `FerrySim.Unity.Tests.*` | unity-project-bootstrap (project smoke tests) |
 | `Tests/E2E/` | `FerrySim.Unity.Tests.E2E` | slice-e2e-tests |
+| `UI/Displays/` | (in `FerrySim.Unity.UI`) | display-skins (v0.5): data-driven engine monitor and alarm panel |
+| `UI/Settings/`, `UI/Options/`, `UI/Hud/` | (in `FerrySim.Unity.UI`) | settings-options-hud (v0.5): saved settings, options menu, arrangeable HUD |
+| `UI/Tests/SettingsHud/` | `FerrySim.Unity.UI.SettingsHud.Tests.*` | settings-options-hud (v0.5) |
+| `World/Wheelhouse/` | (in `FerrySim.Unity.World`) | wheelhouse-controls (v0.5): control map, lamp shader |
+| `Prompts/` | `FerrySim.Unity.Prompts` | keybind-popups (v0.5): key hints above the wheelhouse controls |
+| `Prompts/Tests/EditMode/`, `Prompts/Tests/PlayMode/` | `FerrySim.Unity.Prompts.Tests.*` | keybind-popups (v0.5) |
 
 Namespaces avoid `FerrySim.Unity.*` and `FerrySim.Input`, because inside those namespaces a bare `Unity` or `Input` would no longer resolve to the engine's.
 
