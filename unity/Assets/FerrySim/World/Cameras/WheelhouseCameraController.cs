@@ -1,3 +1,4 @@
+using System;
 using CesiumForUnity;
 using FerrySim.Core.Contracts;
 using FerrySim.Sim;
@@ -33,12 +34,62 @@ namespace FerrySim.World
 		private double _bowForward;
 		private float _shownYaw;
 		private float _shownPitch;
+		private static readonly string[] ScreenIds = { "RadarScreen", "PlotterScreen", "PortEngineScreen", "StarboardEngineScreen" };
+		private readonly Transform[] _screens = new Transform[4];
+		private readonly Transform[] _focusEyes = new Transform[4];
+		private Transform _interior;
+		private int _focusIndex = -1;
+		private Vector3 _shownOffset;
+		private Quaternion _shownFocusRotation = Quaternion.identity;
+
+		/// <summary>The focused screen mount id, or null at the seat/bow. Presentation only.</summary>
+		public string FocusedScreen => _focusIndex < 0 ? null : ScreenIds[_focusIndex];
+		/// <summary>Raised once when focus changes, including null on recentre, bow view or a new run.</summary>
+		public event Action<string> FocusChanged;
 
 		/// <summary>Per-session preference, shared across camera/scene replacements; never recorded.</summary>
 		public static bool AutomaticBowEnabled { get; set; } = true;
-		public bool ShowingBow => _bow.ShowBow;
+		public bool ShowingBow => _focusIndex < 0 && _bow.ShowBow;
 		public float BowPitch => _bowPitch;
-		public void ToggleBowView() => _bow.ToggleManual();
+		public void ToggleBowView()
+		{
+			if (_focusIndex >= 0) { SetFocus(-1); _bow.HandLook(); }
+			_bow.ToggleManual();
+		}
+
+		/// <summary>Seat, radar, plotter, port engine, starboard engine, seat. Missing interiors are a no-op.</summary>
+		public void CycleFocus()
+		{
+			if (!CacheFocusMounts()) return;
+			_bow.HandLook();
+			SetFocus(_focusIndex == ScreenIds.Length - 1 ? -1 : _focusIndex + 1);
+		}
+
+		public void Recentre() { SetFocus(-1); _bow.HandLook(); SetHeadLook(0, 0); }
+
+		private void SetFocus(int index)
+		{
+			if (_focusIndex == index) return;
+			_focusIndex = index;
+			_yaw = _pitch = 0;
+			FocusChanged?.Invoke(FocusedScreen);
+		}
+
+		private bool CacheFocusMounts()
+		{
+			if (mount == null || mount.transform.parent == null) return false;
+			var interior = mount.transform.parent.Find(WheelhouseControlsView.RootName);
+			if (interior == null || !interior.gameObject.activeInHierarchy) return false;
+			if (_interior == interior && _screens[0] != null && _focusEyes[0] != null) return true;
+			for (var i = 0; i < ScreenIds.Length; i++)
+			{
+				_screens[i] = interior.Find(ScreenIds[i]);
+				_focusEyes[i] = interior.Find(ScreenIds[i] + "FocusEye");
+				if (_screens[i] == null || _focusEyes[i] == null) return false;
+			}
+			_interior = interior;
+			return true;
+		}
 		public void ToggleAutomaticBow() => AutomaticBowEnabled = !AutomaticBowEnabled;
 
 		public WheelhouseCameraMount Mount
@@ -64,6 +115,7 @@ namespace FerrySim.World
 		public bool Snap()
 		{
 			_shownYaw = _yaw; _shownPitch = _pitch;
+			FocusPose(out _shownOffset, out _shownFocusRotation);
 			return Follow();
 		}
 
@@ -83,6 +135,8 @@ namespace FerrySim.World
 		private void ResetBow()
 		{
 			_bow.Reset(); _parameters = null;
+			SetFocus(-1); _interior = null;
+			_shownOffset = Vector3.zero; _shownFocusRotation = Quaternion.identity;
 			_yaw = _pitch = _shownYaw = _shownPitch = 0;
 		}
 
@@ -110,11 +164,16 @@ namespace FerrySim.World
 				mount.PitchLimits.x, mount.PitchLimits.y);
 			var state = _runner.State;
 			var distance = BowLookState.FaceDistance(mount.ApproachFaces, _faces, state.North, state.East, state.Heading, _bowForward);
-			_bow.UpdateApproach(distance, System.Math.Sqrt(state.Surge * state.Surge + state.Sway * state.Sway), AutomaticBowEnabled);
+			_bow.UpdateApproach(distance, System.Math.Sqrt(state.Surge * state.Surge + state.Sway * state.Sway), AutomaticBowEnabled && _focusIndex < 0);
 		}
 
 		private void SetHeadLook(float yaw, float pitch)
 		{
+			if (_focusIndex >= 0)
+			{
+				var cone = Vector2.ClampMagnitude(new Vector2(yaw, pitch), 15);
+				_yaw = cone.x; _pitch = cone.y; return;
+			}
 			if (mount == null)
 			{
 				_yaw = yaw;
@@ -132,25 +191,48 @@ namespace FerrySim.World
 			if (_input != null)
 			{
 				if (_input[ActionIds.BowView].WasPressedThisFrame()) ToggleBowView();
+				if (_input[ActionIds.FocusCycle].WasPressedThisFrame()) CycleFocus();
 				if (_input[ActionIds.BowAutoToggle].WasPressedThisFrame()) ToggleAutomaticBow();
 				if (_input[ActionIds.LookHold].IsPressed())
 				{
-					if (_bow.ShowBow) { _yaw = _shownYaw; _pitch = _shownPitch; }
+					if (ShowingBow) { _yaw = _shownYaw; _pitch = _shownPitch; }
 					_bow.HandLook();
 					var delta = _input[ActionIds.LookDelta].ReadValue<Vector2>();
 					SetHeadLook(_yaw + delta.x * lookSensitivity, _pitch - delta.y * lookSensitivity);
 				}
 				if (_input[ActionIds.Recentre].WasPressedThisFrame())
 				{
-					_bow.HandLook(); SetHeadLook(0f, 0f);
+					Recentre();
 				}
 			}
 
-			var showBow = _bow.ShowBow;
-			var blend = 1f - Mathf.Exp(-Time.unscaledDeltaTime / .25f);
+			AdvancePose(Time.unscaledDeltaTime);
+		}
+
+		/// <summary>Advances the render-only 0.25 s easing. Exposed for deterministic presentation tests/capture.</summary>
+		public void AdvancePresentation(float deltaTime) { RefreshApproach(); AdvancePose(deltaTime); }
+
+		private void AdvancePose(float deltaTime)
+		{
+			if (_focusIndex >= 0 && (_screens[_focusIndex] == null || _focusEyes[_focusIndex] == null)) Recentre();
+			var showBow = ShowingBow;
+			var blend = 1f - Mathf.Exp(-Mathf.Max(0, deltaTime) / .25f);
 			_shownYaw = Mathf.Lerp(_shownYaw, showBow ? _bowYaw : _yaw, blend);
 			_shownPitch = Mathf.Lerp(_shownPitch, showBow ? _bowPitch : _pitch, blend);
+			FocusPose(out var position, out var rotation);
+			_shownOffset = Vector3.Lerp(_shownOffset, position, blend);
+			_shownFocusRotation = Quaternion.Slerp(_shownFocusRotation, rotation, blend);
 			Follow();
+		}
+
+		private void FocusPose(out Vector3 position, out Quaternion rotation)
+		{
+			position = Vector3.zero; rotation = Quaternion.identity;
+			if (mount == null || _focusIndex < 0 || _focusEyes[_focusIndex] == null || _screens[_focusIndex] == null) return;
+			var eye = _focusEyes[_focusIndex];
+			position = mount.transform.InverseTransformPoint(eye.position);
+			var up = mount.transform.parent != null ? mount.transform.parent.up : Vector3.up;
+			rotation = Quaternion.Inverse(mount.transform.rotation) * Quaternion.LookRotation(_screens[_focusIndex].position - eye.position, up);
 		}
 
 		private bool Follow()
@@ -161,7 +243,7 @@ namespace FerrySim.World
 			}
 
 			var head = Quaternion.Euler(_shownPitch, _shownYaw, 0f);
-			transform.SetPositionAndRotation(mount.transform.position, mount.transform.rotation * head);
+			transform.SetPositionAndRotation(mount.transform.TransformPoint(_shownOffset), mount.transform.rotation * _shownFocusRotation * head);
 			GetComponent<Camera>().fieldOfView = mount.FieldOfView;
 			CameraAnchor.Commit(Anchor);
 			return true;

@@ -1,4 +1,6 @@
+using System;
 using System.Collections;
+using FerrySim.Core.Instruments;
 using System.IO;
 using FerrySim.Core.Contracts;
 using FerrySim.Sim;
@@ -15,7 +17,7 @@ using Object = UnityEngine.Object;
 
 namespace FerrySim.WheelhouseInterior.Tests
 {
-	/// <summary>GPU capture harness: coordinator runs on Romeo, never in the local targeted PlayMode pass.</summary>
+	/// <summary>Real slice with a frozen instrument fixture for repeatable control and lamp presentation captures.</summary>
 	public class InteriorCaptureTests
 	{
 		[UnityTearDown]
@@ -26,7 +28,7 @@ namespace FerrySim.WheelhouseInterior.Tests
 		}
 
 		[UnityTest]
-		public IEnumerator RealSlice_SeatedStanding_DayNight_BothClasses()
+		public IEnumerator RealSlice_ControlsAlarmLampTestAndFocusEyes_DayNight_BothClasses()
 		{
 			const string path="Assets/FerrySim/Slice/Scenes/LowerEastRiverSlice.unity";
 			var previous=SceneManager.GetActiveScene();
@@ -42,7 +44,7 @@ namespace FerrySim.WheelhouseInterior.Tests
 				yield return null;yield return null;
 				var slice=Object.FindFirstObjectByType<SliceBootstrap>();Assert.That(slice,Is.Not.Null);Assert.That(slice.LoadError,Is.Null);
 				slice.Runner.RecordRuns=false;
-				var output=Path.GetFullPath(Path.Combine(Application.dataPath,"../../artifacts/wheelhouse-interior/romeo"));Directory.CreateDirectory(output);
+				var output=Path.GetFullPath(Path.Combine(Application.dataPath,"../../artifacts/wheelhouse-controls/captures"));Directory.CreateDirectory(output);
 				foreach(var id in new[]{"k-class","t-class"})
 				foreach(var night in new[]{false,true})
 				{
@@ -52,18 +54,86 @@ namespace FerrySim.WheelhouseInterior.Tests
 					var view=slice.Runner.GetComponentInChildren<WheelhouseControlsView>();Assert.That(view,Is.Not.Null);Assert.That(view.ClassId,Is.EqualTo(id));
 					var mount=slice.CameraRig.WheelhouseMount;
 					Assert.That(Vector3.Distance(mount.transform.position,view.transform.Find("Eye").position),Is.LessThan(.001),"real runtime call site prefers interior");
-					foreach(var eyeName in new[]{"Eye","EyeStanding"})
+					// Hold an unacknowledged alarm at its on phase and full-ahead/rudder-over values.
+					// This drives presentation only; the scene runner remains paused and untouched.
+					var fixture = new CaptureReadout(slice.Runner); view.Bind(fixture);
+					slice.CameraRig.CurrentMode=CameraRig.Mode.Wheelhouse;
+					var controller = slice.CameraRig.Wheelhouse;
+					controller.Recentre(); controller.HeadLook = new Vector2(0, 42); controller.Snap();
+					for(var f=0;f<4;f++) yield return null;
+					var prefix = id + "-" + (night ? "night" : "day");
+					Capture(slice.CameraRig.GetComponent<Camera>(),Path.Combine(output,prefix+"-Eye-alarm.png"));
+					fixture.SetLampTest(true); view.Refresh();
+					Capture(slice.CameraRig.GetComponent<Camera>(),Path.Combine(output,prefix+"-Eye-lamp-test.png"));
+					fixture.SetLampTest(false); view.Refresh();
+					controller.HeadLook = new Vector2(60, 42); controller.Snap();
+					Capture(slice.CameraRig.GetComponent<Camera>(),Path.Combine(output,prefix+"-Eye-engine-controls.png"));
+					foreach (var screen in new[] { "RadarScreen", "PlotterScreen", "PortEngineScreen", "StarboardEngineScreen" })
 					{
-						mount.transform.position=view.transform.Find(eyeName).position;
-						slice.CameraRig.CurrentMode=CameraRig.Mode.Wheelhouse;
-						slice.CameraRig.Wheelhouse.HeadLook=new Vector2(0,42);slice.CameraRig.Wheelhouse.Snap();
-						for(var f=0;f<4;f++) yield return null;
-						Capture(slice.CameraRig.GetComponent<Camera>(),Path.Combine(output,id+"-"+eyeName+"-"+(night?"night":"day")+".png"));
+						controller.CycleFocus();
+						Assert.That(controller.FocusedScreen, Is.EqualTo(screen));
+						for (var frame=0; frame<150; frame++) controller.AdvancePresentation(1f/60);
+						Assert.That(Vector3.Distance(controller.transform.position,view.transform.Find(screen+"FocusEye").position),Is.LessThan(.001));
+						Assert.That(Vector3.Angle(controller.transform.forward,view.transform.Find(screen).position-controller.transform.position),Is.LessThan(1));
+						Capture(slice.CameraRig.GetComponent<Camera>(),Path.Combine(output,prefix+"-"+screen+"FocusEye.png"));
+						if (screen == "RadarScreen")
+						{
+							fixture.LeverDemand = 0; view.Refresh();
+							Capture(slice.CameraRig.GetComponent<Camera>(),Path.Combine(output,prefix+"-RadarScreenFocusEye-neutral.png"));
+							fixture.LeverDemand = 1; view.Refresh();
+							controller.HeadLook = new Vector2(-15, 0); controller.Snap();
+							Capture(slice.CameraRig.GetComponent<Camera>(),Path.Combine(output,prefix+"-RadarScreenFocusEye-look-left.png"));
+							controller.HeadLook = new Vector2(15, 0); controller.Snap();
+							Capture(slice.CameraRig.GetComponent<Camera>(),Path.Combine(output,prefix+"-RadarScreenFocusEye-look-right.png"));
+							controller.HeadLook = Vector2.zero; controller.Snap();
+						}
 					}
+
 				}
 			}
 			finally { if(previous.IsValid()&&previous.isLoaded) SceneManager.SetActiveScene(previous); }
 			if(scene.IsValid()&&scene.isLoaded) yield return SceneManager.UnloadSceneAsync(scene);
+		}
+
+		private sealed class CaptureReadout : IVesselTelemetrySource, IInstrumentSource, IInstrumentReadout
+		{
+			private readonly IVesselTelemetrySource _source;
+			public double LeverDemand = 1;
+			public CaptureReadout(IVesselTelemetrySource source) { _source = source; }
+			public bool HasTelemetry => true;
+			public bool HasInstruments => true;
+			public IInstrumentReadout Instruments => this;
+			public VesselParameters Parameters => _source.Parameters;
+			public VesselState State => VesselState.Planar(.25, 0, 0, 0);
+			public VesselTelemetry Telemetry => default;
+			public ControlInputs Controls => new ControlInputs(1, 1, 1);
+			public DateTimeOffset ScenarioStartUtc => _source.ScenarioStartUtc;
+			public long RunId => _source.RunId;
+			public ContactLatch Contact => ContactLatch.None;
+			public double Value(Channel channel)
+			{
+				switch (channel)
+				{
+					case Channel.LeverPort: case Channel.LeverStarboard: return LeverDemand;
+					case Channel.TillerOrder: return 1;
+					case Channel.RudderPort: case Channel.RudderStarboard: return Parameters.Controls.HardOverAngle.Value;
+					case Channel.SteeringJog: return 0;
+					case Channel.Heading: return _source.State.Heading;
+					default: return double.NaN;
+				}
+			}
+			public int AlarmCount => 1;
+			public string AlarmId(int alarm) => "steering.failure";
+			public AlarmGroup Group(int alarm) => AlarmGroup.Steering;
+			public AlarmPhase Phase(int alarm) => AlarmPhase.Unacknowledged;
+			public bool SounderOn(AlarmGroup group) => true;
+			public bool LampTest { get; private set; }
+			public long FirstEventSequence => 0;
+			public long NextEventSequence => 0;
+			public AlarmEvent EventAt(long sequence) => throw new ArgumentOutOfRangeException(nameof(sequence));
+			public void AcknowledgeAlarms() { }
+			public void SilenceAlarms() { }
+			public void SetLampTest(bool on) => LampTest = on;
 		}
 
 		private static void Capture(Camera camera,string file)

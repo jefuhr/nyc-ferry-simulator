@@ -1,8 +1,21 @@
 {
 	"name": "FerrySim.WheelhouseInterior.Tests.PlayMode",
-	"references": ["FerrySim.Unity.World", "FerrySim.Unity.Slice", "FerrySim.Unity.Sim", "FerrySim.Core", "FerrySim.Core.Serialization"],
-	"optionalUnityReferences": ["TestAssemblies"],
+	"references": [
+		"FerrySim.Unity.World",
+		"FerrySim.Unity.Slice",
+		"FerrySim.Unity.Sim",
+		"FerrySim.Core",
+		"FerrySim.Core.Serialization",
+		"FerrySim.Unity.Input",
+		"Unity.InputSystem",
+		"Unity.InputSystem.TestFramework"
+	],
+	"optionalUnityReferences": [
+		"TestAssemblies"
+	],
 	"overrideReferences": true,
-	"precompiledReferences": ["nunit.framework.dll"],
+	"precompiledReferences": [
+		"nunit.framework.dll"
+	],
 	"autoReferenced": false
 }

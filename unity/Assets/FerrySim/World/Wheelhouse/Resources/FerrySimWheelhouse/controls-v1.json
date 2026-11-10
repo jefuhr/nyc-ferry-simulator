@@ -1,0 +1,310 @@
+{
+	"version": 1,
+	"controls": [
+		{
+			"mount": "PortLever",
+			"channel": "lever.port",
+			"range": [
+				-1,
+				1
+			],
+			"actions": [
+				"Helm/PortLeverStep",
+				"Helm/PortLever",
+				"Helm/BothLeversStep",
+				"Helm/BothLevers"
+			],
+			"label": "Port engine"
+		},
+		{
+			"mount": "StarboardLever",
+			"channel": "lever.starboard",
+			"range": [
+				-1,
+				1
+			],
+			"actions": [
+				"Helm/StarboardLeverStep",
+				"Helm/StarboardLever",
+				"Helm/BothLeversStep",
+				"Helm/BothLevers"
+			],
+			"label": "Starboard engine"
+		},
+		{
+			"mount": "HelmFFU",
+			"channel": "tiller.order",
+			"range": [
+				-1,
+				1
+			],
+			"actions": [
+				"Helm/HelmStep",
+				"Helm/Helm",
+				"Helm/Midships"
+			],
+			"label": "Tiller"
+		},
+		{
+			"mount": "PortNFU",
+			"channel": "steering.jog",
+			"range": [
+				-1,
+				1
+			],
+			"actions": [
+				"Helm/NfuJog"
+			],
+			"label": "Jog lever"
+		},
+		{
+			"mount": "StarboardNFU"
+		},
+		{
+			"mount": "HornButton",
+			"actions": [
+				"Helm/Horn"
+			],
+			"label": "Horn"
+		},
+		{
+			"mount": "AlarmAcknowledge",
+			"actions": [
+				"Alarms/Acknowledge"
+			],
+			"label": "Acknowledge alarms"
+		},
+		{
+			"mount": "AlarmSilence",
+			"actions": [
+				"Alarms/Silence"
+			],
+			"label": "Silence alarms"
+		},
+		{
+			"mount": "LampTest",
+			"actions": [
+				"Alarms/LampTest"
+			],
+			"label": "Lamp test"
+		},
+		{
+			"mount": "SteeringAlarmLamp1",
+			"alarm": "steering.failure"
+		},
+		{
+			"mount": "SteeringAlarmLamp2"
+		},
+		{
+			"mount": "SteeringAlarmLamp3"
+		},
+		{
+			"mount": "SteeringAlarmLamp4"
+		},
+		{
+			"mount": "SteeringAlarmLamp5"
+		},
+		{
+			"mount": "SteeringAlarmLamp6"
+		},
+		{
+			"mount": "SteeringAlarmLamp7"
+		},
+		{
+			"mount": "SteeringAlarmLamp8"
+		},
+		{
+			"mount": "PortEngineAlarmLamp"
+		},
+		{
+			"mount": "PortEmergencyStop"
+		},
+		{
+			"mount": "PortEngineKeySwitch"
+		},
+		{
+			"mount": "StarboardEngineAlarmLamp"
+		},
+		{
+			"mount": "StarboardEmergencyStop"
+		},
+		{
+			"mount": "StarboardEngineKeySwitch"
+		},
+		{
+			"mount": "Breaker01_01"
+		},
+		{
+			"mount": "Breaker01_02"
+		},
+		{
+			"mount": "Breaker01_03"
+		},
+		{
+			"mount": "Breaker01_04"
+		},
+		{
+			"mount": "Breaker01_05"
+		},
+		{
+			"mount": "Breaker01_06"
+		},
+		{
+			"mount": "Breaker01_07"
+		},
+		{
+			"mount": "Breaker01_08"
+		},
+		{
+			"mount": "Breaker02_01"
+		},
+		{
+			"mount": "Breaker02_02"
+		},
+		{
+			"mount": "Breaker02_03"
+		},
+		{
+			"mount": "Breaker02_04"
+		},
+		{
+			"mount": "Breaker02_05"
+		},
+		{
+			"mount": "Breaker02_06"
+		},
+		{
+			"mount": "Breaker02_07"
+		},
+		{
+			"mount": "Breaker02_08"
+		},
+		{
+			"mount": "Breaker03_01"
+		},
+		{
+			"mount": "Breaker03_02"
+		},
+		{
+			"mount": "Breaker03_03"
+		},
+		{
+			"mount": "Breaker03_04"
+		},
+		{
+			"mount": "Breaker03_05"
+		},
+		{
+			"mount": "Breaker03_06"
+		},
+		{
+			"mount": "Breaker03_07"
+		},
+		{
+			"mount": "Breaker03_08"
+		},
+		{
+			"mount": "Breaker04_01"
+		},
+		{
+			"mount": "Breaker04_02"
+		},
+		{
+			"mount": "Breaker04_03"
+		},
+		{
+			"mount": "Breaker04_04"
+		},
+		{
+			"mount": "Breaker04_05"
+		},
+		{
+			"mount": "Breaker04_06"
+		},
+		{
+			"mount": "Breaker04_07"
+		},
+		{
+			"mount": "Breaker04_08"
+		},
+		{
+			"mount": "RudderNeedle",
+			"channel": "rudder.port",
+			"range": [
+				-0.3490659,
+				0.3490659
+			]
+		},
+		{
+			"mount": "StarboardRudderNeedle",
+			"channel": "rudder.starboard",
+			"range": [
+				-0.3490659,
+				0.3490659
+			]
+		},
+		{
+			"mount": "CompassCard",
+			"channel": "nav.heading",
+			"range": [
+				3.141592653589793,
+				-3.141592653589793
+			]
+		},
+		{
+			"mount": "WiperPortSwitch"
+		},
+		{
+			"mount": "WiperCentreSwitch"
+		},
+		{
+			"mount": "WiperStarboardSwitch"
+		},
+		{
+			"mount": "NavigationLightsSwitch"
+		},
+		{
+			"mount": "CabinLightSwitch"
+		},
+		{
+			"mount": "PanelLightSwitch"
+		},
+		{
+			"mount": "SearchlightPanSwitch"
+		},
+		{
+			"mount": "SearchlightTiltSwitch"
+		},
+		{
+			"mount": "SearchlightPowerSwitch"
+		},
+		{
+			"mount": "PortAuxEmergencyStop"
+		},
+		{
+			"mount": "StarboardAuxEmergencyStop"
+		},
+		{
+			"mount": "PortNeutralLamp",
+			"channel": "engine.port.shift-phase",
+			"lit": [
+				0,
+				0
+			]
+		},
+		{
+			"mount": "ControlActiveLamp"
+		},
+		{
+			"mount": "StarboardNeutralLamp",
+			"channel": "engine.starboard.shift-phase",
+			"lit": [
+				0,
+				0
+			]
+		},
+		{
+			"mount": "StarboardControlActiveLamp"
+		}
+	]
+}

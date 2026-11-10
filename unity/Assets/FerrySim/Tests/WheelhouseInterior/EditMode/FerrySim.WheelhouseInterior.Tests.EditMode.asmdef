@@ -1,9 +1,25 @@
 {
 	"name": "FerrySim.WheelhouseInterior.Tests.EditMode",
-	"references": ["FerrySim.Unity.World", "FerrySim.Unity.Sim", "FerrySim.Unity.Vessels", "FerrySim.Core", "FerrySim.Core.Serialization", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
-	"includePlatforms": ["Editor"],
+	"references": [
+		"FerrySim.Unity.World",
+		"FerrySim.Unity.Sim",
+		"FerrySim.Unity.Vessels",
+		"FerrySim.Core",
+		"FerrySim.Core.Serialization",
+		"UnityEngine.TestRunner",
+		"UnityEditor.TestRunner",
+		"FerrySim.Unity.Input",
+		"Unity.InputSystem"
+	],
+	"includePlatforms": [
+		"Editor"
+	],
 	"overrideReferences": true,
-	"precompiledReferences": ["nunit.framework.dll"],
+	"precompiledReferences": [
+		"nunit.framework.dll"
+	],
 	"autoReferenced": false,
-	"defineConstraints": ["UNITY_INCLUDE_TESTS"]
+	"defineConstraints": [
+		"UNITY_INCLUDE_TESTS"
+	]
 }

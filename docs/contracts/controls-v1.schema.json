@@ -21,7 +21,8 @@
 				"range": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2, "description": "[low, high] channel values, SI, that correspond to the ends of the travel"},
 				"alarm": {"type": "string", "minLength": 1, "description": "Alarm id for a lamp: flashing while unacknowledged, steady while acknowledged, slow flash on ring-back"},
 				"actions": {"type": "array", "items": {"type": "string", "minLength": 1}, "description": "Input action ids as Map/Action, most important first; the popup shows the first that has a binding in the active scheme"},
-				"label": {"type": "string", "description": "Text for the popup, for example Port engine"}
+				"label": {"type": "string", "description": "Text for the popup, for example Port engine"},
+				"lit": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2, "description": "Optional inclusive [low, high] interval for a channel-bound lamp. Overrides the default non-zero rule. NaN is always dark; lamp test overrides both. Requires low <= high."}
 			}
 		}
 	}
