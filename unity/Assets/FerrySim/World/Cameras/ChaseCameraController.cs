@@ -1,6 +1,6 @@
 using CesiumForUnity;
 using UnityEngine;
-using UnityEngine.InputSystem;
+using FerrySim.Controls;
 
 namespace FerrySim.World
 {
@@ -31,6 +31,7 @@ namespace FerrySim.World
 		private float _orbit;
 		private bool _hasHeading;
 		private CesiumGlobeAnchor _anchor;
+		private CameraActionReader _input;
 
 		/// <summary>The transform to follow; null leaves the camera where it is.</summary>
 		public Transform Target
@@ -71,17 +72,19 @@ namespace FerrySim.World
 			return Follow(0f);
 		}
 
+		private void OnEnable() => _input = new CameraActionReader();
+		private void OnDisable() { _input?.Dispose(); _input = null; }
+
 		private void LateUpdate()
 		{
-			var mouse = Mouse.current;
-			if (mouse != null)
+			if (_input != null)
 			{
-				if (mouse.rightButton.isPressed)
+				if (_input[ActionIds.LookHold].IsPressed())
 				{
-					_orbit += mouse.delta.ReadValue().x * orbitSensitivity;
+					_orbit += _input[ActionIds.LookDelta].ReadValue<Vector2>().x * orbitSensitivity;
 				}
 
-				var scroll = mouse.scroll.ReadValue().y;
+				var scroll = _input[ActionIds.Scroll].ReadValue<float>();
 				if (scroll != 0f)
 				{
 					Distance = distance * (scroll > 0f ? 0.85f : 1.15f);

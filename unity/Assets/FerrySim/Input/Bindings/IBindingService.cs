@@ -102,5 +102,8 @@ namespace FerrySim.Controls
 
 		/// <summary>Restores every binding to the defaults in the asset.</summary>
 		void ResetAll();
+
+		/// <summary>Restores one action's defaults unless another binding now holds a default control. On conflict nothing changes.</summary>
+		bool TryReset(string actionId, out string conflictActionId);
 	}
 }

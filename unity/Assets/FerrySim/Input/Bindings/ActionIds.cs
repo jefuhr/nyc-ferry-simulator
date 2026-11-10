@@ -56,5 +56,8 @@ namespace FerrySim.Controls
 
 		// Audio (existing).
 		public const string Mute = "Audio/Mute";
+
+		// Shared scroll input: chase zoom and free-fly speed (existing mouse behavior).
+		public const string Scroll = "Camera/Scroll";
 	}
 }

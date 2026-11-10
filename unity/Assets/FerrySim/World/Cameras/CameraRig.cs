@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
+using FerrySim.Controls;
 
 namespace FerrySim.World
 {
@@ -13,6 +13,8 @@ namespace FerrySim.World
 	[RequireComponent(typeof(Camera))]
 	public sealed class CameraRig : MonoBehaviour
 	{
+		private CameraActionReader _input;
+
 		public enum Mode
 		{
 			FreeFly,
@@ -81,25 +83,25 @@ namespace FerrySim.World
 			ApplyMode();
 		}
 
-		private void OnEnable() => ApplyMode();
+		private void OnEnable() { _input = new CameraActionReader(); ApplyMode(); }
+		private void OnDisable() { _input?.Dispose(); _input = null; InputBindingService.Instance.SetFreeFly(false); }
 
 		private void Update()
 		{
-			var keyboard = Keyboard.current;
-			if (!keyboardShortcuts || keyboard == null)
+			if (!keyboardShortcuts || _input == null)
 			{
 				return;
 			}
 
-			if (keyboard.f1Key.wasPressedThisFrame)
+			if (_input[ActionIds.ViewFreeFly].WasPressedThisFrame())
 			{
 				CurrentMode = Mode.FreeFly;
 			}
-			else if (keyboard.f2Key.wasPressedThisFrame)
+			else if (_input[ActionIds.ViewChase].WasPressedThisFrame())
 			{
 				CurrentMode = Mode.Chase;
 			}
-			else if (keyboard.f3Key.wasPressedThisFrame)
+			else if (_input[ActionIds.ViewWheelhouse].WasPressedThisFrame())
 			{
 				CurrentMode = Mode.Wheelhouse;
 			}
@@ -107,6 +109,7 @@ namespace FerrySim.World
 
 		private void ApplyMode()
 		{
+			InputBindingService.Instance.SetFreeFly(mode == Mode.FreeFly);
 			if (freeFly != null)
 			{
 				freeFly.enabled = mode == Mode.FreeFly;

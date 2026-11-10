@@ -14,9 +14,16 @@ namespace FerrySim.Controls
 	/// </summary>
 	[DefaultExecutionOrder(-200)]
 	[DisallowMultipleComponent]
-	public sealed class HelmInputController : MonoBehaviour, IControlInputSource, IDebugReadoutSource
+	public sealed class HelmInputController : MonoBehaviour, INfuControlSource, IDebugReadoutSource
 	{
-		private const string KeyHelp = "keys: Q/A port  E/D stbd  W/S both  ←/→ helm steps  M midships  B bow  Shift+B auto bow  H horn  P pause  hold R reset  C camera";
+		private string KeyHelp = "keys: input unavailable";
+		private InputBindingService _bindings;
+		private void RefreshKeyHelp() => KeyHelp = "keys: " + Help(ActionIds.PortLeverStep, "port") + Help(ActionIds.StarboardLeverStep, "stbd") +
+			Help(ActionIds.BothLeversStep, "both") + Help(ActionIds.HelmStep, "helm steps") + Help(ActionIds.Midships, "midships") +
+			Help(ActionIds.NfuJog, "jog") + Help(ActionIds.BowView, "bow") + Help(ActionIds.BowAutoToggle, "auto bow") +
+			Help(ActionIds.Horn, "horn") + Help(ActionIds.Pause, "pause") + Help(ActionIds.Reset, "hold reset") + Help(ActionIds.CameraCycle, "camera");
+
+		private static string Help(string actionId, string label) => InputBindingService.Instance.DisplayString(actionId, "Keyboard") + " " + label + "  ";
 
 		[Tooltip("The FerrySimControls asset (Helm map). A private copy is enabled at runtime.")]
 		[SerializeField]
@@ -98,6 +105,9 @@ namespace FerrySim.Controls
 			}
 
 			_instance = Instantiate(actions);
+			_bindings = InputBindingService.Instance;
+			_bindings.BindingsChanged += RefreshKeyHelp;
+			_bindings.Register(_instance);
 			_mapper = new HelmInputMapper(_instance, leverNotches);
 			// One store belongs to this component for its lifetime, including disable/enable cycles.
 			// An open calibration view keeps this same store and the new router subscribes to it.
@@ -140,6 +150,8 @@ namespace FerrySim.Controls
 
 			if (_instance != null)
 			{
+				_bindings.BindingsChanged -= RefreshKeyHelp;
+				_bindings.Unregister(_instance);
 				Destroy(_instance);
 				_instance = null;
 			}

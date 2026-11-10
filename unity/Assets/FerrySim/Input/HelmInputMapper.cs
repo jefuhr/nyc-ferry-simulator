@@ -40,6 +40,7 @@ namespace FerrySim.Controls
 		private readonly InputAction _reset;
 		private readonly InputAction _cameraCycle;
 		private readonly InputAction _newRun;
+		private readonly InputAction _jog;
 		private readonly int _notches;
 		private double _portLever;
 		private double _starboardLever;
@@ -80,6 +81,7 @@ namespace FerrySim.Controls
 			_reset = Find("Reset");
 			_cameraCycle = Find("CameraCycle");
 			_newRun = Find("NewRun");
+			_jog = Find("NfuJog");
 
 			_port.performed += OnPort;
 			_port.canceled += OnPort;
@@ -131,16 +133,20 @@ namespace FerrySim.Controls
 
 		public bool HornActive { get; private set; }
 
-		/// <summary>The current lever and helm positions as the core's normalized inputs.</summary>
-		public ControlInputs Current => new ControlInputs(_portLever, _starboardLever, _helmOrder);
+		/// <summary>The immediate three-state jog demand; a disabled map always releases it.</summary>
+		public double Jog => Enabled && !InputBindingService.HeldWhileFlying(_jog) ? Math.Sign(_jog.ReadValue<float>()) : 0;
+
+		/// <summary>The current lever, helm and jog positions as the core's normalized inputs.</summary>
+		public ControlInputs Current => new ControlInputs(_portLever, _starboardLever, _helmOrder, Jog);
 
 		public void Enable()
 		{
+			if (!InputBindingService.RequestHelmEnabled(_map.asset)) return;
 			_map.Enable();
 			_profileRouter?.Resync();
 		}
 
-		public void Disable() => _map.Disable();
+		public void Disable() { InputBindingService.RequestHelmDisabled(_map.asset); _map.Disable(); }
 
 		/// <summary>True while the helm reads its devices (between <see cref="Enable"/> and <see cref="Disable"/>).</summary>
 		public bool Enabled => _map.enabled;
@@ -285,16 +291,19 @@ namespace FerrySim.Controls
 
 		private void OnPort(InputAction.CallbackContext context)
 		{
+			if (InputBindingService.InputSuppressed(_map.asset)) return;
 			if (!ProfileOwns(context, ProfileTarget.PortLever)) { _portLever = Clamp(context.ReadValue<float>()); SetOwner(ProfileTarget.PortLever, context.control); }
 		}
 
 		private void OnStarboard(InputAction.CallbackContext context)
 		{
+			if (InputBindingService.InputSuppressed(_map.asset)) return;
 			if (!ProfileOwns(context, ProfileTarget.StarboardLever)) { _starboardLever = Clamp(context.ReadValue<float>()); SetOwner(ProfileTarget.StarboardLever, context.control); }
 		}
 
 		private void OnBoth(InputAction.CallbackContext context)
 		{
+			if (InputBindingService.InputSuppressed(_map.asset)) return;
 			var value = Clamp(context.ReadValue<float>());
 			if (!ProfileOwns(context, ProfileTarget.PortLever)) { _portLever = value; SetOwner(ProfileTarget.PortLever, context.control); }
 			if (!ProfileOwns(context, ProfileTarget.StarboardLever)) { _starboardLever = value; SetOwner(ProfileTarget.StarboardLever, context.control); }
@@ -302,6 +311,7 @@ namespace FerrySim.Controls
 
 		private void OnHelm(InputAction.CallbackContext context)
 		{
+			if (InputBindingService.InputSuppressed(_map.asset)) return;
 			if (!ProfileOwns(context, ProfileTarget.Helm)) { _helmOrder = Clamp(context.ReadValue<float>()); SetOwner(ProfileTarget.Helm, context.control); }
 		}
 
@@ -321,6 +331,7 @@ namespace FerrySim.Controls
 
 		private void OnHelmStep(InputAction.CallbackContext context)
 		{
+			if (InputBindingService.HeldWhileFlying(_helmStep)) { _helmStepHeld = 0; return; }
 			// Releasing an opposing button can expose the other side of a 1D composite; it is not a new press.
 			if (context.control is ButtonControl button && !button.isPressed) { _helmStepHeld = 0; return; }
 			if (!TryStep(context, ref _helmStepHeld, out var direction)) return;
@@ -337,6 +348,7 @@ namespace FerrySim.Controls
 
 		private void OnPortStep(InputAction.CallbackContext context)
 		{
+			if (InputBindingService.HeldWhileFlying(_portStep)) { _portStepHeld = 0; return; }
 			if (TryStep(context, ref _portStepHeld, out var direction))
 			{
 				_portLever = StepNotch(_portLever, direction, _notches);
@@ -346,6 +358,7 @@ namespace FerrySim.Controls
 
 		private void OnStarboardStep(InputAction.CallbackContext context)
 		{
+			if (InputBindingService.HeldWhileFlying(_starboardStep)) { _starboardStepHeld = 0; return; }
 			if (TryStep(context, ref _starboardStepHeld, out var direction))
 			{
 				_starboardLever = StepNotch(_starboardLever, direction, _notches);
@@ -355,6 +368,7 @@ namespace FerrySim.Controls
 
 		private void OnBothStep(InputAction.CallbackContext context)
 		{
+			if (InputBindingService.HeldWhileFlying(_bothStep)) { _bothStepHeld = 0; return; }
 			if (TryStep(context, ref _bothStepHeld, out var direction))
 			{
 				_portLever = StepNotch(_portLever, direction, _notches);
