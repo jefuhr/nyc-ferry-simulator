@@ -6,6 +6,15 @@ using UnityEngine.UIElements;
 
 namespace FerrySim.UI
 {
+	/// <summary>A read-only snapshot of the depth alarm as displayed on the most recent panel refresh.</summary>
+	public readonly struct DepthAlarmPresentation
+	{
+		internal DepthAlarmPresentation(AlarmState state, bool lit) { State = state; IsLit = lit; }
+		public AlarmState State { get; }
+		public bool IsRaised => State != AlarmState.Normal;
+		public bool IsLit { get; }
+	}
+
 	/// <summary>
 	/// The wheelhouse instrument console along the bottom of the screen. Port engine on the left and
 	/// starboard on the right (where they are on the boat); heading, speeds and the rudders in the middle,
@@ -47,6 +56,7 @@ namespace FerrySim.UI
 		private bool _sampleShown;
 		private ShownSample _shown;
 		private IInstrumentSource _depthInstrumentSource;
+		private DepthAlarmPresentation _depthAlarmShown;
 
 		public WheelhousePanel()
 		{
@@ -177,7 +187,11 @@ namespace FerrySim.UI
 
 		public bool ShowingNoData { get; private set; }
 
+		/// <summary>The legacy model for telemetry-only sources and legacy replay logic. Use DepthAlarmShown for the displayed alarm.</summary>
 		public DepthAlarm Alarm { get; } = new DepthAlarm();
+
+		/// <summary>The alarm last shown by Refresh: C1 when live, otherwise legacy. Normal and unlit without telemetry.</summary>
+		public DepthAlarmPresentation DepthAlarmShown => _depthAlarmShown;
 
 		public ContactMonitor ContactMonitor { get; } = new ContactMonitor();
 
@@ -195,7 +209,7 @@ namespace FerrySim.UI
 		}
 
 		/// <summary>C1 ring-back remains active with the shared slow flash until acknowledged.</summary>
-		internal static void ShowInstrumentDepthAlarm(DepthReadout depth, IInstrumentSource source, double time)
+		internal static DepthAlarmPresentation ReadInstrumentDepthAlarm(IInstrumentSource source, double time)
 		{
 			var readout = source.Instruments;
 			var phase = AlarmPhase.Normal;
@@ -207,7 +221,13 @@ namespace FerrySim.UI
 			}
 			var state = phase == AlarmPhase.Normal ? AlarmState.Normal :
 				phase == AlarmPhase.Acknowledged ? AlarmState.Acknowledged : AlarmState.Active;
-			depth.SetAlarm(state, AlarmAnnunciator.LampLit(phase, readout.LampTest, time));
+			return new DepthAlarmPresentation(state, AlarmAnnunciator.LampLit(phase, readout.LampTest, time));
+		}
+
+		private void ShowDepthAlarm(in DepthAlarmPresentation alarm)
+		{
+			_depthAlarmShown = alarm;
+			Depth.SetAlarm(alarm.State, alarm.IsLit);
 		}
 
 		/// <summary>Refreshes without an environment source: the water and the air read "---".</summary>
@@ -265,13 +285,14 @@ namespace FerrySim.UI
 			}
 
 			// C1 viewer actions can change phase even when the telemetry sample has not changed.
-			if (_depthInstrumentSource != null) ShowInstrumentDepthAlarm(Depth, _depthInstrumentSource, source.State.Time);
-			else Depth.SetAlarm(Alarm.State, Alarm.IsLit(realTime));
+			if (_depthInstrumentSource != null) ShowDepthAlarm(ReadInstrumentDepthAlarm(_depthInstrumentSource, source.State.Time));
+			else ShowDepthAlarm(new DepthAlarmPresentation(Alarm.State, Alarm.IsLit(realTime)));
 		}
 
 		public void ShowNoData()
 		{
 			_sampleShown = false;
+			ShowDepthAlarm(default);
 			// The alarm setting stays visible without data; it is cached, so this costs nothing per frame.
 			Depth.ShowSetting(Alarm.ThresholdMetres, _unit);
 			PaletteRoles.SetText(Depth.Unit, DisplayUnits.Symbol(_unit));
@@ -291,7 +312,6 @@ namespace FerrySim.UI
 			PaletteRoles.SetText(SpeedThroughWater, InstrumentFormat.NoValue);
 			Rudder.SetAngles(double.NaN, double.NaN);
 			Depth.ShowValue(InstrumentFormat.NoValue, _unit);
-			Depth.SetAlarm(AlarmState.Normal, false);
 			Contact.ShowNoData();
 			Traffic.ShowNoData();
 			PaletteRoles.SetText(_elapsed, InstrumentFormat.NoValue);

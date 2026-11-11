@@ -309,16 +309,14 @@ namespace FerrySim.UI
 			}
 
 			Depth.ShowValue(_depth.Distance(frame.Source.Telemetry.DepthUnderKeel, frame.Unit), frame.Unit);
-			if (_instruments != null)
-			{
-				if (frame.Panel == null) _instruments.SetShallowWaterThreshold(frame.ThresholdMetres);
-				WheelhousePanel.ShowInstrumentDepthAlarm(Depth, _instruments, frame.Source.State.Time);
-			}
-			else
-			{
-				var alarm = frame.Panel.Alarm;
-				Depth.SetAlarm(alarm.State, alarm.IsLit(frame.RealTime));
-			}
+			var alarm = frame.Panel != null ? frame.Panel.DepthAlarmShown : ReadStandaloneAlarm(frame);
+			Depth.SetAlarm(alarm.State, alarm.IsLit);
+		}
+
+		private DepthAlarmPresentation ReadStandaloneAlarm(in HudFrame frame)
+		{
+			_instruments.SetShallowWaterThreshold(frame.ThresholdMetres);
+			return WheelhousePanel.ReadInstrumentDepthAlarm(_instruments, frame.Source.State.Time);
 		}
 	}
 

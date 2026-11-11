@@ -87,6 +87,11 @@ namespace FerrySim.UI.Tests.EditMode
 			Assert.That(_console.List.Rows.Single(row => row.Text == "SHALLOW WATER").Lit, Is.EqualTo(expected), "console");
 			Assert.That(_classic.Depth.AlarmLit, Is.EqualTo(expected), "classic");
 			Assert.That(_hud.Depth.AlarmLit, Is.EqualTo(expected), "HUD");
+			var phase = _source.Instruments.Phase(0);
+			var state = phase == AlarmPhase.Normal ? AlarmState.Normal : phase == AlarmPhase.Acknowledged ? AlarmState.Acknowledged : AlarmState.Active;
+			Assert.That(_classic.DepthAlarmShown.State, Is.EqualTo(state));
+			Assert.That(_classic.DepthAlarmShown.IsRaised, Is.EqualTo(state != AlarmState.Normal));
+			Assert.That(_classic.DepthAlarmShown.IsLit, Is.EqualTo(expected));
 		}
 
 		[Test]

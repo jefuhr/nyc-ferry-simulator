@@ -87,7 +87,18 @@ namespace FerrySim.UI
 		private InputBindingService _bindingService;
 		private InterfaceActionReader _interface;
 
-		public IVesselTelemetrySource Source { get; set; }
+		private IVesselTelemetrySource _source;
+
+		/// <summary>The telemetry source; bind viewer alarm settings when assigned, before the first Update.</summary>
+		public IVesselTelemetrySource Source
+		{
+			get => _source;
+			set
+			{
+				_source = value;
+				View?.FollowDepthInstrumentSource(value);
+			}
+		}
 
 		/// <summary>The water and the air for the panel and the HUD; null reads "---".</summary>
 		public IEnvironmentReadoutSource EnvironmentSource { get; set; }
@@ -337,6 +348,7 @@ namespace FerrySim.UI
 			View.SettingsChanged += MirrorSettings;
 			View.EnvironmentSource = EnvironmentSource;
 			View.ConnectScenario(ScenarioCatalog, ScenarioLauncher);
+			View.FollowDepthInstrumentSource(Source);
 			root.Add(View);
 			View.StretchToParentSize();
 			if (showDevToolbar)
