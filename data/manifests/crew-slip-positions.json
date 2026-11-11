@@ -1,0 +1,583 @@
+{
+	"schema_version": 1,
+	"purpose": "Crew-reported slip positions at the public ferry landings: where a boat sits when it is landed in each slip. An input to the landing survey; not a hydrographic survey, a chart correction or a navigation aid.",
+	"source": "crew-reported: project crew reviewer, slip positions 2026-11",
+	"received": "2026-11-10",
+	"point_meaning": "Each position is the boat's own GPS position while landed in that slip, as [latitude, longitude] in WGS84 degrees. The point is on the boat, not on the barge: the barge face is ahead of it by the distance from the GPS antenna to the bow, along the boat's landed heading. Neither that distance nor the heading is given.",
+	"limitations": "Which boats and receivers produced the fixes, where the antenna sits on each boat, and whether a position is a single fix or an average are not known. Treat each point as good to a few metres at best. Slip names are the crew's. Operator facilities that are not public landings are not included.",
+	"stops": [
+		{
+			"stop_id": "4",
+			"name": "Hunters Point South",
+			"slips": [
+				{
+					"name": "Slip 1",
+					"position": [
+						40.7418513,
+						-73.9614281
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "8",
+			"name": "South Williamsburg",
+			"slips": [
+				{
+					"name": "North",
+					"position": [
+						40.7088527,
+						-73.970266
+					]
+				},
+				{
+					"name": "South",
+					"position": [
+						40.7087348,
+						-73.9703786
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "11",
+			"name": "Atlantic Ave/BBP Pier 6",
+			"slips": [
+				{
+					"name": "North",
+					"position": [
+						40.6924122,
+						-74.0021414
+					]
+				},
+				{
+					"name": "South",
+					"position": [
+						40.6922861,
+						-74.0022004
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "17",
+			"name": "East 34th Street",
+			"slips": [
+				{
+					"name": "Slip A1",
+					"position": [
+						40.7443592,
+						-73.9703545
+					]
+				},
+				{
+					"name": "Slip A2",
+					"position": [
+						40.7443877,
+						-73.970612
+					]
+				},
+				{
+					"name": "Slip B1",
+					"position": [
+						40.7434407,
+						-73.9710546
+					]
+				},
+				{
+					"name": "Slip B2",
+					"position": [
+						40.7436111111,
+						-73.9708333333
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "18",
+			"name": "Greenpoint",
+			"slips": [
+				{
+					"name": "North",
+					"position": [
+						40.7315516,
+						-73.9636409
+					]
+				},
+				{
+					"name": "South",
+					"position": [
+						40.731202,
+						-73.963598
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "19",
+			"name": "North Williamsburg",
+			"slips": [
+				{
+					"name": "North",
+					"position": [
+						40.7209491,
+						-73.9649203
+					]
+				},
+				{
+					"name": "South",
+					"position": [
+						40.720878,
+						-73.9650249
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "20",
+			"name": "Dumbo/Fulton Ferry",
+			"slips": [
+				{
+					"name": "Slip 1",
+					"position": [
+						40.70361111,
+						-73.99555556
+					]
+				},
+				{
+					"name": "Slip 2",
+					"position": [
+						40.70388889,
+						-73.99555556
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "23",
+			"name": "Bay Ridge",
+			"slips": [
+				{
+					"name": "East",
+					"position": [
+						40.6399626,
+						-74.0380856
+					]
+				},
+				{
+					"name": "West",
+					"position": [
+						40.6400013,
+						-74.038201
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "24",
+			"name": "Red Hook/Atlantic Basin",
+			"slips": [
+				{
+					"name": "East",
+					"position": [
+						40.6810021,
+						-74.0131706
+					]
+				},
+				{
+					"name": "West",
+					"position": [
+						40.6811181,
+						-74.0133315
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "25",
+			"name": "Roosevelt Island",
+			"slips": [
+				{
+					"name": "North",
+					"position": [
+						40.7569714,
+						-73.9523408
+					]
+				},
+				{
+					"name": "South",
+					"position": [
+						40.7566626,
+						-73.952617
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "87",
+			"name": "Wall St/Pier 11",
+			"slips": [
+				{
+					"name": "Slip A1",
+					"position": [
+						40.7036088,
+						-74.0061459
+					]
+				},
+				{
+					"name": "Slip A2",
+					"position": [
+						40.7034848,
+						-74.0060359
+					]
+				},
+				{
+					"name": "Slip B1",
+					"position": [
+						40.7031757,
+						-74.0066341
+					]
+				},
+				{
+					"name": "Slip B2",
+					"position": [
+						40.7030558,
+						-74.0064946
+					]
+				},
+				{
+					"name": "Slip C1",
+					"position": [
+						40.7032164,
+						-74.0056926
+					]
+				},
+				{
+					"name": "Slip C2",
+					"position": [
+						40.7031005,
+						-74.0055907
+					]
+				},
+				{
+					"name": "Slip D1",
+					"position": [
+						40.702702,
+						-74.005942
+					]
+				},
+				{
+					"name": "Slip D2",
+					"position": [
+						40.7027752,
+						-74.0061861
+					]
+				},
+				{
+					"name": "Slip E1",
+					"position": [
+						40.702828,
+						-74.0054592
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "89",
+			"name": "Astoria",
+			"slips": [
+				{
+					"name": "East",
+					"position": [
+						40.7715637,
+						-73.9356977
+					]
+				},
+				{
+					"name": "West",
+					"position": [
+						40.7716287,
+						-73.9358801
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "90",
+			"name": "Long Island City",
+			"slips": [
+				{
+					"name": "North",
+					"position": [
+						40.7485656,
+						-73.9576221
+					]
+				},
+				{
+					"name": "South",
+					"position": [
+						40.7482831,
+						-73.9578152
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "112",
+			"name": "Soundview",
+			"slips": [
+				{
+					"name": "North",
+					"position": [
+						40.8042473,
+						-73.8485661
+					]
+				},
+				{
+					"name": "South",
+					"position": [
+						40.8041112,
+						-73.8489094
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "113",
+			"name": "East 90th St",
+			"slips": [
+				{
+					"name": "East",
+					"position": [
+						40.7775558,
+						-73.9420223
+					]
+				},
+				{
+					"name": "West",
+					"position": [
+						40.7776126,
+						-73.9421886
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "114",
+			"name": "Stuyvesant Cove",
+			"slips": [
+				{
+					"name": "North",
+					"position": [
+						40.7321776,
+						-73.9729643
+					]
+				},
+				{
+					"name": "South",
+					"position": [
+						40.7318036,
+						-73.972857
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "115",
+			"name": "Corlears Hook",
+			"slips": [
+				{
+					"name": "East",
+					"position": [
+						40.7101864,
+						-73.9789724
+					]
+				},
+				{
+					"name": "West",
+					"position": [
+						40.7101539,
+						-73.979525
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "118",
+			"name": "Sunset Park/BAT",
+			"slips": [
+				{
+					"name": "North",
+					"position": [
+						40.6463888889,
+						-74.0263888889
+					]
+				},
+				{
+					"name": "South",
+					"position": [
+						40.6463888889,
+						-74.0266666667
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "120",
+			"name": "Brooklyn Navy Yard",
+			"slips": [
+				{
+					"name": "BNY #1",
+					"position": [
+						40.7017439,
+						-73.97382
+					]
+				},
+				{
+					"name": "BNY #2",
+					"position": [
+						40.7016873,
+						-73.973946
+					]
+				},
+				{
+					"name": "North",
+					"position": [
+						40.7019232,
+						-73.9736027
+					]
+				},
+				{
+					"name": "South",
+					"position": [
+						40.7018337,
+						-73.9737582
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "136",
+			"name": "Battery Park City/Vesey St.",
+			"slips": [
+				{
+					"name": "Slip 1",
+					"position": [
+						40.7153545,
+						-74.0176016
+					]
+				},
+				{
+					"name": "Slip 2",
+					"position": [
+						40.714643,
+						-74.0176928
+					]
+				},
+				{
+					"name": "Slip 3",
+					"position": [
+						40.7153667,
+						-74.0178967
+					]
+				},
+				{
+					"name": "Slip 4",
+					"position": [
+						40.7146633,
+						-74.0180683
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "137",
+			"name": "St. George",
+			"slips": [
+				{
+					"name": "North",
+					"position": [
+						40.646229,
+						-74.0741479
+					]
+				},
+				{
+					"name": "South",
+					"position": [
+						40.6460784,
+						-74.074038
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "138",
+			"name": "Midtown West 39th St-Pier 79",
+			"slips": [
+				{
+					"name": "Slip 2",
+					"position": [
+						40.7603745,
+						-74.0042013
+					]
+				},
+				{
+					"name": "Slip 3",
+					"position": [
+						40.7604842,
+						-74.0040886
+					]
+				},
+				{
+					"name": "Slip 4",
+					"position": [
+						40.7606345,
+						-74.0039814
+					]
+				}
+			]
+		},
+		{
+			"stop_id": "141",
+			"name": "Ferry Point Park",
+			"slips": [
+				{
+					"name": "North",
+					"position": [
+						40.8053883,
+						-73.837046
+					]
+				},
+				{
+					"name": "South",
+					"position": [
+						40.8054776,
+						-73.8375878
+					]
+				}
+			]
+		}
+	],
+	"other_public_landings": [
+		{
+			"name": "Rockaway",
+			"note": "Not a simulator stop in v0.5",
+			"slips": [
+				{
+					"name": "North",
+					"position": [
+						40.584288,
+						-73.8313705
+					]
+				},
+				{
+					"name": "South",
+					"position": [
+						40.5841862,
+						-73.8318104
+					]
+				}
+			]
+		}
+	]
+}
