@@ -140,10 +140,10 @@ namespace FerrySim.UI
 			_shown.Clear();
 			foreach (var placement in layout.Placements)
 			{
-				Place(placement);
+				Place(Effective(placement));
 			}
 
-			UpdateClassic(layout.IsVisible(HudWidgetIds.ClassicPanel));
+			UpdateClassic(_hud.IsShown(HudWidgetIds.ClassicPanel));
 			RefreshEditChrome();
 		}
 
@@ -168,18 +168,25 @@ namespace FerrySim.UI
 				{
 					if (item.Id == id)
 					{
-						Place(placement);
+						Place(Effective(placement));
 					}
-					else if (item.Visible && item.Id != HudWidgetIds.ClassicPanel && Widget(item.Id) != null)
+					else if (_hud.IsShown(item.Id) && item.Id != HudWidgetIds.ClassicPanel && Widget(item.Id) != null)
 					{
 						_shown.Add(Widget(item.Id));
 					}
 				}
 
-				UpdateClassic(layout.IsVisible(HudWidgetIds.ClassicPanel));
+				UpdateClassic(_hud.IsShown(HudWidgetIds.ClassicPanel));
 			}
 
 			RefreshEditChrome();
+		}
+
+		/// <summary>The placement as drawn: the layout's place, with the controller's effective visibility (session toggles).</summary>
+		private HudPlacement Effective(HudPlacement placement)
+		{
+			var shown = _hud.IsShown(placement.Id);
+			return shown == placement.Visible ? placement : placement.WithVisible(shown);
 		}
 
 		private void Place(HudPlacement placement)

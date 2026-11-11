@@ -21,6 +21,7 @@ namespace FerrySim.UI
 		private bool _quiet;
 		private string _chosen;
 		private bool _disposed;
+		private readonly Dictionary<string, bool> _sessionShown = new Dictionary<string, bool>();
 
 		public HudController(HudWidgetRegistry registry, SettingsStore settings, HudLayoutStore layouts)
 		{
@@ -82,6 +83,55 @@ namespace FerrySim.UI
 
 		public bool IsSaved(string name) => Layouts.Contains(name);
 
+		/// <summary>
+		/// Whether a widget is shown right now: its session toggle (<see cref="SetSessionShown"/>) if it has one, otherwise
+		/// what the layout in force says. False for a widget the layout does not have.
+		/// </summary>
+		public bool IsShown(string id)
+		{
+			if (id == null)
+			{
+				return false;
+			}
+
+			return _sessionShown.TryGetValue(id, out var shown) ? shown : Current.IsVisible(id);
+		}
+
+		/// <summary>
+		/// Shows or hides a widget for the session without editing the layout: nothing is marked modified, saved or written,
+		/// and the widget keeps the layout's place for it. The toggle is dropped when a layout is chosen or applied again,
+		/// when edit mode begins and when the layout is saved. Raises <see cref="LayoutChanged"/> with the widget's id when
+		/// what is shown changes. False, and nothing happens, for a widget the layout does not have, while editing, or after
+		/// disposal.
+		/// </summary>
+		public bool SetSessionShown(string id, bool shown)
+		{
+			if (_disposed || Editing || id == null || !_current.TryGet(id, out var placement))
+			{
+				return false;
+			}
+
+			var before = IsShown(id);
+			if (shown == placement.Visible)
+			{
+				_sessionShown.Remove(id);
+			}
+			else
+			{
+				_sessionShown[id] = shown;
+			}
+
+			if (before != shown)
+			{
+				LayoutChanged?.Invoke(id);
+			}
+
+			return true;
+		}
+
+		/// <summary>Flips a widget's session visibility (see <see cref="SetSessionShown"/>).</summary>
+		public void ToggleSessionShown(string id) => SetSessionShown(id, !IsShown(id));
+
 		/// <summary>Starts edit mode on the layout in force.</summary>
 		/// <param name="screen">The frame's size, reference pixels.</param>
 		/// <param name="sizeOf">A widget's size at scale 1; null uses the registry's sizes.</param>
@@ -92,6 +142,7 @@ namespace FerrySim.UI
 				return;
 			}
 
+			ClearSessionShown(true);
 			Session = new HudEditSession(_registry, _current, screen, sizeOf);
 			Session.PlacementChanged += OnPlacementChanged;
 			EditModeChanged?.Invoke(true);
@@ -162,6 +213,7 @@ namespace FerrySim.UI
 
 			_current = saved;
 			_modified = false;
+			ClearSessionShown(false);
 			_quiet = true;
 			try
 			{
@@ -237,7 +289,29 @@ namespace FerrySim.UI
 		{
 			_current = layout;
 			_modified = false;
+			ClearSessionShown(false);
 			LayoutChanged?.Invoke(null);
+		}
+
+		/// <summary>Drops every session toggle; with <paramref name="announce"/>, tells listeners about each widget it changes.</summary>
+		private void ClearSessionShown(bool announce)
+		{
+			if (_sessionShown.Count == 0)
+			{
+				return;
+			}
+
+			var ids = new List<string>(_sessionShown.Keys);
+			_sessionShown.Clear();
+			if (!announce)
+			{
+				return;
+			}
+
+			foreach (var id in ids)
+			{
+				LayoutChanged?.Invoke(id);
+			}
 		}
 
 		private void OnSettingsChanged()
