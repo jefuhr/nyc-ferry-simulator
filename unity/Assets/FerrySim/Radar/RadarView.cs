@@ -94,7 +94,11 @@ namespace FerrySim.Radar
 			this.Query<Slider>().ForEach(s => { s.style.color = palette.Text; s.Query<VisualElement>().ForEach(e => { if (e.name == "unity-dragger" || e.name == "unity-tracker") { e.style.backgroundColor = palette.Scale; PaletteRoles.SetBorderColor(e, palette.Bezel); } }); });
 			Raster.SetPalette(value); _overlay.ApplyPalette(palette);
 		}
-		public void Refresh(double heading) { if (_lastRange != _engine.RangeIndex) UpdateMeasurements(); UpdatePose(heading); Raster.Refresh(); }
+		public void Refresh(double heading) { RefreshReadouts(heading); Raster.Refresh(); }
+		/// <summary>Pose and readouts only; does not advance the engine or upload the raster.</summary>
+		public void RefreshReadouts(double heading) { if (_lastRange != _engine.RangeIndex) UpdateMeasurements(); UpdatePose(heading); }
+		/// <summary>Upload all pixels accumulated by the host since the previous picture.</summary>
+		public void UploadPicture() => Raster.UploadPending();
 		public void SetAvailable(bool available) { _status.text = available ? "Not for navigation · *FTC inactive, no rain data" : "Not for navigation · waiting for run data"; }
 		private void UpdatePose(double heading, bool force = false)
 		{

@@ -1,0 +1,11 @@
+{
+	"name": "FerrySim.Console",
+	"references": [
+		"FerrySim.Core",
+		"FerrySim.Unity.Sim",
+		"FerrySim.Unity.UI",
+		"FerrySim.Chartplotter",
+		"FerrySim.Radar"
+	],
+	"autoReferenced": true
+}

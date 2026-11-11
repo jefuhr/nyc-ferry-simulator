@@ -202,7 +202,17 @@ namespace FerrySim.Chartplotter
 			View.style.height = placement.height;
 		}
 
-		private void LateUpdate() => Refresh();
+		/// <summary>False for a scheduler-owned display; explicit Refresh remains available and the view stays alive.</summary>
+		public bool AutomaticRefresh { get; set; } = true;
+		private void LateUpdate() { if (AutomaticRefresh) Refresh(); }
+
+		/// <summary>Moves the existing view to a caller-owned panel; no additional document or per-frame host is needed.</summary>
+		public void HostIn(VisualElement parent)
+		{
+			if (parent == null) throw new ArgumentNullException(nameof(parent));
+			if (View == null) BuildView();
+			if (View != null) parent.Add(View);
+		}
 
 		/// <summary>One frame of the display; tests call it directly.</summary>
 		public void Refresh()

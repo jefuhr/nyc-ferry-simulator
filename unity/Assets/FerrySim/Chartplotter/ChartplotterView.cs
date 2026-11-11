@@ -10,6 +10,8 @@ using UnityEngine.UIElements;
 
 namespace FerrySim.Chartplotter
 {
+	public enum PredictorMode { Straight, Curved }
+
 	public enum ChartOrientation
 	{
 		NorthUp = 0,
@@ -82,7 +84,25 @@ namespace FerrySim.Chartplotter
 		private bool _centred = true;
 		private double _panNorth, _panEast;
 		private double _safety = SafetyContour.DefaultMetres;
-		private double _vectorMinutes = 6.0;
+		public const double DefaultVectorMinutes = 2.0;
+		private double _vectorMinutes = DefaultVectorMinutes;
+		private readonly HorizontalVector[] _prediction = new HorizontalVector[33];
+		private PredictorMode _predictor;
+		private readonly Label _vectorLabel;
+		public string VectorText => _vectorLabel.text;
+		public PredictorMode Predictor
+		{
+			get => _predictor;
+			set { if (value == PredictorMode.Straight || value == PredictorMode.Curved) _predictor = value; }
+		}
+		/// <summary>Display-only ground track; targets retain straight vectors because AIS supplies no turn-rate channel.</summary>
+		public void SamplePrediction(VesselState state, Span<HorizontalVector> points)
+		{
+			var velocity = state.GroundVelocity;
+			PathPredictor.Sample(new HorizontalVector(state.North, state.East), velocity.Magnitude,
+				Math.Atan2(velocity.East, velocity.North), _predictor == PredictorMode.Curved ? state.YawRate : 0,
+				_vectorMinutes * 60, points);
+		}
 		private CpaAlarmLimits _limits = CpaAlarmLimits.Default;
 		private bool _alarmMuted;
 		private bool _limitsTextDirty = true;
@@ -175,11 +195,14 @@ namespace FerrySim.Chartplotter
 			_headingLabel = Caption("HDG ---", 11, false);
 			_courseLabel = Caption("COG ---", 11, false);
 			_speedLabel = Caption("SOG --- kn", 11, false);
+			_vectorLabel = Caption("VECTOR 2 MIN", 11, false);
+			_vectorLabel.style.marginLeft = 10;
 			_courseLabel.style.marginLeft = 10;
 			_speedLabel.style.marginLeft = 10;
 			readouts.Add(_headingLabel);
 			readouts.Add(_courseLabel);
 			readouts.Add(_speedLabel);
+			readouts.Add(_vectorLabel);
 			_footer.Add(_noticeLabel);
 			_footer.Add(readouts);
 			Add(_footer);
@@ -362,7 +385,9 @@ namespace FerrySim.Chartplotter
 			get => _vectorMinutes;
 			set
 			{
-				if (value > 0.0 && !double.IsInfinity(value)) _vectorMinutes = value;
+				if (!(value > 0.0) || double.IsInfinity(value) || value == _vectorMinutes) return;
+				_vectorMinutes = value;
+				_vectorLabel.text = "VECTOR " + value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + " MIN";
 			}
 		}
 
@@ -488,6 +513,7 @@ namespace FerrySim.Chartplotter
 			_noticeLabel.style.color = _palette.Instruments.Caution;
 			_headingLabel.style.color = _palette.Text;
 			_courseLabel.style.color = _palette.CourseVector;
+			_vectorLabel.style.color = _palette.Text;
 			_speedLabel.style.color = _palette.Text;
 			_statusLabel.style.color = _palette.TextDim;
 			_scaleLabel.style.color = _palette.TextDim;
@@ -586,6 +612,11 @@ namespace FerrySim.Chartplotter
 				var vectorPixels = (float)(speed * _vectorMinutes * 60.0 / metresPerPixel);
 				Targets.SetOwnShip((float)ox, (float)oy, (float)hdx, (float)hdy, courseKnown, (float)cdx, (float)cdy, vectorPixels,
 					(float)(_ownLength / metresPerPixel), (float)(_ownBeam / metresPerPixel), (float)(1.0 / metresPerPixel));
+				if (live && courseKnown && _predictor == PredictorMode.Curved)
+				{
+					SamplePrediction(ownShip.State, _prediction);
+					Targets.SetOwnPrediction(_prediction, view);
+				}
 				for (var i = 0; i < _track.Count; i++)
 				{
 					view.ToScreen(_track.North(i), _track.East(i), out var tx, out var ty);
