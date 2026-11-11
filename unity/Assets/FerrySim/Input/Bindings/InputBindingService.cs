@@ -51,7 +51,7 @@ namespace FerrySim.Controls
 							if (string.IsNullOrEmpty(scheme)) continue;
 							counts.TryGetValue(scheme, out var slot);
 							_rows.Add(new BindingRow(map.name + "/" + action.name, slot, scheme,
-								LabelFor(action, binding)));
+								BindingLabels.TryGetRowLabel(map.name + "/" + action.name, slot, out var label) ? label : LabelFor(action, binding)));
 							counts[scheme] = slot + 1;
 						}
 					}
@@ -147,6 +147,16 @@ namespace FerrySim.Controls
 				labels.Add(action.GetBindingDisplayString(i));
 			}
 			return string.Join(" / ", labels);
+		}
+
+		public string DisplayString(string actionId, int slot, string scheme)
+		{
+			var action = _current.FindAction(actionId);
+			if (action == null) return "";
+			var index = BindingSlots.Index(action, slot, scheme);
+			if (index < 0 || string.IsNullOrEmpty(action.bindings[index].effectivePath)) return "";
+			NeutralDeadzoneProcessor.Register();
+			return action.GetBindingDisplayString(index);
 		}
 
 		public bool TryApply(string actionId, int slot, string scheme, string path, out string conflictActionId)

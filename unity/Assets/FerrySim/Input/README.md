@@ -127,6 +127,21 @@ Helm analog axes remain exclusively with device profiles. Mouse delta and scroll
 mouse buttons share the Keyboard scheme. `DisplayString` includes current overrides. The controller
 caches generated key help and refreshes it on `BindingsChanged`.
 
+### Player-facing binding labels
+
+`Bindings/BindingLabels.cs` is the label table for every rebindable action and slot. Use sentence case
+and plain words, with the control noun followed by its direction: "Port engine ahead", "Tiller to port",
+"Jog lever to starboard". Spell out port and starboard, reuse the nouns in `controls-v1.json`, and name
+both sides of a composite separately. Labels must be unique within a scheme; a second binding pair
+uses " (alternate)" on each direction. Slots follow the asset's binding order within each scheme.
+Add table entries with any new rebindable action or slot. An unknown row retains the generated label,
+but the shipped-asset coverage test fails if any row lacks an explicit entry.
+
+For group headings use `BindingLabels.GroupName(mapName)` (for example "Free-fly camera"). For a row's
+key use `IBindingService.DisplayString(row.ActionId, row.Slot, row.Scheme)` instead of splitting the
+existing two-argument combined string. The slot overload reads the binding directly, reflects overrides,
+and returns empty for a missing slot; the combined-string overload retains its existing behaviour.
+
 Interactive capture disables the registered live maps and holds their existing lever orders. It restores
 previously enabled maps after the capture key and previously held buttons are released, so the capture
 press cannot become a simulation command. Escape or `CancelRebind()` cancels once. Conflicts report

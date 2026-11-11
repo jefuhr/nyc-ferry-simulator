@@ -69,5 +69,11 @@ namespace FerrySim.Prompts.Tests.EditMode
 			conflictActionId = null;
 			return true;
 		}
+
+		public string DisplayString(string actionId, int slot, string scheme)
+		{
+			var parts = DisplayString(actionId, scheme).Split(new[] { " / " }, StringSplitOptions.None);
+			return slot >= 0 && slot < parts.Length ? parts[slot] : string.Empty;
+		}
 	}
 }
