@@ -20,6 +20,7 @@ namespace FerrySim.UI
 		private bool _modified;
 		private bool _quiet;
 		private string _chosen;
+		private bool _disposed;
 
 		public HudController(HudWidgetRegistry registry, SettingsStore settings, HudLayoutStore layouts)
 		{
@@ -86,7 +87,7 @@ namespace FerrySim.UI
 		/// <param name="sizeOf">A widget's size at scale 1; null uses the registry's sizes.</param>
 		public void BeginEdit(Vector2 screen, Func<string, Vector2> sizeOf)
 		{
-			if (Editing)
+			if (_disposed || Editing)
 			{
 				return;
 			}
@@ -202,9 +203,15 @@ namespace FerrySim.UI
 
 		public void Dispose()
 		{
-			EndEdit();
+			if (_disposed)
+			{
+				return;
+			}
+
+			_disposed = true;
 			Settings.HudChanged -= OnSettingsChanged;
 			Layouts.Changed -= OnLayoutsChanged;
+			EndEdit();
 		}
 
 		private HudLayout ResolveChosen()
@@ -235,7 +242,7 @@ namespace FerrySim.UI
 
 		private void OnSettingsChanged()
 		{
-			if (_quiet)
+			if (_disposed || _quiet)
 			{
 				return;
 			}
@@ -252,6 +259,11 @@ namespace FerrySim.UI
 
 		private void OnLayoutsChanged()
 		{
+			if (_disposed)
+			{
+				return;
+			}
+
 			RebuildChoices();
 			// A saved layout in force follows its file, unless the player is changing it right now.
 			if (!Editing && !_modified && !_quiet && !_registry.IsPreset(_current.Name) && Layouts.Contains(_current.Name))

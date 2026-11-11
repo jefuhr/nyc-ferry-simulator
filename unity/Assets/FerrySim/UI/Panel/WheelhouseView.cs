@@ -20,7 +20,7 @@ namespace FerrySim.UI
 	/// <see cref="Settings"/> and its section events by the composition code.
 	/// </para>
 	/// </summary>
-	public sealed class WheelhouseView : VisualElement
+	public sealed class WheelhouseView : VisualElement, IDisposable
 	{
 		public const string StyleSheetResource = "FerrySimUI/Wheelhouse";
 		public const string HudStyleSheetResource = "FerrySimUI/Hud";
@@ -34,6 +34,7 @@ namespace FerrySim.UI
 		private PaletteSetting _paletteSetting;
 		private IScenarioCatalog _catalog;
 		private IScenarioLauncher _launcher;
+		private bool _disposed;
 
 		/// <summary>A view whose settings and layouts are kept in memory only.</summary>
 		public WheelhouseView() : this(SettingsStore.InMemory(), HudLayoutStore.InMemory())
@@ -57,28 +58,24 @@ namespace FerrySim.UI
 			Add(Panel);
 			HudLayout = new HudController(HudWidgetRegistry.Default, Settings, Layouts);
 			HudLayer = new HudLayer(HudLayout, Panel);
-			HudLayer.ClassicPanelShownChanged += _ => UpdatePanelShown();
-			HudLayer.EditBar.TextEntryChanged += typing => TextEntryChanged?.Invoke(typing);
-			HudLayout.EditModeChanged += editing => HudEditModeChanged?.Invoke(editing);
+			HudLayer.ClassicPanelShownChanged += OnClassicPanelShownChanged;
+			HudLayer.EditBar.TextEntryChanged += OnTextEntryChanged;
+			HudLayout.EditModeChanged += OnHudEditModeChanged;
 			Add(HudLayer);
 			Hud = new HudOverlay();
 			Add(Hud);
 			Picker = new ScenarioPicker();
-			Picker.CloseRequested += () => PickerVisible = false;
-			Picker.Started += _ => PickerVisible = false;
+			Picker.CloseRequested += ClosePicker;
+			Picker.Started += OnScenarioStarted;
 			Add(Picker);
 			Debrief = new DebriefScreen();
-			Debrief.CloseRequested += () => DebriefVisible = false;
+			Debrief.CloseRequested += CloseDebrief;
 			Add(Debrief);
 			Toolbar = new DevToolbar();
 			Add(Toolbar);
 			Options = new OptionsMenu();
-			Options.CloseRequested += () => OptionsVisible = false;
-			Options.EditHudRequested += () =>
-			{
-				OptionsVisible = false;
-				HudEditing = true;
-			};
+			Options.CloseRequested += CloseOptions;
+			Options.EditHudRequested += EditHud;
 			Options.Bind(null, Settings, HudLayout);
 			Add(Options);
 
@@ -166,6 +163,11 @@ namespace FerrySim.UI
 			get => _palette;
 			set
 			{
+				if (_disposed)
+				{
+					return;
+				}
+
 				_palette = value;
 				PaletteRoles.Apply(this, InstrumentPalette.For(value));
 				SettingsChanged?.Invoke();
@@ -252,7 +254,7 @@ namespace FerrySim.UI
 			get => Picker.style.display != DisplayStyle.None;
 			set
 			{
-				if (value == PickerVisible)
+				if (_disposed || value == PickerVisible)
 				{
 					return;
 				}
@@ -286,7 +288,7 @@ namespace FerrySim.UI
 			get => Options.style.display != DisplayStyle.None;
 			set
 			{
-				if (value == OptionsVisible)
+				if (_disposed || value == OptionsVisible)
 				{
 					return;
 				}
@@ -323,7 +325,7 @@ namespace FerrySim.UI
 			get => HudLayout.Editing;
 			set
 			{
-				if (value == HudLayout.Editing)
+				if (_disposed || value == HudLayout.Editing)
 				{
 					return;
 				}
@@ -343,11 +345,59 @@ namespace FerrySim.UI
 		public void ToggleHudEdit() => HudEditing = !HudEditing;
 
 		/// <summary>Connects the options menu's Controls page to the binding service (null: the page says keys cannot be changed).</summary>
-		public void ConnectBindings(IBindingService bindings) => Options.Bind(bindings, Settings, HudLayout);
+		public void ConnectBindings(IBindingService bindings)
+		{
+			if (!_disposed)
+			{
+				Options.Bind(bindings, Settings, HudLayout);
+			}
+		}
+
+		/// <summary>
+		/// Permanently disconnects this view from the session's stores and services. Call before discarding a directly
+		/// hosted view; WheelhouseUI does so on disable and destroy. Repeated calls are harmless; use a new view to reconnect.
+		/// The stores belong to the session and are neither disposed nor changed here. No view events are raised.
+		/// </summary>
+		public void Dispose()
+		{
+			if (_disposed)
+			{
+				return;
+			}
+
+			_disposed = true;
+			SettingsChanged = null;
+			PickerVisibilityChanged = null;
+			OptionsVisibilityChanged = null;
+			HudEditModeChanged = null;
+			TextEntryChanged = null;
+			Settings.DisplayChanged -= OnDisplayChanged;
+			HudLayer.ClassicPanelShownChanged -= OnClassicPanelShownChanged;
+			HudLayer.EditBar.TextEntryChanged -= OnTextEntryChanged;
+			HudLayout.EditModeChanged -= OnHudEditModeChanged;
+			Picker.CloseRequested -= ClosePicker;
+			Picker.Started -= OnScenarioStarted;
+			Debrief.CloseRequested -= CloseDebrief;
+			Options.CloseRequested -= CloseOptions;
+			Options.EditHudRequested -= EditHud;
+			Options.Bind(null, null, null);
+			HudLayer.Dispose();
+			HudLayout.Dispose();
+			Picker.Bind(null, null);
+			_catalog = null;
+			_launcher = null;
+			EnvironmentSource = null;
+			ScreenSource = null;
+		}
 
 		/// <summary>The catalog and launcher the picker uses; either may be null. Rebinds an open picker.</summary>
 		public void ConnectScenario(IScenarioCatalog catalog, IScenarioLauncher launcher)
 		{
+			if (_disposed)
+			{
+				return;
+			}
+
 			_catalog = catalog;
 			_launcher = launcher;
 			Picker.Bind(catalog, launcher);
@@ -417,6 +467,12 @@ namespace FerrySim.UI
 
 		private void OnDisplayChanged()
 		{
+			// A publisher may already have copied its invocation list when another handler disposes this view.
+			if (_disposed)
+			{
+				return;
+			}
+
 			_distanceUnit = Settings.DistanceUnit;
 			_depthAlarmThreshold = Settings.DepthAlarmMetres;
 			Debrief.DistanceUnit = _distanceUnit;
@@ -439,6 +495,32 @@ namespace FerrySim.UI
 			}
 
 			SettingsChanged?.Invoke();
+		}
+
+		private void OnClassicPanelShownChanged(bool shown) => UpdatePanelShown();
+
+		private void OnTextEntryChanged(bool typing)
+		{
+			if (!_disposed) TextEntryChanged?.Invoke(typing);
+		}
+
+		private void OnHudEditModeChanged(bool editing)
+		{
+			if (!_disposed) HudEditModeChanged?.Invoke(editing);
+		}
+
+		private void ClosePicker() => PickerVisible = false;
+
+		private void OnScenarioStarted(ScenarioChoice choice) => PickerVisible = false;
+
+		private void CloseDebrief() => DebriefVisible = false;
+
+		private void CloseOptions() => OptionsVisible = false;
+
+		private void EditHud()
+		{
+			OptionsVisible = false;
+			HudEditing = true;
 		}
 
 		private void UpdatePanelShown()

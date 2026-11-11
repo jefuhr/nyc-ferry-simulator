@@ -221,21 +221,30 @@ namespace FerrySim.UI
 				View.HudEditing = false;
 			}
 
-			// The binding service lives for the session: let go of it, or it keeps this view (and whatever the view's events
-			// reach, such as a harbor scene's displays) alive after the scene unloads.
-			View?.ConnectBindings(null);
-
-			View?.RemoveFromHierarchy();
-			View = null;
+			DisposeView();
 		}
 
 		private void OnDestroy()
 		{
+			DisposeView();
 			if (_ownedSettings != null)
 			{
 				Destroy(_ownedSettings);
 				_ownedSettings = null;
 			}
+		}
+
+		private void DisposeView()
+		{
+			if (View == null)
+			{
+				return;
+			}
+
+			View.SettingsChanged -= MirrorSettings;
+			View.Dispose();
+			View.RemoveFromHierarchy();
+			View = null;
 		}
 
 		private void Update()
@@ -338,9 +347,15 @@ namespace FerrySim.UI
 
 		private void MirrorSettings()
 		{
-			palette = View.Palette;
-			distanceUnit = View.DistanceUnit;
-			depthAlarmThresholdMetres = (float)View.DepthAlarmThresholdMetres;
+			var view = View;
+			if (view == null)
+			{
+				return;
+			}
+
+			palette = view.Palette;
+			distanceUnit = view.DistanceUnit;
+			depthAlarmThresholdMetres = (float)view.DepthAlarmThresholdMetres;
 		}
 
 		private static IVesselTelemetrySource FindSource() => Find<IVesselTelemetrySource>(typeof(FakeTelemetrySource));

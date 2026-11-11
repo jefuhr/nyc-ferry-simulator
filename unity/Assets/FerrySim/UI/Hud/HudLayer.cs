@@ -14,7 +14,7 @@ namespace FerrySim.UI
 	/// never per frame. The classic panel is not a child: it stays where the view puts it and the layer reports whether the
 	/// layout shows it (<see cref="ClassicPanelShown"/>).
 	/// </summary>
-	public sealed class HudLayer : VisualElement, IPaletteAware
+	public sealed class HudLayer : VisualElement, IPaletteAware, IDisposable
 	{
 		private readonly HudController _hud;
 		private readonly WheelhousePanel _panel;
@@ -23,6 +23,7 @@ namespace FerrySim.UI
 		private InstrumentPalette _palette = InstrumentPalette.Day;
 		private string _dragging;
 		private int _dragPointer = -1;
+		private bool _disposed;
 
 		public HudLayer(HudController hud, WheelhousePanel panel)
 		{
@@ -33,7 +34,7 @@ namespace FerrySim.UI
 			AddToClassList("fs-hud-layer");
 			pickingMode = PickingMode.Ignore;
 			EditBar = new HudEditBar(hud);
-			EditBar.DoneRequested += () => _hud.EndEdit();
+			EditBar.DoneRequested += _hud.EndEdit;
 			EditBar.Commanded += RefreshEditChrome;
 			Add(EditBar);
 			EditBar.style.display = DisplayStyle.None;
@@ -46,6 +47,32 @@ namespace FerrySim.UI
 		public event Action<bool> ClassicPanelShownChanged;
 
 		public HudEditBar EditBar { get; }
+
+		/// <summary>Disconnects this layer from its controller and edit bar, releasing any captured drag pointer.</summary>
+		public void Dispose()
+		{
+			if (_disposed)
+			{
+				return;
+			}
+
+			_disposed = true;
+			_hud.LayoutChanged -= OnLayoutChanged;
+			_hud.EditModeChanged -= OnEditModeChanged;
+			EditBar.DoneRequested -= _hud.EndEdit;
+			EditBar.Commanded -= RefreshEditChrome;
+			ClassicPanelShownChanged = null;
+			var overlay = Widget(_dragging)?.EditOverlay;
+			_dragging = null;
+			_hud.Session?.CancelDrag();
+			if (overlay != null && overlay.HasPointerCapture(_dragPointer))
+			{
+				overlay.ReleasePointer(_dragPointer);
+			}
+
+			_dragPointer = -1;
+			ScreenSource = null;
+		}
 
 		/// <summary>The pop-outs' pictures; null shows NO SIGNAL on every pop-out.</summary>
 		public IHudScreenSource ScreenSource { get; set; }
@@ -122,6 +149,11 @@ namespace FerrySim.UI
 
 		private void OnLayoutChanged(string id)
 		{
+			if (_disposed)
+			{
+				return;
+			}
+
 			if (id == null)
 			{
 				ApplyLayout();
@@ -228,6 +260,11 @@ namespace FerrySim.UI
 
 		private void OnEditModeChanged(bool editing)
 		{
+			if (_disposed)
+			{
+				return;
+			}
+
 			_dragging = null;
 			EditBar.style.display = editing ? DisplayStyle.Flex : DisplayStyle.None;
 			foreach (var widget in _widgets.Values)
