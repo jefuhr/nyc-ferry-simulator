@@ -356,7 +356,8 @@ The berth-use note does not raise geometry confidence or change `verification`: 
 An absent file and an empty `stops` object produce identical landing files,
 `contacts.json` and runtime pack bytes, including `DIGEST`. Survey provenance is
 scoped to each measurement; changing one stop never changes another stop's records.
-The tracked manifest stays empty until reviewed measurements are available.
+The tracked manifest contains explicitly estimated crew-GPS fits described below;
+absent stops retain their existing geometry.
 
 A stop contains `barges` keyed by the existing physical `berth_id`:
 `enc:<LNAM>` or `derived-barge:<stop>:<shore>`. A pose supplies **all four** of
@@ -427,3 +428,63 @@ The PNG shows the chart shoreline, old and surveyed outlines, gangway hinge line
 pile centres (diameter circles only when measured), and a metre scale bar.
 `--processed <slice-or-tile-or-harbor-root>` and `--survey <json>` support isolated
 fixtures. An empty survey has no overlay; the helper refuses to invent measurements.
+
+### Crew GPS fitting (November 2026)
+
+`python -m ferrydata.survey_fit` writes a reproducible candidate, per-slip evidence,
+leave-one-stop-out chart checks, and 24 SVG overlays under
+`artifacts/landing-angles/`. `--write` also writes `landing-survey.json`. Run from
+`data-pipeline/` using `uv run --cache-dir .cache/uv python -m ferrydata.survey_fit`.
+It reads the committed crew slip file and cached, manifest-pinned chart products;
+no aerial imagery, network data or landed headings are used. Rebuilding first from
+those pinned sources is required if the processed chart products are absent.
+
+The GPS points belong to vessels, not the pontoon. Nearest-edge distances at the
+nine charted stops with slips yield 24 accepted fixes: mean **6.435540 m**, median
+**5.399238 m**, standard deviation **3.294359 m**, range **2.122182–15.956973 m**.
+The tenth charted stop, Governors Island, has no slips and is unchanged. The mean
+is the fitted antenna-to-face *proxy*, not a measured antenna-to-bow length:
+unknown headings, different receiver positions, finite edge endpoints, chart age
+and several-metre GPS error all contribute. The 20 m association ceiling is an
+explicit modelling filter; Pier 11 B1/B2/E1 remain excluded by review decision.
+Every sample, including rejected associations, remains in `fit-report.json`.
+
+For derived barges the fitter compares same-face and opposite-end layouts on the
+GPS principal axis and its perpendicular. The same-face centre is the mean GPS
+position shifted landward by the calibrated distance plus half the width; the
+opposite-end centre is midway between the two end groups. Published dimensions
+are 27.432 by 10.668 m. Feasible alternatives allow 5 m per-fix residual; among
+those, choose the smallest baseline centre shift plus long-axis rotation measured
+at half-length. This conservative tie-break is a prior, not evidence of the true
+layout. All fitted poses remain **low** confidence. A single fix retains the
+shoreline-derived heading and explicitly cannot determine orientation. Dimensions
+never expand. Brooklyn Navy Yard (120) and Battery Park City (136) are omitted
+because all their slips cannot fit one published-size barge and the evidence does
+not identify a unique single-face subset; their geometry remains unchanged pending
+LND-03 to LND-05 pontoon/layout evidence. Every rejected slip remains in the report.
+
+Charted outlines remain byte-for-byte source geometry; C8 pose fields would
+replace them with rectangles, so their measured poses appear in the report only.
+Chart slip association chooses the nearest edge and does not establish a vessel
+landed heading. Multiple slips on a face become one berth, with names joined in
+clockwise edge order. Evidence keeps every slip's unclamped distance along the
+face from its first vertex, signed distance off that face, and edge distance.
+For fitted barges these distances use the hypothesized face, not whichever short
+end happens to be closer to an endpoint GPS fix. Positions outside an edge's span
+remain visible; the 5 m noise allowance does not make them measured ramp locations.
+
+Pier 11 retains its three existing selectable faces/candidates. A/C and the
+nearest south-pontoon D associations annotate those pontoons, but D1/D2 nearest
+edges disagree, so that joined alias is a pontoon association, not proof of the
+selected face. B1/B2 and E1 remain unresolved; E1's nearest pontoon is the excluded
+`enc:02260848030BB198`. No candidate selection or crew-use policy was changed.
+
+`test_survey_fit.py` covers synthetic fits, calibration input sensitivity and exact
+manifest regeneration/schema validity. `test_survey_fit_contacts.py` rebuilds
+baseline and candidate contacts in temporary directories from the same cached
+inputs. Run it under `lockf -k "$HOME/FerrySim-cache/heavy.lock"`; it pins the 21
+stops with changed serialized contact records and the 12 derived stops with moved
+endpoints/normals (compared by contact ID), and proves the complete records for
+Governors Island, Brooklyn Navy Yard and Battery Park City byte-identical. Metadata and face-role changes also count as contact-byte
+changes. Pack adoption, benchmark pins and Unity replay baselines require separate
+coordinator review; a pipeline pass does not establish physical landing accuracy.

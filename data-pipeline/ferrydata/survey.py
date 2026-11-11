@@ -302,13 +302,20 @@ def apply_stop(feature, context, stop, shore, water, land):
 			if not geometry_override:
 				p['survey'] = measurement
 				continue
+			# A face-only alias on an unchanged charted crew face must not
+			# replace the established exposed run or lose its crew support.
+			preserve_crew_face = (identifier not in poses and not context['derived']
+				and bool(context['note'] and context['note'].get('water_side_crew_reported'))
+				and context['face'].equals_exact(edge, 1e-8))
 			context.update(barge=polygon, face=edge, structures=obstacles)
 			# A disabled face leaves the existing exposed run intact unless the pose moved.
 			if identifier in poses or selected:
-				context['contact'] = landings.water_facing_outline(polygon, edge, normal, land, obstacles)
+				if not preserve_crew_face:
+					context['contact'] = landings.water_facing_outline(polygon, edge, normal, land, obstacles)
 				contact_geo = geojsonio.make_feature(landings.to_wgs84(context['contact']), {})
 				context['contact_lonlat'] = contact_geo['geometry']['coordinates']
-				context['records'] = landings.contact_segment_evidence(context['contact'], edge, proof, target['anchor'], water, land, obstacles, polygon)
+				context['records'] = landings.contact_segment_evidence(context['contact'], edge, proof, target['anchor'], water, land, obstacles, polygon,
+					crew_reported=preserve_crew_face)
 				for record in context['records']:
 					record['verification'] = landings.segment_verification(record, context['note'])
 			if not selected:
