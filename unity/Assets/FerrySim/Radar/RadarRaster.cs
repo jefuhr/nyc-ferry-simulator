@@ -14,6 +14,7 @@ namespace FerrySim.Radar
 		public const int DefaultSize = 384;
 		private readonly RadarEngine _engine;
 		private NativeArray<Color32> _pixels;
+		private bool _pending;
 		private readonly Color32[] _levels = new Color32[256];
 		private readonly int[] _spokes, _radial, _offsets, _indices;
 		public RadarRaster(RadarEngine engine, int size = DefaultSize)
@@ -47,14 +48,20 @@ namespace FerrySim.Radar
 			for (var p = 0; p < _pixels.Length; p++) _pixels[p] = background;
 			RefreshAll();
 		}
-		public void Refresh()
+		/// <summary>Legacy combined step: capture every changed spoke and upload immediately.</summary>
+		public void Refresh() { Accumulate(); UploadPending(); }
+		/// <summary>Call after EVERY engine advance, including catch-up steps; retains all changed pixels without a GPU upload.</summary>
+		public void Accumulate()
 		{
-			if (_engine.Cleared) { RefreshAll(); return; }
+			if (_engine.Cleared) { AccumulateAll(); return; }
 			if (_engine.LastSpokeCount == 0) return;
 			for (var s = 0; s < _engine.LastSpokeCount; s++) Paint((_engine.LastFirstSpoke + s) % _engine.Configuration.Spokes);
-			Upload();
+			_pending = true;
 		}
-		public void RefreshAll() { for (var s = 0; s < _engine.Configuration.Spokes; s++) Paint(s); Upload(); }
+		public void AccumulateAll() { for (var s = 0; s < _engine.Configuration.Spokes; s++) Paint(s); _pending = true; }
+		public void RefreshAll() { AccumulateAll(); UploadPending(); }
+		/// <summary>Uploads accumulated pixels once, or does nothing if no pixels changed.</summary>
+		public void UploadPending() { if (_pending) { Upload(); _pending = false; } }
 		private void Paint(int spoke)
 		{
 			for (var i = _offsets[spoke]; i < _offsets[spoke + 1]; i++)

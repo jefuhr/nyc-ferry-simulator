@@ -1,0 +1,28 @@
+{
+	"name": "FerrySim.Console.Tests.PlayMode",
+	"references": [
+		"FerrySim.Core",
+		"FerrySim.Unity.Sim",
+		"FerrySim.Unity.UI",
+		"FerrySim.Chartplotter",
+		"FerrySim.Radar",
+		"FerrySim.Console",
+		"FerrySim.Core.Serialization",
+		"FerrySim.Chartplotter.Tests.Fixtures",
+		"UnityEngine.TestRunner",
+		"UnityEditor.TestRunner",
+		"FerrySim.Harbor.Runtime",
+		"FerrySim.Harbor.Integration",
+		"FerrySim.Unity.Harbor.Scenarios",
+		"FerrySim.Unity.World"
+	],
+	"includePlatforms": [],
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"nunit.framework.dll"
+	],
+	"autoReferenced": false,
+	"defineConstraints": [
+		"UNITY_INCLUDE_TESTS"
+	]
+}

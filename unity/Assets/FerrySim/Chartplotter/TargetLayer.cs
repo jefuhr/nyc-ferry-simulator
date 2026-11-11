@@ -1,6 +1,8 @@
 using System;
 using Unity.Profiling;
 using FerrySim.UI;
+using FerrySim.Core.Contracts;
+using FerrySim.Core.Navigation;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -31,6 +33,23 @@ namespace FerrySim.Chartplotter
 		private float[] _outlineForward = Array.Empty<float>();
 		private float[] _outlineStarboard = Array.Empty<float>();
 		private int _outlineCount;
+
+		private readonly Vector2[] _prediction = new Vector2[33];
+		private readonly Vector2[] _paintedPrediction = new Vector2[33];
+		private int _predictionCount, _paintedPredictionCount;
+		public float OwnVectorPixels => _ownVectorPixels;
+		public int OwnPredictionPointCount => _predictionCount;
+		public Vector2 OwnPredictionPoint(int index) => _prediction[index];
+		public float TargetVectorPixels(int target) => _vectorPixels[target];
+		public void SetOwnPrediction(ReadOnlySpan<HorizontalVector> points, ChartView view)
+		{
+			_predictionCount = Math.Min(points.Length, _prediction.Length);
+			for (var i = 0; i < _predictionCount; i++)
+			{
+				view.ToScreen(points[i].North, points[i].East, out var x, out var y);
+				_prediction[i] = new Vector2((float)x, (float)y);
+			}
+		}
 
 		// Track.
 		private float[] _trackX = Array.Empty<float>();
@@ -190,6 +209,7 @@ namespace FerrySim.Chartplotter
 			_centred = centred;
 			_visibilityPixels = visibilityPixels;
 			_ownShown = false;
+			_predictionCount = 0;
 			_trackCount = 0;
 			_selected = -1;
 			for (var i = 0; i < targetCount; i++)
@@ -292,9 +312,16 @@ namespace FerrySim.Chartplotter
 
 		private static bool Turned(float dx0, float dy0, float dx1, float dy1) => dx0 * dx1 + dy0 * dy1 < RepaintDirectionCosine;
 
+		private bool PredictionChanged()
+		{
+			if (_predictionCount != _paintedPredictionCount) return true;
+			for (var i = 0; i < _predictionCount; i++)
+				if ((_prediction[i] - _paintedPrediction[i]).sqrMagnitude >= RepaintPixels * RepaintPixels) return true;
+			return false;
+		}
 		private bool Changed()
 		{
-			if (!_paintedAny || _paintedTargetCount != _targetCount || _paintedSelected != _selected || _paintedCentred != _centred || _paintedOwnShown != _ownShown || _paintedOwnCourse != _ownCourseShown ||
+			if (PredictionChanged() || !_paintedAny || _paintedTargetCount != _targetCount || _paintedSelected != _selected || _paintedCentred != _centred || _paintedOwnShown != _ownShown || _paintedOwnCourse != _ownCourseShown ||
 				_paintedTrackCount != _trackCount || Moved(_paintedVisibility, _visibilityPixels) || Moved(_paintedCentreX, _centreX) || Moved(_paintedCentreY, _centreY))
 			{
 				return true;
@@ -340,6 +367,8 @@ namespace FerrySim.Chartplotter
 			_paintedTargetCount = _targetCount;
 			_paintedSelected = _selected;
 			_paintedCentred = _centred;
+			_paintedPredictionCount = _predictionCount;
+			Array.Copy(_prediction, _paintedPrediction, _predictionCount);
 			_paintedOwnShown = _ownShown;
 			_paintedOwnCourse = _ownCourseShown;
 			_paintedTrackCount = _trackCount;
@@ -504,7 +533,12 @@ namespace FerrySim.Chartplotter
 			Color32 own = _palette.OwnShip;
 			if (_ownCourseShown && _ownVectorPixels > 0.5f)
 			{
-				_writer.DashedLine(x, y, x + _ownCourseDx * _ownVectorPixels, y + _ownCourseDy * _ownVectorPixels, 2f, 6f, 4f, _palette.CourseVector);
+				if (_predictionCount > 1)
+				{
+					for (var i = 1; i < _predictionCount; i++)
+						_writer.DashedLine(_prediction[i - 1].x, _prediction[i - 1].y, _prediction[i].x, _prediction[i].y, 2f, 6f, 4f, _palette.CourseVector);
+				}
+				else _writer.DashedLine(x, y, x + _ownCourseDx * _ownVectorPixels, y + _ownCourseDy * _ownVectorPixels, 2f, 6f, 4f, _palette.CourseVector);
 			}
 
 			// The heading line runs to the viewport edge.

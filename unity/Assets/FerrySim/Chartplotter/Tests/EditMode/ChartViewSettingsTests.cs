@@ -92,7 +92,7 @@ namespace FerrySim.Chartplotter.Tests.EditMode
 			view.AlarmLimits = new CpaAlarmLimits(300, 120);
 			Assert.That(view.AlarmLimits.Cpa, Is.EqualTo(300));
 			view.VectorMinutes = 0;
-			Assert.That(view.VectorMinutes, Is.EqualTo(6.0), "a non-positive vector time is ignored");
+			Assert.That(view.VectorMinutes, Is.EqualTo(ChartplotterView.DefaultVectorMinutes), "a non-positive vector time is ignored");
 			view.SafetyContourMetres = 4.5;
 			Assert.That(view.SafetyContourMetres, Is.EqualTo(4.5));
 			view.SafetyContourMetres = -1;
