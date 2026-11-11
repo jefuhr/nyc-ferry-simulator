@@ -75,15 +75,32 @@ class GateTests(unittest.TestCase):
 		self.data['sheets'][0]['sources'][0]['withdrawn'] = False
 		self.data['sheets'].append(copy.deepcopy(self.data['sheets'][0])); self.save()
 		with self.assertRaisesRegex(ValueError, 'Duplicate'): reference.catalog(self.root)
-	def test_cli_gate_and_legacy_warning(self):
+	def test_cli_has_no_way_to_read_a_sheet_without_the_gate(self):
+		# Failure mode: a public switch that skips consent, withdrawal and screening for any sheet.
 		p = self.root / 'pick.json'; reference.write_json(picks(), p)
+		out = self.root / 'values.json'
 		stderr = io.StringIO()
 		with contextlib.redirect_stderr(stderr):
-			self.assertEqual(reference.main(['measure', str(p), '--output', str(self.root / 'values.json')]), 2)
+			self.assertEqual(reference.main(['measure', str(p), '--output', str(out)]), 2)
 		self.assertIn('manifest', stderr.getvalue())
+		# The old bypass is gone from both commands that read sheets.
+		for argv in (['measure', str(p), '--legacy-no-manifest', '--output', str(out)],
+				['catalog', str(self.root), '--legacy-no-manifest', '--output', str(self.root.parent / 'catalog.json')]):
+			with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as stop:
+				reference.main(argv)
+			self.assertEqual(stop.exception.code, 2, argv)
+		# Recomputing values from a pick's own numbers reads no sheet, so it needs no manifest...
+		stderr = io.StringIO()
 		with contextlib.redirect_stderr(stderr):
-			self.assertEqual(reference.main(['measure', str(p), '--legacy-no-manifest', '--output', str(self.root / 'values.json')]), 0)
-		self.assertIn('WARNING', stderr.getvalue())
+			self.assertEqual(reference.main(['measure', str(p), '--numbers-only', '--output', str(out)]), 0)
+		self.assertTrue(out.is_file())
+		# ...and it cannot be combined with a sheets folder, withdrawn or not.
+		self.data['sheets'][0]['sources'][0]['withdrawn'] = True; self.save()
+		for extra in (['--numbers-only'], []):
+			stderr = io.StringIO()
+			with contextlib.redirect_stderr(stderr):
+				self.assertEqual(reference.main(['measure', str(p), '--sheets', str(self.root), *extra, '--output', str(out)]), 2, extra)
+		self.assertIn('withdrawn', stderr.getvalue())
 
 
 class AuditTests(unittest.TestCase):

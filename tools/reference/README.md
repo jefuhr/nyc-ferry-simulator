@@ -49,11 +49,11 @@ uv run --offline --project tools/reference python tools/reference/reference.py m
   --comparisons artifacts/reference-import/t-class-comparisons.json
 ```
 
-`--sheets` is required for normal measurement: it verifies consent, screening, the manifest hash and any pick `image_size`/`image_sha256`. Only `--legacy-no-manifest` allows offline reproduction of the existing v0.4 picks without media or manifest; it prints a warning and supplies no current consent evidence. For example:
+`--sheets` is required for normal measurement: it verifies consent, screening, the manifest hash and any pick `image_size`/`image_sha256`. Nothing on the command line reads a sheet without that gate. `--numbers-only` recomputes the values of a committed pick file from the numbers in it, reading no sheet at all, and is refused together with `--sheets`. It reproduces the arithmetic; it is not consent evidence. For example:
 
 ```sh
 uv run --offline --project tools/reference python tools/reference/reference.py measure \
-  tools/reference/picks/t-class.json --legacy-no-manifest \
+  tools/reference/picks/t-class.json --numbers-only \
   --output artifacts/reference-import/t-class-measured.json
 ```
 
@@ -321,7 +321,8 @@ The coordinator owns the shot-list definitions; the capture kit marks the pendin
 ## Synthetic verification
 
 Normal tests use only generated media and Python's standard library. Existing v0.4 math
-and seed checks use the explicit legacy bypass; that tests reproducibility, not consent.
+and seed checks call the measuring functions directly on synthetic fixtures without a
+manifest; that tests reproducibility, not consent, and is not reachable from the command line.
 Blender and RealityKit checks are opt-in and require the normal local escalation approval:
 
 ```sh

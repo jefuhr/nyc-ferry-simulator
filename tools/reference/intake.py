@@ -16,7 +16,7 @@ STATUSES = ('open', 'received', 'screened', 'used', 'needs-reshoot')
 def load_manifest(path):
 	path = Path(path).expanduser()
 	if not path.is_file():
-		raise ValueError('manifest.json is required; use --legacy-no-manifest only for legacy offline reproduction')
+		raise ValueError('manifest.json is required beside the sheets; no sheet is read without it')
 	data = ref.load_json(path)
 	errors = ref.schema_errors(data, ref.load_json(MANIFEST_SCHEMA))
 	if errors:

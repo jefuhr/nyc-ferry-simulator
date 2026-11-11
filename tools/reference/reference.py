@@ -287,6 +287,8 @@ def pixel_value(spec, convert):
 
 
 def measure(pick, sheets=None, manifest=None, legacy_no_manifest=False):
+	"""Measure a pick. legacy_no_manifest skips the consent gate: the command line allows it only with no sheets
+	folder (numbers only); with a sheets folder it exists for synthetic test fixtures and nothing else."""
 	if pick.get("schema_version") != 1:
 		raise ValueError("Unsupported pick schema_version")
 	source = str(relative_path(pick["image"]))
@@ -549,7 +551,9 @@ def main(argv=None):
 	for name in ("catalog", "measure"):
 		command_parser = sub.choices[name]
 		command_parser.add_argument("--manifest", type=Path, help="Defaults to manifest.json beside the sheets")
-		command_parser.add_argument("--legacy-no-manifest", action="store_true", help="Explicit legacy offline reproduction without consent evidence")
+	# Recomputing values from a pick's own numbers reads no sheet, so it needs no manifest. It cannot be
+	# combined with --sheets: nothing on the command line reads a sheet without the consent gate.
+	sub.choices["measure"].add_argument("--numbers-only", action="store_true", help="Recompute from the pick's numbers without reading any sheet")
 	p = sub.add_parser("audit", help="List picks and values affected by missing/excluded/withdrawn sheets")
 	p.add_argument("--manifest", type=Path, required=True); p.add_argument("files", type=Path, nargs="+")
 	p = sub.add_parser("requests", help="Private shot-list request register")
@@ -562,8 +566,6 @@ def main(argv=None):
 	recon.add_parser(sub)
 	args = parser.parse_args(argv)
 	try:
-		if getattr(args,"legacy_no_manifest",False):
-			print("WARNING: --legacy-no-manifest bypasses consent/screening verification; legacy reproduction only", file=sys.stderr)
 		if args.command == "recon":
 			return recon.run(args)
 		if args.command == "audit":
@@ -579,10 +581,12 @@ def main(argv=None):
 			output = args.output.expanduser().resolve()
 			if output.is_relative_to(args.sheets.expanduser().resolve()):
 				raise ValueError("Catalog must not be written inside the sheets input")
-			data = catalog(args.sheets, args.manifest, args.legacy_no_manifest); write_catalog(data, args.output)
+			data = catalog(args.sheets, args.manifest); write_catalog(data, args.output)
 			print(f"Catalogued {len(data['files'])} files; sha256 {sha256(args.output)}")
 		elif args.command == "measure":
-			picks = load_json(args.picks); data = measure(picks, args.sheets, args.manifest, args.legacy_no_manifest)
+			if args.numbers_only and args.sheets is not None:
+				raise ValueError("--numbers-only reads no sheet and cannot be combined with --sheets")
+			picks = load_json(args.picks); data = measure(picks, args.sheets, args.manifest, args.numbers_only)
 			if picks["calibration"]["method"] == "plane-homography":
 				print("Homography reprojection: " + json_text(transform(picks).report).strip())
 			comparisons = compare(picks) if args.comparisons else None

@@ -225,7 +225,7 @@ class ExportTests(unittest.TestCase):
 			pick.write_text(json.dumps(p)); target.write_text(json.dumps(layout()))
 			def run(*args):
 				return subprocess.run([sys.executable, str(REPO / "tools/reference/reference.py"), *map(str, args)], capture_output=True, text=True)
-			self.assertEqual(run("measure", pick, "--legacy-no-manifest", "--output", patch_file).returncode, 0)
+			self.assertEqual(run("measure", pick, "--numbers-only", "--output", patch_file).returncode, 0)
 			p = json.loads(patch_file.read_text()); p["values"]["length_overall"]["value"] = 26.01; patch_file.write_text(json.dumps(p))
 			result = run("export", patch_file, "--layout", target)
 			self.assertEqual(result.returncode, 0, result.stderr); self.assertIn("26.01", result.stdout)
