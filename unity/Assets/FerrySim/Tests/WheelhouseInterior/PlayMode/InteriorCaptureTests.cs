@@ -134,6 +134,8 @@ namespace FerrySim.WheelhouseInterior.Tests
 			public void AcknowledgeAlarms() { }
 			public void SilenceAlarms() { }
 			public void SetLampTest(bool on) => LampTest = on;
+
+			public void SetShallowWaterThreshold(double? metres) { }
 		}
 
 		private static void Capture(Camera camera,string file)

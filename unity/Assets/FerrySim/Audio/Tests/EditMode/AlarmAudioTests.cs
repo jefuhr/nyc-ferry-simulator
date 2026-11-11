@@ -158,6 +158,8 @@ namespace FerrySim.Audio.Tests
 			public void AcknowledgeAlarms() { }
 			public void SilenceAlarms() { }
 			public void SetLampTest(bool on) { }
+
+			public void SetShallowWaterThreshold(double? metres) { }
 		}
 		private sealed class FakeReadout : IInstrumentReadout
 		{

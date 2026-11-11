@@ -275,16 +275,21 @@ namespace FerrySim.UI
 		}
 	}
 
-	/// <summary>The depth block with its alarm, from the panel's alarm (one alarm, one acknowledgement); a click acknowledges it.</summary>
+	/// <summary>Depth and the live C1 alarm; telemetry-only sources keep the panel's legacy alarm. A click acknowledges the shared source.</summary>
 	public sealed class DepthWidget : FramedWidget
 	{
 		private readonly ReadoutText _depth = new ReadoutText();
 		private WheelhousePanel _panel;
+		private IInstrumentSource _instruments;
 
 		public DepthWidget(HudWidgetDefinition definition) : base(definition, true)
 		{
 			Depth = new DepthReadout { name = "hud-w-depth-readout" };
-			Depth.RegisterCallback<ClickEvent>(_ => _panel?.AcknowledgeAlarm());
+			Depth.RegisterCallback<ClickEvent>(_ =>
+			{
+				if (_instruments != null && _instruments.HasInstruments) _instruments.AcknowledgeAlarms();
+				else _panel?.AcknowledgeAlarm();
+			});
 			Content.Add(Depth);
 		}
 
@@ -293,9 +298,10 @@ namespace FerrySim.UI
 		public override void Refresh(in HudFrame frame)
 		{
 			_panel = frame.Panel;
+			_instruments = frame.HasTelemetry && frame.Source is IInstrumentSource instruments && instruments.HasInstruments ? instruments : null;
 			Depth.ShowSetting(frame.ThresholdMetres, frame.Unit);
 			Depth.ShowGrid(frame.Panel != null ? frame.Panel.EnvironmentDisplay.DepthGridIndication : CoverageIndication.None);
-			if (!frame.HasTelemetry || frame.Panel == null)
+			if (!frame.HasTelemetry || (_instruments == null && frame.Panel == null))
 			{
 				Depth.ShowValue(InstrumentFormat.NoValue, frame.Unit);
 				Depth.SetAlarm(AlarmState.Normal, false);
@@ -303,8 +309,16 @@ namespace FerrySim.UI
 			}
 
 			Depth.ShowValue(_depth.Distance(frame.Source.Telemetry.DepthUnderKeel, frame.Unit), frame.Unit);
-			var alarm = frame.Panel.Alarm;
-			Depth.SetAlarm(alarm.State, alarm.IsLit(frame.RealTime));
+			if (_instruments != null)
+			{
+				if (frame.Panel == null) _instruments.SetShallowWaterThreshold(frame.ThresholdMetres);
+				WheelhousePanel.ShowInstrumentDepthAlarm(Depth, _instruments, frame.Source.State.Time);
+			}
+			else
+			{
+				var alarm = frame.Panel.Alarm;
+				Depth.SetAlarm(alarm.State, alarm.IsLit(frame.RealTime));
+			}
 		}
 	}
 

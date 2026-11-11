@@ -29,6 +29,10 @@ One instrument model computes everything the instruments show. The console scree
 - **`IInstrumentReadout`** returns channel values, the alarm list and the alarm event log.
 - **`IInstrumentSource`** (Unity) exposes the readout of a running vessel plus acknowledge, silence and lamp test.
 
+`IInstrumentSource.SetShallowWaterThreshold(double? metres)` is appended after `SetLampTest`: a finite, non-negative viewer threshold in metres; `null` restores the class default.
+It replaces only the `shallow-water` condition, stays outside recordings and the state digest, and resets with the model; the harbor reapplies the saved setting on every new run/class.
+Depth viewers apply their frame threshold outside harbor composition too. Live HUD and classic depth readouts follow C1 phase, lamp test and simulation time; ring-back maps to active with the shared slow flash until acknowledged.
+
 **The model is outside the state digest.** It reads the simulation and never writes to it. Acknowledge, silence and lamp test are viewer actions: they are not recorded and reset when the run changes.
 
 **Alarm sequence:**

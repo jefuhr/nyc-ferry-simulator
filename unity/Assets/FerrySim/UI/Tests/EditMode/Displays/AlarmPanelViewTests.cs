@@ -208,6 +208,8 @@ namespace FerrySim.UI.Tests.EditMode.Displays
 			public void SilenceAlarms() => Calls.Add("silence");
 
 			public void SetLampTest(bool on) => Calls.Add("lamp-test " + on);
+
+			public void SetShallowWaterThreshold(double? metres) { }
 		}
 	}
 }

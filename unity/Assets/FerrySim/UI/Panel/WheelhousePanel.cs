@@ -1,4 +1,5 @@
 using FerrySim.Core.Contracts;
+using FerrySim.Core.Instruments;
 using FerrySim.Core.Traffic;
 using FerrySim.Sim;
 using UnityEngine.UIElements;
@@ -45,6 +46,7 @@ namespace FerrySim.UI
 		private long _runId;
 		private bool _sampleShown;
 		private ShownSample _shown;
+		private IInstrumentSource _depthInstrumentSource;
 
 		public WheelhousePanel()
 		{
@@ -186,7 +188,27 @@ namespace FerrySim.UI
 			PaletteRoles.SetBorderColor(_noData, palette.Caution);
 		}
 
-		public void AcknowledgeAlarm() => Alarm.Acknowledge();
+		public void AcknowledgeAlarm()
+		{
+			if (_depthInstrumentSource != null && _depthInstrumentSource.HasInstruments) _depthInstrumentSource.AcknowledgeAlarms();
+			else Alarm.Acknowledge();
+		}
+
+		/// <summary>C1 ring-back remains active with the shared slow flash until acknowledged.</summary>
+		internal static void ShowInstrumentDepthAlarm(DepthReadout depth, IInstrumentSource source, double time)
+		{
+			var readout = source.Instruments;
+			var phase = AlarmPhase.Normal;
+			for (var i = 0; i < readout.AlarmCount; i++)
+			{
+				if (readout.AlarmId(i) != "navigation.shallow-water") continue;
+				phase = readout.Phase(i);
+				break;
+			}
+			var state = phase == AlarmPhase.Normal ? AlarmState.Normal :
+				phase == AlarmPhase.Acknowledged ? AlarmState.Acknowledged : AlarmState.Active;
+			depth.SetAlarm(state, AlarmAnnunciator.LampLit(phase, readout.LampTest, time));
+		}
 
 		/// <summary>Refreshes without an environment source: the water and the air read "---".</summary>
 		public void Refresh(IVesselTelemetrySource source, DistanceUnit unit, double depthAlarmThresholdMetres, double realTime) =>
@@ -196,12 +218,18 @@ namespace FerrySim.UI
 		/// <param name="environment">May be null.</param>
 		/// <param name="unit">Depth and tide unit setting.</param>
 		/// <param name="depthAlarmThresholdMetres">Shallow-water alarm threshold, metres under keel.</param>
-		/// <param name="realTime">Unscaled real time in seconds, for alarm flashing only.</param>
+		/// <param name="realTime">Unscaled real time in seconds, for legacy alarm flashing when instruments are absent.</param>
 		public void Refresh(IVesselTelemetrySource source, IEnvironmentReadoutSource environment, DistanceUnit unit, double depthAlarmThresholdMetres, double realTime)
 		{
 			StartOverOnNewRun(source);
+			var liveInstruments = source != null && source.HasTelemetry && source is IInstrumentSource instruments && instruments.HasInstruments ? instruments : null;
+			if (!ReferenceEquals(_depthInstrumentSource, liveInstruments)) _sampleShown = false;
+			_depthInstrumentSource = liveInstruments;
 			_unit = unit;
 			Alarm.ThresholdMetres = depthAlarmThresholdMetres;
+			// The slice and other viewers may have no harbor preference binding. Apply their setting too;
+			// the model evaluates it on its next physics observation, including while this panel is hidden.
+			_depthInstrumentSource?.SetShallowWaterThreshold(Alarm.ThresholdMetres);
 			// The water, the air and the clock change on their own, so they are checked every frame; unchanged text costs nothing.
 			EnvironmentDisplay.Update(source, environment, unit);
 			ShowEnvironment(source);
@@ -236,8 +264,9 @@ namespace FerrySim.UI
 				ShowSample(source, sample, realTime);
 			}
 
-			// Flashing follows real time, so it is updated every frame.
-			Depth.SetAlarm(Alarm.State, Alarm.IsLit(realTime));
+			// C1 viewer actions can change phase even when the telemetry sample has not changed.
+			if (_depthInstrumentSource != null) ShowInstrumentDepthAlarm(Depth, _depthInstrumentSource, source.State.Time);
+			else Depth.SetAlarm(Alarm.State, Alarm.IsLit(realTime));
 		}
 
 		public void ShowNoData()
@@ -302,7 +331,7 @@ namespace FerrySim.UI
 			PaletteRoles.SetText(SpeedThroughWater, _stwText.Speed(telemetry.SpeedThroughWater));
 			Rudder.SetAngles(telemetry.PortRudderAngle, telemetry.StarboardRudderAngle);
 
-			Alarm.Update(telemetry.DepthUnderKeel, realTime);
+			if (_depthInstrumentSource == null) Alarm.Update(telemetry.DepthUnderKeel, realTime);
 			Depth.ShowValue(_depthText.Distance(telemetry.DepthUnderKeel, _unit), _unit);
 			Depth.ShowSetting(Alarm.ThresholdMetres, _unit);
 			// Contact comes from the latch; the reading at this step only says whether contact is measurable at all.

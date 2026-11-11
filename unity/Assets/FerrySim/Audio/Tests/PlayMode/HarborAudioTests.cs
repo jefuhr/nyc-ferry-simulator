@@ -29,6 +29,7 @@ namespace FerrySim.Audio.Tests.PlayMode
 		private HarborBootstrap _bootstrap;
 		private FerryAudioRig _audio;
 		private float _listenerVolume;
+		private double? _savedDepthAlarmMetres;
 		private InputSettings _savedInputSettings, _testInputSettings;
 		private HideFlags _savedInputFlags;
 		private static string Repo => Path.GetFullPath(Path.Combine(Application.dataPath, "../.."));
@@ -77,6 +78,9 @@ namespace FerrySim.Audio.Tests.PlayMode
 		{
 			Time.timeScale = 1;
 			if (_bootstrap != null) _bootstrap.Runner.EndRun();
+			if (_savedDepthAlarmMetres.HasValue && _bootstrap != null && _bootstrap.WheelhouseUI.View != null)
+				_bootstrap.WheelhouseUI.View.Settings.DepthAlarmMetres = _savedDepthAlarmMetres.Value;
+			_savedDepthAlarmMetres = null;
 			var scene = SceneManager.GetSceneByPath(ScenePath);
 			if (scene.IsValid() && scene.isLoaded) yield return SceneManager.UnloadSceneAsync(scene);
 			AudioListener.volume = _listenerVolume;
@@ -92,15 +96,9 @@ namespace FerrySim.Audio.Tests.PlayMode
 			settings.visibilityMetres = fog ? 500 : MeteorologicalVisibility.Unlimited;
 			if (alarm)
 			{
-				// Raise a real C1 shallow-water alarm using a display-only fixture threshold.
-				// Physics, the harbor depth field and the checked-in instrument data are unchanged.
-				var input = Path.Combine(Repo, "vessels/instruments", Path.GetFileName(settings.vesselFile));
-				var text = File.ReadAllText(input);
-				const string oldValue = "\"value\": 1.524,";
-				Assert.That(text, Does.Contain(oldValue));
-				var fixture = Path.Combine(Evidence, "alarm-instruments.json");
-				File.WriteAllText(fixture, text.Replace(oldValue, "\"value\": 1000,"));
-				_bootstrap.Runner.InstrumentParametersFile = fixture;
+				// Raise the real C1 alarm through the player's setting, which overrides the class-file default.
+				_savedDepthAlarmMetres = _bootstrap.WheelhouseUI.View.Settings.DepthAlarmMetres;
+				_bootstrap.WheelhouseUI.View.Settings.DepthAlarmMetres = 1000;
 			}
 			Assert.That(_bootstrap.TryStart(settings, out problem), Is.True, problem);
 			_bootstrap.WheelhouseUI.View.PickerVisible = false;
