@@ -17,8 +17,26 @@ namespace FerrySim.World
 	public sealed class WheelhouseCameraController : MonoBehaviour
 	{
 		[SerializeField] private WheelhouseCameraMount mount;
-		[Range(0.01f, 1f)]
+		[Range(0.01f, 2f)]
 		[SerializeField] private float lookSensitivity = 0.15f;
+
+		/// <summary>Smallest and largest head-look sensitivity a setting may ask for, degrees per unit of look input.</summary>
+		public const float MinLookSensitivity = 0.01f;
+		public const float MaxLookSensitivity = 2f;
+
+		/// <summary>
+		/// Head-look sensitivity, degrees per unit of look input. A viewer preference, never recorded. Values are
+		/// clamped to the setting's range; a value that is not a positive finite number is ignored.
+		/// </summary>
+		public float LookSensitivity
+		{
+			get => lookSensitivity;
+			set
+			{
+				if (float.IsNaN(value) || float.IsInfinity(value) || value <= 0f) return;
+				lookSensitivity = Mathf.Clamp(value, MinLookSensitivity, MaxLookSensitivity);
+			}
+		}
 
 		private float _yaw;
 		private float _pitch;

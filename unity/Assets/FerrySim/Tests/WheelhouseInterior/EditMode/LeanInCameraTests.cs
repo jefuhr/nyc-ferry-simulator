@@ -61,6 +61,32 @@ namespace FerrySim.WheelhouseInterior.Tests
 			finally { UnityEngine.Object.DestroyImmediate(camera); UnityEngine.Object.DestroyImmediate(owner); }
 		}
 
+		// The saved look-sensitivity setting needs a way in. A bad value must not freeze or spin the head look.
+		[Test]
+		public void LookSensitivity_DefaultsToTheAuthoredValue_AcceptsTheSettingRange_AndIgnoresBadValues()
+		{
+			var camera = new GameObject("Sensitivity camera");
+			try
+			{
+				camera.AddComponent<Camera>();
+				var controller = camera.AddComponent<WheelhouseCameraController>();
+				Assert.That(controller.LookSensitivity, Is.EqualTo(0.15f));
+				controller.LookSensitivity = 0.5f;
+				Assert.That(controller.LookSensitivity, Is.EqualTo(0.5f));
+				controller.LookSensitivity = 5f;
+				Assert.That(controller.LookSensitivity, Is.EqualTo(WheelhouseCameraController.MaxLookSensitivity));
+				controller.LookSensitivity = 0.0001f;
+				Assert.That(controller.LookSensitivity, Is.EqualTo(WheelhouseCameraController.MinLookSensitivity));
+				controller.LookSensitivity = 0.3f;
+				foreach (var bad in new[] { float.NaN, float.PositiveInfinity, float.NegativeInfinity, 0f, -1f })
+				{
+					controller.LookSensitivity = bad;
+					Assert.That(controller.LookSensitivity, Is.EqualTo(0.3f), bad.ToString());
+				}
+			}
+			finally { UnityEngine.Object.DestroyImmediate(camera); }
+		}
+
 		[Test]
 		public void NoInteriorDoesNothing()
 		{
