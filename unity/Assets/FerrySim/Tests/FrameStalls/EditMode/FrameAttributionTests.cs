@@ -41,6 +41,9 @@ namespace FerrySim.FrameStalls.Tests
 				Assert.That(((ProfilerRecorder)radarField.GetValue(benchmark)).Valid, Is.False);
 				radar.Refresh();
 				connectedField.SetValue(displays, true);
+				// Since v0.5 the displays count as connected once the console screens or the flat overlays are up; this
+				// fixture has no interior, so it stands for the flat overlays having connected.
+				displays.GetType().GetField("_flatConnected", fields).SetValue(displays, true);
 				benchmark.SampleFrameForTests();
 				var bound = (ProfilerRecorder)radarField.GetValue(benchmark);
 				Assert.That(bound.Valid, Is.True, "late binding must not require the opt-in diagnostic collector");
