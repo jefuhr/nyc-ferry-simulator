@@ -80,7 +80,7 @@ namespace FerrySim.Vessels.Tests
 
 		[TestCase("t-class")]
 		[TestCase("k-class")]
-		public void ScreensFaceEyeAndFocusIsOnNormal(string id)
+		public void ScreensFaceEyeAndFocusIsCloseAndNearTheNormal(string id)
 		{
 			var layout = Read(id, "wheelhouse");
 			Assert.That(layout.screens, Has.Length.EqualTo(4));
@@ -96,8 +96,10 @@ namespace FerrySim.Vessels.Tests
 				Assert.That(Vector3.Angle(-mount.forward, eye.position - mount.position), Is.LessThanOrEqualTo(45));
 				var focus = prefab.transform.Find(screen.id + "FocusEye");
 				Assert.That(Vector3.Distance(focus.localPosition, Position(screen.focus_eye.value, datums)), Is.LessThan(.001f));
-				Assert.That(Vector3.Distance(focus.position, mount.position), Is.GreaterThanOrEqualTo(.45f));
-				Assert.That(Vector3.Angle(focus.position - mount.position, -mount.forward), Is.LessThan(.01f));
+				// Close enough to read small captions, and square-on unless the view has to pass over a
+				// control: the radar's lean-in position is raised to clear the engine levers at full ahead.
+				Assert.That(Vector3.Distance(focus.position, mount.position), Is.InRange(.45f, .55f));
+				Assert.That(Vector3.Angle(focus.position - mount.position, -mount.forward), Is.LessThanOrEqualTo(35.01f));
 				var surface = mount.GetComponentsInChildren<Renderer>().Single(r => r.sharedMaterial.name == screen.id);
 				var mesh = surface.GetComponent<MeshFilter>().sharedMesh;
 				// Read UV corners in mount space so a mirrored or flattened face cannot pass on orientation alone.

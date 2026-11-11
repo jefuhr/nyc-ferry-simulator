@@ -365,15 +365,15 @@
 			},
 			"focus_eye": {
 				"value": [
-					0.39434185,
-					1.37,
-					-0.36707193
+					0.5859,
+					1.5615,
+					-0.3158
 				],
 				"unit": "m",
 				"source": "crew reference photos (private), 2026-11",
 				"method": "simulator-estimate",
 				"confidence": "low",
-				"note": "Camera inspection pose 0.50 m along screen outward normal; shortened to clear the throttle grips across the full display. Not a measured operator position. WH-05."
+				"note": "Lean-in camera position 0.50 m from the screen centre, raised 32 degrees above the screen normal so the view passes over the engine levers at full ahead. Chosen so the whole screen is visible with the engine levers at neutral, full ahead and full astern (checked by the generator test). An estimate: no measured head position exists."
 			},
 			"note": "No baked reference imagery or instrument readings. Physical LCD tachometer remains within engine screen."
 		},
@@ -421,14 +421,14 @@
 			"focus_eye": {
 				"value": [
 					-0.8843,
-					1.495,
-					-0.90451905
+					1.37,
+					-0.6881
 				],
 				"unit": "m",
 				"source": "crew reference photos (private), 2026-11",
 				"method": "simulator-estimate",
 				"confidence": "low",
-				"note": "Camera inspection pose 0.75 m along screen outward normal; not a measured operator position. WH-05."
+				"note": "Lean-in camera position 0.50 m from the screen centre, on the screen normal. Chosen so the whole screen is visible with the engine levers at neutral, full ahead and full astern (checked by the generator test). An estimate: no measured head position exists."
 			},
 			"note": "No baked reference imagery or instrument readings. Physical LCD tachometer remains within engine screen."
 		},
@@ -476,14 +476,14 @@
 			"focus_eye": {
 				"value": [
 					-0.3,
-					1.495,
-					-0.87551905
+					1.37,
+					-0.6591
 				],
 				"unit": "m",
 				"source": "crew reference photos (private), 2026-11",
 				"method": "simulator-estimate",
 				"confidence": "low",
-				"note": "Camera inspection pose 0.75 m along screen outward normal; not a measured operator position. WH-05."
+				"note": "Lean-in camera position 0.50 m from the screen centre, on the screen normal. Chosen so the whole screen is visible with the engine levers at neutral, full ahead and full astern (checked by the generator test). An estimate: no measured head position exists."
 			},
 			"note": "No baked reference imagery or instrument readings. Physical LCD tachometer remains within engine screen."
 		},
@@ -531,14 +531,14 @@
 			"focus_eye": {
 				"value": [
 					0.3,
-					1.495,
-					-0.87551905
+					1.37,
+					-0.6591
 				],
 				"unit": "m",
 				"source": "crew reference photos (private), 2026-11",
 				"method": "simulator-estimate",
 				"confidence": "low",
-				"note": "Camera inspection pose 0.75 m along screen outward normal; not a measured operator position. WH-05."
+				"note": "Lean-in camera position 0.50 m from the screen centre, on the screen normal. Chosen so the whole screen is visible with the engine levers at neutral, full ahead and full astern (checked by the generator test). An estimate: no measured head position exists."
 			},
 			"note": "No baked reference imagery or instrument readings. Physical LCD tachometer remains within engine screen."
 		}

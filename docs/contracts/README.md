@@ -51,6 +51,7 @@ Engine curves and alarm definitions are data in `vessels/instruments/<class>.jso
 `schema_version: 2` adds two optional lists to a wheelhouse layout file. Version 1 files stay valid.
 
 - **`screens`**: one entry per console screen mount, with `centre`, `size`, `tilt` and `focus_eye` (where the camera goes for the lean-in view), and an optional `yaw` that turns the screen about the vertical axis toward the helm. The sign convention for `yaw` is stated in `art/blender/data/README.md` and pinned by a test.
+- **`focus_eye`** sits 0.45 to 0.55 m from the screen centre, on the screen's normal where nothing is in the way and up to 35° off it where the view has to pass over a control. The whole screen must be visible from it with the engine levers at neutral, full ahead and full astern; the generator's tests check that.
 - **`controls`**: one entry per lever, jog lever, wheel, button, switch, lamp, needle or card, with `kind`, `pivot`, and where they apply `axis`, `travel`, `normal`, `lamp` and `colour`.
 
 **Conventions:**

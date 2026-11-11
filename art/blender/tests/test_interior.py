@@ -181,12 +181,23 @@ class InteriorTests(unittest.TestCase):
 				focus = scene['mounts'][name + 'FocusEye']
 				delta = m.sub(focus, centre); distance = math.sqrt(m.dot(delta, delta))
 				self.assertGreaterEqual(distance, .45)
-				self.assertGreater(m.dot(normal, delta) / distance, .99999)
-				# Check the whole lit rectangle, not just the centre hidden behind a throttle.
-				for x in (-.48, -.32, -.16, 0, .16, .32, .48):
-					for y in (-.48, -.32, -.16, 0, .16, .32, .48):
-						target = m.add(centre, m.screen_vector([screen['size'][0]*x, screen['size'][1]*y, -.003], screen))
-						self.assertEqual(m.occluders(scene, focus, target), [], f'{cls}/{name}/{x}/{y}')
+				# Close enough to read small captions: 12 px text needs about 0.45 to 0.5 m.
+				self.assertLessEqual(distance, .55, name)
+				# Square-on where nothing is in the way; up to 35 degrees off the normal where the
+				# view has to pass over a control (the radar sits behind the engine levers).
+				self.assertGreaterEqual(m.dot(normal, delta) / distance, math.cos(math.radians(35)) - 1e-6, name)
+				# Check the whole lit rectangle, not just the centre hidden behind a throttle, with the
+				# engine levers at neutral, full ahead and full astern: a lever in the way at full ahead
+				# hides the radar exactly when it is needed.
+				for levers in (0, 35, -35):
+					posed = m.scene_spec(d)
+					posed.setdefault('rotations', {})
+					for lever in ('PortLever', 'StarboardLever'):
+						posed['rotations'][lever] = [levers, 0, 0]
+					for x in (-.48, -.32, -.16, 0, .16, .32, .48):
+						for y in (-.48, -.32, -.16, 0, .16, .32, .48):
+							target = m.add(centre, m.screen_vector([screen['size'][0]*x, screen['size'][1]*y, -.003], screen))
+							self.assertEqual(m.occluders(posed, focus, target), [], f'{cls}/{name}/levers {levers}/{x}/{y}')
 
 	def test_two_build_geometry_hashes_match(self):
 		m = self.module()
