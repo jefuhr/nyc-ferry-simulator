@@ -49,5 +49,33 @@ namespace FerrySim.Console.Tests
 			}
 			finally { UnityEngine.Object.DestroyImmediate(interior); }
 		}
+
+		// Failure mode: the radar and chartplotter palette keys (day, dusk, night) are undone on the next
+		// scheduled refresh because the console forces day or night from the daylight source.
+		[Test] public void PaletteKeysChoiceWinsOverDaylight_AndClearingItFollowsDaylightAgain()
+		{
+			Assert.That(ConsoleScreens.RadarPaletteFor(night: false, chosen: null), Is.EqualTo(FerrySim.Radar.RadarPalette.Day));
+			Assert.That(ConsoleScreens.RadarPaletteFor(night: true, chosen: null), Is.EqualTo(FerrySim.Radar.RadarPalette.Night));
+			Assert.That(ConsoleScreens.RadarPaletteFor(night: false, chosen: FerrySim.Radar.RadarPalette.Dusk), Is.EqualTo(FerrySim.Radar.RadarPalette.Dusk));
+			Assert.That(ConsoleScreens.RadarPaletteFor(night: true, chosen: FerrySim.Radar.RadarPalette.Day), Is.EqualTo(FerrySim.Radar.RadarPalette.Day));
+			Assert.That(ConsoleScreens.PlotterPaletteFor(night: false, chosen: null), Is.EqualTo(FerrySim.Chartplotter.ChartPaletteKind.Day));
+			Assert.That(ConsoleScreens.PlotterPaletteFor(night: true, chosen: null), Is.EqualTo(FerrySim.Chartplotter.ChartPaletteKind.Night));
+			Assert.That(ConsoleScreens.PlotterPaletteFor(night: true, chosen: FerrySim.Chartplotter.ChartPaletteKind.Dusk), Is.EqualTo(FerrySim.Chartplotter.ChartPaletteKind.Dusk));
+			var host = new GameObject("palette host").AddComponent<ConsoleScreens>();
+			try
+			{
+				Assert.That(host.RadarPaletteOverride, Is.Null);
+				Assert.That(host.PlotterPaletteOverride, Is.Null);
+				host.RadarPaletteOverride = FerrySim.Radar.RadarPalette.Dusk;
+				host.PlotterPaletteOverride = FerrySim.Chartplotter.ChartPaletteKind.Dusk;
+				// The choice belongs to the host, not to the targets, so it survives the screens being switched off and on.
+				host.Enabled = false; host.Enabled = true;
+				Assert.That(host.RadarPaletteOverride, Is.EqualTo(FerrySim.Radar.RadarPalette.Dusk));
+				Assert.That(host.PlotterPaletteOverride, Is.EqualTo(FerrySim.Chartplotter.ChartPaletteKind.Dusk));
+				host.RadarPaletteOverride = null;
+				Assert.That(host.RadarPaletteOverride, Is.Null);
+			}
+			finally { UnityEngine.Object.DestroyImmediate(host.gameObject); }
+		}
 	}
 }

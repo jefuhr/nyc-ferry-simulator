@@ -69,6 +69,15 @@ namespace FerrySim.Console
 			set { if (value != PredictorMode.Straight && value != PredictorMode.Curved) return; _predictor = value; if (Plotter != null) Plotter.Predictor = value; }
 		}
 		public PaletteKind Palette { get => _palette; set => _palette = value; }
+		/// <summary>
+		/// The radar palette chosen with the radar's palette key, or null to follow day and night. A viewer
+		/// preference kept on this host, so it survives the targets being released and rebuilt.
+		/// </summary>
+		public RadarPalette? RadarPaletteOverride { get; set; }
+		/// <summary>The chartplotter palette chosen with its palette key, or null to follow day and night.</summary>
+		public ChartPaletteKind? PlotterPaletteOverride { get; set; }
+		public static RadarPalette RadarPaletteFor(bool night, RadarPalette? chosen) => chosen ?? (night ? RadarPalette.Night : RadarPalette.Day);
+		public static ChartPaletteKind PlotterPaletteFor(bool night, ChartPaletteKind? chosen) => chosen ?? (night ? ChartPaletteKind.Night : ChartPaletteKind.Day);
 		/// <summary>Supply already-loaded chart/radar indices. No scene search, pack loading or simulation writes.</summary>
 		public void Connect(Transform interior, IVesselTelemetrySource source, IInstrumentSource instruments,
 			ChartTessellation chart, RadarScene radarScene, ITargetSource targets = null, TrafficRun traffic = null,
@@ -120,11 +129,11 @@ namespace FerrySim.Console
 			switch (slot)
 			{
 				case 0:
-					var radarPalette = night ? RadarPalette.Night : RadarPalette.Day;
+					var radarPalette = RadarPaletteFor(night, RadarPaletteOverride);
 					if (Radar.View.Palette != radarPalette) Radar.View.SetPalette(radarPalette);
 					Radar.RefreshReadouts(); Radar.UploadPicture(); break;
 				case 1:
-					Plotter.Palette = night ? ChartPaletteKind.Night : ChartPaletteKind.Day;
+					Plotter.Palette = PlotterPaletteFor(night, PlotterPaletteOverride);
 					Plotter.Refresh(_source, _targets, simulationTime); break;
 				case 2: if (PortEngine.Palette != _palette) PortEngine.Palette = _palette; PortEngine.Refresh(readout, simulationTime); break;
 				case 3: if (StarboardEngine.Palette != _palette) StarboardEngine.Palette = _palette; StarboardEngine.Refresh(readout, simulationTime); break;
