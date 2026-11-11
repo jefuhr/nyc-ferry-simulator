@@ -49,7 +49,7 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 		}
 
 		/// <summary>Loads the scene beside the test runner's, so <see cref="Unload"/> can give later suites a clean hierarchy.</summary>
-		public static IEnumerator Load()
+		public static IEnumerator Load(bool? consoleScreens = null)
 		{
 #if UNITY_EDITOR
 			yield return EditorSceneManager.LoadSceneAsyncInPlayMode(ScenePath, new LoadSceneParameters(LoadSceneMode.Additive));
@@ -58,6 +58,7 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 			yield break;
 #endif
 			yield return null;
+			if (consoleScreens.HasValue) Bootstrap().WheelhouseUI.View.Settings.ConsoleScreens = consoleScreens.Value;
 		}
 
 		/// <summary>Ends every run and unloads the harbor scene; other PlayMode suites find their own runner afterwards.</summary>

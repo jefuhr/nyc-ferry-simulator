@@ -211,7 +211,7 @@ namespace FerrySim.Build
 			}
 			Exact(Path.Combine(harbor, "env"), envExpected);
 			RequirePackaged(repo, files, Harbor + "/env");
-			foreach (var required in new[] { Harbor + "/index.json", Harbor + "/unity/contacts.json", "vessels/t-class.json", "vessels/k-class.json", "unity/Assets/FerrySim/Harbor/Data/landing-contact-surfaces.json", "unity/Assets/FerrySim/Harbor/Data/landing-audit.json" })
+			foreach (var required in new[] { Harbor + "/index.json", Harbor + "/unity/contacts.json", "vessels/t-class.json", "vessels/k-class.json", "vessels/instruments/t-class.json", "vessels/instruments/k-class.json", "unity/Assets/FerrySim/Harbor/Data/landing-contact-surfaces.json", "unity/Assets/FerrySim/Harbor/Data/landing-audit.json" })
 				if (!files.Contains(required)) throw new InvalidOperationException("Missing required payload file: " + required);
 			if (HashFile(Path.Combine(harbor, "unity/contacts.json")) != HashFile(Path.Combine(harbor, "runtime/contacts.json"))) throw new InvalidOperationException("Runtime contacts differ from source contacts.");
 			ValidateSceneRoots(repo, files);

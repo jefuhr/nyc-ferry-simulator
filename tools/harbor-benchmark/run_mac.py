@@ -14,7 +14,15 @@ from analyze import analyze
 from mac_memory import MacMemory
 
 
-def run(player, definitions, out, scenario, timeout, timing=False, profile=False, player_args=()):
+def presentation_arguments(args):
+	result = {'console_screens': False, 'hud_preset': 'classic'}
+	for key, value in zip(args, args[1:]):
+		if key == '-ferrysim-console-screens': result['console_screens'] = value == '1'
+		elif key == '-ferrysim-hud-preset': result['hud_preset'] = value
+	return result
+
+
+def run(player, definitions, out, scenario, timeout, timing=False, profile=False, player_args=(), console_screens=None, hud_preset=None):
 	out.mkdir(parents=True, exist_ok=False)
 	args = [str(player), '-ferrysim-route', scenario['route'], '-ferrysim-route-file', str(definitions),
 		'-ferrysim-benchmark-output', str(out), '-ferrysim-traffic', str(int(scenario['traffic'])),
@@ -24,6 +32,8 @@ def run(player, definitions, out, scenario, timeout, timing=False, profile=False
 		'-ferrysim-timing', str(int(timing)), '-ferrysim-rate', str(scenario.get('rate', 1)), '-screen-width', '1920', '-screen-height', '1080', '-screen-fullscreen', '0', '-logFile', str(out / 'Player.log')]
 	args += ['-ferrysim-switch-diagnostics',str(int(scenario.get('switch_diagnostics',False))),'-ferrysim-switch-cycles',str(scenario.get('switch_cycles',1)),'-ferrysim-switch-collect',str(int(scenario.get('switch_collect',False)))]
 	if profile: args += ['-ferrysim-profile', '1']
+	if console_screens is not None: args += ['-ferrysim-console-screens', str(int(console_screens == 'on'))]
+	if hud_preset is not None: args += ['-ferrysim-hud-preset', hud_preset]
 	args += list(player_args)
 	(out / 'command.json').write_text(json.dumps(args, indent=2)+'\n')
 	launch = time.time()
@@ -65,6 +75,7 @@ def run(player, definitions, out, scenario, timeout, timing=False, profile=False
 					pass
 				time.sleep(.1)
 	result = {'exit_code':process.returncode,'launch_unix_s':launch,'complete_wall_s':time.time()-launch,'extra_player_args':list(player_args),
+		'presentation': presentation_arguments(args),
 		'peak_rss_bytes':int(usage.ru_maxrss),'sampled_peak_rss_bytes':peak_sampled, 'kernel_peak_physical_footprint_bytes':peak_footprint,'physical_footprint_source':'proc_pid_rusage RUSAGE_INFO_V4 lifetime_max_phys_footprint; sampled through process life', 'peak_source':'wait4 ru_maxrss (bytes on Darwin); complete child lifetime',
 		'system':platform.platform(),'load_average_at_launch':load_at_launch,'load_average_at_end':os.getloadavg(),'process_cache':'cold process, OS cache uncontrolled',
 		'native_activity_counters':'proc_pid_rusage RUSAGE_INFO_V4 cumulative process pageins, disk bytes and raw native CPU/runnable time; 100 ms context, not per-frame causal attribution'}
@@ -85,6 +96,8 @@ def main():
 	p.add_argument('--already-locked',action='store_true')
 	p.add_argument('--quick',action='store_true',help='60 simulated seconds, explicitly incomplete journey, for instrumentation verification')
 	p.add_argument('--player-arg',action='append',default=[],help='append one literal player argument; repeat for each token, using --player-arg=-flag for leading hyphens')
+	p.add_argument('--console-screens', choices=['on', 'off'], help='override mounted screens; omitted preserves the flat benchmark')
+	p.add_argument('--hud-preset', choices=['classic', 'console', 'minimal', 'everything'], help='override the HUD preset; omitted preserves classic')
 	a=p.parse_args()
 	if a.profile: a.timing=True
 	player=a.player.resolve();definitions=a.routes.resolve();root=a.out.resolve()
@@ -104,11 +117,13 @@ def main():
 			if a.quick:command.append('--quick')
 			if a.timing:command.append('--timing')
 			if a.profile:command.append('--profile')
+			if a.console_screens is not None:command += ['--console-screens', a.console_screens]
+			if a.hud_preset is not None:command += ['--hud-preset', a.hud_preset]
 			for argument in a.player_arg:command.append('--player-arg='+argument)
 			status=subprocess.run(command).returncode
 			print(s['id'],'harness_exit',status,flush=True)
 		else:
-			print(s['id'],run(player,definitions,out,s,a.timeout,a.timing,a.profile,a.player_arg),flush=True)
+			print(s['id'],run(player,definitions,out,s,a.timeout,a.timing,a.profile,a.player_arg,a.console_screens,a.hud_preset),flush=True)
 
 
 if __name__=='__main__':main()

@@ -67,6 +67,7 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 			ui.enabled = true;
 			ui.DaylightSource = bootstrap.Context.Sun;
 			yield return null;
+			ui.View.Settings.ConsoleScreens = false;
 			ui.View.PickerVisible = false;
 			yield return null;
 		}
@@ -76,7 +77,7 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 		{
 			RequireChart();
 			Directory.CreateDirectory(Folder);
-			yield return HarborSceneFixture.Load();
+			yield return HarborSceneFixture.Load(consoleScreens: false);
 			var bootstrap = HarborSceneFixture.Bootstrap();
 			var services = (HarborIntegrationServices)bootstrap.Services;
 			var runner = bootstrap.Runner;
@@ -419,7 +420,7 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 		public IEnumerator RecordingDigestIsIdenticalWithAndWithoutTheDisplays_AndAReplayReconnectsThem()
 		{
 			RequireChart();
-			yield return HarborSceneFixture.Load();
+			yield return HarborSceneFixture.Load(consoleScreens: false);
 			var bootstrap = HarborSceneFixture.Bootstrap();
 			var services = (HarborIntegrationServices)bootstrap.Services;
 			var runner = bootstrap.Runner;
@@ -514,7 +515,7 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 		public IEnumerator ASecondComposition_SharesTheChartLoad_AndFreesTheFirstRuntimePack()
 		{
 			RequireChart();
-			yield return HarborSceneFixture.Load();
+			yield return HarborSceneFixture.Load(consoleScreens: false);
 			var first = (HarborIntegrationServices)HarborSceneFixture.Bootstrap().Services;
 			var firstLoad = first.Displays.Load;
 			var waited = Time.realtimeSinceStartupAsDouble;
@@ -526,9 +527,16 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 
 			var firstRuntime = new WeakReference(first.Pack);
 			Assert.That(first.Displays.Chartplotter.Chart.RuntimeDigest, Is.EqualTo(first.Pack.Digest));
+			HarborSceneFixture.Bootstrap().WheelhouseUI.View.Settings.ConsoleScreens = true;
+			yield return null;
+			var firstTargets = new Texture[HudWidgetIds.Screens.Count];
+			for (var i = 0; i < firstTargets.Length; i++) Assert.That(first.Displays.Screens.TryGetScreen(HudWidgetIds.Screens[i], out firstTargets[i]), Is.True);
 			first = null;
 			yield return HarborSceneFixture.Unload();
-			yield return HarborSceneFixture.Load();
+			foreach (var target in firstTargets) if (target != null) Assert.That(((RenderTexture)target).IsCreated(), Is.False, "native target released before deferred object destruction");
+			yield return null;
+			foreach (var target in firstTargets) Assert.That(target == null, Is.True, "the first composition's console targets were destroyed");
+			yield return HarborSceneFixture.Load(consoleScreens: false);
 			var second = (HarborIntegrationServices)HarborSceneFixture.Bootstrap().Services;
 			waited = Time.realtimeSinceStartupAsDouble;
 			while (!second.Displays.Connected)
@@ -540,6 +548,11 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 			Assert.That(second.Displays.Load, Is.SameAs(firstLoad), "the second composition shares the one chart load");
 			Assert.That(second.Displays.Chartplotter.Chart, Is.SameAs(firstLoad.Tessellation));
 			Assert.That(second.Displays.Chartplotter.Chart.RuntimeDigest, Is.EqualTo(second.Pack.Digest));
+			HarborSceneFixture.Bootstrap().WheelhouseUI.View.Settings.ConsoleScreens = true;
+			yield return null;
+			Assert.That(second.Displays.Screens.TargetColourBytes, Is.EqualTo(9019392));
+			Assert.That(Object.FindObjectsByType<FerrySim.Console.ConsoleScreens>(FindObjectsSortMode.None).Length, Is.EqualTo(1));
+			Assert.That(Object.FindObjectsByType<FerrySim.Prompts.KeybindPopups>(FindObjectsSortMode.None).Length, Is.EqualTo(1));
 			for (var i = 0; i < 10 && firstRuntime.IsAlive; i++)
 			{
 				GC.Collect();
