@@ -1,6 +1,8 @@
 param(
 	[string]$Root = 'C:/ferrysim',
-	[string]$Output = 'C:/ferrysim-results'
+	[string]$Output = 'C:/ferrysim-results',
+	[ValidateSet('on','off')][string]$ConsoleScreens = '',
+	[ValidateSet('classic','console','minimal','everything')][string]$HudPreset = ''
 )
 $ErrorActionPreference='Stop'
 if (Test-Path -LiteralPath $Output) { throw "Refusing existing output: $Output" }
@@ -10,10 +12,13 @@ New-Item -ItemType Directory -Path $Output | Out-Null
 $Collector=Join-Path $PSScriptRoot 'run-windows.ps1'
 $Shipping=Join-Path $Root 'windows/NYC Ferry Simulator/NYC Ferry Simulator.exe'
 $Diagnostic=Join-Path $Root 'diagnostic/NYC Ferry Simulator/NYC Ferry Simulator.exe'
-& $Collector -Player $Shipping -Output (Join-Path $Output 'shipping') -NoArchive
+$Presentation = @{}
+if ($ConsoleScreens) { $Presentation.ConsoleScreens = $ConsoleScreens }
+if ($HudPreset) { $Presentation.HudPreset = $HudPreset }
+& $Collector -Player $Shipping -Output (Join-Path $Output 'shipping') -NoArchive @Presentation
 # Diagnostic builds explain CPU/render/GPU/present cost; they do not accept shipping budgets.
 for ($Repeat=1;$Repeat -le 3;$Repeat++) {
-	& $Collector -Player $Diagnostic -Output (Join-Path $Output "diagnostic-$Repeat") -Quick -Timing -NoArchive -Scenario @('astoria-traffic0-displays1','astoria-traffic0-displays0')
+	& $Collector -Player $Diagnostic -Output (Join-Path $Output "diagnostic-$Repeat") -Quick -Timing -NoArchive -Scenario @('astoria-traffic0-displays1','astoria-traffic0-displays0') @Presentation
 }
 Compress-Archive -LiteralPath $Output -DestinationPath $Archive -CompressionLevel Optimal
 Get-FileHash -LiteralPath $Archive -Algorithm SHA256 | Format-List

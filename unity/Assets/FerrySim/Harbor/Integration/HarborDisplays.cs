@@ -1,5 +1,6 @@
 using System;
 using FerrySim.Chartplotter;
+using FerrySim.Console;
 using FerrySim.Controls;
 using FerrySim.Core.Radar;
 using FerrySim.Radar;
@@ -14,13 +15,9 @@ using UnityEngine.UIElements;
 namespace FerrySim.Harbor
 {
 	/// <summary>
-	/// The wheelhouse displays of the harbor scene: the chartplotter upper left and the radar upper right, both hidden
-	/// until their key shows them, both connected to the runner and the shared chart load once it is ready, and both
-	/// following the scene's day and night. Until the chart is ready each shows CHART LOADING; a failed load shows the
-	/// error, and the run is unaffected either way. They draw in the wheelhouse UI's own panel (the 1280×720 design
-	/// scaled with the screen) below its status line, hide in the external camera views and while the scenario picker or
-	/// the debrief is open, and their keys ("Displays" action map, Input/README.md) work only while they are visible.
-	/// Render-only: nothing here writes to the run, the recording or the replay.
+	/// Composes the own interior's console screens, shared HUD pictures and viewer demand. Flat radar/plotter
+	/// overlays remain lazy fallbacks when console screens are disabled or the vessel has no interior.
+	/// All displays use the shared verified chart load; presentation never changes a run or recording.
 	/// </summary>
 	[DisallowMultipleComponent]
 	[DefaultExecutionOrder(140)]
@@ -57,6 +54,21 @@ namespace FerrySim.Harbor
 		private RadarController _radar;
 		private ChartplotterDisplay _chartplotter;
 		private InputActionAsset _actions;
+		private InputBindingService _bindings;
+		private ConsoleScreens _screens;
+		private Transform _interior;
+		private long _screenRun = long.MinValue;
+		private bool _flatConnected;
+		private RadarPalette? _radarPaletteChoice;
+		private ChartPaletteKind? _plotterPaletteChoice;
+		private PaletteSetting _savedPalette;
+		private bool _savedPaletteKnown;
+		private readonly HarborHudAlarmInput _alarmInput = new HarborHudAlarmInput();
+		private static readonly string[] ScreenWidgets = { "screen:radar", "screen:plotter", "screen:engine-port", "screen:engine-starboard", "screen:alarms" };
+		public ConsoleScreens Screens => _screens;
+		public HarborPresentation Presentation { get; private set; }
+		private bool ConsoleActive => _screens != null && _screens.Enabled && _screens.Plotter != null;
+		public ChartplotterView ActivePlotter => ConsoleActive ? _screens.Plotter : _chartplotter?.View;
 		private DisplayInputMapper _mapper;
 		private bool _radarShown;
 		private bool _chartShown;
@@ -86,7 +98,7 @@ namespace FerrySim.Harbor
 		public HarborChartLoadState ChartState => _load != null ? _load.State : HarborChartLoadState.Loading;
 
 		/// <summary>True once both displays were connected to the ready chart.</summary>
-		public bool Connected => _connected;
+		public bool Connected => _connected && (ConsoleActive || _flatConnected);
 
 		/// <summary>Seconds from the scene's composition to the frame that connected the displays; NaN until then.</summary>
 		public double ChartReadySeconds => double.IsNaN(_readyAt) ? double.NaN : _readyAt - _composedAt;
@@ -94,7 +106,7 @@ namespace FerrySim.Harbor
 		/// <summary>The largest Mono heap use seen on the main thread while the chart was loading (Profiler.GetMonoUsedSizeLong).</summary>
 		public long PeakMonoUsedBytes => _peakMonoUsedBytes;
 
-		public RadarController Radar => _radar;
+		public RadarController Radar => ConsoleActive ? _screens.Radar : _radar;
 
 		public ChartplotterDisplay Chartplotter => _chartplotter;
 
@@ -136,7 +148,7 @@ namespace FerrySim.Harbor
 				}
 
 				var view = _ui != null ? _ui.View : null;
-				return view != null && !view.PickerVisible && !view.DebriefVisible;
+				return view != null && !view.PickerVisible && !view.DebriefVisible && !view.OptionsVisible;
 			}
 		}
 
@@ -180,11 +192,13 @@ namespace FerrySim.Harbor
 			_chartplotter = _chartObject.AddComponent<ChartplotterDisplay>();
 			_chartplotter.Configure(_settings);
 			_chartplotter.SetPlacement(ChartplotterPlacement);
-			_chartplotter.DaylightSource = _sun;
+			_chartplotter.DaylightSource = null;
 			_chartplotter.Visible = false;
 			if (helm != null && helm.Actions != null)
 			{
 				_actions = Instantiate(helm.Actions);
+				_bindings = InputBindingService.Instance;
+				_bindings.Register(_actions);
 				_mapper = new DisplayInputMapper(_actions);
 				_mapper.ChartplotterToggleRequested += OnChartplotterToggle;
 				_mapper.RadarToggleRequested += OnRadarToggle;
@@ -207,6 +221,8 @@ namespace FerrySim.Harbor
 				_mapper.RadarSeaRequested += OnRadarSea;
 			}
 
+			Presentation = gameObject.AddComponent<HarborPresentation>();
+			Presentation.Configure(runner, ui, rig);
 			Apply();
 		}
 
@@ -223,6 +239,8 @@ namespace FerrySim.Harbor
 			AdoptPanel();
 			FollowWheelhouseView();
 			PollLoad();
+			FollowInterior();
+			_alarmInput.Follow(_followedView, ConsoleActive ? _screens.Alarms : null);
 			Apply();
 			ApplyPendingKeys();
 			FollowDaylight();
@@ -237,30 +255,96 @@ namespace FerrySim.Harbor
 				if (_followedView != null)
 				{
 					_followedView.SettingsChanged -= OnWheelhouseSettingsChanged;
+					_followedView.Settings.Changed -= OnSavedSettingsChanged;
 				}
 
 				_followedView = view;
 				if (view != null)
 				{
 					view.SettingsChanged += OnWheelhouseSettingsChanged;
+					view.Settings.Changed += OnSavedSettingsChanged;
 					OnWheelhouseSettingsChanged();
 				}
 			}
 		}
 
+		private void OnSavedSettingsChanged(SettingsSection section) => OnWheelhouseSettingsChanged();
 		private void OnWheelhouseSettingsChanged()
 		{
-			if (_followedView == null)
-			{
-				return;
-			}
-
+			if (_followedView == null) return;
 			_unit = _followedView.DistanceUnit;
 			_unitKnown = true;
-			if (_connected && _chartplotter.View != null && _chartplotter.View.DistanceUnit != _unit)
+			if (!_savedPaletteKnown || _savedPalette != _followedView.Settings.Palette)
 			{
-				_chartplotter.View.DistanceUnit = _unit;
+				_savedPaletteKnown = true; _savedPalette = _followedView.Settings.Palette;
+				_radarPaletteChoice = _savedPalette == PaletteSetting.Auto ? null : _savedPalette == PaletteSetting.Night ? RadarPalette.Night : RadarPalette.Day;
+				_plotterPaletteChoice = _savedPalette == PaletteSetting.Auto ? null : _savedPalette == PaletteSetting.Night ? ChartPaletteKind.Night : ChartPaletteKind.Day;
 			}
+			if (_chartplotter.View != null) ApplyPlotterSettings(_chartplotter.View);
+			if (_screens != null)
+			{
+				_screens.RadarPaletteOverride = _radarPaletteChoice;
+				_screens.PlotterPaletteOverride = _plotterPaletteChoice;
+				_screens.Enabled = _followedView.Settings.ConsoleScreens;
+				_screens.VectorMinutes = _followedView.Settings.VectorMinutes;
+				_screens.Predictor = _followedView.Settings.Predictor == PredictorKind.Curved ? PredictorMode.Curved : PredictorMode.Straight;
+				if (_screens.Plotter != null) ApplyPlotterSettings(_screens.Plotter);
+			}
+			_forceApply = true;
+		}
+
+		private void ApplyPlotterSettings(ChartplotterView view)
+		{
+			view.DistanceUnit = _unit;
+			if (_followedView == null) return;
+			view.VectorMinutes = _followedView.Settings.VectorMinutes;
+			view.Predictor = _followedView.Settings.Predictor == PredictorKind.Curved ? PredictorMode.Curved : PredictorMode.Straight;
+		}
+
+		private void FollowInterior()
+		{
+			if (!_connected) return;
+			if (_screenRun != _runner.RunId)
+			{
+				_screenRun = _runner.RunId;
+				ReleaseScreens();
+				var interior = _runner.transform.Find(WheelhouseControlsView.RootName);
+				_interior = interior != null && interior.gameObject.activeInHierarchy ? interior : null;
+				if (_interior != null)
+				{
+					var host = new GameObject("Console screens"); host.transform.SetParent(transform.parent, false);
+					_screens = host.AddComponent<ConsoleScreens>();
+					_screens.Enabled = _followedView == null || _followedView.Settings.ConsoleScreens;
+					_screens.Connect(_interior, _runner, _runner, _load.Tessellation, _load.RadarScene, environment: _runner);
+					OnWheelhouseSettingsChanged();
+				}
+				_forceApply = true;
+			}
+			if (_followedView != null) _followedView.ScreenSource = _screens;
+			if (!ConsoleActive) ConnectFlat();
+			if (_screens == null) return;
+			_screens.SetWheelhouseVisible(DisplaysAllowed);
+			for (var i = 0; i < HudWidgetIds.Screens.Count; i++)
+			{
+				var id = HudWidgetIds.Screens[i];
+				var shown = _followedView != null && _followedView.PanelVisible && !_followedView.PickerVisible &&
+					!_followedView.OptionsVisible && !_followedView.DebriefVisible && _followedView.HudLayout.IsShown(ScreenWidgets[i]);
+				_screens.SetPopOutShown(id, shown);
+			}
+			var camera = _rig != null ? _rig.GetComponent<WheelhouseCameraController>() : null;
+			var mount = camera != null ? camera.FocusedScreen : null;
+			var focus = mount == "RadarScreen" ? "radar" : mount == "PlotterScreen" ? "plotter" :
+				mount == "PortEngineScreen" ? "engine-port" : mount == "StarboardEngineScreen" ? "engine-starboard" : null;
+			_screens.SetFocus(focus);
+		}
+
+		private void ReleaseScreens()
+		{
+			if (_screens == null) return;
+			if (_followedView != null && ReferenceEquals(_followedView.ScreenSource, _screens)) _followedView.ScreenSource = null;
+			_screens.Enabled = false;
+			Destroy(_screens.gameObject);
+			_screens = null;
 		}
 
 		/// <summary>How many range bins of the whole picture carry an echo above <paramref name="threshold"/>; evidence for the smoke run and the tests.</summary>
@@ -380,31 +464,33 @@ namespace FerrySim.Harbor
 				_peakMonoUsedBytes = used2;
 			}
 
+			_connected = true;
+			_readyAt = Time.realtimeSinceStartupAsDouble;
+			_forceApply = true;
+		}
+
+		private void ConnectFlat()
+		{
+			if (_flatConnected) return;
 			_radar.Connect(_runner, _load.RadarScene, _radarHost, compact: true);
 			_radarStatus.style.display = DisplayStyle.None;
 			_chartplotter.Connect(_runner, _load.Tessellation);
 			_chartObject.SetActive(true);
-			if (_unitKnown && _chartplotter.View != null)
-			{
-				_chartplotter.View.DistanceUnit = _unit;
-			}
-
+			if (_unitKnown) ApplyPlotterSettings(_chartplotter.View);
 			if (_chartplotter.Document != null)
 			{
 				_chartplotter.Document.sortingOrder = ChartplotterSortingOrder;
 				_chartplotter.Document.panelSettings = _settings;
 			}
-
-			_connected = true;
-			_readyAt = Time.realtimeSinceStartupAsDouble;
+			_flatConnected = true;
 			_forceApply = true;
 		}
 
 		private void Apply()
 		{
 			var allowed = DisplaysAllowed;
-			var radarVisible = _radarShown && allowed;
-			var chartVisible = _chartShown && allowed;
+			var radarVisible = _radarShown && allowed && !ConsoleActive;
+			var chartVisible = _chartShown && allowed && !ConsoleActive;
 			if (radarVisible != _radarVisible || _forceApply)
 			{
 				_radarVisible = radarVisible;
@@ -443,31 +529,26 @@ namespace FerrySim.Harbor
 		}
 
 		/// <summary>
-		/// Night holds the night palette on both displays; by day a palette chosen with the keys holds until the next
-		/// night. The chartplotter does this itself from its daylight source; the radar is told here.
+		/// Both displays follow the saved/global palette, including automatic day/night. Explicit instrument-key
+		/// choices persist until the captain changes the global palette setting.
 		/// </summary>
 		private void FollowDaylight()
 		{
-			if (!_connected || _sun == null || _radar.View == null)
+			if (!_connected || _followedView == null) return;
+			var palette = _followedView.Palette;
+			if (_screens != null) _screens.Palette = palette;
+			if (Radar?.View != null)
 			{
-				return;
+				var wanted = _radarPaletteChoice ?? (palette == PaletteKind.Night ? RadarPalette.Night : RadarPalette.Day);
+				if (Radar.View.Palette != wanted) Radar.View.SetPalette(wanted);
 			}
-
-			var night = _sun.IsNight;
-			var palette = _radar.View.Palette;
-			if (night && palette != RadarPalette.Night)
-			{
-				_radar.View.SetPalette(RadarPalette.Night);
-			}
-			else if (!night && palette == RadarPalette.Night)
-			{
-				_radar.View.SetPalette(RadarPalette.Day);
-			}
+			var chart = ActivePlotter;
+			var wantedChart = _plotterPaletteChoice ?? (palette == PaletteKind.Night ? ChartPaletteKind.Night : ChartPaletteKind.Day);
+			if (chart != null && chart.Palette != wantedChart) chart.Palette = wantedChart;
 		}
 
-		private bool ChartReady => _chartVisible && _connected && _chartplotter.View != null;
-
-		private bool RadarReady => _radarVisible && _connected && _radar.View != null;
+		private bool ChartReady => (ConsoleActive && DisplaysAllowed || _chartVisible) && _connected && ActivePlotter != null;
+		private bool RadarReady => (ConsoleActive && DisplaysAllowed || _radarVisible) && _connected && Radar?.View != null;
 
 		// The input callbacks only queue; ApplyPendingKeys acts in Tick.
 		private void OnChartplotterToggle() => _pendingChartToggle++;
@@ -500,8 +581,16 @@ namespace FerrySim.Harbor
 			var allowed = DisplaysAllowed;
 			if (allowed)
 			{
-				if ((_pendingChartToggle & 1) != 0) _chartShown = !_chartShown;
-				if ((_pendingRadarToggle & 1) != 0) _radarShown = !_radarShown;
+				if ((_pendingChartToggle & 1) != 0)
+				{
+					if (ConsoleActive) _followedView.HudLayout.ToggleSessionShown(ScreenWidgets[1]);
+					else _chartShown = !_chartShown;
+				}
+				if ((_pendingRadarToggle & 1) != 0)
+				{
+					if (ConsoleActive) _followedView.HudLayout.ToggleSessionShown(ScreenWidgets[0]);
+					else _radarShown = !_radarShown;
+				}
 				if (_pendingChartToggle != 0 || _pendingRadarToggle != 0) Apply();
 			}
 
@@ -509,13 +598,18 @@ namespace FerrySim.Harbor
 			_pendingRadarToggle = 0;
 			if (ChartReady)
 			{
-				var view = _chartplotter.View;
+				var view = ActivePlotter;
 				for (; _pendingChartZoom > 0; _pendingChartZoom--) view.ZoomIn();
 				for (; _pendingChartZoom < 0; _pendingChartZoom++) view.ZoomOut();
 				if ((_pendingChartOrientation & 1) != 0) view.ToggleOrientation();
 				if (_pendingChartCentre != 0) view.Centre();
 				if (_pendingChartPanX != 0 || _pendingChartPanY != 0) view.Pan(_pendingChartPanX * PanPixels, _pendingChartPanY * PanPixels);
 				for (var i = 0; i < _pendingChartPalette; i++) view.CyclePalette();
+				if (_pendingChartPalette > 0)
+				{
+					_plotterPaletteChoice = view.Palette;
+					if (_screens != null) _screens.PlotterPaletteOverride = _plotterPaletteChoice;
+				}
 				for (var i = 0; i < _pendingChartNextTarget; i++) view.SelectNextTarget();
 				if (_pendingChartClearSelection != 0) view.ClearSelection();
 				for (; _pendingChartCpaLimit > 0; _pendingChartCpaLimit--) view.StepCpaLimit(1);
@@ -530,10 +624,15 @@ namespace FerrySim.Harbor
 			_pendingChartCpaLimit = 0; _pendingChartTcpaLimit = 0; _pendingChartAlarmMute = 0;
 			if (RadarReady)
 			{
-				var view = _radar.View;
+				var view = Radar.View;
 				if (_pendingRadarRange != 0) view.ChangeRange(_pendingRadarRange);
 				if ((_pendingRadarOrientation & 1) != 0) view.SetHeadUp(!view.HeadUp);
 				for (var i = 0; i < _pendingRadarPalette; i++) view.SetPalette((RadarPalette)(((int)view.Palette + 1) % 3));
+				if (_pendingRadarPalette > 0)
+				{
+					_radarPaletteChoice = view.Palette;
+					if (_screens != null) _screens.RadarPaletteOverride = _radarPaletteChoice;
+				}
 				for (; _pendingRadarEbl > 0; _pendingRadarEbl--) view.StepEbl(1);
 				for (; _pendingRadarEbl < 0; _pendingRadarEbl++) view.StepEbl(-1);
 				for (; _pendingRadarVrm > 0; _pendingRadarVrm--) view.StepVrm(1);
@@ -580,9 +679,12 @@ namespace FerrySim.Harbor
 
 		private void OnDestroy()
 		{
+			_alarmInput.Dispose();
+			ReleaseScreens();
 			if (_followedView != null)
 			{
 				_followedView.SettingsChanged -= OnWheelhouseSettingsChanged;
+				_followedView.Settings.Changed -= OnSavedSettingsChanged;
 				_followedView = null;
 			}
 
@@ -590,6 +692,7 @@ namespace FerrySim.Harbor
 			_mapper = null;
 			if (_actions != null)
 			{
+				_bindings?.Unregister(_actions);
 				Destroy(_actions);
 				_actions = null;
 			}

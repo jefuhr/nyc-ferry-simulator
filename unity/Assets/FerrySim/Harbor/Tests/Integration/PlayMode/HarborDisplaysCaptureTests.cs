@@ -42,7 +42,7 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 			if (!Directory.Exists(Path.Combine(HarborSceneFixture.Repo, "data", "processed", "harbor", "chart"))) Assert.Ignore("The chart pack is not copied.");
 			_folder = Path.Combine(HarborSceneFixture.Repo, "artifacts/m3w3c-integration/captures");
 			Directory.CreateDirectory(_folder);
-			yield return HarborSceneFixture.Load();
+			yield return HarborSceneFixture.Load(consoleScreens: false);
 			var bootstrap = HarborSceneFixture.Bootstrap();
 			var services = (HarborIntegrationServices)bootstrap.Services;
 			var runner = bootstrap.Runner;

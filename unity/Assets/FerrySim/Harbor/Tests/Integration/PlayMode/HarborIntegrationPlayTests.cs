@@ -22,7 +22,7 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 		public IEnumerator HarborScene_Pier11AndStGeorge_WaterNavigationTraffic_AndACoverageHold()
 		{
 			HarborSceneFixture.RequireData();
-			yield return HarborSceneFixture.Load();
+			yield return HarborSceneFixture.Load(consoleScreens: false);
 			var bootstrap = HarborSceneFixture.Bootstrap();
 			var services = (HarborIntegrationServices)bootstrap.Services;
 			var runner = bootstrap.Runner;

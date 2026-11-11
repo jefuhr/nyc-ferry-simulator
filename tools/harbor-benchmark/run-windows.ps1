@@ -5,6 +5,8 @@ param(
 	[switch]$Quick,
 	[switch]$Timing,
 	[switch]$NoArchive,
+	[ValidateSet('on','off')][string]$ConsoleScreens = '',
+	[ValidateSet('classic','console','minimal','everything')][string]$HudPreset = '',
 	[int]$TimeoutSeconds = 20000
 )
 $ErrorActionPreference = 'Stop'
@@ -61,6 +63,8 @@ foreach ($Case in $Selected) {
 		'-ferrysim-traffic',$Traffic,'-ferrysim-displays',$Displays,'-ferrysim-render',$Case.render,
 		'-ferrysim-duration',"$Duration",'-ferrysim-minute',"$($Case.minute)",'-ferrysim-visibility',"$($Case.visibility)",
 		'-ferrysim-capture',$Capture,'-screen-width','1920','-screen-height','1080','-screen-fullscreen','0','-force-d3d12','-logFile',(Join-Path $Folder 'Player.log'))
+	if ($ConsoleScreens) { $Arguments += @('-ferrysim-console-screens', $(if ($ConsoleScreens -eq 'on') { '1' } else { '0' })) }
+	if ($HudPreset) { $Arguments += @('-ferrysim-hud-preset', $HudPreset.ToLowerInvariant()) }
 	@($Player) + $Arguments | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Folder 'command.json') -Encoding UTF8
 	$Quoted = @($Arguments | ForEach-Object { '"' + $_.Replace('"','\"') + '"' })
 	$Started = [DateTime]::UtcNow
@@ -96,6 +100,7 @@ foreach ($Case in $Selected) {
 		if ((Get-ChildItem -LiteralPath $Empty -Force | Measure-Object).Count -eq 0) { [IO.Directory]::Delete($Empty) }
 	}
 	$Receipt = [ordered]@{exit_code=$ExitCode; launch_utc=$Started.ToString('o'); complete_wall_s=$Timer.Elapsed.TotalSeconds; peak_rss_bytes=$Peak; peak_source='GetProcessMemoryInfo PeakWorkingSetSize over active process lifetime'; timed_out=$TimedOut; final_peak_read=$FinalPeakRead; process_cache='cold process, OS cache uncontrolled'; quick=[bool]$Quick}
+	$Receipt['presentation'] = @{ console_screens=($ConsoleScreens -eq 'on'); hud_preset=$(if ($HudPreset) { $HudPreset.ToLowerInvariant() } else { 'classic' }) }
 	$Receipt | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $Folder 'process.json') -Encoding UTF8
 	$NativeStatus = 'unverified'
 	$IdentityFile = Join-Path $Folder 'identity.json'

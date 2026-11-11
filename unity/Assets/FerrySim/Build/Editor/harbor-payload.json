@@ -38,6 +38,8 @@
 		"data/processed/harbor/unity/contacts.json",
 		"vessels/t-class.json",
 		"vessels/k-class.json",
+		"vessels/instruments/t-class.json",
+		"vessels/instruments/k-class.json",
 		"unity/Assets/FerrySim/Harbor/Data/landing-contact-surfaces.json",
 		"unity/Assets/FerrySim/Harbor/Data/landing-audit.json"
 	],

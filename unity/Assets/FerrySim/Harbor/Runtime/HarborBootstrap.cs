@@ -38,7 +38,9 @@ namespace FerrySim.Harbor
 		private VisualElement _statusRoot;
 		private string _drawnStatus;
 		private bool _heldHelm;
-		private bool _pickerPausedRun;
+		private bool _dialogsPausedRun;
+		private bool _dialogsOpen;
+		private bool _typing;
 		private bool _awaitingInitialView;
 		private bool _openPicker;
 		private bool _subscribed;
@@ -86,6 +88,7 @@ namespace FerrySim.Harbor
 
 		private void Awake()
 		{
+			HarborLaunchPreferences.Prepare(wheelhouseUI, Environment.GetCommandLineArgs());
 			if (runner != null)
 			{
 				runner.Pause();
@@ -215,7 +218,7 @@ namespace FerrySim.Harbor
 			// OnDisable ends a run. Keep it enabled while held, and pause before its -100 Update instead.
 			runner.enabled = true;
 			_awaitingInitialView = true;
-			_pickerPausedRun = false;
+			_dialogsPausedRun = false;
 			_openPicker = false;
 			var mount = cameraRig.WheelhouseMount;
 			if (mount != null)
@@ -258,8 +261,8 @@ namespace FerrySim.Harbor
 				{
 					_awaitingInitialView = false;
 					Status = null;
-					if (_view == null || !_view.PickerVisible) { runner.Resume(); ReleaseHelm(); }
-					else _pickerPausedRun = true;
+					if (!DialogsOpen) { runner.Resume(); if (!_typing) ReleaseHelm(); }
+					else _dialogsPausedRun = true;
 				}
 			}
 			RefreshHold();
@@ -340,37 +343,57 @@ namespace FerrySim.Harbor
 			if (_mapper == null) return;
 			_mapper.CameraCycleRequested += CycleCamera;
 			_mapper.NewRunRequested += TogglePicker;
-			if (IsHeld || (_view != null && _view.PickerVisible)) HoldHelm();
+			if (IsHeld || DialogsOpen || _typing) HoldHelm();
+		}
+
+		private bool DialogsOpen => _view != null && (_view.PickerVisible || _view.OptionsVisible);
+
+		private void DetachView()
+		{
+			if (_view == null) return;
+			_view.PickerVisibilityChanged -= ModalChanged;
+			_view.OptionsVisibilityChanged -= ModalChanged;
+			_view.TextEntryChanged -= TextEntryChanged;
 		}
 
 		private void FollowView(WheelhouseView view)
 		{
 			if (ReferenceEquals(view, _view)) return;
-			if (_view != null) _view.PickerVisibilityChanged -= PickerChanged;
+			DetachView();
 			_view = view;
+			_typing = false;
 			_shownMode = (CameraRig.Mode)(-1);
-			if (_view == null) return;
-			_view.PickerVisibilityChanged += PickerChanged;
-			if (_view.PickerVisible) PickerChanged(true);
+			if (_view != null)
+			{
+				_view.PickerVisibilityChanged += ModalChanged;
+				_view.OptionsVisibilityChanged += ModalChanged;
+				_view.TextEntryChanged += TextEntryChanged;
+			}
+			ModalChanged(false);
 		}
 
-		private void PickerChanged(bool visible)
+		private void ModalChanged(bool visible)
 		{
-			if (visible)
+			var open = DialogsOpen;
+			if (open && !_dialogsOpen)
 			{
-				_pickerPausedRun = runner != null && !runner.IsPaused;
+				_dialogsPausedRun = runner != null && !runner.IsPaused;
 				runner?.Pause();
-				HoldHelm();
 			}
-			else
+			else if (!open && _dialogsOpen)
 			{
-				if (!IsHeld)
-				{
-					if (_pickerPausedRun) runner?.Resume();
-					ReleaseHelm();
-				}
-				_pickerPausedRun = false;
+				if (!IsHeld && _dialogsPausedRun) runner?.Resume();
+				_dialogsPausedRun = false;
 			}
+			_dialogsOpen = open;
+			RefreshHelmHold();
+		}
+
+		private void TextEntryChanged(bool typing) { _typing = typing; RefreshHelmHold(); }
+		private void RefreshHelmHold()
+		{
+			if (IsHeld || DialogsOpen || _typing) HoldHelm();
+			else ReleaseHelm();
 		}
 
 		private void TogglePicker() => _view?.TogglePicker();
@@ -382,7 +405,7 @@ namespace FerrySim.Harbor
 		{
 			if (_subscribed && runner != null) runner.RunStarted -= OnRunStarted;
 			SubscribeMapper(null);
-			if (_view != null) _view.PickerVisibilityChanged -= PickerChanged;
+			DetachView();
 			_statusLabel?.RemoveFromHierarchy();
 		}
 	}

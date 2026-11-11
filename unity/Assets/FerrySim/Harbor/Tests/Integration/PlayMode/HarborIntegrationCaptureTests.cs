@@ -40,7 +40,7 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 			HarborSceneFixture.RequireData();
 			_folder = Path.Combine(HarborSceneFixture.Repo, "artifacts/harbor-integration/captures");
 			Directory.CreateDirectory(_folder);
-			yield return HarborSceneFixture.Load();
+			yield return HarborSceneFixture.Load(consoleScreens: false);
 			var bootstrap = HarborSceneFixture.Bootstrap();
 			var services = (HarborIntegrationServices)bootstrap.Services;
 			var runner = bootstrap.Runner;

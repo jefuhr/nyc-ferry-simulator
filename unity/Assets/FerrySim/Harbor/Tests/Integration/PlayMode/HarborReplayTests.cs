@@ -37,7 +37,7 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 		public IEnumerator DefaultComposition_SharesPreviewAndRunDepth_AcrossTwoDays()
 		{
 			HarborSceneFixture.RequireData();
-			yield return HarborSceneFixture.Load();
+			yield return HarborSceneFixture.Load(consoleScreens: false);
 			var bootstrap = HarborSceneFixture.Bootstrap();
 			var services = (HarborIntegrationServices)bootstrap.Services;
 			var runner = bootstrap.Runner;
@@ -70,7 +70,7 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 		public IEnumerator SwitchingDays_ReleasesThePreviousSceneRunAndTrafficPack()
 		{
 			HarborSceneFixture.RequireData();
-			yield return HarborSceneFixture.Load();
+			yield return HarborSceneFixture.Load(consoleScreens: false);
 			var bootstrap = HarborSceneFixture.Bootstrap();
 			var services = (HarborIntegrationServices)bootstrap.Services;
 			bootstrap.Runner.RecordRuns = false;
@@ -132,7 +132,7 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 		{
 			HarborSceneFixture.RequireData();
 			ScenarioPicker.SessionChoice = new ScenarioChoice("87", "2025-07-16", 738, "t-class", traffic: false);
-			yield return HarborSceneFixture.Load();
+			yield return HarborSceneFixture.Load(consoleScreens: false);
 			var bootstrap = HarborSceneFixture.Bootstrap();
 			var services = (HarborIntegrationServices)bootstrap.Services;
 			var ui = bootstrap.WheelhouseUI;
@@ -207,7 +207,7 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 		public IEnumerator ReplayA_AfterDifferentTideB_RebindsBeforePlacementAndTraffic()
 		{
 			HarborSceneFixture.RequireData();
-			yield return HarborSceneFixture.Load();
+			yield return HarborSceneFixture.Load(consoleScreens: false);
 			var bootstrap = HarborSceneFixture.Bootstrap();
 			var services = (HarborIntegrationServices)bootstrap.Services;
 			var run = RecordA(bootstrap);
@@ -227,10 +227,10 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 		public IEnumerator ReplayA_InAFreshScene_BindsWaterAndPatchesBeforeAnyOrdinaryRun()
 		{
 			HarborSceneFixture.RequireData();
-			yield return HarborSceneFixture.Load();
+			yield return HarborSceneFixture.Load(consoleScreens: false);
 			var run = RecordA(HarborSceneFixture.Bootstrap());
 			yield return HarborSceneFixture.Unload();
-			yield return HarborSceneFixture.Load();
+			yield return HarborSceneFixture.Load(consoleScreens: false);
 			var bootstrap = HarborSceneFixture.Bootstrap();
 			var services = (HarborIntegrationServices)bootstrap.Services;
 			Assert.That(services.RunsBound, Is.Zero);
