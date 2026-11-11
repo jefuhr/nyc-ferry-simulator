@@ -105,5 +105,11 @@ namespace FerrySim.Controls
 
 		/// <summary>Restores one action's defaults unless another binding now holds a default control. On conflict nothing changes.</summary>
 		bool TryReset(string actionId, out string conflictActionId);
+
+		/// <summary>
+		/// What to show for one rebindable slot in a scheme. Reflects overrides; empty for an unknown
+		/// action, scheme, missing slot or empty binding. Uses the same slot numbering as Rows.
+		/// </summary>
+		string DisplayString(string actionId, int slot, string scheme);
 	}
 }

@@ -153,5 +153,11 @@ namespace FerrySim.UI.Tests.SettingsHud
 				_keys[actionId + "|" + scheme] = keys;
 			}
 		}
+
+		public string DisplayString(string actionId, int slot, string scheme)
+		{
+			var parts = DisplayString(actionId, scheme).Split(new[] { " / " }, StringSplitOptions.None);
+			return slot >= 0 && slot < parts.Length ? parts[slot] : string.Empty;
+		}
 	}
 }
