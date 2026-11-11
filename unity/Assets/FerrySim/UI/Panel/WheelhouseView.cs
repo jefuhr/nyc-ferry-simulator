@@ -35,6 +35,8 @@ namespace FerrySim.UI
 		private IScenarioCatalog _catalog;
 		private IScenarioLauncher _launcher;
 		private bool _disposed;
+		private IInstrumentSource _depthInstrumentSource;
+		private VesselSimulationRunner _depthInstrumentRunner;
 
 		/// <summary>A view whose settings and layouts are kept in memory only.</summary>
 		public WheelhouseView() : this(SettingsStore.InMemory(), HudLayoutStore.InMemory())
@@ -366,6 +368,7 @@ namespace FerrySim.UI
 			}
 
 			_disposed = true;
+			ReleaseDepthInstrumentSource();
 			SettingsChanged = null;
 			PickerVisibilityChanged = null;
 			OptionsVisibilityChanged = null;
@@ -449,6 +452,7 @@ namespace FerrySim.UI
 		/// <param name="realTime">Unscaled real time in seconds; only alarm flashing uses it.</param>
 		public void Refresh(IVesselTelemetrySource source, double realTime)
 		{
+			FollowDepthInstrumentSource(source);
 			// A scene source that has been destroyed would keep answering with its last values: treat it as none.
 			var environment = EnvironmentSource is UnityEngine.Object component && component == null ? null : EnvironmentSource;
 			// The panel keeps running while hidden so its alarm state is current when it comes back; the HUD widgets and the
@@ -465,6 +469,28 @@ namespace FerrySim.UI
 			}
 		}
 
+		// Follow before the first telemetry sample too: preferences are viewer actions and must reach
+		// the next physics step, not wait for a frame after it. A new model resets the override.
+		internal void FollowDepthInstrumentSource(IVesselTelemetrySource source)
+		{
+			var instruments = source as IInstrumentSource;
+			if (_disposed || ReferenceEquals(instruments, _depthInstrumentSource)) return;
+			ReleaseDepthInstrumentSource();
+			_depthInstrumentSource = instruments;
+			_depthInstrumentRunner = source as VesselSimulationRunner;
+			if (_depthInstrumentRunner != null) _depthInstrumentRunner.RunStarted += ApplyDepthAlarmThreshold;
+			ApplyDepthAlarmThreshold();
+		}
+
+		private void ReleaseDepthInstrumentSource()
+		{
+			if (_depthInstrumentRunner != null) _depthInstrumentRunner.RunStarted -= ApplyDepthAlarmThreshold;
+			_depthInstrumentRunner = null;
+			_depthInstrumentSource = null;
+		}
+
+		private void ApplyDepthAlarmThreshold() => _depthInstrumentSource?.SetShallowWaterThreshold(_depthAlarmThreshold);
+
 		private void OnDisplayChanged()
 		{
 			// A publisher may already have copied its invocation list when another handler disposes this view.
@@ -475,6 +501,7 @@ namespace FerrySim.UI
 
 			_distanceUnit = Settings.DistanceUnit;
 			_depthAlarmThreshold = Settings.DepthAlarmMetres;
+			ApplyDepthAlarmThreshold();
 			Debrief.DistanceUnit = _distanceUnit;
 			Debrief.DepthAlarmThresholdMetres = _depthAlarmThreshold;
 			// Only a new palette choice changes the palette here: a unit change must not undo one picked by hand.

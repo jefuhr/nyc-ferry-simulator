@@ -3,7 +3,7 @@ using FerrySim.Core.Instruments;
 namespace FerrySim.Sim
 {
 	/// <summary>
-	/// The instrument model of a running vessel, and the three things a viewer can do to its alarms.
+	/// The instrument model of a running vessel, and viewer actions for its alarms.
 	/// The simulation bridge implements it next to <see cref="IVesselTelemetrySource"/>; consumers find it
 	/// by casting their telemetry source and must cope with it being absent (fakes, replays of old
 	/// builds). Acknowledge, silence and lamp test are viewer actions: they are never recorded, never
@@ -28,5 +28,8 @@ namespace FerrySim.Sim
 
 		/// <summary>Holds (true) or releases (false) the lamp test.</summary>
 		void SetLampTest(bool on);
+
+		/// <summary>Viewer-only shallow-water threshold in metres; null restores the class default. Finite, non-negative values only. Reapply on a new run.</summary>
+		void SetShallowWaterThreshold(double? metres);
 	}
 }

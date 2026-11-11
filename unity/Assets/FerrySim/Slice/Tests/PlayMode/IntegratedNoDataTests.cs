@@ -59,7 +59,7 @@ namespace FerrySim.Slice.PlayModeTests
 			Assert.That(panel.ShowingNoData, Is.False);
 			Assert.That(panel.Heading.text, Is.Not.EqualTo(InstrumentFormat.NoValue));
 			Assert.That(panel.Depth.Value.text, Is.Not.EqualTo(InstrumentFormat.NoValue));
-			Assert.That(panel.Alarm.IsRaised, Is.True, "48 m under the keel is below a 100 m threshold");
+			Assert.That(panel.DepthAlarmShown.IsRaised, Is.True, "48 m under the keel is below a 100 m threshold");
 			Assert.That(panel.Contact.Value.text, Is.EqualTo("NONE"));
 			Assert.That(_scene.Hud.Speed.text, Is.Not.EqualTo(InstrumentFormat.NoValue));
 			Assert.That(panel.Port.Tachometer.NeedleVisible, Is.True);
@@ -101,7 +101,7 @@ namespace FerrySim.Slice.PlayModeTests
 			Assert.That(panel.Rudder.PortText, Is.EqualTo(InstrumentFormat.NoValue), $"{when}: port rudder");
 			Assert.That(panel.Rudder.StarboardText, Is.EqualTo(InstrumentFormat.NoValue), $"{when}: starboard rudder");
 			Assert.That(double.IsNaN(panel.Rudder.PortDegrees) && double.IsNaN(panel.Rudder.StarboardDegrees), Is.True, $"{when}: rudder pointers");
-			Assert.That(panel.Depth.AlarmLit, Is.False, $"{when}: no depth alarm without a current reading");
+			Assert.That(panel.DepthAlarmShown.IsLit, Is.False, $"{when}: no depth alarm without a current reading");
 			Assert.That(panel.Contact.Indication, Is.EqualTo(ContactIndication.Unknown), $"{when}: contact is unknown, not NONE");
 			Assert.That(double.IsNaN(hud.PortLever.Lever) && double.IsNaN(hud.StarboardLever.Lever), Is.True, $"{when}: HUD levers");
 			Assert.That(double.IsNaN(hud.Rudder.PortDegrees) && double.IsNaN(hud.Rudder.StarboardDegrees), Is.True, $"{when}: HUD rudder");

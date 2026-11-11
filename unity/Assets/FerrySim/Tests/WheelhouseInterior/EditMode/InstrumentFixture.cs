@@ -51,5 +51,7 @@ namespace FerrySim.WheelhouseInterior.Tests
 		public void AcknowledgeAlarms() => Alarms.Acknowledge(AlarmGroup.Steering);
 		public void SilenceAlarms() => Alarms.Silence(AlarmGroup.Steering);
 		public void SetLampTest(bool on) => Alarms.SetLampTest(on);
+
+		public void SetShallowWaterThreshold(double? metres) { }
 	}
 }

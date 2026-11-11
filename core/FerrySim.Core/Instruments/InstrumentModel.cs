@@ -18,6 +18,7 @@ namespace FerrySim.Core.Instruments
 		private readonly double _loadTimeConstant;
 		private bool _initialized;
 		private double _lastTime;
+		private double? _shallowWaterThreshold;
 
 		private readonly struct Curve
 		{
@@ -52,7 +53,16 @@ namespace FerrySim.Core.Instruments
 		{
 			for (var i = 0; i < _values.Length; i++) _values[i] = double.NaN;
 			for (var i = 0; i < _discrepancySince.Length; i++) _discrepancySince[i] = double.NaN;
+			_shallowWaterThreshold = null;
 			_alarms.Reset(); _initialized = false; _lastTime = 0;
+		}
+
+		/// <summary>Viewer-only shallow-water threshold in metres; null restores the class default. Reset clears it.</summary>
+		public void SetShallowWaterThreshold(double? metres)
+		{
+			if (metres.HasValue && (double.IsNaN(metres.Value) || double.IsInfinity(metres.Value) || metres.Value < 0))
+				throw new ArgumentOutOfRangeException(nameof(metres), "Threshold must be finite and non-negative.");
+			_shallowWaterThreshold = metres;
 		}
 
 		public void Step(in VesselState state, in VesselTelemetry telemetry, in ControlInputs controls, IInstrumentTaps taps)
@@ -85,7 +95,7 @@ namespace FerrySim.Core.Instruments
 				bool condition;
 				switch (trigger.Condition)
 				{
-					case "shallow-water": condition = telemetry.DepthUnderKeel < trigger.Threshold; break;
+					case "shallow-water": condition = telemetry.DepthUnderKeel < (_shallowWaterThreshold ?? trigger.Threshold); break;
 					case "grounding": condition = telemetry.DepthUnderKeel < 0; break;
 					case "contact": condition = telemetry.ContactForce > trigger.Threshold; break;
 					default:

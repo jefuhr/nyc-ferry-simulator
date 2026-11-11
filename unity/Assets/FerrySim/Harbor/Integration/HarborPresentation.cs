@@ -57,7 +57,7 @@ namespace FerrySim.Harbor
 		private void Silence(InputAction.CallbackContext context) => ((IInstrumentSource)_runner)?.SilenceAlarms();
 		private void LampOn(InputAction.CallbackContext context) => ((IInstrumentSource)_runner)?.SetLampTest(true);
 		private void LampOff(InputAction.CallbackContext context) => ((IInstrumentSource)_runner)?.SetLampTest(false);
-		private void NewRun() { ((IInstrumentSource)_runner)?.SetLampTest(false); _runId = long.MinValue; }
+		private void NewRun() { ((IInstrumentSource)_runner)?.SetLampTest(false); ApplySettings(); _runId = long.MinValue; }
 		private void LateUpdate() => Refresh();
 
 		public void Refresh()
@@ -105,6 +105,7 @@ namespace FerrySim.Harbor
 		{
 			if (_view == null) return;
 			var settings = _view.Settings;
+			((IInstrumentSource)_runner)?.SetShallowWaterThreshold(settings.DepthAlarmMetres);
 			if (_camera != null) _camera.LookSensitivity = settings.LookSensitivity;
 			Hints.Mode = settings.KeybindHints;
 			if (_audio == null) return;

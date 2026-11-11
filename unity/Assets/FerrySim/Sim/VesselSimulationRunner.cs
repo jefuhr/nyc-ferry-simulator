@@ -157,6 +157,13 @@ namespace FerrySim.Sim
 
 		public void SetLampTest(bool on) => _instrumentObserver?.Model.SetLampTest(on);
 
+		public void SetShallowWaterThreshold(double? metres)
+		{
+			if (metres.HasValue && (double.IsNaN(metres.Value) || double.IsInfinity(metres.Value) || metres.Value < 0))
+				throw new ArgumentOutOfRangeException(nameof(metres), "Threshold must be finite and non-negative.");
+			_instrumentObserver?.Model.SetShallowWaterThreshold(metres);
+		}
+
 		public ContactLatch Contact => _contactObserver.Contact;
 
 		public bool HasEnvironment => HasTelemetry && _environment != null;

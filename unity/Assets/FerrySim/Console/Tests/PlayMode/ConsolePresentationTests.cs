@@ -33,6 +33,8 @@ namespace FerrySim.Console.Tests
 			public void AcknowledgeAlarms() { }
 			public void SilenceAlarms() { }
 			public void SetLampTest(bool on) => Readout.LampTest = on;
+
+			public void SetShallowWaterThreshold(double? metres) { }
 		}
 		[TearDown] public void Dispose() { if (_interior != null) Object.DestroyImmediate(_interior); }
 		[UnityTest] public IEnumerator StationaryScheduledChart_KeepsItsRetainedGeometry()

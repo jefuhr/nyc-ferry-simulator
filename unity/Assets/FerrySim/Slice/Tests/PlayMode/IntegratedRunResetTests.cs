@@ -38,17 +38,17 @@ namespace FerrySim.Slice.PlayModeTests
 			_scene.Restart(_scene.Approach(15.0, "run reset"), controls);
 			var panel = _scene.Panel;
 
-			yield return _scene.FramesUntil(() => panel.Alarm.State == AlarmState.Active, 20, "the depth alarm");
+			yield return _scene.FramesUntil(() => panel.DepthAlarmShown.State == AlarmState.Active, 20, "the depth alarm");
 			view.AcknowledgeAlarms();
 			yield return SliceScene.Frames(2);
-			Assert.That(panel.Alarm.State, Is.EqualTo(AlarmState.Acknowledged));
-			Assert.That(panel.Depth.AlarmLit, Is.True, "acknowledged: steady, still lit");
+			Assert.That(panel.DepthAlarmShown.State, Is.EqualTo(AlarmState.Acknowledged));
+			Assert.That(panel.DepthAlarmShown.IsLit, Is.True, "acknowledged: steady, still lit");
 
 			yield return _scene.FramesUntil(() => _scene.Runner.Contact.StepsWithContact > 0, 400, "the bow to touch South Williamsburg's face");
 			yield return SliceScene.Frames(2);
 			Assert.That(panel.Contact.Indication, Is.EqualTo(ContactIndication.Live).Or.EqualTo(ContactIndication.Recent));
 			Assert.That(panel.Contact.Value.text, Does.EndWith(" kN"));
-			Assert.That(panel.Alarm.State, Is.EqualTo(AlarmState.Acknowledged), "the acknowledgement holds within the run");
+			Assert.That(panel.DepthAlarmShown.State, Is.EqualTo(AlarmState.Acknowledged), "the acknowledgement holds within the run");
 			var oldRun = _scene.Runner.RunId;
 
 			_scene.Runner.ResetRun();
@@ -57,7 +57,7 @@ namespace FerrySim.Slice.PlayModeTests
 			yield return SliceScene.Frames(3);
 
 			Assert.That(_scene.Runner.HasTelemetry, Is.True, "the new run is stepping");
-			Assert.That(panel.Alarm.State, Is.EqualTo(AlarmState.Active), "a fresh alarm, not the old acknowledgement");
+			Assert.That(panel.DepthAlarmShown.State, Is.EqualTo(AlarmState.Active), "a fresh alarm, not the old acknowledgement");
 			Assert.That(panel.Contact.Indication, Is.EqualTo(ContactIndication.None));
 			Assert.That(panel.Contact.Value.text, Is.EqualTo("NONE"), "no contact carried over");
 			Assert.That(panel.ContactMonitor.PeakNewtons, Is.EqualTo(0.0));
