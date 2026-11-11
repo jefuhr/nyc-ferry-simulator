@@ -164,12 +164,10 @@ namespace FerrySim.Controls
 			var action = _current.FindAction(actionId, true);
 			var index = BindingSlots.Index(action, slot, scheme);
 			if (index < 0) throw new ArgumentOutOfRangeException(nameof(slot));
-			if (!BindingOverrideStore.ValidPath(path)) throw new ArgumentException("Expected a concrete control path.", nameof(path));
-			var layout = InputControlPath.TryGetDeviceLayout(path);
-			var inScheme = scheme == "Keyboard" ? BasedOn(layout, "Keyboard") || BasedOn(layout, "Mouse") : BasedOn(layout, scheme);
-			if (!inScheme) throw new ArgumentException("Control does not belong to the selected scheme.", nameof(path));
+			var paths = new BindingControlPaths();
+			if (!paths.ValidButton(path, scheme, out var reason)) throw new ArgumentException(reason, nameof(path));
 
-			conflictActionId = FindConflict(actionId, index, path);
+			conflictActionId = FindConflict(actionId, index, path, paths);
 			if (conflictActionId != null) return false;
 			var next = CopyOverrides();
 			next.RemoveAll(item => item.action == actionId && item.slot == slot && item.scheme == scheme);
@@ -178,9 +176,6 @@ namespace FerrySim.Controls
 			Persist(next);
 			return true;
 		}
-
-		private static bool BasedOn(string layout, string parent) => !string.IsNullOrEmpty(layout) &&
-			(string.Equals(layout, parent, StringComparison.OrdinalIgnoreCase) || InputSystem.IsFirstLayoutBasedOnSecond(layout, parent));
 
 		public void BeginRebind(string actionId, int slot, string scheme, Action<RebindOutcome> completed)
 		{
@@ -315,24 +310,26 @@ namespace FerrySim.Controls
 
 		private bool FindAnyConflict(out string holder)
 		{
+			var paths = new BindingControlPaths();
 			foreach (var row in _rows)
 			{
 				var action = _current.FindAction(row.ActionId);
 				var index = BindingSlots.Index(action, row.Slot, row.Scheme);
-				holder = FindConflict(row.ActionId, index, action.bindings[index].effectivePath);
+				holder = FindConflict(row.ActionId, index, action.bindings[index].effectivePath, paths);
 				if (holder != null) return true;
 			}
 			holder = null; return false;
 		}
-		private string FindConflict(string actionId, int index, string path)
+		private string FindConflict(string actionId, int index, string path, BindingControlPaths paths = null)
 		{
-			if (BindingConflicts.IsReserved(path)) return "Interface/Navigation";
+			paths ??= new BindingControlPaths();
+			foreach (var reserved in BindingConflicts.ReservedKeys) if (paths.Overlap(path, reserved)) return "Interface/Navigation";
 			foreach (var map in _current.actionMaps)
 				foreach (var action in map.actions)
 					for (var i = 0; i < action.bindings.Count; i++)
 					{
 						if (map.name + "/" + action.name == actionId && i == index || action.bindings[i].isComposite) continue;
-						if (BindingConflicts.Conflicts(actionId, path, map.name + "/" + action.name, action.bindings[i].effectivePath))
+						if (BindingConflicts.CanBeLiveTogether(actionId, map.name + "/" + action.name) && paths.Overlap(path, action.bindings[i].effectivePath))
 							return map.name + "/" + action.name;
 					}
 			return null;

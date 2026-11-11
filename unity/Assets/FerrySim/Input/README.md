@@ -154,6 +154,21 @@ live bindings intact and is exposed as `LastError` (direct writes throw; capture
 restore defaults without rewriting the file; obsolete actions or slots are dropped with warnings. Loaded
 conflicting documents are rejected whole. Writes replace a sibling temporary file atomically.
 
+Live rebinding and saved overrides share semantic control validation: the registered device layout must
+belong to the declared scheme (Mouse joins Keyboard), and the path must resolve to button controls.
+Resolution uses layout metadata, including inheritance, aliases, usages and nested controls; no device
+needs to be connected or created. A base-layout path conflicts with a derived-layout path when both
+resolve to the same control on that derived layout, subject to the existing live-context rule.
+An invalid replacement path is dropped with a warning naming its action, scheme, slot and path; other
+valid overrides still load and the dropped entry leaves its default intact. Structurally corrupt documents,
+unsupported versions, duplicate valid entries and conflicting final bindings still reject the whole file.
+
+A saved override whose device layout is not registered is kept unchanged, with a warning that it cannot
+be checked until its device is connected. Its path is inert while that layout is unknown and survives
+unrelated saves. A later load validates it once the layout is registered. Live `TryApply` still refuses
+unknown layouts. Connecting the device after loading can make the kept binding go live unchecked;
+there is no automatic validation on device arrival. A live edit validates its chosen control as usual.
+
 The Camera map stays live across views. `CameraRig` and `FreeFlyCameraController` set the service's
 free-fly context, suspending Helm and restoring its previous enabled state when leaving. A helm map
 explicitly disabled by the picker stays disabled. Movement buttons held while flying must be released

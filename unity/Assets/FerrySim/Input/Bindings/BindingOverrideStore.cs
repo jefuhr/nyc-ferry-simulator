@@ -47,6 +47,7 @@ namespace FerrySim.Controls
 					throw new InvalidDataException("Unsupported or missing binding version or overrides (expected version 1).");
 				var keys = new HashSet<string>(StringComparer.Ordinal);
 				var validated = new List<BindingOverride>();
+				var paths = new BindingControlPaths();
 				foreach (var entry in entries)
 				{
 					if (!(entry is JObject row) || row["action"]?.Type != JTokenType.String || row["scheme"]?.Type != JTokenType.String ||
@@ -54,15 +55,22 @@ namespace FerrySim.Controls
 						!int.TryParse(row["slot"].ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var slot) || slot < 0)
 						throw new InvalidDataException("Invalid binding override fields.");
 					var item = new BindingOverride { action = row.Value<string>("action"), scheme = row.Value<string>("scheme"), slot = slot, path = row.Value<string>("path") };
-					if (string.IsNullOrWhiteSpace(item.action) || string.IsNullOrWhiteSpace(item.scheme) || !ValidPath(item.path) ||
-						!keys.Add(item.action + "\n" + item.scheme + "\n" + item.slot))
-						throw new InvalidDataException("Invalid or duplicate binding override.");
 					var action = defaults.FindAction(item.action);
 					if (action == null || BindingSlots.Index(action, item.slot, item.scheme) < 0)
 					{
 						_warnings.Add("Dropped stale binding override: " + item.action + " (" + item.scheme + " slot " + item.slot + ").");
 						continue;
 					}
+					var validation = paths.ValidateButton(item.path, item.scheme, out var reason);
+					if (validation == BindingControlPaths.Validation.Invalid)
+					{
+						_warnings.Add("Dropped invalid binding override: " + item.action + " (" + item.scheme + " slot " + item.slot + ", " + item.path + "): " + reason);
+						continue;
+					}
+					if (validation == BindingControlPaths.Validation.UnknownLayout)
+						_warnings.Add("Kept binding override: " + item.action + " (" + item.scheme + " slot " + item.slot + ", " + item.path + "): cannot be checked until its device is connected.");
+					if (!keys.Add(item.action + "\n" + item.scheme + "\n" + item.slot))
+						throw new InvalidDataException("Duplicate binding override.");
 					validated.Add(item);
 				}
 
