@@ -138,9 +138,11 @@ namespace FerrySim.UI
 		{
 			var layout = _hud.Current;
 			_shown.Clear();
-			foreach (var placement in layout.Placements)
+			// Indexed, not foreach: enumerating the read-only list boxes its enumerator, and a display key runs this during play.
+			var placements = layout.Placements;
+			for (var i = 0; i < placements.Count; i++)
 			{
-				Place(Effective(placement));
+				Place(Effective(placements[i]));
 			}
 
 			UpdateClassic(_hud.IsShown(HudWidgetIds.ClassicPanel));
@@ -164,8 +166,10 @@ namespace FerrySim.UI
 			if (layout.TryGet(id, out var placement))
 			{
 				_shown.Clear();
-				foreach (var item in layout.Placements)
+				var placements = layout.Placements;
+				for (var i = 0; i < placements.Count; i++)
 				{
+					var item = placements[i];
 					if (item.Id == id)
 					{
 						Place(Effective(placement));

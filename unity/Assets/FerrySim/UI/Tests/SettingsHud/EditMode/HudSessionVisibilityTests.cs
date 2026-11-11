@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools.Constraints;
 using UnityEngine.UIElements;
+using Is = UnityEngine.TestTools.Constraints.Is;
 
 namespace FerrySim.UI.Tests.SettingsHud
 {
@@ -132,6 +134,32 @@ namespace FerrySim.UI.Tests.SettingsHud
 			Assert.That(_hud.SetSessionShown(Radar, true), Is.False);
 			Assert.That(_hud.IsShown(Radar), Is.False);
 			Assert.That(_changes, Is.Empty);
+		}
+
+		[Test]
+		public void AToggle_OnAWarmView_AllocatesNothing()
+		{
+			// A display key toggles a pop-out during a run: once the widget exists, showing and hiding it must cost no garbage.
+			var view = new WheelhouseView(_settings, _layouts);
+			try
+			{
+				var hud = view.HudLayout;
+				for (var i = 0; i < 6; i++)
+				{
+					hud.ToggleSessionShown(Radar);
+					hud.ToggleSessionShown(Plotter);
+				}
+
+				Assert.That(hud.IsShown(Radar), Is.False);
+				Assert.That(() => hud.ToggleSessionShown(Radar), Is.Not.AllocatingGCMemory(), "show");
+				Assert.That(hud.IsShown(Radar), Is.True);
+				Assert.That(() => hud.ToggleSessionShown(Radar), Is.Not.AllocatingGCMemory(), "hide");
+				Assert.That(() => { hud.SetSessionShown(Plotter, true); }, Is.Not.AllocatingGCMemory(), "show a second widget");
+			}
+			finally
+			{
+				view.Dispose();
+			}
 		}
 
 		[Test]
