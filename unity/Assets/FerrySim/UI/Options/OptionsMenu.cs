@@ -70,6 +70,7 @@ namespace FerrySim.UI
 		private readonly VisualElement _bindingList;
 		private readonly List<BindingRowView> _bindingRows = new List<BindingRowView>();
 		private readonly List<string> _groupNames = new List<string>();
+		private readonly List<string> _groupHeadings = new List<string>();
 		private readonly Label _message;
 		private readonly VisualElement _prompt;
 		private readonly Label _promptText;
@@ -234,6 +235,9 @@ namespace FerrySim.UI
 
 		/// <summary>The maps the Controls page groups its rows under, in order.</summary>
 		public IReadOnlyList<string> GroupNames => _groupNames;
+
+		/// <summary>The heading shown for each of <see cref="GroupNames"/>, in the same order (the page prints them in capitals).</summary>
+		public IReadOnlyList<string> GroupHeadings => _groupHeadings;
 
 		public bool Rebinding => _rebindRow != null;
 
@@ -685,6 +689,7 @@ namespace FerrySim.UI
 			_bindingList.Clear();
 			_bindingRows.Clear();
 			_groupNames.Clear();
+			_groupHeadings.Clear();
 			if (_bindings == null)
 			{
 				return;
@@ -703,7 +708,9 @@ namespace FerrySim.UI
 				{
 					group = map;
 					_groupNames.Add(map);
-					var header = PaletteRoles.Label(map.ToUpperInvariant(), PaletteRoles.Dim, "fs-caption", "fs-menu-group");
+					var heading = BindingLabels.GroupName(map);
+					_groupHeadings.Add(heading);
+					var header = PaletteRoles.Label(heading.ToUpperInvariant(), PaletteRoles.Dim, "fs-caption", "fs-menu-group");
 					_bindingList.Add(header);
 				}
 
@@ -739,37 +746,11 @@ namespace FerrySim.UI
 			}
 		}
 
-		/// <summary>
-		/// The key shown on a row. <see cref="IBindingService.DisplayString"/> lists an action's keys in a scheme in slot order,
-		/// joined by " / "; a row shows its own slot's key when the counts agree, and the whole string otherwise.
-		/// </summary>
+		/// <summary>The key shown on a row: its own slot's text from the binding service, or <see cref="Unbound"/>.</summary>
 		private string KeyFor(BindingRow row)
 		{
-			var text = _bindings.DisplayString(row.ActionId, row.Scheme);
-			if (string.IsNullOrEmpty(text))
-			{
-				return Unbound;
-			}
-
-			var slots = 0;
-			foreach (var other in _bindings.Rows)
-			{
-				if (other.ActionId == row.ActionId && other.Scheme == row.Scheme)
-				{
-					slots++;
-				}
-			}
-
-			if (slots > 1)
-			{
-				var parts = text.Split(new[] { " / " }, StringSplitOptions.None);
-				if (parts.Length == slots && row.Slot >= 0 && row.Slot < parts.Length)
-				{
-					return parts[row.Slot].Length > 0 ? parts[row.Slot] : Unbound;
-				}
-			}
-
-			return text;
+			var text = _bindings.DisplayString(row.ActionId, row.Slot, row.Scheme);
+			return string.IsNullOrEmpty(text) ? Unbound : text;
 		}
 
 		private string Pretty(string actionId)

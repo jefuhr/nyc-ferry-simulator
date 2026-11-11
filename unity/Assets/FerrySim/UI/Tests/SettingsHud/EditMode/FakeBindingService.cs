@@ -13,6 +13,7 @@ namespace FerrySim.UI.Tests.SettingsHud
 	{
 		private readonly List<BindingRow> _rows = new List<BindingRow>();
 		private readonly Dictionary<string, string> _keys = new Dictionary<string, string>();
+		private readonly Dictionary<string, string> _slotKeys = new Dictionary<string, string>();
 		private Action<RebindOutcome> _pending;
 
 		public FakeBindingService()
@@ -145,6 +146,13 @@ namespace FerrySim.UI.Tests.SettingsHud
 			return true;
 		}
 
+		/// <summary>Adds a row after the fixed ones (a map the fixed rows do not have, say).</summary>
+		public void Add(string actionId, int slot, string scheme, string label, string keys)
+		{
+			AddRow(actionId, slot, scheme, label, keys);
+			BindingsChanged?.Invoke();
+		}
+
 		private void AddRow(string actionId, int slot, string scheme, string label, string keys)
 		{
 			_rows.Add(new BindingRow(actionId, slot, scheme, label));
@@ -154,8 +162,20 @@ namespace FerrySim.UI.Tests.SettingsHud
 			}
 		}
 
+		/// <summary>Sets one slot's key text on its own, so a test can make it differ from the combined string.</summary>
+		public void SetSlotKey(string actionId, int slot, string scheme, string text)
+		{
+			_slotKeys[actionId + "|" + slot + "|" + scheme] = text;
+			BindingsChanged?.Invoke();
+		}
+
 		public string DisplayString(string actionId, int slot, string scheme)
 		{
+			if (_slotKeys.TryGetValue(actionId + "|" + slot + "|" + scheme, out var own))
+			{
+				return own;
+			}
+
 			var parts = DisplayString(actionId, scheme).Split(new[] { " / " }, StringSplitOptions.None);
 			return slot >= 0 && slot < parts.Length ? parts[slot] : string.Empty;
 		}

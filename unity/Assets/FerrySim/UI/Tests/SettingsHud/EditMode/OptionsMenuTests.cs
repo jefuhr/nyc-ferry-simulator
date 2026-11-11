@@ -53,6 +53,36 @@ namespace FerrySim.UI.Tests.SettingsHud
 		}
 
 		[Test]
+		public void ARow_ShowsItsOwnSlotsKey_FromTheService_NotByCuttingUpTheCombinedText()
+		{
+			// A key whose own name contains the separator: cutting the combined text on " / " would give three parts for
+			// two slots, and the row would fall back to showing the whole string.
+			_bindings.SetKey(ActionIds.NfuJog, "Keyboard", "Num / / F7");
+			_bindings.SetSlotKey(ActionIds.NfuJog, 0, "Keyboard", "Num /");
+			_bindings.SetSlotKey(ActionIds.NfuJog, 1, "Keyboard", "F7");
+			_menu.ShowPage(OptionsPage.Controls);
+			Assert.That(Row(ActionIds.NfuJog, 0).KeyText, Is.EqualTo("Num /"));
+			Assert.That(Row(ActionIds.NfuJog, 1).KeyText, Is.EqualTo("F7"));
+
+			// A slot with nothing bound says so, whatever its neighbour holds.
+			_bindings.SetSlotKey(ActionIds.NfuJog, 0, "Keyboard", string.Empty);
+			Assert.That(Row(ActionIds.NfuJog, 0).KeyText, Is.EqualTo(OptionsMenu.Unbound));
+			Assert.That(Row(ActionIds.NfuJog, 1).KeyText, Is.EqualTo("F7"));
+		}
+
+		[Test]
+		public void Controls_GroupHeadings_UseTheBindingLabelsDisplayNames()
+		{
+			// A map whose display name differs from its code name, or this test proves nothing.
+			_bindings.Add(ActionIds.FreeFlyFast, 0, "Keyboard", "Fly faster", "Left Shift");
+			_menu.Bind(_bindings, _settings, _hud);
+			_menu.ShowPage(OptionsPage.Controls);
+			Assert.That(_menu.GroupNames, Is.EqualTo(new[] { "Helm", "Camera", "Alarms", "Interface", "Audio", "FreeFly" }));
+			Assert.That(_menu.GroupHeadings, Is.EqualTo(new[] { "Helm", "Camera", "Alarms", "Interface", "Audio", "Free-fly camera" }));
+			Assert.That(_menu.GroupHeadings, Is.EqualTo(_menu.GroupNames.Select(BindingLabels.GroupName)));
+		}
+
+		[Test]
 		public void ARebind_ThatIsApplied_ShowsTheNewKey()
 		{
 			_menu.BeginRebind(Row(ActionIds.Horn));
