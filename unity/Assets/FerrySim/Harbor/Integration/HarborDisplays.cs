@@ -2,6 +2,7 @@ using System;
 using FerrySim.Chartplotter;
 using FerrySim.Console;
 using FerrySim.Controls;
+using FerrySim.Core.Navigation;
 using FerrySim.Core.Radar;
 using FerrySim.Radar;
 using FerrySim.Sim;
@@ -63,7 +64,13 @@ namespace FerrySim.Harbor
 		private ChartPaletteKind? _plotterPaletteChoice;
 		private PaletteSetting _savedPalette;
 		private bool _savedPaletteKnown;
-		private readonly HarborHudAlarmInput _alarmInput = new HarborHudAlarmInput();
+		private readonly HarborHudDisplayInput _alarmInput = new HarborHudDisplayInput();
+		private readonly HarborHudDisplayInput _portInput = new HarborHudDisplayInput();
+		private readonly HarborHudDisplayInput _starboardInput = new HarborHudDisplayInput();
+		private HarborTextEntryGate _textEntry;
+		private CpaAlarmLimits _alarmLimits = CpaAlarmLimits.Default;
+		private bool _alarmMuted;
+		private ChartplotterView _sessionPlotter;
 		private static readonly string[] ScreenWidgets = { "screen:radar", "screen:plotter", "screen:engine-port", "screen:engine-starboard", "screen:alarms" };
 		public ConsoleScreens Screens => _screens;
 		public HarborPresentation Presentation { get; private set; }
@@ -107,6 +114,13 @@ namespace FerrySim.Harbor
 		public long PeakMonoUsedBytes => _peakMonoUsedBytes;
 
 		public RadarController Radar => ConsoleActive ? _screens.Radar : _radar;
+
+		/// <summary>Releases retired traffic on every existing radar without sweeping, raster work or upload.</summary>
+		public void RebindRadars()
+		{
+			_radar?.RebindTraffic(_runner.Traffic);
+			_screens?.Radar?.RebindTraffic(_runner.Traffic);
+		}
 
 		public ChartplotterDisplay Chartplotter => _chartplotter;
 
@@ -170,6 +184,8 @@ namespace FerrySim.Harbor
 			_runner = runner ?? throw new ArgumentNullException(nameof(runner));
 			_load = load ?? throw new ArgumentNullException(nameof(load));
 			_ui = ui;
+			_textEntry = HarborTextEntryGate.For(ui);
+			if (_textEntry != null) _textEntry.Changed += TextEntryChanged;
 			_rig = rig;
 			_sun = sun;
 			_composedAt = Time.realtimeSinceStartupAsDouble;
@@ -236,13 +252,19 @@ namespace FerrySim.Harbor
 				return;
 			}
 
+			RememberPlotter();
 			AdoptPanel();
 			FollowWheelhouseView();
+			_textEntry?.Follow(_followedView);
 			PollLoad();
 			FollowInterior();
-			_alarmInput.Follow(_followedView, ConsoleActive ? _screens.Alarms : null);
+			FollowPlotter();
+			_alarmInput.Follow(_followedView, ConsoleActive ? _screens.Alarms : null, "screen:alarms");
+			_portInput.Follow(_followedView, ConsoleActive ? _screens.PortEngine : null, "screen:engine-port");
+			_starboardInput.Follow(_followedView, ConsoleActive ? _screens.StarboardEngine : null, "screen:engine-starboard");
 			Apply();
 			ApplyPendingKeys();
+			RememberPlotter();
 			FollowDaylight();
 		}
 
@@ -272,6 +294,7 @@ namespace FerrySim.Harbor
 		private void OnWheelhouseSettingsChanged()
 		{
 			if (_followedView == null) return;
+			RememberPlotter();
 			_unit = _followedView.DistanceUnit;
 			_unitKnown = true;
 			if (!_savedPaletteKnown || _savedPalette != _followedView.Settings.Palette)
@@ -286,11 +309,29 @@ namespace FerrySim.Harbor
 				_screens.RadarPaletteOverride = _radarPaletteChoice;
 				_screens.PlotterPaletteOverride = _plotterPaletteChoice;
 				_screens.Enabled = _followedView.Settings.ConsoleScreens;
+				FollowPlotter();
 				_screens.VectorMinutes = _followedView.Settings.VectorMinutes;
 				_screens.Predictor = _followedView.Settings.Predictor == PredictorKind.Curved ? PredictorMode.Curved : PredictorMode.Straight;
 				if (_screens.Plotter != null) ApplyPlotterSettings(_screens.Plotter);
 			}
 			_forceApply = true;
+		}
+
+		// Only the previously active view can update the session choices. Newly built views receive them first.
+		private void RememberPlotter()
+		{
+			if (_sessionPlotter == null) return;
+			_alarmLimits = _sessionPlotter.AlarmLimits;
+			_alarmMuted = _sessionPlotter.AlarmMuted;
+		}
+		private void FollowPlotter()
+		{
+			var next = ActivePlotter;
+			if (ReferenceEquals(next, _sessionPlotter)) return;
+			_sessionPlotter = next;
+			if (next == null) return;
+			next.AlarmLimits = _alarmLimits;
+			next.AlarmMuted = _alarmMuted;
 		}
 
 		private void ApplyPlotterSettings(ChartplotterView view)
@@ -514,6 +555,7 @@ namespace FerrySim.Harbor
 				_chartHost.style.display = chartHostVisible ? DisplayStyle.Flex : DisplayStyle.None;
 			}
 
+			allowed = InputAllowed;
 			if (_mapper != null && allowed != _mapperEnabled)
 			{
 				_mapperEnabled = allowed;
@@ -547,8 +589,10 @@ namespace FerrySim.Harbor
 			if (chart != null && chart.Palette != wantedChart) chart.Palette = wantedChart;
 		}
 
-		private bool ChartReady => (ConsoleActive && DisplaysAllowed || _chartVisible) && _connected && ActivePlotter != null;
-		private bool RadarReady => (ConsoleActive && DisplaysAllowed || _radarVisible) && _connected && Radar?.View != null;
+		private bool InputAllowed => DisplaysAllowed && !(_textEntry != null && _textEntry.Held);
+
+		private bool ChartReady => InputAllowed && (ConsoleActive && DisplaysAllowed || _chartVisible) && _connected && ActivePlotter != null;
+		private bool RadarReady => InputAllowed && (ConsoleActive && DisplaysAllowed || _radarVisible) && _connected && Radar?.View != null;
 
 		// The input callbacks only queue; ApplyPendingKeys acts in Tick.
 		private void OnChartplotterToggle() => _pendingChartToggle++;
@@ -578,7 +622,7 @@ namespace FerrySim.Harbor
 		/// </summary>
 		private void ApplyPendingKeys()
 		{
-			var allowed = DisplaysAllowed;
+			var allowed = InputAllowed;
 			if (allowed)
 			{
 				if ((_pendingChartToggle & 1) != 0)
@@ -646,6 +690,21 @@ namespace FerrySim.Harbor
 			_pendingRadarRange = 0; _pendingRadarOrientation = 0; _pendingRadarPalette = 0; _pendingRadarEbl = 0; _pendingRadarVrm = 0; _pendingRadarGain = 0; _pendingRadarSea = 0;
 		}
 
+		private void TextEntryChanged(bool held)
+		{
+			if (held) ClearPendingKeys();
+			Apply();
+		}
+		private void ClearPendingKeys()
+		{
+			_pendingChartToggle = 0; _pendingRadarToggle = 0;
+			_pendingChartZoom = 0; _pendingChartOrientation = 0; _pendingChartCentre = 0; _pendingChartPanX = 0; _pendingChartPanY = 0;
+			_pendingChartPalette = 0; _pendingChartNextTarget = 0; _pendingChartClearSelection = 0;
+			_pendingChartCpaLimit = 0; _pendingChartTcpaLimit = 0; _pendingChartAlarmMute = 0;
+			_pendingRadarRange = 0; _pendingRadarOrientation = 0; _pendingRadarPalette = 0;
+			_pendingRadarEbl = 0; _pendingRadarVrm = 0; _pendingRadarGain = 0; _pendingRadarSea = 0;
+		}
+
 		private static VisualElement Host(string name, Rect placement)
 		{
 			var host = new VisualElement { name = name };
@@ -679,7 +738,8 @@ namespace FerrySim.Harbor
 
 		private void OnDestroy()
 		{
-			_alarmInput.Dispose();
+			_alarmInput.Dispose(); _portInput.Dispose(); _starboardInput.Dispose();
+			if (_textEntry != null) _textEntry.Changed -= TextEntryChanged;
 			ReleaseScreens();
 			if (_followedView != null)
 			{

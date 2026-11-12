@@ -224,7 +224,7 @@ namespace FerrySim.Harbor
 			Water.Bind(service);
 			RebuildPatches(service);
 			// A hidden radar does not Update. Rebind its run now so it cannot retain retired traffic packs.
-			if (Displays != null && Displays.Connected) Displays.Radar.Refresh();
+			Displays?.RebindRadars();
 			RunsBound++;
 		}
 
