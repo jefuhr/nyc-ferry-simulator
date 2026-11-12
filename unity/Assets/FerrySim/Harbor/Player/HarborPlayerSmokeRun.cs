@@ -52,6 +52,9 @@ namespace FerrySim.Harbor.Player
 				var options = PlayerSmokeOptions.Parse(System.Environment.GetCommandLineArgs());
 				if (options == null) return;
 				Application.runInBackground = true;
+				// Pace by the clock, not the display: behind a locked or sleeping screen the display link never ticks,
+				// and a player waiting for vertical sync stops for good. 60 Hz keeps the run as it was on a live display.
+				QualitySettings.vSyncCount = 0; Application.targetFrameRate = 60;
 				var host = new GameObject("Harbor player smoke run");
 				DontDestroyOnLoad(host);
 				var run = host.AddComponent<HarborPlayerSmokeRun>();

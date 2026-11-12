@@ -118,6 +118,9 @@ namespace FerrySim.Slice
 
 			// A window started from a script may never get focus, and an unfocused player otherwise stops updating.
 			Application.runInBackground = true;
+			// Pace by the clock, not the display: behind a locked or sleeping screen the display link never ticks,
+			// and a player waiting for vertical sync stops for good. 60 Hz keeps the run as it was on a live display.
+			QualitySettings.vSyncCount = 0; Application.targetFrameRate = 60;
 			var host = new GameObject("FerrySim player smoke run");
 			DontDestroyOnLoad(host);
 			host.AddComponent<PlayerSmokeRun>().Configure(options, Application.Quit, requirePackagedData: true);
