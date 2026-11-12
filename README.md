@@ -47,15 +47,21 @@ The harbor scene reads `data/processed/harbor/`, which is not in git. Build it w
 | W / S | both levers ahead / astern, one step |
 | Q / A, E / D | port, starboard lever ahead / astern |
 | ← / → | helm; M centres it |
+| F6 / F7 | jog lever to port / starboard while held (also numpad 4 / 6); overrides the tiller |
 | H | horn (hold) |
 | F1 / F2 / F3 | free-fly, chase, wheelhouse camera; C cycles |
-| B | bow view in the wheelhouse; Shift+B automatic bow view |
-| 1 / 2 | chartplotter / radar (wheelhouse view) |
+| B | bow view in the wheelhouse; F4 automatic bow view |
+| F5 | lean in to the next console screen |
+| 1 / 2 | chartplotter / radar pop-out (wheelhouse view) |
+| `/`, `\`, F9 | alarm acknowledge, alarm silence, lamp test (hold) |
 | N | scenario picker |
 | P | pause; hold R for 1 s to reset the run |
 | V | mute audio |
+| F10 | options: controls, HUD, display and units, audio |
+| F8 | HUD edit mode |
+| ` | hold to show each control's key above it in the wheelhouse |
 
-Gamepad and joystick bindings, and the chartplotter and radar keys, are in [unity/Assets/FerrySim/Input/README.md](unity/Assets/FerrySim/Input/README.md).
+These are the defaults: every key and button can be changed in the options menu. Gamepad and joystick bindings, and the chartplotter and radar keys, are in [unity/Assets/FerrySim/Input/README.md](unity/Assets/FerrySim/Input/README.md).
 
 ## Checks
 
@@ -71,17 +77,20 @@ Releases are a universal macOS app and a Windows x64 player, published as prerel
 
 The current release covers the whole New York Harbor from the Upper Bay up the East River to Astoria and Soundview, with 24 landings (every route stop except Rockaway). It has:
 - the T-class and K-class on the twin-screw dynamics, with the crew-reported 20° rudder and turning circle;
-- T-class and K-class models measured from builder drawings and crew photos, with a wheelhouse console whose levers follow the controls;
+- T-class and K-class models measured from builder drawings and crew photos, with a wheelhouse console whose levers, jog levers, rudder indicators and lamps follow the simulation;
+- live console screens: radar, a chartplotter with a 2-minute heading line, an engine monitor per engine and an alarm panel;
+- an options menu, rebindable keys and buttons, and a HUD that can be rearranged and saved;
 - engine, clutch, propeller and water sound from crew recordings;
-- landing barges, fenders, canopies, gangways and piles at every landing, rising and falling with the tide;
+- landing barges placed from crew-reported slip positions, with fenders, canopies, gangways and piles at every landing, rising and falling with the tide;
 - real tide, currents (the station blend), wind and depth for 28 days, with the matching real AIS traffic;
 - streamed terrain and an LoD1 skyline, night lights and fog;
-- radar and a chartplotter;
 - landing contact physics, record and replay, and end-to-end journey tests.
 
 Not done yet:
 - crew calibration of most handling parameters (most are still estimated);
-- three landing faces that wait for crew confirmation (St. George, East 90th St, Sunset Park/BAT);
+- three landing faces that wait for crew confirmation (St. George, East 90th St, Sunset Park/BAT), and the Dumbo barge, which keeps its earlier position until crew confirm the landed heading;
+- new boat exteriors and per-landing gangways, piles and canopies, which wait for walk-around footage;
+- the real screens' layouts and readings (the engine and alarm displays are look-alikes built from published engine data);
 - Rockaway, waves and wakes;
 - VHF, and the horn, wind, mid-rpm engine and harbor sounds (still generated placeholders);
 - crew measurements of the K-class deck heights and the helm eye heights, which are estimated;
