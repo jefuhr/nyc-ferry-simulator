@@ -94,16 +94,19 @@ def test_changed_berth_counts_are_not_the_assessed_output(bundle):
 
 
 def test_matrix_hashes_the_exact_vessel_snapshots_it_loaded(tmp_path, monkeypatch):
-	contacts = tmp_path / 'contacts.json'
+	(tmp_path / 'unity').mkdir()
+	(tmp_path / 'runtime').mkdir()
+	contacts = tmp_path / 'unity/contacts.json'
 	contacts.write_text('[]')
+	(tmp_path / 'runtime/landings.json').write_text(json.dumps({'stops': [{'berths': [{}, {}]}]}))
 	monkeypatch.setattr(matrix.pack, 'verify', lambda _: None)
 	monkeypatch.setattr(matrix.pack, 'load_depth', lambda _: SimpleNamespace(digest='a' * 64))
 	monkeypatch.setattr(matrix.pack, 'read_digest', lambda _: 'd' * 64)
 	monkeypatch.setattr(matrix.series, 'DAYS', ('2025-07-16',))
 	monkeypatch.setattr(matrix.a, 'load_levels', lambda _: od.DayLevels([od.Gauge('g', 0, 0, [0, 90000], [0, 0])], (0, 90000)))
-	monkeypatch.setattr(matrix, 'catalogue', lambda _: [dict(stop_id=str(i), stop_name=str(i), berth_id=str(i),
+	monkeypatch.setattr(matrix, 'catalogue', lambda _, runtime=None: [dict(stop_id=str(i), stop_name=str(i), berth_id=str(i),
 		berth_name='Main', eligible=False, selected_segment_ids=[], mid=np.array([0., 0.]),
-		normal=np.array([0., 1.])) for i in range(26)])
+		normal=np.array([0., 1.])) for i in range(2)])
 	out = tmp_path / 'matrix'
 	matrix.build(contacts, tmp_path / 'env', out)
 	p = json.loads((out / 'provenance.json').read_text())

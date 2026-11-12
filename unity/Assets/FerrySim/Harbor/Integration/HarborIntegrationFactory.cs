@@ -93,7 +93,7 @@ namespace FerrySim.Harbor
 			packs.BindHarborRuntime(runtimeFolder, pack, landings.Geometry);
 			var launcher = new HarborLauncher(runner, runtimeFolder, landings, surfaces);
 			var catalog = new HarborScenarioCatalog(landings, LoadVessels(), packs, trafficPacks: runner.TrafficPacks, marks: audit.Marks, launcher: launcher,
-				depths: new SharedDepthEnvironments(packs));
+				depths: new SharedDepthEnvironments(packs), runtimeStops: pack.Stops);
 			var harborFolder = Path.GetDirectoryName(runtimeFolder) ?? runtimeFolder;
 			var indexFile = Path.Combine(harborFolder, "index.json");
 			_services = new HarborIntegrationServices(context, pack, landings, catalog, launcher, new HarborWaterForwarder(new HarborDatum(pack.Geoid)), waterMaterial, indexFile);

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using FerrySim.Core.World;
 using System.Runtime.CompilerServices;
 using FerrySim.Core.Contracts;
 using FerrySim.Core.Env;
@@ -55,6 +57,7 @@ namespace FerrySim.Harbor
 		public const string NoLauncher = "No harbor run can start yet: the harbor runner is not connected.";
 
 		private readonly LandingGeometry _landings;
+		private readonly IReadOnlyList<HarborStop> _runtimeStops;
 		private readonly EnvironmentPacks _packs;
 		private readonly TrafficPacks _trafficPacks;
 		private readonly IStartDepthEnvironments _depths;
@@ -79,9 +82,10 @@ namespace FerrySim.Harbor
 		/// <param name="depths">Where the depth preview gets a day's environment; null loads the pack through <paramref name="packs"/>.</param>
 		public HarborScenarioCatalog(LandingGeometry landings, IReadOnlyList<KeyValuePair<string, VesselParameters>> vessels, EnvironmentPacks packs,
 			string landingError = null, TrafficPacks trafficPacks = null, IReadOnlyList<HarborBerthMark> marks = null, IScenarioLauncher launcher = null,
-			IStartDepthEnvironments depths = null)
+			IStartDepthEnvironments depths = null, IReadOnlyList<HarborStop> runtimeStops = null)
 		{
 			_landings = landings;
+			_runtimeStops = runtimeStops;
 			_packs = packs ?? throw new ArgumentNullException(nameof(packs));
 			_trafficPacks = trafficPacks ?? ScenarioTraffic.DefaultPacks;
 			_depths = depths ?? new PackDepthEnvironments(_packs);
@@ -299,9 +303,22 @@ namespace FerrySim.Harbor
 			foreach (var stop in stops)
 			{
 				var entry = new LandingEntry(stop, names[stop], _landings.Berths(stop));
+				var exported = _runtimeStops?.SingleOrDefault(s => s.Id == stop);
+				if (_runtimeStops != null && (exported == null || exported.Berths.Count != entry.LandingBerths.Count))
+					throw new InvalidOperationException($"stop {stop}: runtime and contact face counts differ");
 				foreach (var berth in entry.LandingBerths)
 				{
-					entry.Berths.Add(Describe(stop, berth, marks));
+					var displayName = berth.Name;
+					if (exported != null)
+					{
+						var source = exported.Berths[berth.Order];
+						var ids = source.Record["berth_face_segment_ids"].Items;
+						if (source.Record["berth_order"].Number != berth.Order || ids == null ||
+							!ids.Select(i => i.Number).SequenceEqual(berth.SegmentIds.Select(i => (double?)i)))
+							throw new InvalidOperationException($"stop {stop} face {berth.Order}: runtime and contact segments differ");
+						displayName = source.Record["alias"].Text ?? source.Name;
+					}
+					entry.Berths.Add(Describe(stop, berth, marks, displayName));
 				}
 
 				if (entry.Berths.Count == 0)
@@ -321,7 +338,7 @@ namespace FerrySim.Harbor
 		}
 
 		/// <summary>A berth's face, its note and its refusal: the face's evidence when it can start, else why it cannot, then the audit's marks.</summary>
-		private BerthEntry Describe(string stop, LandingBerth berth, IReadOnlyList<HarborBerthMark> marks)
+		private BerthEntry Describe(string stop, LandingBerth berth, IReadOnlyList<HarborBerthMark> marks, string displayName)
 		{
 			LandingFace face = null;
 			string note;
@@ -347,7 +364,7 @@ namespace FerrySim.Harbor
 				if (mark.Refusal != null) refusal = mark.Refusal;
 			}
 
-			return new BerthEntry(berth.Id, berth.Name, refusal == null ? face : null, note, refusal);
+			return new BerthEntry(berth.Id, displayName, refusal == null ? face : null, note, refusal);
 		}
 
 		/// <summary>What a startable face is and who vouches for its landing side, for the picker: short, beside the name.</summary>

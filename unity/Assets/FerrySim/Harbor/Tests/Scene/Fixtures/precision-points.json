@@ -1,6 +1,6 @@
 {
 	"source": "data/processed/harbor/index.json",
-	"sha256": "4ddd102b4cdc3caf2f66f6b930fcb7739f31aa8d125864edf1ca9a840e0b4093",
+	"sha256": "cc71928b070891057c07008700d117110a4ab228bdb4a130637c1ca4c3c55abc",
 	"purpose": "Rendering precision only. Synthetic water; these are not start approvals or survey accuracy. Extent corners are the bounding rectangle of the active 4 km grid.",
 	"points": [
 		{

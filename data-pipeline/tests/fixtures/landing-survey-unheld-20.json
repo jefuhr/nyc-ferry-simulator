@@ -1,0 +1,62 @@
+{
+	"barges": [
+		{
+			"berth_id": "derived-barge:20:02262FAC44F71C82",
+			"centre": {
+				"value": [
+					40.70375,
+					-73.99555556
+				],
+				"unit": "deg",
+				"source": "crew-reported: project crew reviewer, slip positions 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low"
+			},
+			"heading": {
+				"value": 179.987319,
+				"unit": "deg",
+				"source": "crew-reported: project crew reviewer, slip positions 2026-11",
+				"method": "simulator-estimate",
+				"confidence": "low"
+			},
+			"length": {
+				"value": 27.432,
+				"unit": "m",
+				"source": "Published landing engineering L04, docs/research/routes-and-landings.md",
+				"method": "known-dimension",
+				"confidence": "low"
+			},
+			"width": {
+				"value": 10.668,
+				"unit": "m",
+				"source": "Published landing engineering L04, docs/research/routes-and-landings.md",
+				"method": "known-dimension",
+				"confidence": "low"
+			},
+			"berths": [
+				{
+					"name": "Slip 1",
+					"face_bearing": {
+						"value": 179.987319,
+						"unit": "deg",
+						"source": "crew-reported: project crew reviewer, slip positions 2026-11",
+						"method": "simulator-estimate",
+						"confidence": "low"
+					}
+				},
+				{
+					"name": "Slip 2",
+					"face_bearing": {
+						"value": 359.987319,
+						"unit": "deg",
+						"source": "crew-reported: project crew reviewer, slip positions 2026-11",
+						"method": "simulator-estimate",
+						"confidence": "low"
+					}
+				}
+			],
+			"notes": "GPS pair direction; layout chosen nearest baseline among feasible hypotheses; landed heading unknown. Calibrated mean antenna-to-face proxy 6.435540 m; GPS allowance 5 m. Published 90 by 35 ft size assumed."
+		}
+	],
+	"notes": "LND-01 landed headings and antenna offsets; LND-08 face/slip names; LND-03 to LND-05 layout photos and dimensions remain needed."
+}

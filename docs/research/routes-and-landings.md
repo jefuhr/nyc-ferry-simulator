@@ -49,3 +49,49 @@ Selection: the 25 stop IDs used in the original landing table. Fields below are 
 - **L07** — Professional Mariner describes bow loading and a push-up passenger exchange during its Owls Head reporting. [pm](https://professionalmariner.com/new-nyc-ferries-get-up-and-go-to-meet-surging-demand/) · confidence: medium.
 
 Do not turn the impact design value into an approach-speed target or a physics acceptance band. Leave per-stop berth counts, universal bow pockets, ramp placement between push-knees, line handling, holding thrust and dwell durations unverified.
+
+## November 2026 crew GPS constrained landing estimates
+
+The committed `crew-slip-positions.json` records vessel GPS fixes while landed,
+not surveyed barge corners or ramps. No fix includes a landed heading or measured
+antenna-to-bow offset. `ferrydata.survey_fit` reproducibly calibrates against cached
+NOAA ENC polygons and generates `landing-survey.json`; the method and commands are
+in the [pipeline README](../../data-pipeline/README.md#crew-gps-fitting-november-2026).
+
+Nine charted stops supply 24 accepted point-to-edge distances: mean 6.435540 m,
+median 5.399238 m, standard deviation 3.294359 m and range 2.122182–15.956973 m.
+The mean is an estimated antenna-to-face proxy, not a universal equipment offset.
+Governors Island, the tenth charted stop, has no fixes and remains unchanged.
+Charted outlines are preserved; derived outlines use same-face/opposite-end
+hypotheses, the published L04 size and a disclosed 5 m GPS allowance. Ambiguous
+layouts retain alternatives and select the feasible pose closest to the existing
+geometry. All fitted poses are low confidence. Brooklyn Navy Yard and Battery
+Park City cannot fit the assumed size within that model. No unique single-face
+subset is established, so both stops are omitted from the survey and retain their
+existing geometry. All eight fixes remain diagnostic evidence; LND-03–LND-05 must
+establish the number of pontoons and slip grouping. No larger barge is invented.
+
+The review artifacts contain all 24 overlays, before/after positions and angles,
+per-slip along/off-face measurements, and chart leave-one-stop-out fits. The latter
+use calibration excluding the checked stop and a shoreline/GTFS-derived prior,
+not the hidden chart polygon's pose. Their errors measure this particular estimator
+and expose poor fits at complex terminals; they do not validate all derived stops.
+
+C8 v0.5 provides one selectable berth per physical edge. Slips sharing an edge
+therefore contribute to one fit and one joined crew alias in along-face order.
+Pier 11 keeps the three existing selectable faces, with A/C/D pontoon associations
+only; D's nearest-edge disagreement is unresolved. B1/B2 remain unassigned and E1
+is nearest to excluded `enc:02260848030BB198`, conflicting with the older non-ferry
+classification. The cached polygon inventory does not establish the prompt's
+five-pontoon arrangement; LND-08 must map A–E to pontoons and faces. No unsupported
+pontoon or landed heading has been invented.
+
+The next decisive evidence is LND-01 (landed heading and antenna-to-bow distance
+for each fix), LND-08 (slip-to-face names), and LND-03–LND-05 (orthogonal arrangement
+views and dimensions). Per-slip ramp positions need a future C8 along-face position
+and corresponding runtime/Unity support; this survey does not change that contract.
+
+Dumbo (20) is held at its shipped geometry for v0.5 through
+`data/manifests/landing-survey-holds.json`: the low-confidence GPS fit conflicts
+with the chart side and refuses all 700 depth samples for each hull (previously
+700 accepted). A landed heading, footage or crew confirmation of Slip 1 is needed.

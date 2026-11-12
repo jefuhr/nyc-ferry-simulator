@@ -1,0 +1,51 @@
+{
+	"schema_version": 1,
+	"stops": [
+		{
+			"stop_id": "20",
+			"date": "2026-11-11",
+			"reason": "The low-confidence fit puts Slip 1 on the shore side of its anchor and turns a berth accepted at all 700 sampled tides into one refused at all 700 for both hulls; retain shipped geometry pending independent landed-heading or face-use evidence.",
+			"hulls": [
+				{
+					"hull": "t-class",
+					"before": {
+						"accepted": 700,
+						"samples": 700,
+						"worst_ukc_m": 6.844573937704949,
+						"best_ukc_m": 9.07053616270422
+					},
+					"after": {
+						"accepted": 0,
+						"samples": 700,
+						"worst_ukc_m": -2.340124403423903,
+						"best_ukc_m": -0.11444544816198099
+					}
+				},
+				{
+					"hull": "k-class",
+					"before": {
+						"accepted": 700,
+						"samples": 700,
+						"worst_ukc_m": 7.142757651298433,
+						"best_ukc_m": 9.36871855043076
+					},
+					"after": {
+						"accepted": 0,
+						"samples": 700,
+						"worst_ukc_m": -2.3554047705659498,
+						"best_ukc_m": -0.1297137996466109
+					}
+				}
+			],
+			"chart": {
+				"face_outward_from_anchor_m": -9.873783345643533,
+				"outside_line_offset_m": 0.5,
+				"outside_line_charted_water": true,
+				"probe_offset_m": 12,
+				"probe_charted_water": false,
+				"assigned_slip": "Slip 1",
+				"slip_outward_distance_m": 1.7074823410700868
+			}
+		}
+	]
+}

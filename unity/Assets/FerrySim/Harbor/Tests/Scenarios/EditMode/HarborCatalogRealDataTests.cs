@@ -41,7 +41,8 @@ namespace FerrySim.Harbor.Tests
 		}
 
 		private static HarborScenarioCatalog Catalog() =>
-			new HarborScenarioCatalog(LandingGeometry.Load(HarborTestData.RealContactsPath, HarborTestData.SurfacesPath), HarborTestData.Vessels(), RepositoryPacks, trafficPacks: RepositoryTraffic);
+			new HarborScenarioCatalog(LandingGeometry.Load(HarborTestData.RealContactsPath, HarborTestData.SurfacesPath), HarborTestData.Vessels(), RepositoryPacks, trafficPacks: RepositoryTraffic,
+				runtimeStops: HarborRuntimePackJson.Load(Path.Combine(HarborTestData.RepoRoot, "data/processed/harbor/runtime")).Stops);
 
 		[Test]
 		public void All24Landings_InStopIdOrder_WithTheThreeCrewFacesListedButRefused()
@@ -70,18 +71,20 @@ namespace FerrySim.Harbor.Tests
 		}
 
 		[Test]
-		public void TheBerths_AreTheExportersTwentySix_InSourceOrder()
+		public void TheBerths_AreTheExportersThirtyFive_InSourceOrder()
 		{
 			RequireData();
 			var catalog = Catalog();
-			Assert.That(catalog.Landings.Sum(l => l.Berths.Count), Is.EqualTo(26));
+			Assert.That(catalog.Landings.Sum(l => l.Berths.Count), Is.EqualTo(35));
 			var pier11 = catalog.Landings.Single(l => l.StopId == "87");
 			Assert.That(pier11.Berths.Select(b => b.Id), Is.EqualTo(new[] { "enc:02261FA117EFB198", "enc:0226111D16AAB198", "enc:0226015B0512B198" }));
-			Assert.That(pier11.Berths.Select(b => b.Name), Is.EqualTo(new[] { "Outer pontoon (east)", "North pontoon", "South pontoon" }));
+			Assert.That(pier11.Berths.Select(b => b.Name), Is.EqualTo(new[] { "Slip C1 / Slip C2", "Slip A1 / Slip A2", "Slip D1 / Slip D2" }));
 			Assert.That(pier11.Berths.Select(b => b.Note), Is.All.Contains("crew note pier11-ramped-berths-2026-10-25"));
+			var runtime = HarborRuntimePackJson.Load(Path.Combine(HarborTestData.RepoRoot, "data/processed/harbor/runtime"));
 			foreach (var landing in catalog.Landings.Where(l => l.StopId != "87"))
 			{
-				Assert.That(landing.Berths.Select(b => b.Name), Is.EqualTo(new[] { "Main berth" }), landing.Name);
+				var source = runtime.Stops.Single(s => s.Id == landing.StopId);
+				Assert.That(landing.Berths.Select(b => b.Name), Is.EqualTo(source.Berths.Select(b => b.Record["alias"].Text ?? b.Name)), landing.Name);
 			}
 		}
 
@@ -164,7 +167,7 @@ namespace FerrySim.Harbor.Tests
 				? $"No start overlaps a barge side or end, a pier, a bulkhead or a shoreline, or lies within {FaceClearance.MinimumMetres:F1} m of any kept segment."
 				: "Starts inside the clearance:\n" + string.Join("\n", refused));
 			File.WriteAllText(Path.Combine(HarborTestData.ArtifactFolder("scenario-catalog"), "start-clearances.txt"), string.Join("\n", report) + "\n");
-			Assert.That(starts, Is.EqualTo(2 * (26 - CrewFaces.Length)), "both hulls at each of the 23 startable berths");
+			Assert.That(starts, Is.EqualTo(2 * (35 - CrewFaces.Length)), "both hulls at each of the 32 startable faces");
 			Assert.That(refused, Is.Empty, string.Join("\n", refused));
 		}
 
@@ -259,7 +262,7 @@ namespace FerrySim.Harbor.Tests
 			File.WriteAllText(Path.Combine(folder, "preview-timing.txt"), string.Format(CultureInfo.InvariantCulture,
 				"{0} rows. First preview of a day (loads and verifies the day's pack and the harbor depth set), ms: {1}. Warm preview ms: p50 {2:F3}, p95 {3:F3}, max {4:F3}.\n",
 				rows, string.Join(", ", cold.Select(t => t.ToString("F0", CultureInfo.InvariantCulture))), warm[warm.Count / 2], warm[(int)(warm.Count * 0.95)], warm.Last()));
-			Assert.That(rows, Is.EqualTo(26 * 2 * 4 * 6));
+			Assert.That(rows, Is.EqualTo(35 * 2 * 4 * 6));
 			Assert.That(warm[(int)(warm.Count * 0.95)], Is.LessThan(250.0), "a warm preview must not stall the picker");
 		}
 

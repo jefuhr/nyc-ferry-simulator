@@ -1,4 +1,4 @@
-"""Full 26-berth x 2-hull x 28-day x 25-time start assessment from current harbor contacts.
+"""Every runtime berthing face x 2-hull x 28-day x 25-time start assessment.
 
 Poses use LandingApproach.BowOn's 4 m bow clearance; contacts use the production
 Python landing gate. The low-water time is the exact minimum of the piecewise-linear
@@ -18,16 +18,36 @@ from ferrydata.environment import pack, series
 from ferrydata.harbor_landings import assessment as a, faces
 
 
-def catalogue(contacts, notes=None):
+def catalogue(contacts, notes=None, runtime=None):
 	notes = faces.load_notes() if notes is None else notes
 	groups = {}
 	for r in contacts:
 		if r.get('berth_face'):
-			groups.setdefault((r['stop_id'], r['berth_id']), []).append(r)
+			groups.setdefault((r['stop_id'], r['berth_id'], r.get('berth_order', 0)), []).append(r)
+	metadata = {}
+	if runtime is not None:
+		for stop in runtime['stops']:
+			for face in stop['berths']:
+				key = (stop['stop_id'], face['berth_id'], face['berth_order'])
+				if key in metadata:
+					raise ValueError(f'duplicate runtime face {key}')
+				metadata[key] = face
+		if metadata.keys() != groups.keys():
+			raise ValueError('runtime and contact selectable faces differ')
+		keys = list(metadata)
+	else:
+		keys = sorted(groups, key=lambda key: (key[0], key[2]))
 	result = []
-	for (stop, berth), records in groups.items():
+	seen = set()
+	for stop, berth, order in keys:
+		records = groups[(stop, berth, order)]
 		ids = records[0].get('berth_face_segment_ids', [r['id'] for r in records])
+		face = metadata.get((stop, berth, order))
+		if face is not None and face['berth_face_segment_ids'] != ids:
+			raise ValueError(f'runtime and contact face segments differ at {stop}/{berth}/{order}')
 		lookup = {r['id']: r for r in records}
+		if len(set(ids)) != len(ids) or set(ids) != lookup.keys():
+			raise ValueError(f'face segment IDs must name every subdivision exactly once at {stop}/{berth}/{order}')
 		ordered = [lookup[i] for i in ids]
 		production = all(export_unity.landing_gate(r)[0] == 'kept' for r in ordered)
 		eligible = faces.face_eligible(stop, berth, ordered, notes, production)
@@ -41,8 +61,18 @@ def catalogue(contacts, notes=None):
 		straight = math.cos(math.radians(1.))
 		if any(np.dot((np.array(r['end_ne_m']) - r['start_ne_m']) / math.dist(r['start_ne_m'], r['end_ne_m']), along) < straight for r in ordered):
 			eligible = False
-		result.append(dict(stop_id=stop, stop_name=records[0]['stop_name'], berth_id=berth,
-			berth_name=records[0].get('berth_name', 'Main berth'), eligible=eligible,
+		identity = berth if (stop, berth) not in seen else f'berth:{stop}:{berth}:{order}'
+		# Adoption compatibility: the sole shipped stop-17 ID belongs to Slip B2,
+		# identified by its unchanged face segments, even after the default changes.
+		if stop == '17':
+			identity = ('enc:02261ACE4C291C82' if berth == 'enc:02261ACE4C291C82'
+				and ids == [1238696637, 926901007] else f'berth:{stop}:{berth}:{order}')
+		seen.add((stop, berth))
+		name = records[0].get('berth_name', 'Main berth')
+		if face is not None:
+			name = face.get('alias', face['berth_name'])
+		result.append(dict(stop_id=stop, stop_name=records[0]['stop_name'], berth_id=identity,
+			berth_name=name, eligible=eligible,
 			mid=(start + end) * .5, normal=normal, selected_segment_ids=ids,
 			geometry_sha256=faces.geometry_digest(ordered)))
 	return result
@@ -71,9 +101,11 @@ def build(contacts_path, env, destination, depth_path=None):
 	depth_path = Path(depth_path or env / 'depth')
 	depth = pack.load_depth(depth_path)
 	contacts = json.loads(Path(contacts_path).read_text(encoding='utf-8'))
-	berths = catalogue(contacts)
-	if len(berths) != 26:
-		raise ValueError(f'expected 26 declared berths, found {len(berths)}')
+	runtime_path = Path(contacts_path).parent.parent / 'runtime/landings.json'
+	runtime = json.loads(runtime_path.read_text(encoding='utf-8'))
+	berths = catalogue(contacts, runtime=runtime)
+	if len(berths) != sum(len(stop['berths']) for stop in runtime['stops']):
+		raise ValueError('runtime and matrix catalogue face counts differ')
 	confirmed_ids = {i for berth in berths if berth['eligible'] for i in berth['selected_segment_ids']}
 	retained = [r for r in contacts if export_unity.landing_gate(r)[0] == 'kept'
 		or (r['id'] in confirmed_ids and export_unity.landing_gate(dict(r, water_side_crew_reported=True))[0] == 'kept')]

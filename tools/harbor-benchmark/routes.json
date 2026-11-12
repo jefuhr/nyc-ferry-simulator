@@ -39,7 +39,7 @@
       "rationale": "Estimated simulation test route only, not navigation advice. Deep-water candidate legs from harbor_transit.plan on adopted floor A, independently corridor-checked. West Roosevelt Island channel for East River journeys; St. George holds off the crew-refused face.",
       "waypoint_provenance": {
         "bridges_file_sha256": "d1c1ab2f7dc9de53f4b146e4cf2fc617e1c7a0c970ecd90700967a1c2dd40295",
-        "contacts_sha256": "0ff8e977a49b72bf77837148067ab25f60a0f154b0855b120caf0e2d050e285e",
+        "contacts_sha256": "41d56580b4f402329133506446325d244ecc873d5e74c5ea6c11aa9b6c48bfe3",
         "depth_digest": "b58ed9ef82109126c6ed6bfc7243754f4c6578fc6b16706efcea77b59aaa9eaa",
         "candidate_bed_below_navd88_m": -4,
         "candidate_clearance_m": 25,
@@ -446,7 +446,7 @@
       "rationale": "Estimated simulation test route only, not navigation advice. Deep-water candidate legs from harbor_transit.plan on adopted floor A, independently corridor-checked. West Roosevelt Island channel for East River journeys; St. George holds off the crew-refused face.",
       "waypoint_provenance": {
         "bridges_file_sha256": "d1c1ab2f7dc9de53f4b146e4cf2fc617e1c7a0c970ecd90700967a1c2dd40295",
-        "contacts_sha256": "0ff8e977a49b72bf77837148067ab25f60a0f154b0855b120caf0e2d050e285e",
+        "contacts_sha256": "41d56580b4f402329133506446325d244ecc873d5e74c5ea6c11aa9b6c48bfe3",
         "depth_digest": "b58ed9ef82109126c6ed6bfc7243754f4c6578fc6b16706efcea77b59aaa9eaa",
         "candidate_bed_below_navd88_m": -4,
         "candidate_clearance_m": 25,
@@ -462,12 +462,12 @@
       "length_m": 11499.28933938071,
       "arrival_face": {
         "middle": [
-          7962.456108727058,
-          6691.79457738872
+          7959.517336974886,
+          6690.11717859641
         ],
         "normal": [
-          -0.9336495809491551,
-          -0.35818774405815057
+          -0.9059629437118528,
+          -0.42335699429790236
         ],
         "segment_ids": [
           523290550
@@ -565,8 +565,8 @@
           13400.0
         ],
         [
-          11444.44341614822,
-          13942.837735575748
+          11446.282022281226,
+          14101.118896031718
         ]
       ],
       "required_spans": [
@@ -1032,7 +1032,7 @@
       "rationale": "Estimated simulation test route only, not navigation advice. Deep-water candidate legs from harbor_transit.plan on adopted floor A, independently corridor-checked. West Roosevelt Island channel for East River journeys; St. George holds off the crew-refused face.",
       "waypoint_provenance": {
         "bridges_file_sha256": "d1c1ab2f7dc9de53f4b146e4cf2fc617e1c7a0c970ecd90700967a1c2dd40295",
-        "contacts_sha256": "0ff8e977a49b72bf77837148067ab25f60a0f154b0855b120caf0e2d050e285e",
+        "contacts_sha256": "41d56580b4f402329133506446325d244ecc873d5e74c5ea6c11aa9b6c48bfe3",
         "depth_digest": "b58ed9ef82109126c6ed6bfc7243754f4c6578fc6b16706efcea77b59aaa9eaa",
         "candidate_bed_below_navd88_m": -4,
         "candidate_clearance_m": 25,
@@ -1040,23 +1040,23 @@
         "start_time": "Astoria 08:33 and Soundview 14:24 local selected to reach low-current arrival windows from the shipped 2025-07-16 station blend; these are test conditions, not navigation advice"
       },
       "corridor": {
-        "samples": 103311,
+        "samples": 104052,
         "missing_examples": [],
         "zero_missing": true,
         "highest_bed_navd88_m": -3.7082782165266255
       },
-      "length_m": 19786.409912471237,
+      "length_m": 19930.00944498679,
       "arrival_face": {
         "middle": [
-          11589.065159204787,
-          14011.281518604452
+          11587.984035347701,
+          14026.818562971168
         ],
         "normal": [
-          -0.9038858941035436,
-          -0.4277736439294007
+          -0.8856375816654652,
+          0.4643770816284397
         ],
         "segment_ids": [
-          1567538817
+          1550761198
         ]
       },
       "estimated_force_limit_n": 414034.7452260116
@@ -1456,7 +1456,7 @@
       "rationale": "Estimated simulation test route only, not navigation advice. Deep-water candidate legs from harbor_transit.plan on adopted floor A, independently corridor-checked. West Roosevelt Island channel for East River journeys; St. George holds off the crew-refused face.",
       "waypoint_provenance": {
         "bridges_file_sha256": "d1c1ab2f7dc9de53f4b146e4cf2fc617e1c7a0c970ecd90700967a1c2dd40295",
-        "contacts_sha256": "0ff8e977a49b72bf77837148067ab25f60a0f154b0855b120caf0e2d050e285e",
+        "contacts_sha256": "41d56580b4f402329133506446325d244ecc873d5e74c5ea6c11aa9b6c48bfe3",
         "depth_digest": "b58ed9ef82109126c6ed6bfc7243754f4c6578fc6b16706efcea77b59aaa9eaa",
         "candidate_bed_below_navd88_m": -4,
         "candidate_clearance_m": 25,
@@ -1877,7 +1877,7 @@
       "rationale": "Estimated simulation test route only, not navigation advice. Deep-water candidate legs from harbor_transit.plan on adopted floor A, independently corridor-checked. West Roosevelt Island channel for East River journeys; St. George holds off the crew-refused face.",
       "waypoint_provenance": {
         "bridges_file_sha256": "d1c1ab2f7dc9de53f4b146e4cf2fc617e1c7a0c970ecd90700967a1c2dd40295",
-        "contacts_sha256": "0ff8e977a49b72bf77837148067ab25f60a0f154b0855b120caf0e2d050e285e",
+        "contacts_sha256": "41d56580b4f402329133506446325d244ecc873d5e74c5ea6c11aa9b6c48bfe3",
         "depth_digest": "b58ed9ef82109126c6ed6bfc7243754f4c6578fc6b16706efcea77b59aaa9eaa",
         "candidate_bed_below_navd88_m": -4,
         "candidate_clearance_m": 25,
@@ -1893,12 +1893,12 @@
       "length_m": 11499.28933938071,
       "arrival_face": {
         "middle": [
-          7962.456108727058,
-          6691.79457738872
+          7959.517336974886,
+          6690.11717859641
         ],
         "normal": [
-          -0.9336495809491551,
-          -0.35818774405815057
+          -0.9059629437118528,
+          -0.42335699429790236
         ],
         "segment_ids": [
           523290550
