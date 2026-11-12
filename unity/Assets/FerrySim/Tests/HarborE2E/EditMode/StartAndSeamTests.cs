@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using FerrySim.Core.Contracts;
 using FerrySim.Core.Env;
 using FerrySim.Core.Serialization;
@@ -20,7 +21,7 @@ namespace FerrySim.HarborE2E.Tests
 		private static string Root => Path.GetFullPath(Path.Combine(Application.dataPath, "../.."));
 		private static string Output => Path.Combine(Root, "artifacts/harbor-e2e/prepared");
 
-		[Test, Explicit("Real catalog, all 26 berths, both hulls, local tide extrema on four representative days")]
+		[Test, Explicit("Real catalog, every catalog berth, both hulls, local tide extrema on four representative days")]
 		public void EveryCatalogChoiceAtRepresentativeLocalTideExtrema()
 		{
 			var packs = new EnvironmentPacks(Path.Combine(Root, "data/processed"));
@@ -66,7 +67,7 @@ namespace FerrySim.HarborE2E.Tests
 			}
 			Directory.CreateDirectory(Output);
 			File.WriteAllText(Path.Combine(Output,"start-extrema.json"),rows.ToString()+"\n");
-			Assert.That(rows.Count, Is.EqualTo(4*26*2*2));
+			Assert.That(rows.Count, Is.EqualTo(4*catalog.Landings.Sum(l => l.Berths.Count)*2*2));
 			Assert.That(invalid, Is.Empty, string.Join("\n",invalid));
 		}
 

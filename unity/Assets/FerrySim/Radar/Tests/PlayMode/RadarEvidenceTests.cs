@@ -148,7 +148,7 @@ namespace FerrySim.Radar.Tests.PlayMode
 
 		[Test] public void KnownPierBridgeBuoyAndTrafficHaveCorrectRangeAndBearing()
 		{
-			// Literal semantic vertices from chart DIGEST 605680cd... and runtime 97d7ef25...
+			// Literal semantic vertices from chart DIGEST 5b1cabb7... and runtime 9eadbf6e...
 			// Pier 11 shore: radar:enc:0226359E630A1C82. Brooklyn span: enc:02260BBCC4881C82.
 			CheckEdge(new RadarSegment(366.70, 721.34, 329.84, 750.97), null, true);
 			CheckEdge(new RadarSegment(792.018, 1405.681, 808.889, 1423.830), 80, false);

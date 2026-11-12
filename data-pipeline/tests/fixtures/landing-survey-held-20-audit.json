@@ -1,0 +1,27 @@
+[
+	{
+		"stop_id": "20",
+		"stop_name": "Dumbo/Fulton Ferry",
+		"berth_id": "derived-barge:20:02262FAC44F71C82",
+		"berth_name": "Main berth",
+		"eligible": true,
+		"hulls": [
+			{
+				"hull": "t-class",
+				"rows": 700,
+				"accepted": 700,
+				"warning": 0,
+				"aground_refusal": 0,
+				"worst_ukc_m": 6.845
+			},
+			{
+				"hull": "k-class",
+				"rows": 700,
+				"accepted": 700,
+				"warning": 0,
+				"aground_refusal": 0,
+				"worst_ukc_m": 7.143
+			}
+		]
+	}
+]

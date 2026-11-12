@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using FerrySim.Core.Contracts.Geodesy;
 using FerrySim.Core.Env;
 using FerrySim.Core.Serialization;
@@ -214,8 +215,8 @@ namespace FerrySim.Harbor.Tests.Integration
 			Assert.That(pack.EnvironmentDepthDigest, Is.EqualTo(first.Depth.Digest), "the runtime export links the adopted depth set");
 			var audit = HarborLandingAudit.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "FerrySim/Harbor/Data/landing-audit.json")), HarborIntegrationFactory.AuditName);
 			Assert.That(audit.DepthDigest, Is.EqualTo(pack.EnvironmentDepthDigest), "the shipped audit was assessed on the adopted depth set");
-			Assert.That(audit.Berths.Count, Is.EqualTo(26));
-			Assert.That(audit.Marks.Count, Is.EqualTo(23));
+			Assert.That(audit.Berths.Count, Is.EqualTo(pack.Stops.Sum(s => s.Berths.Count)));
+			Assert.That(audit.Marks.Count, Is.EqualTo(audit.Berths.Count(b => b.Eligible)));
 			var area = HarborTrafficCoverage.Load(Path.Combine(root, "harbor", "index.json"));
 			Assert.That(area.Contains(351, 748), Is.True, "Pier 11 is covered");
 			Assert.That(area.Contains(2000, 10000), Is.False, "tile_0_2 is not an active tile");

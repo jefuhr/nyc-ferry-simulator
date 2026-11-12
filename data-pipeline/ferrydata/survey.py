@@ -18,6 +18,50 @@ POSE = ('centre', 'heading', 'length', 'width')
 PROVENANCE = ('source', 'method', 'confidence', 'note')
 
 
+def crew_slip_evidence(face, outward_ne, slips):
+	"""The complete assigned GPS set must lie at least one metre outward."""
+	if not slips:
+		return None
+	east, north = face.coords[0]
+	distances = [(s['point_ne_m'][0] - north) * outward_ne[0]
+		+ (s['point_ne_m'][1] - east) * outward_ne[1] for s in slips]
+	if any(not math.isfinite(d) or d < 1. for d in distances):
+		return None
+	return dict(source='crew-reported: project crew reviewer, slip positions 2026-11',
+		slip_names=[s['name'] for s in slips], minimum_signed_distance_m=min(distances))
+
+
+def apply_crew_slip_report(context, properties):
+	"""Support the reviewed survey faces through crew evidence, never chart proof.
+
+	This adoption scope is explicit: other stops keep their previous evidence bytes.
+	The fitted poses reuse these GPS inputs, so their support is not independent.
+	"""
+	if context['stop_id'] not in ('4', '20', '24', '138') or properties['water_side_verified_by_pipeline']:
+		return
+	selected = next((b for b in properties['berths'] if b['order'] == 0), None)
+	if selected is None or not selected.get('alias'):
+		return
+	names = selected['alias'].split(' / ')
+	payload = _read(paths.MANIFEST_DIR / 'crew-slip-positions.json')
+	stop = next((s for s in payload['stops'] if s['stop_id'] == context['stop_id']), None)
+	if stop is None:
+		return
+	by_name = {s['name']: s for s in stop['slips']}
+	if any(name not in by_name for name in names):
+		return
+	slips = [dict(name=name, point_ne_m=local_position(by_name[name]['position'])) for name in names]
+	proof = crew_slip_evidence(context['face'], properties['outward_normal_ne'], slips)
+	if proof is None:
+		return
+	properties['water_side_crew_reported'] = True
+	properties['crew_evidence'] = proof
+	for record in context['records']:
+		if record['on_primary_face']:
+			record['water_side_crew_reported'] = True
+			record['water_side_evidence'] = dict(record['water_side_evidence'], crew_slip_positions=proof)
+
+
 def _read(file):
 	def unique(pairs):
 		result = {}
@@ -302,13 +346,20 @@ def apply_stop(feature, context, stop, shore, water, land):
 			if not geometry_override:
 				p['survey'] = measurement
 				continue
+			# A face-only alias on an unchanged charted crew face must not
+			# replace the established exposed run or lose its crew support.
+			preserve_crew_face = (identifier not in poses and not context['derived']
+				and bool(context['note'] and context['note'].get('water_side_crew_reported'))
+				and context['face'].equals_exact(edge, 1e-8))
 			context.update(barge=polygon, face=edge, structures=obstacles)
 			# A disabled face leaves the existing exposed run intact unless the pose moved.
 			if identifier in poses or selected:
-				context['contact'] = landings.water_facing_outline(polygon, edge, normal, land, obstacles)
+				if not preserve_crew_face:
+					context['contact'] = landings.water_facing_outline(polygon, edge, normal, land, obstacles)
 				contact_geo = geojsonio.make_feature(landings.to_wgs84(context['contact']), {})
 				context['contact_lonlat'] = contact_geo['geometry']['coordinates']
-				context['records'] = landings.contact_segment_evidence(context['contact'], edge, proof, target['anchor'], water, land, obstacles, polygon)
+				context['records'] = landings.contact_segment_evidence(context['contact'], edge, proof, target['anchor'], water, land, obstacles, polygon,
+					crew_reported=preserve_crew_face)
 				for record in context['records']:
 					record['verification'] = landings.segment_verification(record, context['note'])
 			if not selected:
@@ -357,6 +408,7 @@ def apply_stop(feature, context, stop, shore, water, land):
 					water_side_verified_by_pipeline=proof.get('chart_verified', proof['verified']), contact_segment_evidence=context['records'])
 	selections.sort(key=lambda b: b['order'])
 	p['berths'] = selections
+	apply_crew_slip_report(context, p)
 	p['survey_no_berths'] = not selections
 	for meta in metadata.values():
 		meta['survey_no_berths'] = not selections
@@ -376,6 +428,9 @@ def annotate_structures(polylines, context):
 		polygon = context['barge'] if identifier == context['outline_id'] else next(b['polygon'] for b in context['berths'] if f"enc:{b['props']['id']}" == identifier)
 		kinds = landings.outline_side_kinds(polygon)
 		for segment in polyline['segments']:
+			crew_slips = segment.get('water_side_evidence', {}).get('crew_slip_positions')
+			if crew_slips is not None:
+				segment['crew_evidence'] = crew_slips
 			i = segment['index']; a, b = polyline['coords'][i:i+2]
 			segment['kind'] = kinds[frozenset((a, b))]
 			segment.pop('primary_face', None)

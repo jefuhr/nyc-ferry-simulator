@@ -1,4 +1,5 @@
 using System.Linq;
+using System.IO;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
@@ -8,6 +9,31 @@ namespace FerrySim.Slice.Tests
 	// inconsistent berth metadata, or an unknown berth silently selecting the primary face.
 	public class LandingBerthTests
 	{
+		// Regression: several selectable faces on one physical barge must not be merged.
+		[Test]
+		public void SurveyedStop17_ListsEveryFaceSeparately_AndPreservesExistingBargeIds()
+		{
+			var file = Path.Combine(SliceTestData.RepoRoot, "data/processed/harbor/unity/contacts.json");
+			var records = JArray.Parse(File.ReadAllText(file)).OfType<JObject>().Where(r => (string)r["stop_id"] == "17").ToArray();
+			var geometry = Parse(records);
+			var berths = geometry.Berths("17");
+			Assert.That(berths.Select(b => b.Order), Is.EqualTo(new[] { 0, 1, 2, 3 }));
+			Assert.That(berths.Select(b => b.Id), Is.EqualTo(new[] {
+				"berth:17:enc:02261ACE4C291C82:0", "berth:17:enc:02260960FDFF1C82:1",
+				"berth:17:enc:02260960FDFF1C82:2", "enc:02261ACE4C291C82" }));
+			// The saved ID follows the old face (Slip B2), not the new default order.
+			Assert.That(geometry.BerthFace("17", "enc:02261ACE4C291C82").Segments.Select(s => s.Id),
+				Is.EqualTo(new[] { 1238696637, 926901007 }));
+			Assert.That(geometry.BerthFace("17").Segments.Select(s => s.Id),
+				Is.EqualTo(new[] { 910123388, 960456245, 943678626, 859790531 }));
+			foreach (var berth in berths)
+			{
+				var source = records.First(r => (bool?)r["berth_face"] == true && (int)r["berth_order"] == berth.Order);
+				Assert.That(berth.Name, Is.EqualTo((string)source["berth_name"]));
+				Assert.That(berth.SegmentIds, Is.EqualTo(source["berth_face_segment_ids"].Values<int>()));
+			}
+		}
+
 		private static JObject Segment(int id, double start, double end)
 		{
 			var item = SliceTestData.Segment(id, "87", 0, start, 0, end);

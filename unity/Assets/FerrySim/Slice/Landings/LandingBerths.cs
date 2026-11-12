@@ -77,10 +77,10 @@ namespace FerrySim.Slice
 							primary.Select(r => (int)r["id"]).ToArray(), null));
 					}
 				}
-				else foreach (var group in marked.GroupBy(r => (string)r["berth_id"] ?? "stop:" + stop.Key))
+				else foreach (var group in marked.GroupBy(r => new { Id = (string)r["berth_id"] ?? "stop:" + stop.Key, Order = r["berth_order"]?.ToString() }))
 				{
 					var first = group.First();
-					var where = $"stop {stop.Key} berth {group.Key}";
+					var where = $"stop {stop.Key} berth {group.Key.Id} face {group.Key.Order}";
 					var name = OptionalText(first, "berth_name", where, problems, true);
 					var orderToken = first["berth_order"];
 					if (name == null || orderToken?.Type != JTokenType.Integer || !int.TryParse(orderToken.ToString(), out var order) || order < 0 ||
@@ -98,7 +98,15 @@ namespace FerrySim.Slice
 							problems.Add(where + ": inconsistent berth metadata");
 						if (((bool?)item["primary_face"] == true) != (order == 0)) problems.Add(where + ": primary_face must mark exactly the default berth");
 					}
-					list.Add(new LandingBerth(group.Key, name, order, identifiers, OptionalText(first, "berth_use_crew_note", where, problems, true)));
+					var firstOrder = marked.Where(r => ((string)r["berth_id"] ?? "stop:" + stop.Key) == group.Key.Id && r["berth_order"]?.Type == JTokenType.Integer)
+						.Min(r => (int)r["berth_order"]);
+					var identity = order == firstOrder ? group.Key.Id : $"berth:{stop.Key}:{group.Key.Id}:{order}";
+					// The shipped stop-17 ID follows its unchanged face (now Slip B2), not the new default.
+					// The other three faces are new selections and use the runtime pack's face IDs.
+					if (stop.Key == "17")
+						identity = group.Key.Id == "enc:02261ACE4C291C82" && identifiers.SequenceEqual(new[] { 1238696637, 926901007 })
+							? group.Key.Id : $"berth:{stop.Key}:{group.Key.Id}:{order}";
+					list.Add(new LandingBerth(identity, name, order, identifiers, OptionalText(first, "berth_use_crew_note", where, problems, true)));
 				}
 				if (marked.Count > 0 && stop.Any(r => (bool?)r["primary_face"] == true && !marked.Contains(r)))
 					problems.Add($"stop {stop.Key}: default berth has an unmarked primary subdivision");

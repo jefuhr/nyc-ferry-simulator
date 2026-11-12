@@ -41,7 +41,7 @@ verified 5 m depth set and every lowered cell within 50 m of a charted hazard.
 Raster overlap duplicates are compared and counted once in the headline cell count;
 the hazard CSV retains tile row/column identities and may include overlap duplicates.
 
-The 26 declared berths remain in source order, with both hulls, all 28 days, 24 hourly
+Every selectable berthing face remains in runtime pack order, with both hulls, all 28 days, 24 hourly
 samples and a low-water sample over [0, 86340] seconds at all gauge breakpoints. Poses
 follow production `LandingApproach.BowOn`, with 4 m bow clearance; full contact outlines
 follow `FaceClearance.WorldOutline`. The minimum uses the quarter-metre world lattice,
@@ -51,6 +51,8 @@ fallback flag. Negative UKC refuses; [0, 0.3) m warns. Contact/depth failures re
 independent numerical fields. The 20 m outside-depth fallback is never acceptance evidence.
 
 `provenance.json` fingerprints the exact vessel byte snapshots parsed for the assessment, contacts, depth and each day, and binds the emitted `berths.json` with its SHA-256. The Unity landing-audit writer carries that provenance forward and refuses missing provenance, a different adopted depth, changed berth output or changed vessel bytes.
+
+The matrix reads the sibling `runtime/landings.json`, verifies exact selectable-face membership and ordered segment IDs against the contacts, and derives its count from that pack. A physical barge may carry several selectable faces; grouping by physical ID alone would omit faces. Display names use the runtime slip aliases. Existing IDs remain on their existing face, including stop 17's Slip B2 after its default changes to Slip B1.
 
 `matrix.csv` preserves each result. `summary.csv` gives counts, worst UKC and the lowest
 accepted reference-point water level for each berth and hull. A finite-depth start at
