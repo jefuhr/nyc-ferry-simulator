@@ -67,7 +67,12 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 		}
 
 		[UnityTest, Category("HarborRealData")]
-		public IEnumerator SwitchingDays_ReleasesThePreviousSceneRunAndTrafficPack()
+		public IEnumerator SwitchingDays_ReleasesThePreviousSceneRunAndTrafficPack() => ReleasePreviousBundle(false);
+
+		[UnityTest, Category("HarborRealData")]
+		public IEnumerator SwitchingDays_AfterEnablingConsole_ReleasesTheHiddenFlatRadarTraffic() => ReleasePreviousBundle(true);
+
+		private IEnumerator ReleasePreviousBundle(bool enableConsole)
 		{
 			HarborSceneFixture.RequireData();
 			yield return HarborSceneFixture.Load(consoleScreens: false);
@@ -81,6 +86,7 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 				Assert.That(Time.realtimeSinceStartupAsDouble - waited, Is.LessThan(180), "the real displays did not connect");
 				yield return null;
 			}
+			var flatRadar = services.Displays.Radar;
 			services.Displays.Radar.Refresh();
 			Assert.That(services.Displays.Radar.Traffic, Is.SameAs(bootstrap.Runner.Traffic));
 			// The chart too: shown for a frame so its target adapter reads this run's traffic, then hidden before the switch.
@@ -93,10 +99,22 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 			services.Displays.ChartplotterShown = false;
 			services.Displays.Tick();
 			Assert.That(chart.Visible, Is.False);
+			if (enableConsole)
+			{
+				bootstrap.WheelhouseUI.View.Settings.ConsoleScreens = true;
+				services.Displays.Tick();
+				Assert.That(services.Displays.Radar, Is.Not.SameAs(flatRadar));
+			}
+			var uploads = flatRadar.View.Raster.Uploads;
+			var spoke = flatRadar.Engine.LastFirstSpoke;
+			var spokes = flatRadar.Engine.LastSpokeCount;
 			var choice = new ScenarioChoice("87", "2025-07-15", 738, "t-class", traffic: false);
 			Assert.That(services.HarborCatalog.TryCreate(choice, out var settings, out var problem), Is.True, problem);
 			Assert.That(bootstrap.TryStart(settings, out problem), Is.True, problem);
-			Assert.That(services.Displays.Radar.Traffic, Is.Null, "a hidden radar releases the previous run's traffic too");
+			Assert.That(flatRadar.Traffic, Is.Null, "the inactive flat radar releases the previous run's traffic too");
+			Assert.That(flatRadar.View.Raster.Uploads, Is.EqualTo(uploads), "run binding does no hidden upload");
+			Assert.That(flatRadar.Engine.LastFirstSpoke, Is.EqualTo(spoke));
+			Assert.That(flatRadar.Engine.LastSpokeCount, Is.EqualTo(spokes), "run binding does not advance or reset the hidden engine");
 			// Destroyed water patches and traffic hulls finish releasing their old services at the frame boundary.
 			yield return null;
 			yield return null;

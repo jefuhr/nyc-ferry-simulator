@@ -41,6 +41,7 @@ namespace FerrySim.Harbor
 		private bool _dialogsPausedRun;
 		private bool _dialogsOpen;
 		private bool _typing;
+		private HarborTextEntryGate _textEntry;
 		private bool _awaitingInitialView;
 		private bool _openPicker;
 		private bool _subscribed;
@@ -353,7 +354,7 @@ namespace FerrySim.Harbor
 			if (_view == null) return;
 			_view.PickerVisibilityChanged -= ModalChanged;
 			_view.OptionsVisibilityChanged -= ModalChanged;
-			_view.TextEntryChanged -= TextEntryChanged;
+			if (_textEntry != null) _textEntry.Changed -= TextEntryChanged;
 		}
 
 		private void FollowView(WheelhouseView view)
@@ -361,13 +362,17 @@ namespace FerrySim.Harbor
 			if (ReferenceEquals(view, _view)) return;
 			DetachView();
 			_view = view;
+			_textEntry?.Follow(view);
 			_typing = false;
 			_shownMode = (CameraRig.Mode)(-1);
 			if (_view != null)
 			{
 				_view.PickerVisibilityChanged += ModalChanged;
 				_view.OptionsVisibilityChanged += ModalChanged;
-				_view.TextEntryChanged += TextEntryChanged;
+				_textEntry = HarborTextEntryGate.For(wheelhouseUI);
+				_textEntry.Follow(_view);
+				_typing = _textEntry.Held;
+				_textEntry.Changed += TextEntryChanged;
 			}
 			ModalChanged(false);
 		}

@@ -26,6 +26,7 @@ namespace FerrySim.Harbor
 		private InputActionAsset _actions;
 		private InputActionMap _alarms;
 		private bool _typing;
+		private HarborTextEntryGate _textEntry;
 		private bool _volumeOverride;
 		private float _launchVolume;
 		public KeybindPopups Hints { get; private set; }
@@ -70,7 +71,10 @@ namespace FerrySim.Harbor
 				if (view != null)
 				{
 					view.Settings.Changed += SettingsChanged;
-					view.TextEntryChanged += TypingChanged;
+					_textEntry = HarborTextEntryGate.For(_ui);
+					_textEntry.Follow(view);
+					_textEntry.Changed += TypingChanged;
+					TypingChanged(_textEntry.Held);
 					view.ConnectBindings(_bindings);
 					HarborPresentationOptions.Parse(Environment.GetCommandLineArgs()).Apply(view);
 					Hints.AttachTo(_ui.Document);
@@ -98,7 +102,12 @@ namespace FerrySim.Harbor
 			if (allowed != _alarms.enabled) { if (allowed) _alarms.Enable(); else _alarms.Disable(); }
 		}
 
-		private void TypingChanged(bool typing) => _typing = typing;
+		private void TypingChanged(bool typing)
+		{
+			_typing = typing;
+			_rig.SetTextEntryHeld(typing);
+			if (typing) _alarms.Disable();
+		}
 		private void SaveMute(bool muted) { if (_view != null) _view.Settings.Muted = muted; }
 		private void SettingsChanged(SettingsSection section) => ApplySettings();
 		private void ApplySettings()
@@ -118,7 +127,8 @@ namespace FerrySim.Harbor
 		{
 			if (_view == null) return;
 			_view.Settings.Changed -= SettingsChanged;
-			_view.TextEntryChanged -= TypingChanged;
+			if (_textEntry != null) _textEntry.Changed -= TypingChanged;
+			if (_rig != null) _rig.SetTextEntryHeld(false);
 		}
 		private void OnDestroy()
 		{

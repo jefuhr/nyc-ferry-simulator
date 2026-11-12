@@ -22,7 +22,7 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 	/// <summary>
 	/// Visual evidence of the wheelhouse with both displays on the integrated harbor: Pier 11 by day and by night (the
 	/// palettes following the sun), and the Upper Bay with the day's traffic; the Pier 11 day view also at 2560 × 1440.
-	/// Written under artifacts/m3w3c-integration/captures for review; not a performance or installed-player acceptance.
+	/// Written under artifacts/integration-fixes/captures for review; not a performance or installed-player acceptance.
 	/// </summary>
 	public class HarborDisplaysCaptureTests
 	{
@@ -40,7 +40,7 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 		{
 			HarborSceneFixture.RequireData();
 			if (!Directory.Exists(Path.Combine(HarborSceneFixture.Repo, "data", "processed", "harbor", "chart"))) Assert.Ignore("The chart pack is not copied.");
-			_folder = Path.Combine(HarborSceneFixture.Repo, "artifacts/m3w3c-integration/captures");
+			_folder = Path.Combine(HarborSceneFixture.Repo, "artifacts/integration-fixes/captures");
 			Directory.CreateDirectory(_folder);
 			yield return HarborSceneFixture.Load(consoleScreens: false);
 			var bootstrap = HarborSceneFixture.Bootstrap();
@@ -93,7 +93,13 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 			_uiTarget = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
 			_uiTarget.Create();
 			_panel = WheelhousePanelSettings.Create(_uiTarget, Color.clear);
+			// Configure is a setup API that supplies fresh temporary stores unless explicitly given stores.
+			// Keep this capture's flat-display choice and layout while replacing only its render target.
+			var settings = ui.View.Settings;
+			var layouts = ui.View.Layouts;
+			var consoleScreens = settings.ConsoleScreens;
 			ui.enabled = false;
+			ui.ConfigureStores(settings, layouts);
 			ui.Configure(bootstrap.Runner, _panel);
 			ui.enabled = true;
 			ui.DaylightSource = bootstrap.Context.Sun;
@@ -102,6 +108,8 @@ namespace FerrySim.Harbor.Tests.Integration.PlayMode
 			_frameTarget.Create();
 			yield return null;
 			ui.View.PickerVisible = false;
+			Assert.That(ui.View.Settings, Is.SameAs(settings));
+			Assert.That(ui.View.Settings.ConsoleScreens, Is.EqualTo(consoleScreens), "resizing preserves the chosen flat-display presentation");
 			yield return null;
 		}
 
