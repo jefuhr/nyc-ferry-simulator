@@ -398,6 +398,18 @@ namespace FerrySim.Controls
 			}
 			return true;
 		}
+		/// <summary>True when the map may be enabled now; during a rebind capture it is queued to resume with the others.</summary>
+		internal static bool RequestMapEnabled(InputActionMap map)
+		{
+			if (map?.asset == null || !Owners.TryGetValue(map.asset, out var service) || !service._suppressInput) return true;
+			if (!service._captureMaps.Contains(map)) service._captureMaps.Add(map);
+			return false;
+		}
+		/// <summary>Withdraws a map from the set a finished rebind capture would re-enable.</summary>
+		internal static void RequestMapDisabled(InputActionMap map)
+		{
+			if (map?.asset != null && Owners.TryGetValue(map.asset, out var service)) service._captureMaps.Remove(map);
+		}
 		internal static void RequestHelmDisabled(InputActionAsset asset)
 		{
 			if (asset == null || !Owners.TryGetValue(asset, out var service)) return;
@@ -435,13 +447,37 @@ namespace FerrySim.Controls
 	public sealed class CameraActionReader : IDisposable
 	{
 		private readonly InputBindingService _service;
+		private readonly bool _freeFly;
 		public InputActionAsset Actions { get; }
 		public CameraActionReader(bool freeFly = false)
 		{
 			_service = InputBindingService.Instance;
+			_freeFly = freeFly;
 			Actions = _service.CreateInstance();
 			Actions.FindActionMap("Camera", true).Enable();
 			if (freeFly) Actions.FindActionMap("FreeFly", true).Enable();
+		}
+
+		/// <summary>True while this reader's actions are switched off because the player is typing.</summary>
+		public bool Held { get; private set; }
+
+		/// <summary>
+		/// Switches this reader's camera actions off (true) or back on (false). While held every action reads as released,
+		/// so a held look or a pressed key ends. On release a button needs a fresh press: one that went down while held
+		/// is not reported. Bindings and overrides are untouched.
+		/// </summary>
+		public void SetHeld(bool held)
+		{
+			if (held == Held) return;
+			Held = held;
+			Switch(Actions.FindActionMap("Camera", true), !held);
+			if (_freeFly) Switch(Actions.FindActionMap("FreeFly", true), !held);
+		}
+
+		private static void Switch(InputActionMap map, bool on)
+		{
+			if (!on) { InputBindingService.RequestMapDisabled(map); map.Disable(); }
+			else if (InputBindingService.RequestMapEnabled(map)) map.Enable();
 		}
 		public InputAction this[string actionId] => Actions.FindAction(actionId, true);
 		public void Dispose()

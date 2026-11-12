@@ -57,9 +57,15 @@ namespace FerrySim.World
 
 		private CesiumGlobeAnchor Anchor => _anchor != null ? _anchor : _anchor = GetComponent<CesiumGlobeAnchor>();
 
+		private bool _inputHeld;
+
+		/// <summary>Holds or releases this camera's own input (the rig calls it while the player types). Following and easing continue.</summary>
+		public void SetInputHeld(bool held) { _inputHeld = held; _input?.SetHeld(held); }
+
 		private void OnEnable()
 		{
 			_input = new CameraActionReader(true);
+			_input.SetHeld(_inputHeld);
 			InputBindingService.Instance.SetFreeFly(true);
 			var euler = transform.rotation.eulerAngles;
 			_yaw = euler.y;

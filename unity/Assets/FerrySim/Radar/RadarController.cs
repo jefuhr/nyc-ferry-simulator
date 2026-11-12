@@ -61,6 +61,16 @@ namespace FerrySim.Radar
 		/// <summary>The traffic the radar samples now: the runner's current run after a new start or a replay.</summary>
 		public TrafficRun Traffic => _traffic;
 		private void Update() { if (AutomaticRefresh) Refresh(); }
+		/// <summary>
+		/// Replaces the traffic this radar samples, or lets it go (null), without advancing, drawing or uploading anything:
+		/// safe on a radar that is hidden or was never shown. A run boundary calls it on every radar that exists, so a
+		/// hidden one does not keep the previous run's pack alive. The same run again is a no-op.
+		/// </summary>
+		public void RebindTraffic(TrafficRun traffic)
+		{
+			if (ReferenceEquals(traffic, _traffic)) return;
+			BindTraffic(traffic); PresentTargets = 0;
+		}
 		public void Refresh() { AdvanceEngine(); RefreshReadouts(); UploadPicture(); }
 		/// <summary>Advance at the normal frame cadence and accumulate EVERY stepped spoke; never uploads.</summary>
 		public void AdvanceEngine()

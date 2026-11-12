@@ -72,7 +72,12 @@ namespace FerrySim.World
 			return Follow(0f);
 		}
 
-		private void OnEnable() => _input = new CameraActionReader();
+		private bool _inputHeld;
+
+		/// <summary>Holds or releases this camera's own input (the rig calls it while the player types). Following and easing continue.</summary>
+		public void SetInputHeld(bool held) { _inputHeld = held; _input?.SetHeld(held); }
+
+		private void OnEnable() { _input = new CameraActionReader(); _input.SetHeld(_inputHeld); }
 		private void OnDisable() { _input?.Dispose(); _input = null; }
 
 		private void LateUpdate()

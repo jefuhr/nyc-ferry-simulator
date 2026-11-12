@@ -80,10 +80,34 @@ namespace FerrySim.World
 			freeFly = freeFlyController;
 			chase = chaseController;
 			wheelhouse = wheelhouseController;
+			ApplyHold();
 			ApplyMode();
 		}
 
-		private void OnEnable() { _input = new CameraActionReader(); ApplyMode(); }
+		/// <summary>True while camera input is held because the player is typing.</summary>
+		public bool TextEntryHeld { get; private set; }
+
+		/// <summary>
+		/// Holds (true) or releases (false) every camera key, button and axis this rig and its three controllers read,
+		/// rebound ones included: view selection, bow and focus keys, recentre, look, orbit, scroll and free-fly movement.
+		/// The cameras keep following, easing and presenting; nothing about their current view is reset. On release a
+		/// button needs a fresh press. Controllers assigned or enabled while held start held.
+		/// </summary>
+		public void SetTextEntryHeld(bool held)
+		{
+			TextEntryHeld = held;
+			_input?.SetHeld(held);
+			ApplyHold();
+		}
+
+		private void ApplyHold()
+		{
+			if (freeFly != null) freeFly.SetInputHeld(TextEntryHeld);
+			if (chase != null) chase.SetInputHeld(TextEntryHeld);
+			if (wheelhouse != null) wheelhouse.SetInputHeld(TextEntryHeld);
+		}
+
+		private void OnEnable() { _input = new CameraActionReader(); _input.SetHeld(TextEntryHeld); ApplyMode(); }
 		private void OnDisable() { _input?.Dispose(); _input = null; InputBindingService.Instance.SetFreeFly(false); }
 
 		private void Update()

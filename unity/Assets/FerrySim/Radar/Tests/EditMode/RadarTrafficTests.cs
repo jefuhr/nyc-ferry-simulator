@@ -33,6 +33,33 @@ namespace FerrySim.Radar.Tests
 			try { Assert.DoesNotThrow(raster.RefreshAll); }
 			finally { raster.Dispose(); }
 		}
+		// Failure mode: a radar that is hidden while another one presents keeps the previous run's traffic pack alive.
+		[Test] public void RebindTraffic_ReplacesOrReleasesTheRun_WithoutAConnectedView()
+		{
+			var vessel = new TrafficVessel(0, 367000001, "A", 52, TrafficClass.TugTow, 30, 9, 3, 43100, 43300, 2, 1, false, false);
+			var reports = new TrafficReports(new[] { 0, 0 }, new[] { 0, 0 }, new[] { 43100.0, 43300.0 }, new[] { 300.0, 300.0 }, new[] { 0.0, 0.0 },
+				new[] { 0f, 0f }, new[] { 0f, 0f }, new[] { 0f, 0f });
+			var first = new TrafficRun(new TrafficPack("2025-07-14", Epoch, -3600, 90000, new[] { vessel }, reports, string.Empty), Epoch.AddHours(12), TrafficLeaveOut.Off, 0);
+			var second = new TrafficRun(new TrafficPack("2025-07-15", Epoch.AddDays(1), -3600, 90000, new[] { vessel }, reports, string.Empty), Epoch.AddDays(1).AddHours(12), TrafficLeaveOut.Off, 0);
+			var host = new UnityEngine.GameObject("hidden radar");
+			host.SetActive(false);
+			try
+			{
+				var radar = host.AddComponent<RadarController>();
+				// Never connected, never shown: no view and no engine exist, and the call must not need them.
+				radar.RebindTraffic(first);
+				Assert.That(radar.Traffic, Is.SameAs(first));
+				radar.RebindTraffic(second);
+				Assert.That(radar.Traffic, Is.SameAs(second), "the previous run is let go");
+				Assert.That(radar.PresentTargets, Is.Zero, "targets counted for the old run do not carry over");
+				radar.RebindTraffic(second);
+				Assert.That(radar.Traffic, Is.SameAs(second));
+				radar.RebindTraffic(null);
+				Assert.That(radar.Traffic, Is.Null);
+				Assert.That(radar.View, Is.Null, "rebinding builds nothing");
+			}
+			finally { UnityEngine.Object.DestroyImmediate(host); }
+		}
 		private static RadarEngine Sweep(RadarTarget[] targets)
 		{
 			var engine = new RadarEngine(new RadarScene(Array.Empty<RadarFeature>())); var frame = new RadarFrame(0, 0, 0, 0, 9, 8);
